@@ -1,0 +1,79 @@
+# 06 — Feature System
+
+## Feature types
+
+A feature is a semantic object that generates or affects geometry.
+
+Operation categories:
+
+```text
+positive   — adds material
+negative   — removes material
+composite  — adds and removes
+helper     — visible guide/keepout/reference, not exported as solid
+modifier   — changes shape/style of another body/surface
+exportable — produces manufacturing profile or part
+```
+
+## Base feature fields
+
+```json
+{
+  "id": "usb_c_front",
+  "type": "usb_c_cutout",
+  "targetSurface": "main_enclosure.front.outer",
+  "placement": {},
+  "parameters": {},
+  "operation": "negative",
+  "validation": {}
+}
+```
+
+## Feature lifecycle
+
+1. Create semantic feature.
+2. Show ghost preview.
+3. User positions/configures.
+4. Validate semantic constraints.
+5. Generate geometry.
+6. Validate geometry.
+7. Commit undo transaction.
+
+## Feature groups
+
+Repeated elements must be grouped:
+- button group,
+- screw pattern,
+- vent pattern,
+- LED row,
+- magnet set,
+- support rib grid.
+
+Groups store:
+- item prototype,
+- pattern,
+- placement,
+- overrides.
+
+## Detach behavior
+
+User can detach:
+- one item from group,
+- entire group into independent features,
+- generated geometry into advanced editable body.
+
+Detachment must be explicit and warn that parametric group behavior may be lost.
+
+## Validation rules
+
+Each feature should declare validation:
+- required target surface,
+- min/max dimensions,
+- clearance profile,
+- keepout interactions,
+- wall thickness impact,
+- printability warnings.
+
+## UI rule
+
+The inspector should show human controls, not internal fields.

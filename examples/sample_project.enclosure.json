@@ -1,0 +1,81 @@
+{
+  "schema": "abyss-enclosure-project",
+  "version": 1,
+  "units": "mm",
+  "projectName": "Sample Button Board Case",
+  "printerProfile": "fdm_04_normal",
+  "bodies": [
+    {
+      "id": "main_enclosure",
+      "type": "enclosure",
+      "shape": "rounded_box",
+      "size": [
+        120,
+        70,
+        28
+      ],
+      "wallThickness": 2.0,
+      "cornerRadius": 4.0,
+      "lid": {
+        "type": "top_screw_lid",
+        "clearanceProfile": "fdm_normal"
+      }
+    }
+  ],
+  "componentPlacements": [
+    {
+      "id": "button_board_placement",
+      "templateId": "custom_button_board_v1",
+      "position": [
+        0,
+        0,
+        4
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "mountingSide": "bottom_inside",
+      "locked": false
+    }
+  ],
+  "features": [
+    {
+      "id": "abxy_buttons",
+      "type": "button_group",
+      "targetSurface": "top_lid",
+      "source": {
+        "type": "switch_centers",
+        "componentPlacementId": "button_board_placement",
+        "switchIds": [
+          "sw_a",
+          "sw_b",
+          "sw_x",
+          "sw_y"
+        ]
+      },
+      "placement": {
+        "mode": "projected_from_component",
+        "offset": [
+          0,
+          0
+        ],
+        "rotation": 0
+      },
+      "pattern": {
+        "type": "diamond",
+        "count": 4,
+        "spacingX": 14,
+        "spacingY": 14
+      },
+      "button": {
+        "mode": "plunger",
+        "capShape": "round",
+        "diameter": 8.0,
+        "clearanceProfile": "fdm_normal",
+        "travel": 1.2
+      }
+    }
+  ]
+}

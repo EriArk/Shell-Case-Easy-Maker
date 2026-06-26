@@ -1,0 +1,147 @@
+{
+  "schema": "abyss-component-template",
+  "version": 1,
+  "id": "custom_button_board_v1",
+  "name": "Custom Button Board",
+  "units": "mm",
+  "board": {
+    "outline": {
+      "type": "rounded_rectangle",
+      "width": 48,
+      "height": 32,
+      "cornerRadius": 2
+    },
+    "thickness": 1.6,
+    "referencePlane": "bottom"
+  },
+  "mountingHoles": [
+    {
+      "id": "mh1",
+      "position": [
+        -20,
+        -12
+      ],
+      "diameter": 2.2,
+      "screw": "M2"
+    },
+    {
+      "id": "mh2",
+      "position": [
+        20,
+        -12
+      ],
+      "diameter": 2.2,
+      "screw": "M2"
+    },
+    {
+      "id": "mh3",
+      "position": [
+        -20,
+        12
+      ],
+      "diameter": 2.2,
+      "screw": "M2"
+    },
+    {
+      "id": "mh4",
+      "position": [
+        20,
+        12
+      ],
+      "diameter": 2.2,
+      "screw": "M2"
+    }
+  ],
+  "features": [
+    {
+      "id": "usb_c",
+      "type": "usb_c",
+      "position": [
+        0,
+        -16
+      ],
+      "direction": "front",
+      "protrusion": 1.2,
+      "cutout": {
+        "shape": "rounded_rectangle",
+        "width": 10.5,
+        "height": 4.2,
+        "cornerRadius": 1.0,
+        "clearanceProfile": "fdm_normal"
+      },
+      "keepout": {
+        "type": "box",
+        "size": [
+          16,
+          12,
+          8
+        ]
+      }
+    },
+    {
+      "id": "sw_a",
+      "type": "switch",
+      "position": [
+        7,
+        0
+      ],
+      "direction": "top",
+      "actuationHeight": 5.0
+    },
+    {
+      "id": "sw_b",
+      "type": "switch",
+      "position": [
+        0,
+        -7
+      ],
+      "direction": "top",
+      "actuationHeight": 5.0
+    },
+    {
+      "id": "sw_x",
+      "type": "switch",
+      "position": [
+        0,
+        7
+      ],
+      "direction": "top",
+      "actuationHeight": 5.0
+    },
+    {
+      "id": "sw_y",
+      "type": "switch",
+      "position": [
+        -7,
+        0
+      ],
+      "direction": "top",
+      "actuationHeight": 5.0
+    }
+  ],
+  "zones": [
+    {
+      "id": "solder_zone",
+      "type": "forbidden_clamp_zone",
+      "shape": "rectangle",
+      "position": [
+        0,
+        14
+      ],
+      "size": [
+        42,
+        4
+      ]
+    },
+    {
+      "id": "safe_side_clamp_left",
+      "type": "mountable_surface",
+      "side": "left"
+    },
+    {
+      "id": "safe_side_clamp_right",
+      "type": "mountable_surface",
+      "side": "right"
+    }
+  ]
+}
