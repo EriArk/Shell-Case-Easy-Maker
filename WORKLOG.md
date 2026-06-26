@@ -90,3 +90,73 @@ Bootstrap the Flutter desktop project or publish the documentation pack to GitHu
 
 ### Notes for future Codex sessions
 The core product direction is semantic enclosure/device/accessory generation, not generic CAD. Keep Flutter isolated from OCCT internals through `GeometryService`, keep generated B-Rep/meshes as outputs, and add tests for geometry, serialization, validation, and UI state changes.
+
+---
+
+## 2026-06-26 — Flutter bootstrap and semantic shell
+
+### Goal
+Publish the initial documentation commit, create the Flutter desktop skeleton, and replace the counter app with a product-aligned shell.
+
+### Read before work
+`AGENTS.md`, `TASKS.md`, `docs/00_PROJECT_VISION.md`, `docs/01_PRODUCT_RULES.md`, `docs/03_ARCHITECTURE_OVERVIEW.md`, `docs/05_PROJECT_FILE_FORMAT.md`, and `docs/26_TESTING_AND_QUALITY.md`.
+
+### Changes made
+- Git repository:
+  - Renamed the initial branch to `main`.
+  - Added `origin` as `https://github.com/EriArk/Shell-Case-Easy-Maker.git`.
+  - Created and pushed the initial documentation commit.
+- Flutter project:
+  - Created Windows/Linux/macOS Flutter desktop scaffold with project name `shell_case_easy_maker`.
+  - Replaced the default counter app with a viewport-first workspace shell.
+- `lib/project/project_model.dart`:
+  - Added an initial semantic project model with versioned JSON serialization.
+- `lib/geometry/geometry_service.dart`:
+  - Added `GeometryService`, selectable semantic surfaces, preview metadata, and a mock backend.
+- `lib/commands/app_command.dart`:
+  - Added an initial command metadata skeleton.
+- `lib/validation/validation_result.dart`:
+  - Added validation report/message models.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added top toolbar, left icon rail, central mock viewport, right inspector, view cube placeholder, and status bar.
+- `test/`:
+  - Added widget and project serialization tests.
+- `README.md`:
+  - Added development quick-start commands.
+- `TASKS.md`:
+  - Marked completed Phase 0 bootstrap items.
+
+### Tests run
+- `dart format lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 3 tests.
+
+### Validation
+- Geometry checked?
+  - Mock geometry service only; no OCCT geometry yet.
+- Serialization checked?
+  - Yes, `ProjectModel` JSON round-trip test.
+- UI checked?
+  - Yes, widget test caught and verified the shell after fixing a toolbar overflow.
+- Export checked?
+  - Not applicable yet.
+
+### Known issues
+- Issue: GitHub CLI is not installed in this environment.
+  - Severity: Low.
+  - Next action: continue using `git push`, or install `gh` later if PR automation is needed.
+- Issue: Basic CI is still missing.
+  - Severity: Medium.
+  - Next action: add a Flutter analyze/test GitHub Actions workflow.
+- Issue: Geometry is still mocked.
+  - Severity: Expected for Phase 0.
+  - Next action: research Flutter viewport options or begin deeper semantic model work before OCCT integration.
+
+### Next step
+Add basic CI, then continue Phase 1 with stronger typed semantic models, migrations, command registry, and undo/redo transaction design.
+
+### Notes for future Codex sessions
+Keep committing and pushing at the end of each meaningful work session. The current app shell intentionally uses semantic surface IDs and a mock `GeometryService`; do not let UI code depend on OCCT topology or generated mesh IDs.

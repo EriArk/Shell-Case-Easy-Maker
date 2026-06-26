@@ -4,18 +4,18 @@ This is the living task backlog. Keep it updated.
 
 ## Phase 0 — Project bootstrap
 
-- [ ] Create Flutter desktop project.
-- [ ] Create repository structure.
-- [ ] Configure GitHub `origin` remote and push initial documentation commit.
-- [ ] Add linting/formatting.
-- [ ] Add test framework.
+- [x] Create Flutter desktop project.
+- [x] Create repository structure.
+- [x] Configure GitHub `origin` remote and push initial documentation commit.
+- [x] Add linting/formatting.
+- [x] Add test framework.
 - [ ] Add basic CI.
-- [ ] Create docs folder and copy this documentation pack.
-- [ ] Add `WORKLOG.md` update discipline.
-- [ ] Create initial command system skeleton.
-- [ ] Create initial semantic project model skeleton.
-- [ ] Create initial geometry service interface.
-- [ ] Create mock geometry backend for UI development.
+- [x] Create docs folder and copy this documentation pack.
+- [x] Add `WORKLOG.md` update discipline.
+- [x] Create initial command system skeleton.
+- [x] Create initial semantic project model skeleton.
+- [x] Create initial geometry service interface.
+- [x] Create mock geometry backend for UI development.
 
 ## Phase 1 — Architecture skeleton
 

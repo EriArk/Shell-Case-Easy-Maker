@@ -32,3 +32,18 @@ A minimal, visual, Flutter-based enclosure design tool powered by OpenCascade. U
 ## Absolute rule
 
 The editable source of truth is the semantic project model. Generated mesh/STL/DXF files are disposable outputs.
+
+## Development quick start
+
+```sh
+flutter pub get
+dart format lib test
+flutter analyze
+flutter test
+```
+
+Run the desktop app locally with:
+
+```sh
+flutter run -d windows
+```
