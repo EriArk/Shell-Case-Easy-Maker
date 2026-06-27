@@ -2,8 +2,12 @@
 
 This is the living task backlog. Keep it updated.
 
+For implementation order, safe chunk boundaries, and manual poke checklists, use `ROADMAP.md`.
+
 ## Phase 0 — Project bootstrap
 
+- [x] Create `ROADMAP.md` with safe implementation chunks.
+- [x] Add latest Windows release build script.
 - [x] Create Flutter desktop project.
 - [x] Create repository structure.
 - [x] Configure GitHub `origin` remote and push initial documentation commit.

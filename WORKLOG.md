@@ -217,3 +217,62 @@ Continue Phase 1 by strengthening typed project models and introducing a real co
 
 ### Notes for future Codex sessions
 Keep CI lightweight until platform packaging dependencies are intentionally researched and documented.
+
+---
+
+## 2026-06-27 — Roadmap and latest Windows bundle path
+
+### Goal
+Create the working roadmap and make the latest Windows build easy to open manually.
+
+### Read before work
+`AGENTS.md`, `TASKS.md`, `docs/28_IMPLEMENTATION_PLAN.md`, `README.md`, `.gitignore`, and Windows Flutter CMake configuration.
+
+### Changes made
+- `ROADMAP.md`:
+  - Added the main 1-2 day chunk roadmap with done criteria, tests, and poke checklists.
+- `tools/build_latest_windows.ps1`:
+  - Added a Windows release script that builds Flutter, refreshes `releases/latest/windows`, and prints the `.exe` path.
+- `.gitignore`:
+  - Ignored generated local release bundles under `releases/`.
+- `README.md`:
+  - Documented `ROADMAP.md`, the build script, and the latest local `.exe` path.
+- `TASKS.md`:
+  - Linked the roadmap and marked roadmap/latest Windows build tasks complete.
+- `WORKLOG.md`:
+  - Added this worklog entry.
+
+### Tests run
+- `flutter pub get`:
+  - Passed.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 3 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools/build_latest_windows.ps1`:
+  - Passed and created `releases/latest/windows/shell_case_easy_maker.exe`.
+- `git diff --check`:
+  - Passed; Git reported expected CRLF normalization for `.gitignore`.
+
+### Validation
+- Geometry checked?
+  - Not applicable; this chunk only changes roadmap/build access.
+- Serialization checked?
+  - Covered by existing tests after validation.
+- UI checked?
+  - Build bundle was created and is ready for manual launch.
+- Export checked?
+  - Not applicable yet.
+
+### Known issues
+- Issue: `releases/latest/windows` is local-only and must be regenerated after app changes.
+  - Severity: Low.
+  - Next action: run `tools/build_latest_windows.ps1` after each meaningful UI/runtime chunk.
+
+### Next step
+Continue with M1 Semantic Core from `ROADMAP.md`.
+
+### Notes for future Codex sessions
+The latest manual Windows app should be opened from `releases/latest/windows/shell_case_easy_maker.exe`, not by copying only the `.exe` elsewhere.

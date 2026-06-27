@@ -21,6 +21,7 @@ The product is **not** a generic CAD clone. It is a semantic, parametric enclosu
 ## Top-level files
 
 - `AGENTS.md` — mandatory rules for Codex/agents.
+- `ROADMAP.md` — working roadmap with safe implementation chunks and manual poke checklists.
 - `TASKS.md` — phased implementation plan and task backlog.
 - `WORKLOG.md` — append-only worklog template.
 - `docs/` — detailed product, architecture, UX, geometry, and subsystem docs.
@@ -49,3 +50,17 @@ Run the desktop app locally with:
 ```sh
 flutter run -d windows
 ```
+
+Build the latest manual Windows bundle with:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/build_latest_windows.ps1
+```
+
+Open the latest local build at:
+
+```text
+C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe
+```
+
+Keep the whole `releases/latest/windows` folder together; the `.exe` needs the adjacent Flutter runtime files and `data/` folder.
