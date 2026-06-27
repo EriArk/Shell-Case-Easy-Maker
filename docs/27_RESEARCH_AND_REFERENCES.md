@@ -168,3 +168,72 @@ worker output are defined.
   `GeometryService` preview mesh protocol exists.
 - Add viewport hit testing against generated preview mesh using semantic face
   mappings, not raw triangle IDs.
+
+---
+
+## 2026-06-27 — OCCT first geometry slice
+
+## Question
+
+What is the safest first OCCT integration boundary for generated enclosure
+geometry?
+
+## Sources checked
+
+- Open CASCADE official overview:
+  [Introduction](https://dev.opencascade.org/doc/overview/html/)
+- Open CASCADE official build docs:
+  [Build OCCT](https://dev.opencascade.org/doc/overview/html/build_upgrade__building_occt.html)
+- Open CASCADE official licensing page:
+  [Licensing](https://dev.opencascade.org/resources/licensing)
+- Open CASCADE reference:
+  [BRepPrimAPI_MakeBox](https://dev.opencascade.org/doc/refman/html/class_b_rep_prim_a_p_i___make_box.html)
+- Open CASCADE user guide:
+  [Modeling Algorithms - Fillets and Chamfers](https://dev.opencascade.org/doc/overview/html/occt_user_guides__modeling_algos.html)
+- Open CASCADE user guide:
+  [Mesh](https://dev.opencascade.org/doc/overview/html/occt_user_guides__mesh.html)
+- Open CASCADE reference:
+  [STEPControl_Writer](https://dev.opencascade.org/doc/refman/html/class_s_t_e_p_control___writer.html)
+
+## Findings
+
+- OCCT is a C++ library platform for geometric modeling, CAD data exchange, and
+  visualization. The app should keep it behind a worker/adapter boundary.
+- The current official build path is CMake-based. The docs also describe a
+  vcpkg-based quick start for provisioning third-party dependencies.
+- OCCT 6.7.0+ is licensed as LGPL 2.1 with the Open CASCADE additional
+  exception. Bundling and license notices need deliberate packaging work later.
+- `BRepPrimAPI_MakeBox` is the obvious first solid primitive for a rectangular
+  enclosure body and exposes named box faces that can be mapped to semantic
+  surface IDs.
+- OCCT filleting uses `BRepFilletAPI_MakeFillet`: construct with a shape, add
+  edge/radius descriptions, then build the result.
+- `BRepMesh_IncrementalMesh` is the standard first meshing path. Its key control
+  settings are linear and angular deflection, which should be explicit and
+  deterministic.
+- `STEPControl_Writer` is the later STEP export path after B-Rep generation is
+  stable.
+
+## License / compatibility notes
+
+- OCCT is not a dependency in this repository yet.
+- No OCCT source code was copied.
+- Before distributing binaries, add license files/notices and document whether
+  OCCT is dynamically linked, bundled, or installed externally.
+
+## Decision
+
+M5 should not compile OCCT yet. It should define the protocol boundary first:
+- Flutter sends semantic project JSON through `GeometryRequest`.
+- Worker/adapter returns `GeometryResponse`.
+- Preview mesh is disposable output.
+- Surface selection maps through semantic IDs.
+- Raw OCCT topology IDs stay inside the worker.
+
+## Follow-up tasks
+
+- Decide Windows dev distribution path: source CMake + vcpkg, prebuilt package,
+  or project-managed binary cache.
+- Add the first `occt_worker` executable after the protocol is stable.
+- Add deterministic geometry tests around known dimensions and warning outputs.
+- Add license-notice packaging before distributing an OCCT-backed app.

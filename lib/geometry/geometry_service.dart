@@ -1,8 +1,13 @@
 import '../project/project_model.dart';
 import '../validation/validation_result.dart';
+import 'geometry_protocol.dart';
+
+export 'geometry_protocol.dart';
 
 abstract interface class GeometryService {
   Future<GeometryPreview> generatePreview(ProjectModel project);
+
+  Future<GeometryResponse> buildGeometry(GeometryRequest request);
 
   Future<ValidationReport> validateGeometry(ProjectModel project);
 
@@ -34,14 +39,53 @@ class MockGeometryService implements GeometryService {
   const MockGeometryService();
 
   @override
+  Future<GeometryResponse> buildGeometry(GeometryRequest request) async {
+    if (request.operation != GeometryOperation.previewMesh) {
+      return GeometryResponse(
+        requestId: request.requestId,
+        status: GeometryResponseStatus.error,
+        backend: 'mock',
+        issues: [
+          GeometryIssue(
+            severity: GeometryIssueSeverity.error,
+            code: 'mock.unsupported_operation',
+            message: 'Mock backend only supports preview mesh requests.',
+          ),
+        ],
+      );
+    }
+
+    return GeometryResponse(
+      requestId: request.requestId,
+      status: GeometryResponseStatus.ok,
+      backend: 'mock',
+      previewMesh: _samplePreviewMesh(),
+      metrics: const {
+        'source': 'semantic',
+        'deterministic': true,
+        'worker': 'mock',
+      },
+    );
+  }
+
+  @override
   Future<GeometryPreview> generatePreview(ProjectModel project) async {
     final surfaces = await getSelectableSurfaces(project);
+    final response = await buildGeometry(
+      GeometryRequest.previewMesh(project, requestId: 'mock_preview'),
+    );
 
     return GeometryPreview(
       backendLabel: 'mock',
       projectName: project.projectName,
       surfaces: surfaces,
-      stats: const {'bodies': 1, 'features': 2, 'source': 'semantic'},
+      stats: {
+        'bodies': project.bodies.length,
+        'features': project.features.length,
+        'source': 'semantic',
+        'previewVertices': response.previewMesh?.vertexCount ?? 0,
+        'previewTriangles': response.previewMesh?.triangleCount ?? 0,
+      },
     );
   }
 
@@ -71,6 +115,94 @@ class MockGeometryService implements GeometryService {
           code: 'mock.preview',
           message: 'Mock backend returned semantic preview metadata.',
           targetId: 'main_enclosure',
+        ),
+      ],
+    );
+  }
+
+  PreviewMesh _samplePreviewMesh() {
+    return const PreviewMesh(
+      units: 'mm',
+      vertices: [
+        -60,
+        -35,
+        0,
+        60,
+        -35,
+        0,
+        60,
+        35,
+        0,
+        -60,
+        35,
+        0,
+        -60,
+        -35,
+        28,
+        60,
+        -35,
+        28,
+        60,
+        35,
+        28,
+        -60,
+        35,
+        28,
+      ],
+      triangles: [
+        4,
+        5,
+        6,
+        4,
+        6,
+        7,
+        0,
+        2,
+        1,
+        0,
+        3,
+        2,
+        1,
+        5,
+        6,
+        1,
+        6,
+        2,
+        0,
+        7,
+        4,
+        0,
+        3,
+        7,
+        3,
+        6,
+        2,
+        3,
+        7,
+        6,
+        0,
+        1,
+        5,
+        0,
+        5,
+        4,
+      ],
+      bounds: GeometryBounds(min: [-60, -35, 0], max: [60, 35, 28]),
+      surfaces: [
+        PreviewSurfaceMapping(
+          semanticId: 'main_enclosure.top_lid.outer',
+          label: 'Top lid',
+          triangleRanges: [PreviewTriangleRange(start: 0, count: 2)],
+        ),
+        PreviewSurfaceMapping(
+          semanticId: 'main_enclosure.bottom_inside',
+          label: 'Bottom inside',
+          triangleRanges: [PreviewTriangleRange(start: 2, count: 2)],
+        ),
+        PreviewSurfaceMapping(
+          semanticId: 'main_enclosure.front_wall.outer',
+          label: 'Front wall',
+          triangleRanges: [PreviewTriangleRange(start: 4, count: 2)],
         ),
       ],
     );

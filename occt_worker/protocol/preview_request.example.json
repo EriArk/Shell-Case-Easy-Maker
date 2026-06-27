@@ -1,0 +1,37 @@
+{
+  "schema": "shell_case.geometry.request",
+  "version": 1,
+  "requestId": "preview_sample_001",
+  "operation": "preview_mesh",
+  "project": {
+    "schema": "shell_case_project",
+    "version": 1,
+    "units": "mm",
+    "projectName": "Sample Button Board Case",
+    "printerProfile": "fdm_04_normal",
+    "bodies": [
+      {
+        "id": "main_enclosure",
+        "type": "enclosure",
+        "shape": "rounded_box",
+        "size": [120, 70, 28],
+        "wallThickness": 2,
+        "cornerRadius": 4,
+        "lid": {
+          "type": "top_screw_lid",
+          "clearanceProfile": "fdm_normal"
+        }
+      }
+    ],
+    "componentTemplates": [],
+    "componentPlacements": [],
+    "features": [],
+    "featureGroups": [],
+    "constraints": [],
+    "exports": []
+  },
+  "options": {
+    "linearDeflection": 0.3,
+    "angularDeflection": 0.35
+  }
+}

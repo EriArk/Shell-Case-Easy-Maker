@@ -63,16 +63,19 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 
 ## Phase 4 — OCCT worker MVP
 
-- [ ] Research OCCT build/distribution for Linux/Windows/macOS.
+- [x] Research OCCT build/distribution for Linux/Windows/macOS.
+- [x] Add `occt_worker` protocol skeleton.
 - [ ] Create `occt_worker` CLI or local service.
-- [ ] Define JSON protocol for geometry requests.
+- [x] Define JSON protocol for geometry requests.
 - [ ] Generate rounded box B-Rep.
 - [ ] Generate shell/cavity for box.
-- [ ] Generate preview mesh.
+- [x] Generate mock preview mesh through protocol.
+- [ ] Generate OCCT preview mesh.
 - [ ] Export STEP.
 - [ ] Export STL.
-- [ ] Return validation/warnings.
-- [ ] Add geometry tests for known dimensions.
+- [x] Define response issues/warnings model.
+- [x] Add protocol tests for known mock dimensions.
+- [ ] Add OCCT geometry tests for known dimensions.
 
 ## Phase 5 — Enclosure-first MVP
 

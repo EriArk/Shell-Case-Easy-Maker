@@ -23,7 +23,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M2 — Commands + Undo
 - [x] M3 — Usable Shell
 - [x] M4 — Viewport MVP
-- [ ] M5 — First Geometry Slice
+- [x] M5 — First Geometry Slice
 
 ---
 
@@ -183,11 +183,11 @@ Research and implement the first interactive viewport behavior without coupling 
 Start the path toward real generated geometry with a worker protocol and rounded enclosure plan.
 
 ### Tasks
-- [ ] Research OCCT build/distribution and record findings.
-- [ ] Define initial `GeometryService` request/response protocol.
-- [ ] Add `occt_worker` directory skeleton.
-- [ ] Add deterministic rounded enclosure generation plan and validation expectations.
-- [ ] Keep mock backend usable while worker is incomplete.
+- [x] Research OCCT build/distribution and record findings.
+- [x] Define initial `GeometryService` request/response protocol.
+- [x] Add `occt_worker` directory skeleton.
+- [x] Add deterministic rounded enclosure generation plan and validation expectations.
+- [x] Keep mock backend usable while worker is incomplete.
 
 ### Done Criteria
 - Flutter still depends on `GeometryService`, not OCCT types.

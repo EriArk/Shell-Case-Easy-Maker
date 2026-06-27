@@ -532,3 +532,79 @@ continue with M5 First Geometry Slice.
 ### Notes for future Codex sessions
 M4 intentionally adds no 3D renderer dependency. Revisit renderer choices after
 `GeometryService` has a concrete preview mesh protocol and semantic face mapping.
+
+---
+
+## 2026-06-27 — M5 First Geometry Slice
+
+### Goal
+Create the first real geometry boundary: OCCT research, typed request/response
+protocol, `occt_worker` skeleton, deterministic mock preview mesh, and rounded
+enclosure implementation plan.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `lib/geometry/geometry_service.dart`,
+OCCT official overview/build/licensing/modeling/mesh/STEP documentation, and
+current geometry/viewport tests.
+
+### Changes made
+- `lib/geometry/geometry_protocol.dart`:
+  - Added typed JSON request/response models for geometry operations.
+  - Added preview mesh, semantic surface mapping, bounds, artifact, and issue
+    models.
+- `lib/geometry/geometry_service.dart`:
+  - Added `buildGeometry(GeometryRequest)` to the service boundary.
+  - Kept existing mock preview behavior usable.
+  - Added deterministic mock preview mesh response with semantic surface IDs.
+- `occt_worker/`:
+  - Added worker boundary README.
+  - Added preview request/response example JSON files.
+- `docs/27_RESEARCH_AND_REFERENCES.md`:
+  - Added OCCT first geometry slice research with official source links.
+- `docs/34_FIRST_GEOMETRY_SLICE.md`:
+  - Documented protocol shape, preview mesh mapping, rounded enclosure plan,
+    and current limitations.
+- `test/geometry_protocol_test.dart`:
+  - Added protocol round-trip tests, semantic mapping checks, deterministic mock
+    mesh checks, and unsupported operation behavior.
+- `ROADMAP.md` and `TASKS.md`:
+  - Marked M5 protocol/skeleton work complete while keeping real OCCT B-Rep,
+    worker executable, and export tasks open.
+
+### Tests run
+- `dart format lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 35 tests.
+
+### Validation
+- Geometry checked?
+  - Protocol-level and mock mesh only; no native OCCT executable yet.
+- Serialization checked?
+  - Yes, request/response protocol round-trip tests.
+- UI checked?
+  - Existing widget tests still pass; mock preview remains usable.
+- Export checked?
+  - Not implemented yet; mock backend rejects export operations explicitly.
+
+### Known issues
+- Issue: No native `occt_worker` executable exists yet.
+  - Severity: Expected for M5 protocol slice.
+  - Next action: choose Windows OCCT distribution path, then add worker build.
+- Issue: Mock preview mesh is a cuboid, not rounded B-Rep output.
+  - Severity: Expected.
+  - Next action: implement rounded box B-Rep generation behind the worker.
+- Issue: STEP/STL export operations are protocol placeholders only.
+  - Severity: Expected.
+  - Next action: add exporters after B-Rep generation is stable.
+
+### Next step
+Refresh the latest Windows bundle, run final validation, commit, push, then
+start the first native worker/build slice.
+
+### Notes for future Codex sessions
+Keep raw OCCT topology inside the worker. Flutter may receive disposable preview
+triangle ranges for rendering, but semantic selection/editing must use semantic
+IDs from the protocol.

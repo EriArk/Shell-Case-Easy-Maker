@@ -1,0 +1,39 @@
+{
+  "schema": "shell_case.geometry.response",
+  "version": 1,
+  "requestId": "preview_sample_001",
+  "status": "ok",
+  "backend": "occt_worker",
+  "previewMesh": {
+    "units": "mm",
+    "vertices": [],
+    "triangles": [],
+    "bounds": {
+      "min": [-60, -35, 0],
+      "max": [60, 35, 28]
+    },
+    "surfaces": [
+      {
+        "semanticId": "main_enclosure.top_lid.outer",
+        "label": "Top lid",
+        "triangleRanges": []
+      },
+      {
+        "semanticId": "main_enclosure.front_wall.outer",
+        "label": "Front wall",
+        "triangleRanges": []
+      },
+      {
+        "semanticId": "main_enclosure.bottom_inside",
+        "label": "Bottom inside",
+        "triangleRanges": []
+      }
+    ]
+  },
+  "issues": [],
+  "metrics": {
+    "linearDeflection": 0.3,
+    "angularDeflection": 0.35,
+    "source": "brep"
+  }
+}
