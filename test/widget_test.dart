@@ -186,6 +186,120 @@ void main() {
     expect(dialog.openCount, 1);
     expect(find.textContaining('Открыто:'), findsOneWidget);
   });
+
+  testWidgets(
+    'open command can be cancelled when project has unsaved changes',
+    (tester) async {
+      final fileService = _MemoryProjectFileService();
+      final openFile = File('opened.enclosure.json');
+      fileService.seed(
+        openFile,
+        ProjectModel.initial().replaceEnclosure(
+          ProjectModel.initial().bodies.single.copyWith(
+            size: const [160, 80, 32],
+          ),
+        ),
+      );
+      final dialog = _FakeProjectFileDialogService(openFile: openFile);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: WorkspaceShell(
+            project: ProjectModel.initial(),
+            geometryService: const MockGeometryService(),
+            projectFileService: fileService,
+            projectFileDialogService: dialog,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('main_enclosure').first);
+      await _pumpAsyncUi(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey('enclosure-param-width')),
+        '150',
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await _pumpAsyncUi(tester);
+
+      await tester.tap(
+        find.byKey(const ValueKey('toolbar-command-${CommandIds.openProject}')),
+      );
+      await tester.pump();
+
+      expect(
+        find.byKey(const ValueKey('discard-unsaved-cancel')),
+        findsOneWidget,
+      );
+      expect(dialog.openCount, 0);
+
+      await tester.tap(find.byKey(const ValueKey('discard-unsaved-cancel')));
+      await _pumpAsyncUi(tester);
+
+      expect(dialog.openCount, 0);
+      expect(find.text('150 x 70 x 28 mm'), findsOneWidget);
+      expect(
+        find.textContaining('Есть несохранённые изменения'),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets('open command can discard unsaved changes after confirmation', (
+    tester,
+  ) async {
+    final fileService = _MemoryProjectFileService();
+    final openFile = File('opened.enclosure.json');
+    fileService.seed(
+      openFile,
+      ProjectModel.initial().replaceEnclosure(
+        ProjectModel.initial().bodies.single.copyWith(
+          size: const [160, 80, 32],
+        ),
+      ),
+    );
+    final dialog = _FakeProjectFileDialogService(openFile: openFile);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkspaceShell(
+          project: ProjectModel.initial(),
+          geometryService: const MockGeometryService(),
+          projectFileService: fileService,
+          projectFileDialogService: dialog,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('main_enclosure').first);
+    await _pumpAsyncUi(tester);
+    await tester.enterText(
+      find.byKey(const ValueKey('enclosure-param-width')),
+      '150',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await _pumpAsyncUi(tester);
+
+    await tester.tap(
+      find.byKey(const ValueKey('toolbar-command-${CommandIds.openProject}')),
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('discard-unsaved-confirm')));
+    await _pumpAsyncUi(tester);
+    await tester.tap(find.text('main_enclosure').first);
+    await _pumpAsyncUi(tester);
+
+    final undoButton = find.byKey(
+      const ValueKey('toolbar-command-${CommandIds.undo}'),
+    );
+
+    expect(dialog.openCount, 1);
+    expect(find.text('160 x 80 x 32 mm'), findsOneWidget);
+    expect(tester.widget<IconButton>(undoButton).onPressed, isNull);
+    expect(find.textContaining('Открыто:'), findsOneWidget);
+  });
 }
 
 Future<void> _pumpAsyncUi(WidgetTester tester) async {

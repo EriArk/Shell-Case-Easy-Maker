@@ -53,7 +53,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Enclosure parameter controls in contextual inspector.
 - [x] Toolbar undo/redo for inspector parameter edits.
 - [x] Toolbar open/save for project JSON files.
-- [ ] Unsaved changes prompt before opening another project.
+- [x] Unsaved changes prompt before opening another project.
 
 ## Phase 3 — Viewport MVP
 

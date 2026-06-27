@@ -107,9 +107,10 @@ Current behavior:
   `.json` suffix,
 - opening a project replaces shell state with the loaded semantic model,
 - opening a project resets undo/redo history for the new file,
+- opening another project while dirty asks before discarding unsaved edits,
+- saving or opening updates the clean project baseline,
 - generated previews are refreshed from the loaded semantic model.
 
 Current limitations:
-- no unsaved-changes prompt before opening another file,
 - no separate "Save As" command yet,
 - export commands for STL/STEP are still separate future work.

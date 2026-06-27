@@ -46,14 +46,18 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
   SelectionModel _selection = const SelectionModel.workspace();
   File? _currentProjectFile;
   String? _fileStatusMessage;
+  late String _lastPersistedProjectFingerprint;
   bool _fileBusy = false;
 
   ProjectModel get _project => _undoHistory.current;
+  bool get _hasUnsavedChanges =>
+      _lastPersistedProjectFingerprint != _fingerprintProject(_project);
 
   @override
   void initState() {
     super.initState();
     _undoHistory = app_undo.UndoHistory<ProjectModel>(widget.project);
+    _lastPersistedProjectFingerprint = _fingerprintProject(widget.project);
     _loadGeometry();
   }
 
@@ -62,6 +66,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.project != widget.project) {
       _undoHistory = app_undo.UndoHistory<ProjectModel>(widget.project);
+      _lastPersistedProjectFingerprint = _fingerprintProject(widget.project);
       _loadGeometry();
     } else if (oldWidget.geometryService != widget.geometryService) {
       _loadGeometry();
@@ -141,6 +146,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
         label: 'Изменить корпус',
         nextState: _project.replaceEnclosure(updatedEnclosure),
       );
+      _fileStatusMessage = null;
       _loadGeometry();
       _viewportController.setSelectedSemanticId(_selection.id);
       _viewportController.setGhostPreview(_ghostPreviewFor(_selection));
@@ -154,6 +160,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
 
     setState(() {
       _undoHistory.undo();
+      _fileStatusMessage = null;
       _loadGeometry();
       _viewportController.setSelectedSemanticId(_selection.id);
       _viewportController.setGhostPreview(_ghostPreviewFor(_selection));
@@ -167,14 +174,54 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
 
     setState(() {
       _undoHistory.redo();
+      _fileStatusMessage = null;
       _loadGeometry();
       _viewportController.setSelectedSemanticId(_selection.id);
       _viewportController.setGhostPreview(_ghostPreviewFor(_selection));
     });
   }
 
+  Future<bool> _confirmDiscardUnsavedChanges() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Несохранённые изменения'),
+          content: const Text(
+            'Перед открытием другого проекта текущие правки будут потеряны.',
+          ),
+          actions: [
+            TextButton(
+              key: const ValueKey('discard-unsaved-cancel'),
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Отмена'),
+            ),
+            FilledButton(
+              key: const ValueKey('discard-unsaved-confirm'),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Открыть'),
+            ),
+          ],
+        );
+      },
+    );
+
+    return result ?? false;
+  }
+
   Future<void> _openProject() async {
     if (_fileBusy) {
+      return;
+    }
+
+    if (_hasUnsavedChanges && !await _confirmDiscardUnsavedChanges()) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _fileStatusMessage = 'Открытие отменено';
+      });
       return;
     }
 
@@ -204,6 +251,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
 
       setState(() {
         _undoHistory = app_undo.UndoHistory<ProjectModel>(project);
+        _lastPersistedProjectFingerprint = _fingerprintProject(project);
         _currentProjectFile = file;
         _selection = const SelectionModel.workspace();
         _fileBusy = false;
@@ -260,6 +308,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
 
       setState(() {
         _currentProjectFile = file;
+        _lastPersistedProjectFingerprint = _fingerprintProject(_project);
         _fileBusy = false;
         _fileStatusMessage = 'Сохранено: ${_fileName(file)}';
       });
@@ -347,6 +396,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                       selectionDetails: details,
                       fileStatusMessage: _fileStatusMessage,
                       fileBusy: _fileBusy,
+                      hasUnsavedChanges: _hasUnsavedChanges,
                     );
                   },
                 ),
@@ -405,6 +455,10 @@ SelectionModel? _selectionFromViewportHit(ViewportHitResult? hit) {
 
 bool _sameJson(Map<String, Object?> left, Map<String, Object?> right) {
   return jsonEncode(left) == jsonEncode(right);
+}
+
+String _fingerprintProject(ProjectModel project) {
+  return jsonEncode(project.toJson());
 }
 
 String _fileName(File file) {
@@ -1491,12 +1545,14 @@ class _StatusBar extends StatelessWidget {
     required this.selectionDetails,
     required this.fileStatusMessage,
     required this.fileBusy,
+    required this.hasUnsavedChanges,
   });
 
   final ValidationReport? report;
   final ProjectSelectionDetails selectionDetails;
   final String? fileStatusMessage;
   final bool fileBusy;
+  final bool hasUnsavedChanges;
 
   @override
   Widget build(BuildContext context) {
@@ -1537,6 +1593,8 @@ class _StatusBar extends StatelessWidget {
             child: Text(
               hasErrors
                   ? AppStrings.viewportHint
+                  : hasUnsavedChanges
+                  ? 'Есть несохранённые изменения'
                   : fileStatusMessage ?? selectionDetails.status,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.end,

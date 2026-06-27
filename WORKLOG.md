@@ -898,3 +898,70 @@ dirty-state prompts or continue toward first real generator command.
 ### Notes for future Codex sessions
 Project save/open is not geometry export. Keep editable files semantic; STEP,
 STL, DXF, preview meshes, and OCCT artifacts must stay generated outputs.
+
+---
+
+## 2026-06-27 — M10 Unsaved Changes Guard
+
+### Goal
+Prevent accidental loss of unsaved semantic edits when opening another project.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `docs/05_PROJECT_FILE_FORMAT.md`,
+`docs/32_USABLE_SHELL.md`, current workspace shell, and widget save/open tests.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added persisted semantic project fingerprint tracking.
+  - Added dirty status in the bottom status bar.
+  - Saving updates the clean baseline.
+  - Opening a project updates the clean baseline and resets undo history.
+  - Opening while dirty shows a confirmation dialog before invoking the file
+    picker.
+  - Canceling the dirty dialog keeps the current project unchanged.
+- `test/widget_test.dart`:
+  - Added coverage for dirty open cancel.
+  - Added coverage for dirty open confirm/discard.
+- `docs/05_PROJECT_FILE_FORMAT.md` and `docs/32_USABLE_SHELL.md`:
+  - Updated open/save behavior and limitations.
+- `ROADMAP.md` and `TASKS.md`:
+  - Added and marked M10 complete.
+
+### Tests run
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test test/widget_test.dart -r expanded`:
+  - Passed, 8 widget tests.
+- `flutter test`:
+  - Passed, 53 tests.
+
+### Validation
+- Geometry checked?
+  - Not directly changed; preview refresh still happens on confirmed open.
+- Serialization checked?
+  - Dirty tracking compares semantic project JSON fingerprints.
+- UI checked?
+  - Widget tests verify cancel preserves current edits and does not call the
+    file dialog; confirm loads the target project and resets undo.
+- Export checked?
+  - Not changed.
+
+### Known issues
+- Issue: Dirty tracking is currently in the shell rather than a document
+  controller.
+  - Severity: Expected for the current architecture slice.
+  - Next action: move document state into a controller when more commands are
+    wired.
+- Issue: There is no separate "Save As" command yet.
+  - Severity: Expected.
+  - Next action: add when menu/command surface expands.
+
+### Next step
+Run full validation, refresh latest Windows bundle, commit, push, then continue
+with either dirty/document controller cleanup or first real generator command.
+
+### Notes for future Codex sessions
+Dirty state must remain semantic. Do not include generated preview meshes,
+OCCT artifacts, or transient viewport state in the persisted fingerprint.

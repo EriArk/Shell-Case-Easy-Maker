@@ -28,6 +28,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M7 — Enclosure Parameter Inspector
 - [x] M8 — Parameter Undo/Redo
 - [x] M9 — Project Open/Save
+- [x] M10 — Unsaved Changes Guard
 
 ---
 
@@ -350,3 +351,40 @@ dialogs.
 - Change width again without saving.
 - Click open and choose the saved file.
 - Confirm the saved width returns and undo is reset for the opened file.
+
+---
+
+## M10 — Unsaved Changes Guard
+
+### Goal
+Prevent accidental loss of unsaved semantic edits when opening another project.
+
+### Tasks
+- [x] Track a persisted project fingerprint in the workspace shell.
+- [x] Show dirty status when current semantic project differs from persisted
+      state.
+- [x] Prompt before opening another project while dirty.
+- [x] Cancel open without invoking the native file picker when the user backs
+      out.
+- [x] Allow confirmed open to discard current edits and load the selected file.
+- [x] Add widget tests for dirty cancel and dirty confirm flows.
+
+### Done Criteria
+- Dirty tracking compares semantic project JSON, not preview or geometry data.
+- Saving updates the clean baseline.
+- Opening a file updates the clean baseline and resets undo history.
+- Canceling the dirty prompt preserves the current project and does not call
+  the file dialog.
+
+### Tests
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Change an enclosure parameter without saving.
+- Click open and press cancel in the warning dialog.
+- Confirm the current edited value remains.
+- Click open again, confirm, pick another project, and confirm it loads.

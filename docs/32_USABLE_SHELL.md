@@ -81,12 +81,14 @@ The top toolbar now wires project open/save commands:
 - open loads `.enclosure.json` into semantic shell state,
 - save writes the current semantic project,
 - open resets undo/redo history for the loaded file,
+- open asks before discarding unsaved semantic edits,
+- the status bar reports unsaved changes when the project differs from the
+  persisted baseline,
 - generated preview data is refreshed after loading.
 
 ## Current limitations
 
 - Only the first enclosure parameter bank edits project state.
-- There is no unsaved-changes prompt before opening another project.
 - Viewport selection is still mocked and schematic, though direct hit testing
   already returns semantic IDs.
 - Undo history is connected only to first enclosure parameter edits.
