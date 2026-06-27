@@ -1,0 +1,82 @@
+# 35 - Parameter Model
+
+## Purpose
+
+The parameter model defines reusable typed controls for semantic generators.
+
+Generators should not pass around unvalidated number maps. A parameter schema
+declares human labels, units, defaults, ranges, steps, choices, and validation
+rules before UI controls or geometry code consume values.
+
+## Core Types
+
+`ParameterSchema` groups parameter definitions for one semantic tool or
+generator.
+
+`ParameterDefinition` declares:
+- stable ID,
+- label,
+- kind,
+- unit,
+- default value,
+- optional range,
+- optional choices,
+- required flag.
+
+`ParameterRange` declares:
+- min,
+- max,
+- optional step.
+
+`ParameterOption` declares one available choice.
+
+`ParameterIssue` reports validation problems by parameter ID.
+
+## Supported Kinds
+
+- `length`
+- `angle`
+- `count`
+- `ratio`
+- `boolean`
+- `choice`
+- `text`
+
+The model is intentionally UI-neutral. Widgets can render sliders, steppers,
+choice menus, toggles, and text fields from the same schema later.
+
+## Defaults and Validation
+
+`applyDefaults()` normalizes incoming values and fills missing values from the
+schema.
+
+`validate()` checks raw incoming values for:
+- invalid type,
+- range violations,
+- unavailable choices,
+- required missing values.
+
+This keeps generator inputs predictable while still letting the UI snap values
+to configured steps.
+
+## First Schema
+
+`CoreParameterSchemas.roundedEnclosure` defines the first enclosure generator
+bank:
+- width,
+- depth,
+- height,
+- wall thickness,
+- corner radius,
+- lid type.
+
+The schema uses millimeters for length values and Russian human labels for
+future default UI controls.
+
+## Current Limitations
+
+- The parameter model is not wired into inspector widgets yet.
+- Parameter values are not stored as a separate typed layer in `ProjectModel`
+  yet; current semantic objects still store their existing fields/maps.
+- Cross-parameter validation, such as "corner radius must fit body dimensions",
+  belongs in generator-specific validation and is not implemented here.

@@ -608,3 +608,68 @@ start the first native worker/build slice.
 Keep raw OCCT topology inside the worker. Flutter may receive disposable preview
 triangle ranges for rendering, but semantic selection/editing must use semantic
 IDs from the protocol.
+
+---
+
+## 2026-06-27 — M6 Parameter Model
+
+### Goal
+Add typed parameter schemas with units, ranges, steps, defaults, choices, and
+validation before generator UI and geometry commands depend on raw maps.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, existing project JSON helpers, validation
+model, and current geometry/selection tests.
+
+### Changes made
+- `lib/parameters/parameter_model.dart`:
+  - Added parameter kinds for length, angle, count, ratio, boolean, choice, and
+    text.
+  - Added parameter definitions, ranges, options, schemas, issues, defaults,
+    normalization, snap/clamp, and raw input validation.
+  - Added `CoreParameterSchemas.roundedEnclosure` for first enclosure generator
+    controls.
+- `test/parameter_model_test.dart`:
+  - Added tests for defaults, range snap/clamp, range/choice validation, JSON
+    round-trip, and invalid raw values after default application.
+- `docs/35_PARAMETER_MODEL.md`:
+  - Documented the parameter model, defaults/validation flow, first schema, and
+    current limitations.
+- `ROADMAP.md` and `TASKS.md`:
+  - Added and marked M6/parameter model complete.
+
+### Tests run
+- `dart format lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 40 tests.
+
+### Validation
+- Geometry checked?
+  - Not applicable; this chunk does not change generated geometry.
+- Serialization checked?
+  - Yes, parameter schema JSON round-trip test.
+- UI checked?
+  - Existing widget tests still pass; no new parameter UI yet.
+- Export checked?
+  - Not applicable.
+
+### Known issues
+- Issue: Parameter model is not wired into inspector widgets yet.
+  - Severity: Expected for M6 foundation.
+  - Next action: use schemas when implementing generator commands/inspector
+    controls.
+- Issue: Cross-parameter rules are not implemented.
+  - Severity: Expected.
+  - Next action: add generator-specific validation for constraints such as
+    corner radius fitting within body dimensions.
+
+### Next step
+Refresh the latest Windows bundle, run final validation, commit, push, then
+continue with generator command wiring or first native worker build slice.
+
+### Notes for future Codex sessions
+Keep parameter schemas separate from generated geometry. Use them to feed UI
+controls and generator validation, not to replace semantic project models.

@@ -32,7 +32,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Implement undo/redo transaction system.
 - [x] Implement command registry.
 - [x] Implement project JSON file service.
-- [ ] Implement parameter model with units, ranges, steps, defaults.
+- [x] Implement parameter model with units, ranges, steps, defaults.
 - [x] Implement validation result model.
 
 ## Phase 2 — Flutter UI shell

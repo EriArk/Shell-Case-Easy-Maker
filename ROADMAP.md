@@ -24,6 +24,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M3 — Usable Shell
 - [x] M4 — Viewport MVP
 - [x] M5 — First Geometry Slice
+- [x] M6 — Parameter Model
 
 ---
 
@@ -203,3 +204,34 @@ Start the path toward real generated geometry with a worker protocol and rounded
 ### Poke Checklist
 - Launch latest Windows app.
 - Confirm mock preview still works while worker integration is incomplete.
+
+---
+
+## M6 — Parameter Model
+
+### Goal
+Create reusable typed parameter schemas before generator UIs and geometry
+commands start consuming raw maps of numbers.
+
+### Tasks
+- [x] Add parameter kinds, definitions, ranges, options, and issues.
+- [x] Add defaults and normalization rules.
+- [x] Add range/choice/type validation.
+- [x] Add the first rounded enclosure parameter schema.
+- [x] Add unit tests for defaults, snapping, validation, and JSON round-trips.
+
+### Done Criteria
+- Generator parameters can declare units, ranges, steps, defaults, and choices.
+- Validation reports bad raw values before geometry generation.
+- The model stays UI-neutral and does not store generated geometry.
+
+### Tests
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Confirm existing shell, browser, and mock viewport still behave normally.
+- No new parameter UI is expected in this chunk.
