@@ -965,3 +965,42 @@ with either dirty/document controller cleanup or first real generator command.
 ### Notes for future Codex sessions
 Dirty state must remain semantic. Do not include generated preview meshes,
 OCCT artifacts, or transient viewport state in the persisted fingerprint.
+
+---
+
+## 2026-06-27 — Save Dialog Stability Fix
+
+### Goal
+Fix unstable Windows save dialog behavior where the native save window could
+close before the user completed the save flow.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Removed the pre-picker `setState` before native open/save dialogs.
+  - Kept the `_fileBusy` re-entry guard, but without rebuilding the toolbar
+    while the native picker is opening.
+  - Status messages now update after the native picker returns a file path, not
+    before the picker opens.
+- `test/widget_test.dart`:
+  - Added a regression test proving save picker is invoked once, repeat clicks
+    are ignored by the guard, and no "saving" status is shown before the picker
+    returns.
+
+### Tests run
+- `dart format lib/ui/shell/workspace_shell.dart test/widget_test.dart`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test test/widget_test.dart -r expanded`:
+  - Passed, 9 widget tests.
+- `flutter test`:
+  - Passed, 54 tests.
+
+### Validation
+- UI checked?
+  - Automated regression covers the risky pre-picker rebuild path.
+- Serialization checked?
+  - Existing save test still verifies written semantic project JSON.
+
+### Next step
+Run full validation, rebuild latest Windows bundle, commit, and push.

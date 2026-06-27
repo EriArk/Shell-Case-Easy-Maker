@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -143,6 +144,46 @@ void main() {
     expect(fileService.hasFile(savedFile), isTrue);
     expect(savedProject.bodies.single.size, [150, 70, 28]);
     expect(dialog.saveCount, 1);
+    expect(find.textContaining('Сохранено:'), findsOneWidget);
+  });
+
+  testWidgets('save picker opens without pre-picker status rebuild', (
+    tester,
+  ) async {
+    final fileService = _MemoryProjectFileService();
+    final dialog = _BlockingProjectFileDialogService();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkspaceShell(
+          project: ProjectModel.initial(),
+          geometryService: const MockGeometryService(),
+          projectFileService: fileService,
+          projectFileDialogService: dialog,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final saveButton = find.byKey(
+      const ValueKey('toolbar-command-${CommandIds.saveProject}'),
+    );
+
+    await tester.tap(saveButton);
+    await tester.pump();
+
+    expect(dialog.saveCount, 1);
+    expect(find.textContaining('Сохранение проекта'), findsNothing);
+
+    await tester.tap(saveButton);
+    await tester.pump();
+
+    expect(dialog.saveCount, 1);
+
+    dialog.completeSave(File('stable_case'));
+    await _pumpAsyncUi(tester);
+
+    expect(fileService.hasFile(File('stable_case.enclosure.json')), isTrue);
     expect(find.textContaining('Сохранено:'), findsOneWidget);
   });
 
@@ -328,6 +369,26 @@ class _FakeProjectFileDialogService implements ProjectFileDialogService {
     saveCount += 1;
     lastSuggestedName = suggestedName;
     return saveFile;
+  }
+}
+
+class _BlockingProjectFileDialogService implements ProjectFileDialogService {
+  final Completer<File?> _saveCompleter = Completer<File?>();
+  int saveCount = 0;
+
+  void completeSave(File? file) {
+    _saveCompleter.complete(file);
+  }
+
+  @override
+  Future<File?> pickOpenProjectFile() async {
+    return null;
+  }
+
+  @override
+  Future<File?> pickSaveProjectFile({required String suggestedName}) async {
+    saveCount += 1;
+    return _saveCompleter.future;
   }
 }
 

@@ -225,14 +225,12 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       return;
     }
 
-    setState(() {
-      _fileBusy = true;
-      _fileStatusMessage = 'Открытие проекта...';
-    });
+    _fileBusy = true;
 
     try {
       final file = await widget.projectFileDialogService.pickOpenProjectFile();
       if (!mounted) {
+        _fileBusy = false;
         return;
       }
 
@@ -244,8 +242,12 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
         return;
       }
 
+      setState(() {
+        _fileStatusMessage = 'Открытие проекта...';
+      });
       final project = await widget.projectFileService.readProject(file);
       if (!mounted) {
+        _fileBusy = false;
         return;
       }
 
@@ -277,10 +279,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       return;
     }
 
-    setState(() {
-      _fileBusy = true;
-      _fileStatusMessage = 'Сохранение проекта...';
-    });
+    _fileBusy = true;
 
     try {
       final selectedFile =
@@ -289,6 +288,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
             suggestedName: _suggestedProjectFileName(_project),
           );
       if (!mounted) {
+        _fileBusy = false;
         return;
       }
 
@@ -301,8 +301,12 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       }
 
       final file = ensureProjectFileExtension(selectedFile);
+      setState(() {
+        _fileStatusMessage = 'Сохранение проекта...';
+      });
       await widget.projectFileService.writeProject(file, _project);
       if (!mounted) {
+        _fileBusy = false;
         return;
       }
 
