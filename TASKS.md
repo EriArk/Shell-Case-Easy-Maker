@@ -9,7 +9,7 @@ This is the living task backlog. Keep it updated.
 - [x] Configure GitHub `origin` remote and push initial documentation commit.
 - [x] Add linting/formatting.
 - [x] Add test framework.
-- [ ] Add basic CI.
+- [x] Add basic CI.
 - [x] Create docs folder and copy this documentation pack.
 - [x] Add `WORKLOG.md` update discipline.
 - [x] Create initial command system skeleton.

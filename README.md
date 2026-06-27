@@ -1,5 +1,7 @@
 # Enclosure CAD Codex Documentation Pack
 
+[![Flutter CI](https://github.com/EriArk/Shell-Case-Easy-Maker/actions/workflows/flutter-ci.yml/badge.svg)](https://github.com/EriArk/Shell-Case-Easy-Maker/actions/workflows/flutter-ci.yml)
+
 This repository documentation describes a Flutter + OpenCascade desktop application for fast, visual, beginner-friendly design of 3D-printable enclosures, component-driven cases, inserts, slots, grips, and accessories.
 
 The product is **not** a generic CAD clone. It is a semantic, parametric enclosure constructor with a precise B-Rep backend.

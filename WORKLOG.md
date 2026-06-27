@@ -160,3 +160,60 @@ Add basic CI, then continue Phase 1 with stronger typed semantic models, migrati
 
 ### Notes for future Codex sessions
 Keep committing and pushing at the end of each meaningful work session. The current app shell intentionally uses semantic surface IDs and a mock `GeometryService`; do not let UI code depend on OCCT topology or generated mesh IDs.
+
+---
+
+## 2026-06-27 — Basic Flutter CI
+
+### Goal
+Add a basic GitHub Actions workflow that validates formatting, analysis, and tests on `main`.
+
+### Read before work
+`AGENTS.md`, `TASKS.md`, `docs/26_TESTING_AND_QUALITY.md`, `docs/27_RESEARCH_AND_REFERENCES.md`, GitHub Actions checkout documentation, Flutter continuous delivery documentation, and `subosito/flutter-action` documentation.
+
+### Changes made
+- `.github/workflows/flutter-ci.yml`:
+  - Added `Flutter CI` workflow for pushes and pull requests targeting `main`.
+  - Pinned Flutter to `3.44.2` and enabled Flutter/pub caching.
+  - Runs dependency install, format check, analyzer, and tests.
+- `README.md`:
+  - Added CI status badge.
+- `docs/27_RESEARCH_AND_REFERENCES.md`:
+  - Added research note for Flutter GitHub Actions setup and license compatibility.
+- `TASKS.md`:
+  - Marked basic CI complete.
+- `WORKLOG.md`:
+  - Added this worklog entry.
+
+### Tests run
+- `flutter pub get`:
+  - Passed.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 3 tests.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Not applicable; CI validates existing tests only.
+- Serialization checked?
+  - Covered by `flutter test`.
+- UI checked?
+  - Covered by widget test in `flutter test`.
+- Export checked?
+  - Not applicable yet.
+
+### Known issues
+- Issue: CI does not build desktop packages yet.
+  - Severity: Low.
+  - Next action: add platform build jobs later during packaging work.
+
+### Next step
+Continue Phase 1 by strengthening typed project models and introducing a real command registry/undo design.
+
+### Notes for future Codex sessions
+Keep CI lightweight until platform packaging dependencies are intentionally researched and documented.
