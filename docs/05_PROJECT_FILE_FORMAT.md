@@ -85,3 +85,13 @@ When schema changes:
 - write explicit migration function,
 - test migration from previous sample projects,
 - preserve semantic intent.
+
+## Current implementation skeleton
+
+The first implementation lives under `lib/project/` and keeps project data semantic:
+- `ProjectModel` owns schema/version, units, bodies, component templates, placements, features, feature groups, constraints, and export presets.
+- `Enclosure`, `SemanticFeature`, `FeatureGroup`, `ComponentTemplate`, and `ComponentPlacement` are typed model entry points with JSON round-trip tests.
+- Unknown semantic metadata is preserved when reading and writing fixtures so partially typed subsystem data is not silently dropped.
+- `ProjectMigration` is the central entrypoint for schema upgrades and currently supports version 1.
+
+Generated meshes, STL files, preview data, and OCCT topology are still excluded from the editable project model.

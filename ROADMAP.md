@@ -19,7 +19,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 ## Chunk Status
 
 - [x] R0 — Roadmap + Latest EXE
-- [ ] M1 — Semantic Core
+- [x] M1 — Semantic Core
 - [ ] M2 — Commands + Undo
 - [ ] M3 — Usable Shell
 - [ ] M4 — Viewport MVP
@@ -66,11 +66,11 @@ Make project progress inspectable and make the latest Windows app easy to launch
 Make the editable project model typed, versioned, and ready for feature/component generators.
 
 ### Tasks
-- [ ] Split semantic model into focused files for project, enclosure, features, feature groups, component templates, and placements.
-- [ ] Add stable IDs and schema/version handling.
-- [ ] Add typed JSON serialization/deserialization for all M1 models.
-- [ ] Add project migration entrypoint, even if only version 1 exists.
-- [ ] Add unit tests for round-trips and malformed/minimal JSON defaults.
+- [x] Split semantic model into focused files for project, enclosure, features, feature groups, component templates, and placements.
+- [x] Add stable IDs and schema/version handling.
+- [x] Add typed JSON serialization/deserialization for all M1 models.
+- [x] Add project migration entrypoint, even if only version 1 exists.
+- [x] Add unit tests for round-trips and malformed/minimal JSON defaults.
 
 ### Done Criteria
 - The app still starts with the sample semantic project.

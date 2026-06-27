@@ -276,3 +276,59 @@ Continue with M1 Semantic Core from `ROADMAP.md`.
 
 ### Notes for future Codex sessions
 The latest manual Windows app should be opened from `releases/latest/windows/shell_case_easy_maker.exe`, not by copying only the `.exe` elsewhere.
+
+---
+
+## 2026-06-27 — M1 Semantic Core
+
+### Goal
+Split the semantic project model into focused typed modules with versioned JSON parsing and tests.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `docs/05_PROJECT_FILE_FORMAT.md`, `docs/28_IMPLEMENTATION_PLAN.md`, existing `lib/project/project_model.dart`, existing project tests, and example JSON fixtures.
+
+### Changes made
+- `lib/project/`:
+  - Split the semantic model into focused files for schema constants, JSON helpers, enclosure, component placement, feature, feature group, component template, migration, and project model.
+  - Added typed `ComponentTemplate`/board/hole/feature/zone models.
+  - Added `ProjectMigration` as the central schema migration entrypoint.
+  - Preserved unknown semantic metadata during JSON round-trips so future subsystem fields and root project metadata are not dropped.
+- `test/project_model_test.dart`:
+  - Added tests for minimal migration defaults, fixture parsing, component template round-trips, metadata preservation, and newer-version rejection.
+- `docs/05_PROJECT_FILE_FORMAT.md`:
+  - Documented the current implementation skeleton.
+- `ROADMAP.md` and `TASKS.md`:
+  - Marked completed M1/Phase 1 semantic model items.
+
+### Tests run
+- `dart format lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 8 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools/build_latest_windows.ps1`:
+  - Passed and refreshed `releases/latest/windows/shell_case_easy_maker.exe`.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Not applicable; no geometry backend changes.
+- Serialization checked?
+  - Yes, project and component template round-trip tests cover fixtures and defaults.
+- UI checked?
+  - Widget test still covers shell rendering; latest Windows bundle was regenerated for manual launch.
+- Export checked?
+  - Not applicable yet.
+
+### Known issues
+- Issue: Many subsystem-specific feature fields are preserved as metadata rather than fully typed.
+  - Severity: Low.
+  - Next action: type them as each subsystem is implemented.
+
+### Next step
+Run final validation, regenerate the latest Windows bundle, then continue with M2 Commands + Undo.
+
+### Notes for future Codex sessions
+Keep `ProjectModel` semantic-only. Do not add generated meshes, STL paths as source data, OCCT topology, or triangle IDs to these models.

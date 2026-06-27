@@ -23,16 +23,16 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 
 ## Phase 1 — Architecture skeleton
 
-- [ ] Implement `ProjectModel` with versioned JSON serialization.
-- [ ] Implement `Feature` base model.
-- [ ] Implement `FeatureGroup` base model.
-- [ ] Implement `ComponentTemplate` base model.
-- [ ] Implement `Enclosure` model.
+- [x] Implement `ProjectModel` with versioned JSON serialization.
+- [x] Implement `Feature` base model.
+- [x] Implement `FeatureGroup` base model.
+- [x] Implement `ComponentTemplate` base model.
+- [x] Implement `Enclosure` model.
 - [ ] Implement `SelectionModel`.
 - [ ] Implement undo/redo transaction system.
 - [ ] Implement command registry.
 - [ ] Implement parameter model with units, ranges, steps, defaults.
-- [ ] Implement validation result model.
+- [x] Implement validation result model.
 
 ## Phase 2 — Flutter UI shell
 
