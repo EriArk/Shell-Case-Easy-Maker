@@ -55,4 +55,5 @@ Continuous grouping is intended for future knob, drag, and encoder workflows.
 
 - Commands are metadata-only; no command dispatcher is implemented yet.
 - Undo history is not wired into project editing UI yet.
-- Selection and active surface context will arrive in a later shell chunk.
+- Selection and active surface context are available from the shell selection
+  model, but editing commands are not wired yet.

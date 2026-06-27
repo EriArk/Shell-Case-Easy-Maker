@@ -21,7 +21,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] R0 — Roadmap + Latest EXE
 - [x] M1 — Semantic Core
 - [x] M2 — Commands + Undo
-- [ ] M3 — Usable Shell
+- [x] M3 — Usable Shell
 - [ ] M4 — Viewport MVP
 - [ ] M5 — First Geometry Slice
 
@@ -123,11 +123,11 @@ Create the command and undo foundations needed for safe semantic editing.
 Make the current shell useful enough for manual exploration of semantic project state.
 
 ### Tasks
-- [ ] Add selection model.
-- [ ] Connect selected object/surface to the contextual inspector.
-- [ ] Add basic project JSON save/load service.
-- [ ] Add object summary/tree or compact project browser.
-- [ ] Add widget tests for inspector context changes.
+- [x] Add selection model.
+- [x] Connect selected object/surface to the contextual inspector.
+- [x] Add basic project JSON save/load service.
+- [x] Add object summary/tree or compact project browser.
+- [x] Add widget tests for inspector context changes.
 
 ### Done Criteria
 - Selecting semantic objects changes inspector content.

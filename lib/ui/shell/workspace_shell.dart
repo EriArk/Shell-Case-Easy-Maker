@@ -6,6 +6,8 @@ import '../../commands/command_ids.dart';
 import '../../commands/command_registry.dart';
 import '../../geometry/geometry_service.dart';
 import '../../project/project_model.dart';
+import '../../selection/project_selection_resolver.dart';
+import '../../selection/selection_model.dart';
 import '../../validation/validation_result.dart';
 
 class WorkspaceShell extends StatefulWidget {
@@ -25,6 +27,7 @@ class WorkspaceShell extends StatefulWidget {
 class _WorkspaceShellState extends State<WorkspaceShell> {
   late Future<GeometryPreview> _previewFuture;
   late Future<ValidationReport> _validationFuture;
+  SelectionModel _selection = const SelectionModel.workspace();
 
   @override
   void initState() {
@@ -46,40 +49,68 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     _validationFuture = widget.geometryService.validateGeometry(widget.project);
   }
 
+  void _select(SelectionModel selection) {
+    setState(() {
+      _selection = selection;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Column(
-          children: [
-            _TopToolbar(projectName: widget.project.projectName),
-            Expanded(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const _ToolRail(),
-                  Expanded(
-                    child: FutureBuilder<GeometryPreview>(
-                      future: _previewFuture,
-                      builder: (context, snapshot) {
-                        return _ViewportArea(
+        child: FutureBuilder<GeometryPreview>(
+          future: _previewFuture,
+          builder: (context, previewSnapshot) {
+            final preview = previewSnapshot.data;
+            final surfaceLabels = {
+              for (final surface in preview?.surfaces ?? <SelectableSurface>[])
+                surface.id: surface.label,
+            };
+            final details = ProjectSelectionResolver(
+              widget.project,
+              surfaceLabels: surfaceLabels,
+            ).describe(_selection);
+            final commandContext = _selection.toCommandContext();
+
+            return Column(
+              children: [
+                _TopToolbar(projectName: widget.project.projectName),
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _ToolRail(commandContext: commandContext),
+                      _ProjectBrowser(
+                        project: widget.project,
+                        surfaces: preview?.surfaces ?? const [],
+                        selection: _selection,
+                        onSelectionChanged: _select,
+                      ),
+                      Expanded(
+                        child: _ViewportArea(
                           project: widget.project,
-                          preview: snapshot.data,
-                        );
-                      },
-                    ),
+                          preview: preview,
+                          selection: _selection,
+                          selectionDetails: details,
+                        ),
+                      ),
+                      _Inspector(details: details),
+                    ],
                   ),
-                  _Inspector(project: widget.project),
-                ],
-              ),
-            ),
-            FutureBuilder<ValidationReport>(
-              future: _validationFuture,
-              builder: (context, snapshot) {
-                return _StatusBar(report: snapshot.data);
-              },
-            ),
-          ],
+                ),
+                FutureBuilder<ValidationReport>(
+                  future: _validationFuture,
+                  builder: (context, snapshot) {
+                    return _StatusBar(
+                      report: snapshot.data,
+                      selectionDetails: details,
+                    );
+                  },
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -175,7 +206,9 @@ class _ToolbarCommand extends StatelessWidget {
 }
 
 class _ToolRail extends StatelessWidget {
-  const _ToolRail();
+  const _ToolRail({required this.commandContext});
+
+  final CommandContext commandContext;
 
   static const commandIds = [
     CommandIds.createEnclosure,
@@ -207,7 +240,7 @@ class _ToolRail extends StatelessWidget {
           for (var index = 0; index < commandIds.length; index++)
             _RailButton(
               command: registry.byId(commandIds[index]),
-              selected: index == 0,
+              commandContext: commandContext,
             ),
         ],
       ),
@@ -216,14 +249,18 @@ class _ToolRail extends StatelessWidget {
 }
 
 class _RailButton extends StatelessWidget {
-  const _RailButton({required this.command, required this.selected});
+  const _RailButton({required this.command, required this.commandContext});
 
   final AppCommand command;
-  final bool selected;
+  final CommandContext commandContext;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final enabled = command.isAvailable(commandContext);
+    final contextual =
+        commandContext.activeScope != null &&
+        command.scopes.contains(commandContext.activeScope);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
@@ -231,18 +268,18 @@ class _RailButton extends StatelessWidget {
         message: command.label,
         child: IconButton(
           icon: Icon(_iconForCommand(command.icon)),
-          color: selected
+          color: contextual && enabled
               ? theme.colorScheme.primary
               : theme.colorScheme.onSurfaceVariant,
           style: IconButton.styleFrom(
-            backgroundColor: selected
+            backgroundColor: contextual && enabled
                 ? theme.colorScheme.primary.withValues(alpha: 0.12)
                 : Colors.transparent,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
           ),
-          onPressed: () {},
+          onPressed: enabled ? () {} : null,
         ),
       ),
     );
@@ -267,11 +304,276 @@ IconData _iconForCommand(String icon) {
   };
 }
 
+class _ProjectBrowser extends StatelessWidget {
+  const _ProjectBrowser({
+    required this.project,
+    required this.surfaces,
+    required this.selection,
+    required this.onSelectionChanged,
+  });
+
+  final ProjectModel project;
+  final List<SelectableSurface> surfaces;
+  final SelectionModel selection;
+  final ValueChanged<SelectionModel> onSelectionChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      width: 226,
+      decoration: BoxDecoration(
+        color: const Color(0xFF1B1F22),
+        border: Border(
+          right: BorderSide(color: theme.dividerColor.withValues(alpha: 0.18)),
+        ),
+      ),
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(10, 10, 10, 14),
+        children: [
+          _BrowserHeader(label: 'Проект'),
+          _BrowserRow(
+            icon: Icons.account_tree_rounded,
+            title: project.projectName,
+            subtitle: '${project.units} · ${project.printerProfile}',
+            selected: selection.kind == SelectionKind.workspace,
+            onTap: () => onSelectionChanged(const SelectionModel.workspace()),
+          ),
+          const SizedBox(height: 8),
+          _BrowserHeader(label: 'Корпус'),
+          for (final body in project.bodies)
+            _BrowserRow(
+              icon: Icons.crop_square_rounded,
+              title: body.id,
+              subtitle: body.shape,
+              selected:
+                  selection.kind == SelectionKind.enclosure &&
+                  selection.id == body.id,
+              onTap: () =>
+                  onSelectionChanged(SelectionModel.enclosure(body.id)),
+            ),
+          if (surfaces.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            _BrowserHeader(label: 'Грани'),
+            for (final surface in surfaces)
+              _BrowserRow(
+                icon: Icons.flip_to_front_rounded,
+                title: surface.label,
+                subtitle: surface.id,
+                depth: 1,
+                selected:
+                    selection.kind == SelectionKind.surface &&
+                    selection.id == surface.id,
+                onTap: () => onSelectionChanged(
+                  SelectionModel.surface(
+                    id: surface.id,
+                    parentId: _surfaceParentId(project, surface.id),
+                  ),
+                ),
+              ),
+          ],
+          const SizedBox(height: 8),
+          _BrowserHeader(label: 'Компоненты'),
+          for (final placement in project.componentPlacements)
+            _BrowserRow(
+              icon: Icons.memory_rounded,
+              title: _templateName(project, placement.templateId),
+              subtitle: placement.id,
+              selected:
+                  selection.kind == SelectionKind.componentPlacement &&
+                  selection.id == placement.id,
+              onTap: () => onSelectionChanged(
+                SelectionModel.componentPlacement(placement.id),
+              ),
+            ),
+          for (final template in project.componentTemplates)
+            _BrowserRow(
+              icon: Icons.developer_board_rounded,
+              title: template.name,
+              subtitle: 'template',
+              depth: 1,
+              selected:
+                  selection.kind == SelectionKind.componentTemplate &&
+                  selection.id == template.id,
+              onTap: () => onSelectionChanged(
+                SelectionModel.componentTemplate(template.id),
+              ),
+            ),
+          const SizedBox(height: 8),
+          _BrowserHeader(label: 'Фичи'),
+          for (final feature in project.features)
+            _BrowserRow(
+              icon: _featureIcon(feature.type),
+              title: _featureTitle(feature.type),
+              subtitle: feature.id,
+              selected:
+                  selection.kind == SelectionKind.feature &&
+                  selection.id == feature.id,
+              onTap: () =>
+                  onSelectionChanged(SelectionModel.feature(feature.id)),
+            ),
+          for (final group in project.featureGroups)
+            _BrowserRow(
+              icon: Icons.apps_rounded,
+              title: _featureTitle(group.type),
+              subtitle: group.id,
+              selected:
+                  selection.kind == SelectionKind.featureGroup &&
+                  selection.id == group.id,
+              onTap: () =>
+                  onSelectionChanged(SelectionModel.featureGroup(group.id)),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BrowserHeader extends StatelessWidget {
+  const _BrowserHeader({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
+      child: Text(
+        label,
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _BrowserRow extends StatelessWidget {
+  const _BrowserRow({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.selected,
+    required this.onTap,
+    this.depth = 0,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool selected;
+  final int depth;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: EdgeInsets.only(left: depth * 12, top: 2, bottom: 2),
+      child: Material(
+        color: selected
+            ? theme.colorScheme.primary.withValues(alpha: 0.12)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+            child: Row(
+              children: [
+                Icon(
+                  icon,
+                  size: 18,
+                  color: selected
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: selected
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.onSurface,
+                          fontWeight: selected ? FontWeight.w700 : null,
+                        ),
+                      ),
+                      Text(
+                        subtitle,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+String _surfaceParentId(ProjectModel project, String surfaceId) {
+  for (final body in project.bodies) {
+    if (surfaceId.startsWith('${body.id}.')) {
+      return body.id;
+    }
+  }
+
+  return project.bodies.firstOrNull?.id ?? 'project';
+}
+
+String _templateName(ProjectModel project, String templateId) {
+  return project.componentTemplates
+          .where((template) => template.id == templateId)
+          .firstOrNull
+          ?.name ??
+      templateId;
+}
+
+IconData _featureIcon(String type) {
+  return switch (type) {
+    'usb_c_cutout' => Icons.settings_input_component_rounded,
+    'button_group' => Icons.radio_button_checked_rounded,
+    _ => Icons.extension_rounded,
+  };
+}
+
+String _featureTitle(String type) {
+  return switch (type) {
+    'usb_c_cutout' => 'USB-C',
+    'button_group' => 'Группа кнопок',
+    _ => type.replaceAll('_', ' '),
+  };
+}
+
 class _ViewportArea extends StatelessWidget {
-  const _ViewportArea({required this.project, required this.preview});
+  const _ViewportArea({
+    required this.project,
+    required this.preview,
+    required this.selection,
+    required this.selectionDetails,
+  });
 
   final ProjectModel project;
   final GeometryPreview? preview;
+  final SelectionModel selection;
+  final ProjectSelectionDetails selectionDetails;
 
   @override
   Widget build(BuildContext context) {
@@ -283,7 +585,10 @@ class _ViewportArea extends StatelessWidget {
         children: [
           Positioned.fill(
             child: CustomPaint(
-              painter: _ViewportPainter(colorScheme: theme.colorScheme),
+              painter: _ViewportPainter(
+                colorScheme: theme.colorScheme,
+                selection: selection,
+              ),
             ),
           ),
           Positioned(
@@ -301,10 +606,8 @@ class _ViewportArea extends StatelessWidget {
             bottom: 16,
             child: _ViewportLabel(
               icon: Icons.schema_rounded,
-              text: AppStrings.semanticModel,
-              detail:
-                  '${project.bodies.length} body, '
-                  '${project.features.length} features',
+              text: selectionDetails.title,
+              detail: selectionDetails.subtitle,
             ),
           ),
         ],
@@ -328,32 +631,42 @@ class _ViewportLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0xCC1E2226),
-        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.2)),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 18, color: theme.colorScheme.primary),
-            const SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(text, style: theme.textTheme.labelMedium),
-                Text(
-                  detail,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 320),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: const Color(0xCC1E2226),
+          border: Border.all(color: theme.dividerColor.withValues(alpha: 0.2)),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 18, color: theme.colorScheme.primary),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      text,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelMedium,
+                    ),
+                    Text(
+                      detail,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -389,14 +702,13 @@ class _ViewCube extends StatelessWidget {
 }
 
 class _Inspector extends StatelessWidget {
-  const _Inspector({required this.project});
+  const _Inspector({required this.details});
 
-  final ProjectModel project;
+  final ProjectSelectionDetails details;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final body = project.bodies.firstOrNull;
 
     return Container(
       width: 286,
@@ -413,43 +725,32 @@ class _Inspector extends StatelessWidget {
             children: [
               Icon(Icons.tune_rounded, color: theme.colorScheme.secondary),
               const SizedBox(width: 8),
-              Text(
-                AppStrings.inspectorTitle,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      details.title,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      details.subtitle,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          if (body != null) ...[
-            _InspectorValue(label: 'Shape', value: body.shape),
-            _InspectorValue(
-              label: 'Size',
-              value: body.size
-                  .map((value) => '${value.toStringAsFixed(0)} mm')
-                  .join(' x '),
-            ),
-            _InspectorValue(
-              label: 'Wall',
-              value: '${body.wallThickness.toStringAsFixed(1)} mm',
-            ),
-            _InspectorValue(
-              label: 'Radius',
-              value: '${body.cornerRadius.toStringAsFixed(1)} mm',
-            ),
-            _InspectorValue(label: 'Lid', value: body.lid?.type ?? 'none'),
-          ],
-          const Divider(height: 28),
-          _InspectorValue(
-            label: 'Components',
-            value: project.componentPlacements.length.toString(),
-          ),
-          _InspectorValue(
-            label: 'Features',
-            value: project.features.length.toString(),
-          ),
-          _InspectorValue(label: 'Fit', value: project.printerProfile),
+          for (final property in details.properties)
+            _InspectorValue(label: property.label, value: property.value),
         ],
       ),
     );
@@ -493,9 +794,10 @@ class _InspectorValue extends StatelessWidget {
 }
 
 class _StatusBar extends StatelessWidget {
-  const _StatusBar({required this.report});
+  const _StatusBar({required this.report, required this.selectionDetails});
 
   final ValidationReport? report;
+  final ProjectSelectionDetails selectionDetails;
 
   @override
   Widget build(BuildContext context) {
@@ -528,11 +830,14 @@ class _StatusBar extends StatelessWidget {
             style: theme.textTheme.labelMedium,
           ),
           const Spacer(),
-          Text(
-            AppStrings.viewportHint,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+          Flexible(
+            child: Text(
+              hasErrors ? AppStrings.viewportHint : selectionDetails.status,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.end,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
         ],
@@ -542,9 +847,10 @@ class _StatusBar extends StatelessWidget {
 }
 
 class _ViewportPainter extends CustomPainter {
-  const _ViewportPainter({required this.colorScheme});
+  const _ViewportPainter({required this.colorScheme, required this.selection});
 
   final ColorScheme colorScheme;
+  final SelectionModel selection;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -617,10 +923,82 @@ class _ViewportPainter extends CustomPainter {
       RRect.fromRectAndRadius(portRect, const Radius.circular(6)),
       portPaint,
     );
+
+    final highlightPaint = Paint()
+      ..color = colorScheme.primary
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3;
+    final secondaryHighlightPaint = Paint()
+      ..color = colorScheme.secondary
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3;
+
+    if (selection.kind == SelectionKind.enclosure) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(bodyRect.inflate(4), const Radius.circular(31)),
+        highlightPaint,
+      );
+    }
+
+    if (selection.kind == SelectionKind.surface) {
+      final selectedSurface = selection.id ?? '';
+      if (selectedSurface.contains('top_lid')) {
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            lidRect.inflate(4),
+            const Radius.circular(23),
+          ),
+          highlightPaint,
+        );
+      } else if (selectedSurface.contains('front_wall')) {
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            portRect.inflate(8),
+            const Radius.circular(10),
+          ),
+          highlightPaint,
+        );
+      } else {
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            bodyRect.inflate(4),
+            const Radius.circular(31),
+          ),
+          highlightPaint,
+        );
+      }
+    }
+
+    if (selection.kind == SelectionKind.componentPlacement ||
+        selection.kind == SelectionKind.componentTemplate) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          boardRect.inflate(5),
+          const Radius.circular(11),
+        ),
+        secondaryHighlightPaint,
+      );
+    }
+
+    if (selection.kind == SelectionKind.feature &&
+        selection.id == 'front_usb_c') {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(portRect.inflate(8), const Radius.circular(10)),
+        secondaryHighlightPaint,
+      );
+    }
+
+    if (selection.kind == SelectionKind.feature &&
+        selection.id == 'abxy_buttons') {
+      for (final offset in buttonOffsets) {
+        canvas.drawCircle(center + offset, 14, secondaryHighlightPaint);
+      }
+    }
   }
 
   @override
   bool shouldRepaint(covariant _ViewportPainter oldDelegate) {
-    return oldDelegate.colorScheme != colorScheme;
+    return oldDelegate.colorScheme != colorScheme ||
+        oldDelegate.selection != selection;
   }
 }

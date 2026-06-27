@@ -28,24 +28,26 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Implement `FeatureGroup` base model.
 - [x] Implement `ComponentTemplate` base model.
 - [x] Implement `Enclosure` model.
-- [ ] Implement `SelectionModel`.
+- [x] Implement `SelectionModel`.
 - [x] Implement undo/redo transaction system.
 - [x] Implement command registry.
+- [x] Implement project JSON file service.
 - [ ] Implement parameter model with units, ranges, steps, defaults.
 - [x] Implement validation result model.
 
 ## Phase 2 — Flutter UI shell
 
-- [ ] Viewport-first layout.
-- [ ] Left icon rail.
-- [ ] Right contextual inspector.
-- [ ] Bottom compact hint/status panel.
-- [ ] Top minimal toolbar.
+- [x] Viewport-first layout.
+- [x] Left icon rail.
+- [x] Right contextual inspector.
+- [x] Bottom compact hint/status panel.
+- [x] Top minimal toolbar.
 - [ ] Collapsible/sliding panels.
-- [ ] Theme system foundation.
+- [x] Theme system foundation.
 - [ ] Context popover foundation.
 - [ ] Command palette foundation.
 - [ ] Navigation presets foundation.
+- [x] Compact semantic project browser.
 
 ## Phase 3 — Viewport MVP
 

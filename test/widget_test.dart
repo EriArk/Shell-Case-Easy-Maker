@@ -1,5 +1,5 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shell_case_easy_maker/app/app_strings.dart';
 import 'package:shell_case_easy_maker/app/case_maker_app.dart';
 
 void main() {
@@ -7,9 +7,33 @@ void main() {
     await tester.pumpWidget(const CaseMakerApp());
     await tester.pumpAndSettle();
 
-    expect(find.text(AppStrings.appTitle), findsOneWidget);
-    expect(find.text(AppStrings.inspectorTitle), findsOneWidget);
-    expect(find.text(AppStrings.previewReady), findsOneWidget);
-    expect(find.textContaining('120 mm'), findsOneWidget);
+    expect(find.text('Shell Case Easy Maker'), findsOneWidget);
+    expect(find.text('main_enclosure'), findsWidgets);
+    expect(find.text('Custom Button Board'), findsWidgets);
+
+    await tester.tap(find.text('main_enclosure').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('120 x 70 x 28 mm'), findsOneWidget);
+  });
+
+  testWidgets('selecting a feature updates contextual inspector', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const CaseMakerApp());
+    await tester.pumpAndSettle();
+
+    expect(find.text('width'), findsNothing);
+
+    await tester.scrollUntilVisible(
+      find.text('USB-C'),
+      80,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('USB-C').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('width'), findsOneWidget);
+    expect(find.text('front_usb_c'), findsWidgets);
   });
 }

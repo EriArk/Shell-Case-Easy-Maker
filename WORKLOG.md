@@ -391,3 +391,74 @@ Run final validation, refresh latest Windows bundle, then continue with M3 Usabl
 
 ### Notes for future Codex sessions
 Keep command availability based on semantic context: selected object ID, active surface ID, advanced mode, and undo/redo state. Do not base command availability on raw mesh or OCCT IDs.
+
+---
+
+## 2026-06-27 — M3 Usable Shell
+
+### Goal
+Make the shell useful for manual semantic exploration by adding selection,
+contextual inspector updates, a compact project browser, and basic project JSON
+file service.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, existing project model files,
+`lib/ui/shell/workspace_shell.dart`, command registry files, and current tests.
+
+### Changes made
+- `lib/selection/`:
+  - Added `SelectionModel` for workspace/object/surface focus.
+  - Added `ProjectSelectionResolver` to describe selected semantic state for
+    inspector/status UI without putting business rules in widgets.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added a compact semantic project browser.
+  - Connected selected project, enclosure, surface, component, template, and
+    feature to the inspector and status hint.
+  - Connected tool rail availability to selection-driven `CommandContext`.
+  - Added mock viewport highlights for selected semantic items.
+- `lib/project/project_file_service.dart`:
+  - Added JSON encode/decode and disk read/write helpers for project files.
+- `docs/32_USABLE_SHELL.md`:
+  - Documented selection, browser, inspector details, and current limits.
+- `docs/31_COMMANDS_AND_UNDO.md`:
+  - Updated the limitation note now that selection context exists.
+- `test/`:
+  - Added tests for selection context, selection resolver, project file service,
+    and contextual inspector widget behavior.
+- `ROADMAP.md` and `TASKS.md`:
+  - Marked M3 usable shell items complete.
+
+### Tests run
+- `dart format lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 26 tests.
+
+### Validation
+- Geometry checked?
+  - Mock viewport only; selected semantic items now show mock highlights.
+- Serialization checked?
+  - Yes, `ProjectFileService` encode/decode and disk round-trip tests.
+- UI checked?
+  - Yes, widget tests cover selecting an enclosure and a semantic feature.
+- Export checked?
+  - Not applicable yet.
+
+### Known issues
+- Issue: Save/load is service-level only and not wired to native file dialogs.
+  - Severity: Expected for M3.
+  - Next action: add explicit open/save command dispatch after the command
+    controller layer exists.
+- Issue: Viewport selection is still browser-driven, not direct hit testing.
+  - Severity: Expected before M4.
+  - Next action: research and implement viewport interaction in M4.
+
+### Next step
+Refresh the latest Windows bundle, run final validation, commit, push, then
+continue with M4 Viewport MVP research and interaction model.
+
+### Notes for future Codex sessions
+Keep selection semantic. Do not introduce triangle IDs, raw OCCT IDs, or mesh
+hit-test IDs as editable project state.
