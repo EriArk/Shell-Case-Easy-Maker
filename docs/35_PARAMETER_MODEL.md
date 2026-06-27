@@ -73,10 +73,30 @@ bank:
 The schema uses millimeters for length values and Russian human labels for
 future default UI controls.
 
+## Inspector Adapter
+
+`EnclosureParameterAdapter` maps the first semantic `Enclosure` fields to the
+rounded enclosure schema:
+- `size[0]` to width,
+- `size[1]` to depth,
+- `size[2]` to height,
+- `wallThickness`,
+- `cornerRadius`,
+- `lid.type` to lid type.
+
+The adapter applies schema defaults and snapping before returning a new
+`Enclosure`. It does not store generated mesh, B-Rep, or preview state in the
+project model.
+
+The contextual inspector uses this adapter for the first editable enclosure
+controls. Changes update the local semantic `ProjectModel`, then refresh the
+mock `GeometryService` preview and validation futures.
+
 ## Current Limitations
 
-- The parameter model is not wired into inspector widgets yet.
 - Parameter values are not stored as a separate typed layer in `ProjectModel`
   yet; current semantic objects still store their existing fields/maps.
 - Cross-parameter validation, such as "corner radius must fit body dimensions",
   belongs in generator-specific validation and is not implemented here.
+- Inspector edits are local to the running app. Toolbar save/open commands are
+  not wired to native file dialogs yet.

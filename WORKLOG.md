@@ -673,3 +673,79 @@ continue with generator command wiring or first native worker build slice.
 ### Notes for future Codex sessions
 Keep parameter schemas separate from generated geometry. Use them to feed UI
 controls and generator validation, not to replace semantic project models.
+
+---
+
+## 2026-06-27 — M7 Enclosure Parameter Inspector
+
+### Goal
+Wire the rounded enclosure parameter schema into the contextual inspector so
+the first enclosure can be edited as semantic project data.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `docs/32_USABLE_SHELL.md`,
+`docs/35_PARAMETER_MODEL.md`, current shell widgets, geometry service, viewport
+controller, and widget/protocol tests.
+
+### Changes made
+- `lib/project/enclosure.dart` and `lib/project/project_model.dart`:
+  - Added small immutable update helpers for enclosure/project edits.
+- `lib/parameters/enclosure_parameter_adapter.dart`:
+  - Added mapping between `Enclosure` fields and
+    `CoreParameterSchemas.roundedEnclosure`.
+  - Keeps edits semantic and applies schema defaults/snapping.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added local editable project state inside the shell.
+  - Added compact inspector controls for selected enclosure parameters.
+  - Refreshes mock preview and validation after parameter changes.
+- `lib/geometry/geometry_service.dart`:
+  - Mock preview mesh bounds now use semantic enclosure dimensions from the
+    request project.
+- `lib/viewport/viewport_controller.dart`:
+  - Mock viewport layout can react to enclosure width/depth/corner radius.
+- `docs/32_USABLE_SHELL.md` and `docs/35_PARAMETER_MODEL.md`:
+  - Documented the first parameter inspector wiring and current limitations.
+- `ROADMAP.md` and `TASKS.md`:
+  - Added and marked M7 complete.
+
+### Tests run
+- `flutter pub get`:
+  - Passed; 4 packages still have newer incompatible versions.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 46 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools/build_latest_windows.ps1`:
+  - Passed; refreshed `releases/latest/windows`.
+
+### Validation
+- Geometry checked?
+  - Mock protocol bounds now follow semantic enclosure dimensions.
+- Serialization checked?
+  - Existing project serialization tests still pass.
+- UI checked?
+  - Widget test edits enclosure width through the inspector and observes the
+    semantic size row update.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Inspector edits are local only; toolbar save/open is not wired.
+  - Severity: Expected.
+  - Next action: connect edits to command/undo/save flow.
+- Issue: Undo history is not connected to parameter edits yet.
+  - Severity: Important before larger editing workflows.
+  - Next action: route parameter edits through commands/transactions.
+- Issue: Cross-parameter validation is still minimal.
+  - Severity: Expected.
+  - Next action: add generator validation for wall/radius/body relationships.
+
+### Next step
+Commit and push M7, then continue with command/undo wiring for parameter edits
+or the first native `occt_worker` executable slice.
+
+### Notes for future Codex sessions
+Keep the default enclosure workflow generator-first. The inspector should expose
+semantic maker controls, not raw sketch/extrude/boolean operations.

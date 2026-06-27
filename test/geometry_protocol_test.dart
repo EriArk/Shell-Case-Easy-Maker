@@ -79,6 +79,22 @@ void main() {
     );
   });
 
+  test('mock geometry service uses semantic enclosure dimensions', () async {
+    const service = MockGeometryService();
+    final project = ProjectModel.initial().replaceEnclosure(
+      ProjectModel.initial().bodies.single.copyWith(size: const [150, 90, 32]),
+    );
+    final request = GeometryRequest.previewMesh(
+      project,
+      requestId: 'mock_preview',
+    );
+
+    final response = await service.buildGeometry(request);
+
+    expect(response.previewMesh?.bounds.min, [-75, -45, 0]);
+    expect(response.previewMesh?.bounds.max, [75, 45, 32]);
+  });
+
   test('mock geometry service rejects unsupported operations', () async {
     const service = MockGeometryService();
     final request = GeometryRequest(

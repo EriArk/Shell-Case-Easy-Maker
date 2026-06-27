@@ -25,6 +25,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M4 — Viewport MVP
 - [x] M5 — First Geometry Slice
 - [x] M6 — Parameter Model
+- [x] M7 — Enclosure Parameter Inspector
 
 ---
 
@@ -235,3 +236,43 @@ commands start consuming raw maps of numbers.
 - Launch latest Windows app.
 - Confirm existing shell, browser, and mock viewport still behave normally.
 - No new parameter UI is expected in this chunk.
+
+---
+
+## M7 — Enclosure Parameter Inspector
+
+### Goal
+Wire the rounded enclosure parameter schema into the contextual inspector so
+the first semantic body can be edited without exposing low-level CAD actions.
+
+### Tasks
+- [x] Add copy/update helpers for semantic enclosure/project state.
+- [x] Add an adapter between `Enclosure` fields and the rounded enclosure
+      parameter schema.
+- [x] Add compact inspector controls for width, depth, height, wall thickness,
+      corner radius, and lid type.
+- [x] Refresh mock preview/validation futures when parameters change.
+- [x] Make mock geometry preview bounds use semantic enclosure dimensions.
+- [x] Add model, protocol, and widget tests for parameter edits.
+
+### Done Criteria
+- Editing enclosure parameters changes the semantic `ProjectModel`, not
+  generated mesh state.
+- Flutter still depends on `GeometryService` and semantic IDs, not OCCT
+  internals.
+- Mock viewport proportions and mock geometry bounds react to changed enclosure
+  dimensions.
+- No advanced CAD operations are exposed in the default workflow.
+
+### Tests
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Select `main_enclosure` in the project browser.
+- Change width/depth/height/wall/radius in the inspector and press Enter.
+- Confirm the size row updates and the center mockup changes proportions.
+- Change lid type between no lid and top screw lid.

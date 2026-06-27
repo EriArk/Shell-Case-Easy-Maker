@@ -52,6 +52,54 @@ class ProjectModel {
   final List<Map<String, Object?>> exports;
   final Map<String, Object?> metadata;
 
+  ProjectModel copyWith({
+    String? schema,
+    int? version,
+    String? units,
+    String? projectName,
+    String? printerProfile,
+    List<Enclosure>? bodies,
+    List<ComponentTemplate>? componentTemplates,
+    List<ComponentPlacement>? componentPlacements,
+    List<SemanticFeature>? features,
+    List<FeatureGroup>? featureGroups,
+    List<Map<String, Object?>>? constraints,
+    List<Map<String, Object?>>? exports,
+    Map<String, Object?>? metadata,
+  }) {
+    return ProjectModel(
+      schema: schema ?? this.schema,
+      version: version ?? this.version,
+      units: units ?? this.units,
+      projectName: projectName ?? this.projectName,
+      printerProfile: printerProfile ?? this.printerProfile,
+      bodies: bodies ?? this.bodies,
+      componentTemplates: componentTemplates ?? this.componentTemplates,
+      componentPlacements: componentPlacements ?? this.componentPlacements,
+      features: features ?? this.features,
+      featureGroups: featureGroups ?? this.featureGroups,
+      constraints: constraints ?? this.constraints,
+      exports: exports ?? this.exports,
+      metadata: metadata ?? this.metadata,
+    );
+  }
+
+  ProjectModel replaceEnclosure(Enclosure enclosure) {
+    var replaced = false;
+    final nextBodies = <Enclosure>[];
+
+    for (final body in bodies) {
+      if (body.id == enclosure.id) {
+        nextBodies.add(enclosure);
+        replaced = true;
+      } else {
+        nextBodies.add(body);
+      }
+    }
+
+    return copyWith(bodies: replaced ? nextBodies : [...bodies, enclosure]);
+  }
+
   factory ProjectModel.initial() {
     return ProjectModel(
       projectName: 'Sample Button Board Case',

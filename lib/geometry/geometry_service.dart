@@ -40,6 +40,8 @@ class MockGeometryService implements GeometryService {
 
   @override
   Future<GeometryResponse> buildGeometry(GeometryRequest request) async {
+    final project = ProjectModel.fromJson(request.project);
+
     if (request.operation != GeometryOperation.previewMesh) {
       return GeometryResponse(
         requestId: request.requestId,
@@ -59,7 +61,7 @@ class MockGeometryService implements GeometryService {
       requestId: request.requestId,
       status: GeometryResponseStatus.ok,
       backend: 'mock',
-      previewMesh: _samplePreviewMesh(),
+      previewMesh: _samplePreviewMesh(project),
       metrics: const {
         'source': 'semantic',
         'deterministic': true,
@@ -120,36 +122,43 @@ class MockGeometryService implements GeometryService {
     );
   }
 
-  PreviewMesh _samplePreviewMesh() {
-    return const PreviewMesh(
+  PreviewMesh _samplePreviewMesh(ProjectModel project) {
+    final body = project.bodies.firstOrNull;
+    final width = _sizeAt(body, 0, 120);
+    final depth = _sizeAt(body, 1, 70);
+    final height = _sizeAt(body, 2, 28);
+    final halfWidth = width / 2;
+    final halfDepth = depth / 2;
+
+    return PreviewMesh(
       units: 'mm',
       vertices: [
-        -60,
-        -35,
+        -halfWidth,
+        -halfDepth,
         0,
-        60,
-        -35,
+        halfWidth,
+        -halfDepth,
         0,
-        60,
-        35,
+        halfWidth,
+        halfDepth,
         0,
-        -60,
-        35,
+        -halfWidth,
+        halfDepth,
         0,
-        -60,
-        -35,
-        28,
-        60,
-        -35,
-        28,
-        60,
-        35,
-        28,
-        -60,
-        35,
-        28,
+        -halfWidth,
+        -halfDepth,
+        height,
+        halfWidth,
+        -halfDepth,
+        height,
+        halfWidth,
+        halfDepth,
+        height,
+        -halfWidth,
+        halfDepth,
+        height,
       ],
-      triangles: [
+      triangles: const [
         4,
         5,
         6,
@@ -187,8 +196,11 @@ class MockGeometryService implements GeometryService {
         5,
         4,
       ],
-      bounds: GeometryBounds(min: [-60, -35, 0], max: [60, 35, 28]),
-      surfaces: [
+      bounds: GeometryBounds(
+        min: [-halfWidth, -halfDepth, 0],
+        max: [halfWidth, halfDepth, height],
+      ),
+      surfaces: const [
         PreviewSurfaceMapping(
           semanticId: 'main_enclosure.top_lid.outer',
           label: 'Top lid',
@@ -207,4 +219,9 @@ class MockGeometryService implements GeometryService {
       ],
     );
   }
+}
+
+double _sizeAt(Enclosure? enclosure, int index, double fallback) {
+  final size = enclosure?.size;
+  return size != null && size.length > index ? size[index] : fallback;
 }

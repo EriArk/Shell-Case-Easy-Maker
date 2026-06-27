@@ -8,6 +8,8 @@ import '../../commands/app_command.dart';
 import '../../commands/command_ids.dart';
 import '../../commands/command_registry.dart';
 import '../../geometry/geometry_service.dart';
+import '../../parameters/enclosure_parameter_adapter.dart';
+import '../../parameters/parameter_model.dart';
 import '../../project/project_model.dart';
 import '../../selection/project_selection_resolver.dart';
 import '../../selection/selection_model.dart';
@@ -30,6 +32,7 @@ class WorkspaceShell extends StatefulWidget {
 
 class _WorkspaceShellState extends State<WorkspaceShell> {
   final _viewportController = ViewportController();
+  late ProjectModel _project;
   late Future<GeometryPreview> _previewFuture;
   late Future<ValidationReport> _validationFuture;
   SelectionModel _selection = const SelectionModel.workspace();
@@ -37,21 +40,24 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
   @override
   void initState() {
     super.initState();
+    _project = widget.project;
     _loadGeometry();
   }
 
   @override
   void didUpdateWidget(covariant WorkspaceShell oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.project != widget.project ||
-        oldWidget.geometryService != widget.geometryService) {
+    if (oldWidget.project != widget.project) {
+      _project = widget.project;
+      _loadGeometry();
+    } else if (oldWidget.geometryService != widget.geometryService) {
       _loadGeometry();
     }
   }
 
   void _loadGeometry() {
-    _previewFuture = widget.geometryService.generatePreview(widget.project);
-    _validationFuture = widget.geometryService.validateGeometry(widget.project);
+    _previewFuture = widget.geometryService.generatePreview(_project);
+    _validationFuture = widget.geometryService.validateGeometry(_project);
   }
 
   void _select(SelectionModel selection) {
@@ -95,6 +101,32 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     }
   }
 
+  void _updateEnclosureParameter(
+    String enclosureId,
+    String parameterId,
+    Object? value,
+  ) {
+    final enclosure = _project.bodies
+        .where((body) => body.id == enclosureId)
+        .firstOrNull;
+    if (enclosure == null) {
+      return;
+    }
+
+    setState(() {
+      _project = _project.replaceEnclosure(
+        EnclosureParameterAdapter.updateParameter(
+          enclosure,
+          parameterId,
+          value,
+        ),
+      );
+      _loadGeometry();
+      _viewportController.setSelectedSemanticId(_selection.id);
+      _viewportController.setGhostPreview(_ghostPreviewFor(_selection));
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -108,28 +140,28 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                 surface.id: surface.label,
             };
             final details = ProjectSelectionResolver(
-              widget.project,
+              _project,
               surfaceLabels: surfaceLabels,
             ).describe(_selection);
             final commandContext = _selection.toCommandContext();
 
             return Column(
               children: [
-                _TopToolbar(projectName: widget.project.projectName),
+                _TopToolbar(projectName: _project.projectName),
                 Expanded(
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       _ToolRail(commandContext: commandContext),
                       _ProjectBrowser(
-                        project: widget.project,
+                        project: _project,
                         surfaces: preview?.surfaces ?? const [],
                         selection: _selection,
                         onSelectionChanged: _select,
                       ),
                       Expanded(
                         child: _ViewportArea(
-                          project: widget.project,
+                          project: _project,
                           preview: preview,
                           selection: _selection,
                           selectionDetails: details,
@@ -141,7 +173,12 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                           onHit: _selectViewportHit,
                         ),
                       ),
-                      _Inspector(details: details),
+                      _Inspector(
+                        details: details,
+                        project: _project,
+                        selection: _selection,
+                        onEnclosureParameterChanged: _updateEnclosureParameter,
+                      ),
                     ],
                   ),
                 ),
@@ -727,6 +764,7 @@ class _ViewportAreaState extends State<_ViewportArea> {
           position: event.localPosition,
           size: viewportSize,
           state: widget.viewportState,
+          bodyDimensions: _mockViewportBodyDimensions(widget.project),
         ),
       );
     }
@@ -772,6 +810,9 @@ class _ViewportAreaState extends State<_ViewportArea> {
                     child: CustomPaint(
                       painter: _ViewportPainter(
                         colorScheme: theme.colorScheme,
+                        bodyDimensions: _mockViewportBodyDimensions(
+                          widget.project,
+                        ),
                         selection: widget.selection,
                         viewportState: widget.viewportState,
                       ),
@@ -918,13 +959,25 @@ class _ViewCube extends StatelessWidget {
 }
 
 class _Inspector extends StatelessWidget {
-  const _Inspector({required this.details});
+  const _Inspector({
+    required this.details,
+    required this.project,
+    required this.selection,
+    required this.onEnclosureParameterChanged,
+  });
 
   final ProjectSelectionDetails details;
+  final ProjectModel project;
+  final SelectionModel selection;
+  final void Function(String enclosureId, String parameterId, Object? value)
+  onEnclosureParameterChanged;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final selectedEnclosure = selection.kind == SelectionKind.enclosure
+        ? project.bodies.where((body) => body.id == selection.id).firstOrNull
+        : null;
 
     return Container(
       width: 286,
@@ -967,10 +1020,223 @@ class _Inspector extends StatelessWidget {
           const SizedBox(height: 16),
           for (final property in details.properties)
             _InspectorValue(label: property.label, value: property.value),
+          if (selectedEnclosure != null) ...[
+            const SizedBox(height: 14),
+            _EnclosureParameterEditor(
+              enclosure: selectedEnclosure,
+              onChanged: (parameterId, value) {
+                onEnclosureParameterChanged(
+                  selectedEnclosure.id,
+                  parameterId,
+                  value,
+                );
+              },
+            ),
+          ],
         ],
       ),
     );
   }
+}
+
+class _EnclosureParameterEditor extends StatelessWidget {
+  const _EnclosureParameterEditor({
+    required this.enclosure,
+    required this.onChanged,
+  });
+
+  final Enclosure enclosure;
+  final void Function(String parameterId, Object? value) onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final schema = EnclosureParameterAdapter.schema;
+    final values = EnclosureParameterAdapter.valuesFrom(enclosure);
+    final issues = EnclosureParameterAdapter.validateValues(values);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Divider(color: theme.dividerColor.withValues(alpha: 0.18)),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Icon(
+              Icons.tune_rounded,
+              size: 18,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              schema.label,
+              style: theme.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        for (final parameter in schema.parameters) ...[
+          if (parameter.kind == ParameterKind.choice)
+            _ParameterChoiceField(
+              parameter: parameter,
+              value: values[parameter.id] as String?,
+              onChanged: (value) => onChanged(parameter.id, value),
+            )
+          else
+            _ParameterNumberField(
+              parameter: parameter,
+              value: values[parameter.id],
+              onSubmitted: (value) => onChanged(parameter.id, value),
+            ),
+          const SizedBox(height: 10),
+        ],
+        for (final issue in issues)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Text(
+              issue.message,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.error,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _ParameterNumberField extends StatefulWidget {
+  const _ParameterNumberField({
+    required this.parameter,
+    required this.value,
+    required this.onSubmitted,
+  });
+
+  final ParameterDefinition parameter;
+  final Object? value;
+  final ValueChanged<double> onSubmitted;
+
+  @override
+  State<_ParameterNumberField> createState() => _ParameterNumberFieldState();
+}
+
+class _ParameterNumberFieldState extends State<_ParameterNumberField> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: _formatParameterValue());
+    _focusNode = FocusNode();
+  }
+
+  @override
+  void didUpdateWidget(covariant _ParameterNumberField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final nextText = _formatParameterValue();
+    if (!_focusNode.hasFocus && _controller.text != nextText) {
+      _controller.text = nextText;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _submit(String value) {
+    final parsed = double.tryParse(value.trim().replaceAll(',', '.'));
+    if (parsed != null) {
+      widget.onSubmitted(parsed);
+      _focusNode.unfocus();
+    } else {
+      _controller.text = _formatParameterValue();
+    }
+  }
+
+  String _formatParameterValue() {
+    final value = widget.value;
+    if (value is num) {
+      if (value == value.roundToDouble()) {
+        return value.toStringAsFixed(0);
+      }
+      return value.toStringAsFixed(1);
+    }
+
+    return '';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final parameter = widget.parameter;
+    final range = parameter.range;
+    final suffix = parameter.unit;
+    final helperText = range == null
+        ? null
+        : '${_formatNumber(range.min)}-${_formatNumber(range.max)}';
+
+    return TextFormField(
+      key: ValueKey('enclosure-param-${parameter.id}'),
+      controller: _controller,
+      focusNode: _focusNode,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      textInputAction: TextInputAction.done,
+      onFieldSubmitted: _submit,
+      decoration: InputDecoration(
+        labelText: parameter.label,
+        helperText: helperText,
+        suffixText: suffix,
+        isDense: true,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      ),
+    );
+  }
+}
+
+class _ParameterChoiceField extends StatelessWidget {
+  const _ParameterChoiceField({
+    required this.parameter,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final ParameterDefinition parameter;
+  final String? value;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<String>(
+      key: ValueKey('enclosure-param-${parameter.id}'),
+      initialValue: value,
+      isExpanded: true,
+      items: [
+        for (final option in parameter.options)
+          DropdownMenuItem(value: option.id, child: Text(option.label)),
+      ],
+      onChanged: onChanged,
+      decoration: InputDecoration(
+        labelText: parameter.label,
+        isDense: true,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      ),
+    );
+  }
+}
+
+String _formatNumber(num value) {
+  if (value == value.roundToDouble()) {
+    return value.toStringAsFixed(0);
+  }
+
+  return value.toStringAsFixed(1);
 }
 
 class _InspectorValue extends StatelessWidget {
@@ -1065,17 +1331,23 @@ class _StatusBar extends StatelessWidget {
 class _ViewportPainter extends CustomPainter {
   const _ViewportPainter({
     required this.colorScheme,
+    required this.bodyDimensions,
     required this.selection,
     required this.viewportState,
   });
 
   final ColorScheme colorScheme;
+  final MockViewportBodyDimensions bodyDimensions;
   final SelectionModel selection;
   final ViewportState viewportState;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final layout = MockViewportLayout.fromSize(size, viewportState);
+    final layout = MockViewportLayout.fromSize(
+      size,
+      viewportState,
+      bodyDimensions: bodyDimensions,
+    );
     final gridStep = 32 * viewportState.zoom;
     final gridOrigin = Offset(
       viewportState.panOffset.dx % gridStep,
@@ -1277,7 +1549,26 @@ class _ViewportPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _ViewportPainter oldDelegate) {
     return oldDelegate.colorScheme != colorScheme ||
+        oldDelegate.bodyDimensions != bodyDimensions ||
         oldDelegate.selection != selection ||
         oldDelegate.viewportState != viewportState;
   }
+}
+
+MockViewportBodyDimensions _mockViewportBodyDimensions(ProjectModel project) {
+  final enclosure = project.bodies.firstOrNull;
+  if (enclosure == null) {
+    return const MockViewportBodyDimensions();
+  }
+
+  return MockViewportBodyDimensions(
+    width: _sizeAt(enclosure, 0, 120),
+    depth: _sizeAt(enclosure, 1, 70),
+    height: _sizeAt(enclosure, 2, 28),
+    cornerRadius: enclosure.cornerRadius,
+  );
+}
+
+double _sizeAt(Enclosure enclosure, int index, double fallback) {
+  return enclosure.size.length > index ? enclosure.size[index] : fallback;
 }

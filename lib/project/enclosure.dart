@@ -21,6 +21,28 @@ class Enclosure {
   final LidSpec? lid;
   final Map<String, Object?> metadata;
 
+  Enclosure copyWith({
+    String? id,
+    String? type,
+    String? shape,
+    List<double>? size,
+    double? wallThickness,
+    double? cornerRadius,
+    Object? lid = _unchanged,
+    Map<String, Object?>? metadata,
+  }) {
+    return Enclosure(
+      id: id ?? this.id,
+      type: type ?? this.type,
+      shape: shape ?? this.shape,
+      size: List<double>.unmodifiable(size ?? this.size),
+      wallThickness: wallThickness ?? this.wallThickness,
+      cornerRadius: cornerRadius ?? this.cornerRadius,
+      lid: lid == _unchanged ? this.lid : lid as LidSpec?,
+      metadata: metadata ?? this.metadata,
+    );
+  }
+
   factory Enclosure.fromJson(Map<String, Object?> json) {
     return Enclosure(
       id: readString(json['id'], fallback: 'main_enclosure'),
@@ -84,3 +106,5 @@ class LidSpec {
     return {'type': type, 'clearanceProfile': clearanceProfile, ...metadata};
   }
 }
+
+const _unchanged = Object();

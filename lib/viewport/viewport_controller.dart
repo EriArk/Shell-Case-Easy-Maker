@@ -153,6 +153,32 @@ class ViewportHitResult {
   final String? parentId;
 }
 
+class MockViewportBodyDimensions {
+  const MockViewportBodyDimensions({
+    this.width = 120,
+    this.depth = 70,
+    this.height = 28,
+    this.cornerRadius = 4,
+  });
+
+  final double width;
+  final double depth;
+  final double height;
+  final double cornerRadius;
+
+  @override
+  bool operator ==(Object other) {
+    return other is MockViewportBodyDimensions &&
+        other.width == width &&
+        other.depth == depth &&
+        other.height == height &&
+        other.cornerRadius == cornerRadius;
+  }
+
+  @override
+  int get hashCode => Object.hash(width, depth, height, cornerRadius);
+}
+
 class MockViewportLayout {
   const MockViewportLayout({
     required this.bodyRect,
@@ -180,14 +206,31 @@ class MockViewportLayout {
   final double buttonRadius;
   final double portRadius;
 
-  static MockViewportLayout fromSize(Size size, ViewportState state) {
+  static MockViewportLayout fromSize(
+    Size size,
+    ViewportState state, {
+    MockViewportBodyDimensions bodyDimensions =
+        const MockViewportBodyDimensions(),
+  }) {
     final zoom = state.zoom;
     final center = Offset(size.width / 2, size.height / 2) + state.panOffset;
-    final baseBodySize = Size(size.width * 0.42, size.height * 0.34);
+    final safeWidth = bodyDimensions.width.clamp(20, 300).toDouble();
+    final safeDepth = bodyDimensions.depth.clamp(20, 240).toDouble();
+    final safeCorner = bodyDimensions.cornerRadius
+        .clamp(0, safeDepth / 2)
+        .toDouble();
+    final bodyAspect = (safeWidth / safeDepth).clamp(1.05, 2.7).toDouble();
+    final maxBodyHeight = (size.height * 0.42).clamp(150, 260).toDouble();
+    var bodyWidth = (size.width * 0.42).clamp(260, 420).toDouble();
+    var bodyHeight = bodyWidth / bodyAspect;
+    if (bodyHeight > maxBodyHeight) {
+      bodyHeight = maxBodyHeight;
+      bodyWidth = bodyHeight * bodyAspect;
+    }
     final bodyRect = Rect.fromCenter(
       center: center,
-      width: baseBodySize.width.clamp(260, 420) * zoom,
-      height: baseBodySize.height.clamp(150, 240) * zoom,
+      width: bodyWidth * zoom,
+      height: bodyHeight * zoom,
     );
     final yawShift = (state.yawDegrees / 45).clamp(-1.4, 1.4) * 16 * zoom;
     final pitchShift = -(state.pitchDegrees / 45).clamp(-1.2, 1.2) * 14 * zoom;
@@ -221,8 +264,12 @@ class MockViewportLayout {
       boardRect: boardRect,
       portRect: portRect,
       buttonCenters: buttonCenters,
-      bodyRadius: 28 * zoom,
-      lidRadius: 20 * zoom,
+      bodyRadius: (bodyRect.shortestSide * (safeCorner / safeDepth))
+          .clamp(8 * zoom, 32 * zoom)
+          .toDouble(),
+      lidRadius: (bodyRect.shortestSide * (safeCorner / safeDepth))
+          .clamp(6 * zoom, 24 * zoom)
+          .toDouble(),
       boardRadius: 8 * zoom,
       buttonRadius: 9 * zoom,
       portRadius: 6 * zoom,
@@ -237,8 +284,14 @@ class MockViewportHitTester {
     required Offset position,
     required Size size,
     required ViewportState state,
+    MockViewportBodyDimensions bodyDimensions =
+        const MockViewportBodyDimensions(),
   }) {
-    final layout = MockViewportLayout.fromSize(size, state);
+    final layout = MockViewportLayout.fromSize(
+      size,
+      state,
+      bodyDimensions: bodyDimensions,
+    );
 
     if (layout.portRect.inflate(10 * state.zoom).contains(position)) {
       return const ViewportHitResult(

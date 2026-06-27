@@ -34,6 +34,22 @@ OCCT topology, mesh triangles, or viewport-only IDs.
 Widgets render these details but do not own the business rules for describing
 project objects.
 
+## Parameter inspector
+
+When the main enclosure is selected, the inspector renders the first rounded
+enclosure parameter bank:
+- width,
+- depth,
+- height,
+- wall thickness,
+- corner radius,
+- lid type.
+
+These controls update the semantic `ProjectModel` through
+`EnclosureParameterAdapter`. The mock viewport and mock geometry protocol then
+refresh from the updated project. The editable source remains semantic
+enclosure data, not generated mesh or preview triangles.
+
 ## Project browser
 
 The shell includes a compact semantic browser next to the icon rail.
@@ -60,7 +76,8 @@ are made.
 
 ## Current limitations
 
-- Browser selection does not edit project state yet.
+- Only the first enclosure parameter bank edits project state.
 - Save/load is service-level only; no file picker or toolbar command is wired.
-- Viewport selection is still mocked through the browser, not direct hit testing.
-- Undo history is not connected because there are no editing commands yet.
+- Viewport selection is still mocked and schematic, though direct hit testing
+  already returns semantic IDs.
+- Undo history is not connected to inspector parameter edits yet.

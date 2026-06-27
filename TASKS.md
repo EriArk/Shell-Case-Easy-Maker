@@ -48,6 +48,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [ ] Command palette foundation.
 - [ ] Navigation presets foundation.
 - [x] Compact semantic project browser.
+- [x] Enclosure parameter controls in contextual inspector.
 
 ## Phase 3 — Viewport MVP
 
@@ -80,8 +81,9 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 ## Phase 5 — Enclosure-first MVP
 
 - [ ] Create basic enclosure wizard.
-- [ ] Box dimensions, wall thickness, corner radius.
+- [x] First-pass box dimensions, wall thickness, corner radius.
 - [ ] Lid type: none / top / bottom / screw lid.
+- [x] First-pass lid type: none / top screw lid.
 - [ ] Add simple screw bosses.
 - [ ] Add generic circular cutout.
 - [ ] Add generic rectangular rounded cutout.

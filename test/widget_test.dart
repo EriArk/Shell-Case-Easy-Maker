@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shell_case_easy_maker/app/case_maker_app.dart';
 
@@ -35,5 +35,24 @@ void main() {
 
     expect(find.text('width'), findsOneWidget);
     expect(find.text('front_usb_c'), findsWidgets);
+  });
+
+  testWidgets('editing enclosure width updates semantic inspector', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const CaseMakerApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('main_enclosure').first);
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('enclosure-param-width')),
+      '150',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(find.text('150 x 70 x 28 mm'), findsOneWidget);
   });
 }
