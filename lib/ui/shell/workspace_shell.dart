@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../../app/app_strings.dart';
@@ -9,6 +12,7 @@ import '../../project/project_model.dart';
 import '../../selection/project_selection_resolver.dart';
 import '../../selection/selection_model.dart';
 import '../../validation/validation_result.dart';
+import '../../viewport/viewport_controller.dart';
 
 class WorkspaceShell extends StatefulWidget {
   const WorkspaceShell({
@@ -25,6 +29,7 @@ class WorkspaceShell extends StatefulWidget {
 }
 
 class _WorkspaceShellState extends State<WorkspaceShell> {
+  final _viewportController = ViewportController();
   late Future<GeometryPreview> _previewFuture;
   late Future<ValidationReport> _validationFuture;
   SelectionModel _selection = const SelectionModel.workspace();
@@ -52,7 +57,42 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
   void _select(SelectionModel selection) {
     setState(() {
       _selection = selection;
+      _viewportController.setSelectedSemanticId(selection.id);
+      _viewportController.setGhostPreview(_ghostPreviewFor(selection));
     });
+  }
+
+  void _orbitViewport(Offset delta) {
+    setState(() {
+      _viewportController.orbit(delta);
+    });
+  }
+
+  void _panViewport(Offset delta) {
+    setState(() {
+      _viewportController.pan(delta);
+    });
+  }
+
+  void _zoomViewport(double scrollDeltaY) {
+    setState(() {
+      _viewportController.zoomByScroll(scrollDeltaY);
+    });
+  }
+
+  void _fitViewport() {
+    setState(() {
+      _viewportController.fit();
+      _viewportController.setSelectedSemanticId(_selection.id);
+      _viewportController.setGhostPreview(_ghostPreviewFor(_selection));
+    });
+  }
+
+  void _selectViewportHit(ViewportHitResult? hit) {
+    final selection = _selectionFromViewportHit(hit);
+    if (selection != null) {
+      _select(selection);
+    }
   }
 
   @override
@@ -93,6 +133,12 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                           preview: preview,
                           selection: _selection,
                           selectionDetails: details,
+                          viewportState: _viewportController.state,
+                          onOrbit: _orbitViewport,
+                          onPan: _panViewport,
+                          onZoom: _zoomViewport,
+                          onFit: _fitViewport,
+                          onHit: _selectViewportHit,
                         ),
                       ),
                       _Inspector(details: details),
@@ -115,6 +161,50 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       ),
     );
   }
+}
+
+GhostPreview? _ghostPreviewFor(SelectionModel selection) {
+  if (selection.kind != SelectionKind.surface || selection.id == null) {
+    return null;
+  }
+
+  if (selection.id!.contains('front_wall')) {
+    return GhostPreview(
+      kind: GhostPreviewKind.usbC,
+      semanticId: 'ghost_usb_c',
+      targetSurfaceId: selection.id!,
+      label: 'USB-C',
+    );
+  }
+
+  if (selection.id!.contains('top_lid')) {
+    return GhostPreview(
+      kind: GhostPreviewKind.buttonGroup,
+      semanticId: 'ghost_button_group',
+      targetSurfaceId: selection.id!,
+      label: 'Группа кнопок',
+    );
+  }
+
+  return null;
+}
+
+SelectionModel? _selectionFromViewportHit(ViewportHitResult? hit) {
+  if (hit == null) {
+    return const SelectionModel.workspace();
+  }
+
+  return switch (hit.kind) {
+    ViewportHitKind.enclosure => SelectionModel.enclosure(hit.semanticId),
+    ViewportHitKind.surface => SelectionModel.surface(
+      id: hit.semanticId,
+      parentId: hit.parentId ?? 'main_enclosure',
+    ),
+    ViewportHitKind.componentPlacement => SelectionModel.componentPlacement(
+      hit.semanticId,
+    ),
+    ViewportHitKind.feature => SelectionModel.feature(hit.semanticId),
+  };
 }
 
 class _TopToolbar extends StatelessWidget {
@@ -562,18 +652,100 @@ String _featureTitle(String type) {
   };
 }
 
-class _ViewportArea extends StatelessWidget {
+class _ViewportArea extends StatefulWidget {
   const _ViewportArea({
     required this.project,
     required this.preview,
     required this.selection,
     required this.selectionDetails,
+    required this.viewportState,
+    required this.onOrbit,
+    required this.onPan,
+    required this.onZoom,
+    required this.onFit,
+    required this.onHit,
   });
 
   final ProjectModel project;
   final GeometryPreview? preview;
   final SelectionModel selection;
   final ProjectSelectionDetails selectionDetails;
+  final ViewportState viewportState;
+  final ValueChanged<Offset> onOrbit;
+  final ValueChanged<Offset> onPan;
+  final ValueChanged<double> onZoom;
+  final VoidCallback onFit;
+  final ValueChanged<ViewportHitResult?> onHit;
+
+  @override
+  State<_ViewportArea> createState() => _ViewportAreaState();
+}
+
+class _ViewportAreaState extends State<_ViewportArea> {
+  static const _hitTester = MockViewportHitTester();
+
+  Offset? _lastPointerPosition;
+  Offset? _pointerDownPosition;
+  bool _movedSincePointerDown = false;
+
+  void _handlePointerDown(PointerDownEvent event) {
+    _lastPointerPosition = event.localPosition;
+    _pointerDownPosition = event.localPosition;
+    _movedSincePointerDown = false;
+  }
+
+  void _handlePointerMove(PointerMoveEvent event) {
+    final last = _lastPointerPosition;
+    _lastPointerPosition = event.localPosition;
+
+    if (last == null || event.buttons == 0) {
+      return;
+    }
+
+    final delta = event.localPosition - last;
+    final downPosition = _pointerDownPosition;
+    if (downPosition != null &&
+        (event.localPosition - downPosition).distance > 4) {
+      _movedSincePointerDown = true;
+    }
+
+    if ((event.buttons & kSecondaryMouseButton) != 0 ||
+        (event.buttons & kMiddleMouseButton) != 0) {
+      widget.onPan(delta);
+      return;
+    }
+
+    widget.onOrbit(delta);
+  }
+
+  void _handlePointerUp(PointerUpEvent event, Size viewportSize) {
+    _lastPointerPosition = null;
+
+    if (!_movedSincePointerDown) {
+      widget.onHit(
+        _hitTester.hitTest(
+          position: event.localPosition,
+          size: viewportSize,
+          state: widget.viewportState,
+        ),
+      );
+    }
+
+    _pointerDownPosition = null;
+    _movedSincePointerDown = false;
+  }
+
+  void _handlePointerCancel(PointerCancelEvent event) {
+    _lastPointerPosition = null;
+    _pointerDownPosition = null;
+    _movedSincePointerDown = false;
+  }
+
+  void _handlePointerSignal(PointerSignalEvent event) {
+    if (event is PointerScrollEvent) {
+      widget.onZoom(event.scrollDelta.dy);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -581,36 +753,63 @@ class _ViewportArea extends StatelessWidget {
 
     return DecoratedBox(
       decoration: const BoxDecoration(color: Color(0xFF151719)),
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: CustomPaint(
-              painter: _ViewportPainter(
-                colorScheme: theme.colorScheme,
-                selection: selection,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final viewportSize = constraints.biggest;
+
+          return Listener(
+            behavior: HitTestBehavior.opaque,
+            onPointerDown: _handlePointerDown,
+            onPointerMove: _handlePointerMove,
+            onPointerUp: (event) => _handlePointerUp(event, viewportSize),
+            onPointerCancel: _handlePointerCancel,
+            onPointerSignal: _handlePointerSignal,
+            child: MouseRegion(
+              cursor: SystemMouseCursors.grab,
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: CustomPaint(
+                      painter: _ViewportPainter(
+                        colorScheme: theme.colorScheme,
+                        selection: widget.selection,
+                        viewportState: widget.viewportState,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: 18,
+                    top: 16,
+                    child: _ViewportLabel(
+                      icon: Icons.view_quilt_rounded,
+                      text: AppStrings.workspaceTitle,
+                      detail:
+                          '${widget.preview?.backendLabel ?? AppStrings.mockBackend} · '
+                          '${widget.viewportState.viewLabel}',
+                    ),
+                  ),
+                  Positioned(
+                    right: 18,
+                    top: 16,
+                    child: _ViewCube(
+                      viewportState: widget.viewportState,
+                      onFit: widget.onFit,
+                    ),
+                  ),
+                  Positioned(
+                    left: 18,
+                    bottom: 16,
+                    child: _ViewportLabel(
+                      icon: Icons.schema_rounded,
+                      text: widget.selectionDetails.title,
+                      detail: widget.selectionDetails.subtitle,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-          Positioned(
-            left: 18,
-            top: 16,
-            child: _ViewportLabel(
-              icon: Icons.view_quilt_rounded,
-              text: AppStrings.workspaceTitle,
-              detail: preview?.backendLabel ?? AppStrings.mockBackend,
-            ),
-          ),
-          const Positioned(right: 18, top: 16, child: _ViewCube()),
-          Positioned(
-            left: 18,
-            bottom: 16,
-            child: _ViewportLabel(
-              icon: Icons.schema_rounded,
-              text: selectionDetails.title,
-              detail: selectionDetails.subtitle,
-            ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -674,7 +873,10 @@ class _ViewportLabel extends StatelessWidget {
 }
 
 class _ViewCube extends StatelessWidget {
-  const _ViewCube();
+  const _ViewCube({required this.viewportState, required this.onFit});
+
+  final ViewportState viewportState;
+  final VoidCallback onFit;
 
   @override
   Widget build(BuildContext context) {
@@ -682,17 +884,31 @@ class _ViewCube extends StatelessWidget {
 
     return SizedBox.square(
       dimension: 64,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          border: Border.all(color: theme.colorScheme.primary),
+      child: Tooltip(
+        message: 'Вписать вид',
+        child: Material(
+          color: Colors.transparent,
           borderRadius: BorderRadius.circular(8),
-        ),
-        child: Center(
-          child: Text(
-            'ISO',
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: theme.colorScheme.primary,
-              fontWeight: FontWeight.w700,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: onFit,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border.all(color: theme.colorScheme.primary),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Center(
+                child: Transform.rotate(
+                  angle: viewportState.yawDegrees * math.pi / 720,
+                  child: Text(
+                    'ISO',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
         ),
@@ -847,82 +1063,89 @@ class _StatusBar extends StatelessWidget {
 }
 
 class _ViewportPainter extends CustomPainter {
-  const _ViewportPainter({required this.colorScheme, required this.selection});
+  const _ViewportPainter({
+    required this.colorScheme,
+    required this.selection,
+    required this.viewportState,
+  });
 
   final ColorScheme colorScheme;
   final SelectionModel selection;
+  final ViewportState viewportState;
 
   @override
   void paint(Canvas canvas, Size size) {
+    final layout = MockViewportLayout.fromSize(size, viewportState);
+    final gridStep = 32 * viewportState.zoom;
+    final gridOrigin = Offset(
+      viewportState.panOffset.dx % gridStep,
+      viewportState.panOffset.dy % gridStep,
+    );
     final gridPaint = Paint()
       ..color = Colors.white.withValues(alpha: 0.035)
       ..strokeWidth = 1;
 
-    for (var x = 0.0; x < size.width; x += 32) {
+    for (var x = gridOrigin.dx - gridStep; x < size.width; x += gridStep) {
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
     }
-    for (var y = 0.0; y < size.height; y += 32) {
+    for (var y = gridOrigin.dy - gridStep; y < size.height; y += gridStep) {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
     }
 
-    final center = Offset(size.width / 2, size.height / 2);
-    final bodySize = Size(size.width * 0.42, size.height * 0.34);
-    final bodyRect = Rect.fromCenter(
-      center: center,
-      width: bodySize.width.clamp(260, 420),
-      height: bodySize.height.clamp(150, 240),
-    );
-    final shadowRect = bodyRect.shift(const Offset(18, 20));
     final bodyPaint = Paint()..color = const Color(0xFF3D474D);
     final topPaint = Paint()..color = const Color(0xFF657179);
     final accentPaint = Paint()..color = colorScheme.primary;
     final portPaint = Paint()..color = colorScheme.secondary;
 
     canvas.drawRRect(
-      RRect.fromRectAndRadius(shadowRect, const Radius.circular(26)),
+      RRect.fromRectAndRadius(
+        layout.shadowRect,
+        Radius.circular(layout.bodyRadius),
+      ),
       Paint()..color = Colors.black.withValues(alpha: 0.24),
     );
     canvas.drawRRect(
-      RRect.fromRectAndRadius(bodyRect, const Radius.circular(28)),
+      RRect.fromRectAndRadius(
+        layout.bodyRect,
+        Radius.circular(layout.bodyRadius),
+      ),
       bodyPaint,
     );
 
-    final lidRect = bodyRect.deflate(16);
     canvas.drawRRect(
-      RRect.fromRectAndRadius(lidRect, const Radius.circular(20)),
+      RRect.fromRectAndRadius(
+        layout.lidRect,
+        Radius.circular(layout.lidRadius),
+      ),
       topPaint,
     );
 
-    final boardRect = Rect.fromCenter(
-      center: center.translate(0, 4),
-      width: lidRect.width * 0.42,
-      height: lidRect.height * 0.42,
-    );
     canvas.drawRRect(
-      RRect.fromRectAndRadius(boardRect, const Radius.circular(8)),
+      RRect.fromRectAndRadius(
+        layout.boardRect,
+        Radius.circular(layout.boardRadius),
+      ),
       Paint()..color = const Color(0xFF243F3D),
     );
 
-    final buttonOffsets = [
-      const Offset(28, 0),
-      const Offset(0, -28),
-      const Offset(0, 28),
-      const Offset(-28, 0),
-    ];
-    for (final offset in buttonOffsets) {
-      canvas.drawCircle(center + offset, 9, accentPaint);
-      canvas.drawCircle(center + offset, 4, Paint()..color = Colors.black26);
+    for (final center in layout.buttonCenters) {
+      canvas.drawCircle(center, layout.buttonRadius, accentPaint);
+      canvas.drawCircle(
+        center,
+        layout.buttonRadius * 0.44,
+        Paint()..color = Colors.black26,
+      );
     }
 
-    final portRect = Rect.fromCenter(
-      center: Offset(center.dx, bodyRect.bottom - 10),
-      width: 54,
-      height: 12,
-    );
     canvas.drawRRect(
-      RRect.fromRectAndRadius(portRect, const Radius.circular(6)),
+      RRect.fromRectAndRadius(
+        layout.portRect,
+        Radius.circular(layout.portRadius),
+      ),
       portPaint,
     );
+
+    _paintGhostPreview(canvas, layout);
 
     final highlightPaint = Paint()
       ..color = colorScheme.primary
@@ -935,7 +1158,10 @@ class _ViewportPainter extends CustomPainter {
 
     if (selection.kind == SelectionKind.enclosure) {
       canvas.drawRRect(
-        RRect.fromRectAndRadius(bodyRect.inflate(4), const Radius.circular(31)),
+        RRect.fromRectAndRadius(
+          layout.bodyRect.inflate(4),
+          Radius.circular(layout.bodyRadius + 3),
+        ),
         highlightPaint,
       );
     }
@@ -945,24 +1171,24 @@ class _ViewportPainter extends CustomPainter {
       if (selectedSurface.contains('top_lid')) {
         canvas.drawRRect(
           RRect.fromRectAndRadius(
-            lidRect.inflate(4),
-            const Radius.circular(23),
+            layout.lidRect.inflate(4),
+            Radius.circular(layout.lidRadius + 3),
           ),
           highlightPaint,
         );
       } else if (selectedSurface.contains('front_wall')) {
         canvas.drawRRect(
           RRect.fromRectAndRadius(
-            portRect.inflate(8),
-            const Radius.circular(10),
+            layout.portRect.inflate(8),
+            Radius.circular(layout.portRadius + 4),
           ),
           highlightPaint,
         );
       } else {
         canvas.drawRRect(
           RRect.fromRectAndRadius(
-            bodyRect.inflate(4),
-            const Radius.circular(31),
+            layout.bodyRect.inflate(4),
+            Radius.circular(layout.bodyRadius + 3),
           ),
           highlightPaint,
         );
@@ -973,8 +1199,8 @@ class _ViewportPainter extends CustomPainter {
         selection.kind == SelectionKind.componentTemplate) {
       canvas.drawRRect(
         RRect.fromRectAndRadius(
-          boardRect.inflate(5),
-          const Radius.circular(11),
+          layout.boardRect.inflate(5),
+          Radius.circular(layout.boardRadius + 3),
         ),
         secondaryHighlightPaint,
       );
@@ -983,22 +1209,75 @@ class _ViewportPainter extends CustomPainter {
     if (selection.kind == SelectionKind.feature &&
         selection.id == 'front_usb_c') {
       canvas.drawRRect(
-        RRect.fromRectAndRadius(portRect.inflate(8), const Radius.circular(10)),
+        RRect.fromRectAndRadius(
+          layout.portRect.inflate(8),
+          Radius.circular(layout.portRadius + 4),
+        ),
         secondaryHighlightPaint,
       );
     }
 
     if (selection.kind == SelectionKind.feature &&
         selection.id == 'abxy_buttons') {
-      for (final offset in buttonOffsets) {
-        canvas.drawCircle(center + offset, 14, secondaryHighlightPaint);
+      for (final center in layout.buttonCenters) {
+        canvas.drawCircle(
+          center,
+          layout.buttonRadius + 5,
+          secondaryHighlightPaint,
+        );
       }
+    }
+  }
+
+  void _paintGhostPreview(Canvas canvas, MockViewportLayout layout) {
+    final ghost = viewportState.ghostPreview;
+    if (ghost == null) {
+      return;
+    }
+
+    final ghostFill = Paint()
+      ..color = colorScheme.primary.withValues(alpha: 0.18)
+      ..style = PaintingStyle.fill;
+    final ghostStroke = Paint()
+      ..color = colorScheme.primary.withValues(alpha: 0.56)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+
+    if (ghost.kind == GhostPreviewKind.usbC) {
+      final rect = layout.portRect.shift(Offset(0, -22 * viewportState.zoom));
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(rect, Radius.circular(layout.portRadius)),
+        ghostFill,
+      );
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(rect, Radius.circular(layout.portRadius)),
+        ghostStroke,
+      );
+      return;
+    }
+
+    final ghostCenter = layout.lidRect.center.translate(
+      layout.lidRect.width * 0.22,
+      -layout.lidRect.height * 0.18,
+    );
+    final distance = 22 * viewportState.zoom;
+    final radius = 7 * viewportState.zoom;
+    final centers = [
+      ghostCenter + Offset(distance, 0),
+      ghostCenter + Offset(0, -distance),
+      ghostCenter + Offset(0, distance),
+      ghostCenter + Offset(-distance, 0),
+    ];
+    for (final center in centers) {
+      canvas.drawCircle(center, radius, ghostFill);
+      canvas.drawCircle(center, radius, ghostStroke);
     }
   }
 
   @override
   bool shouldRepaint(covariant _ViewportPainter oldDelegate) {
     return oldDelegate.colorScheme != colorScheme ||
-        oldDelegate.selection != selection;
+        oldDelegate.selection != selection ||
+        oldDelegate.viewportState != viewportState;
   }
 }

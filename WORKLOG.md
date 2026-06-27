@@ -462,3 +462,73 @@ continue with M4 Viewport MVP research and interaction model.
 ### Notes for future Codex sessions
 Keep selection semantic. Do not introduce triangle IDs, raw OCCT IDs, or mesh
 hit-test IDs as editable project state.
+
+---
+
+## 2026-06-27 — M4 Viewport MVP
+
+### Goal
+Research Flutter viewport options and add the first interactive mock viewport:
+orbit, pan, zoom, fit, semantic hit testing, and ghost preview state.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `docs/27_RESEARCH_AND_REFERENCES.md`,
+`lib/ui/shell/workspace_shell.dart`, selection files, and current tests.
+
+### Changes made
+- `docs/27_RESEARCH_AND_REFERENCES.md`:
+  - Added research note for Flutter viewport options, package candidates,
+    licensing, and the decision to keep M4 on `CustomPaint`.
+- `lib/viewport/viewport_controller.dart`:
+  - Added `ViewportController`, `ViewportState`, ghost preview state, shared
+    mock layout, and semantic hit testing.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added primary-drag orbit, secondary/middle-drag pan, wheel zoom, click
+    selection in the viewport, fit via the view cube, camera-aware mock drawing,
+    and surface ghost previews.
+- `docs/33_VIEWPORT_MVP.md`:
+  - Documented the viewport state model, current controls, ghost previews,
+    renderer decision, and limits.
+- `test/viewport_controller_test.dart`:
+  - Added tests for orbit/pan/zoom bounds, fit behavior, ghost preview state,
+    and semantic hit-test outputs.
+- `ROADMAP.md` and `TASKS.md`:
+  - Marked M4 viewport MVP items complete.
+
+### Tests run
+- `dart format lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 31 tests.
+
+### Validation
+- Geometry checked?
+  - Mock viewport only; no generated OCCT geometry yet.
+- Serialization checked?
+  - Existing project serialization tests still pass.
+- UI checked?
+  - Widget tests still pass; viewport controller tests cover interaction state.
+- Export checked?
+  - Not applicable yet.
+
+### Known issues
+- Issue: Viewport is still a stylized mock, not generated preview mesh.
+  - Severity: Expected for M4.
+  - Next action: define preview mesh/worker protocol in M5.
+- Issue: Hit testing uses deterministic mock zones.
+  - Severity: Expected for M4.
+  - Next action: later replace with semantic face/object mappings from
+    generated preview data, never raw triangle IDs as editable state.
+- Issue: View cube is a compact fit control, not full orientation navigation.
+  - Severity: Low.
+  - Next action: expand after real viewport behavior stabilizes.
+
+### Next step
+Refresh the latest Windows bundle, run final validation, commit, push, then
+continue with M5 First Geometry Slice.
+
+### Notes for future Codex sessions
+M4 intentionally adds no 3D renderer dependency. Revisit renderer choices after
+`GeometryService` has a concrete preview mesh protocol and semantic face mapping.

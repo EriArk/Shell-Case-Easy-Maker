@@ -51,15 +51,15 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 
 ## Phase 3 — Viewport MVP
 
-- [ ] Research Flutter 3D rendering options.
-- [ ] Implement orbit/pan/zoom.
-- [ ] Implement view cube / orientation gizmo.
-- [ ] Implement selection highlight.
-- [ ] Implement ghost preview.
+- [x] Research Flutter 3D rendering options.
+- [x] Implement orbit/pan/zoom.
+- [x] Implement view cube / orientation gizmo.
+- [x] Implement selection highlight.
+- [x] Implement ghost preview.
 - [ ] Implement local workplane overlay.
-- [ ] Implement grid overlay.
+- [x] Implement grid overlay.
 - [ ] Implement basic snapping visual hints.
-- [ ] Implement focus/fit view.
+- [x] Implement focus/fit view.
 
 ## Phase 4 — OCCT worker MVP
 

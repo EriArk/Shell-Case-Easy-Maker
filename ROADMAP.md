@@ -22,7 +22,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M1 — Semantic Core
 - [x] M2 — Commands + Undo
 - [x] M3 — Usable Shell
-- [ ] M4 — Viewport MVP
+- [x] M4 — Viewport MVP
 - [ ] M5 — First Geometry Slice
 
 ---
@@ -153,11 +153,11 @@ Make the current shell useful enough for manual exploration of semantic project 
 Research and implement the first interactive viewport behavior without coupling Flutter to OCCT internals.
 
 ### Tasks
-- [ ] Research Flutter desktop viewport options and record findings.
-- [ ] Choose the first viewer approach for mock/preview geometry.
-- [ ] Add orbit/pan/zoom interaction model.
-- [ ] Add selection highlight and ghost preview state.
-- [ ] Add tests for viewport controller state where practical.
+- [x] Research Flutter desktop viewport options and record findings.
+- [x] Choose the first viewer approach for mock/preview geometry.
+- [x] Add orbit/pan/zoom interaction model.
+- [x] Add selection highlight and ghost preview state.
+- [x] Add tests for viewport controller state where practical.
 
 ### Done Criteria
 - Viewport interaction is separated from geometry generation.

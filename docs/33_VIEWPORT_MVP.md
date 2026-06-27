@@ -1,0 +1,69 @@
+# 33 - Viewport MVP
+
+## Purpose
+
+The viewport MVP adds interaction state before real OCCT preview rendering.
+
+It is still a mock preview, but orbit, pan, zoom, fit, semantic hit testing, and
+ghost previews now live in a small viewport subsystem rather than inside the
+project model or geometry backend.
+
+## Architecture
+
+`ViewportController` owns transient viewport state:
+- yaw,
+- pitch,
+- zoom,
+- pan offset,
+- selected semantic ID,
+- ghost preview.
+
+This state is UI interaction state. It is not saved into `ProjectModel` and it
+is not sent to `GeometryService`.
+
+`MockViewportLayout` computes the current mock drawing rectangles and button
+centers from `ViewportState`.
+
+`MockViewportHitTester` uses the same layout to return semantic hit results:
+- enclosure ID,
+- surface ID with parent object ID,
+- component placement ID,
+- feature ID.
+
+It does not return mesh IDs, triangle IDs, OCCT face IDs, or generated topology.
+
+## Current Controls
+
+- Primary drag: orbit.
+- Secondary or middle drag: pan.
+- Mouse wheel: zoom.
+- Click viewport mock objects: select semantic object.
+- Click the view cube: fit view.
+
+These controls are deliberately simple and can be refined after manual testing.
+
+## Ghost Preview
+
+Selecting a semantic surface creates a temporary ghost:
+- front wall: USB-C placement ghost,
+- top lid: button group placement ghost.
+
+The ghost is a preview affordance only. It does not create or mutate a project
+feature.
+
+## Renderer Decision
+
+M4 intentionally keeps `CustomPaint` for the mock viewer and does not add a 3D
+package yet.
+
+The real renderer decision should wait until the preview mesh protocol is
+defined. At that point the app can compare renderer candidates against actual
+requirements: mesh throughput, semantic face mapping, desktop stability,
+license, and packaging complexity.
+
+## Current Limitations
+
+- The viewport is still a stylized 2.5D mock drawing, not generated geometry.
+- Hit zones are deterministic mock zones, not mesh picking.
+- View cube is a compact fit control, not a full orientation gizmo.
+- Ghost previews are hard-coded for the sample semantic surfaces.
