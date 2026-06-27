@@ -30,6 +30,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Implement `Enclosure` model.
 - [x] Implement `SelectionModel`.
 - [x] Implement undo/redo transaction system.
+- [x] Wire undo/redo to first enclosure parameter edits.
 - [x] Implement command registry.
 - [x] Implement project JSON file service.
 - [x] Implement parameter model with units, ranges, steps, defaults.
@@ -49,6 +50,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [ ] Navigation presets foundation.
 - [x] Compact semantic project browser.
 - [x] Enclosure parameter controls in contextual inspector.
+- [x] Toolbar undo/redo for inspector parameter edits.
 
 ## Phase 3 — Viewport MVP
 

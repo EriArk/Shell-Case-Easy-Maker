@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
@@ -7,6 +8,7 @@ import '../../app/app_strings.dart';
 import '../../commands/app_command.dart';
 import '../../commands/command_ids.dart';
 import '../../commands/command_registry.dart';
+import '../../commands/undo_history.dart' as app_undo;
 import '../../geometry/geometry_service.dart';
 import '../../parameters/enclosure_parameter_adapter.dart';
 import '../../parameters/parameter_model.dart';
@@ -32,15 +34,17 @@ class WorkspaceShell extends StatefulWidget {
 
 class _WorkspaceShellState extends State<WorkspaceShell> {
   final _viewportController = ViewportController();
-  late ProjectModel _project;
+  late app_undo.UndoHistory<ProjectModel> _undoHistory;
   late Future<GeometryPreview> _previewFuture;
   late Future<ValidationReport> _validationFuture;
   SelectionModel _selection = const SelectionModel.workspace();
 
+  ProjectModel get _project => _undoHistory.current;
+
   @override
   void initState() {
     super.initState();
-    _project = widget.project;
+    _undoHistory = app_undo.UndoHistory<ProjectModel>(widget.project);
     _loadGeometry();
   }
 
@@ -48,7 +52,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
   void didUpdateWidget(covariant WorkspaceShell oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.project != widget.project) {
-      _project = widget.project;
+      _undoHistory = app_undo.UndoHistory<ProjectModel>(widget.project);
       _loadGeometry();
     } else if (oldWidget.geometryService != widget.geometryService) {
       _loadGeometry();
@@ -114,13 +118,46 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     }
 
     setState(() {
-      _project = _project.replaceEnclosure(
-        EnclosureParameterAdapter.updateParameter(
-          enclosure,
-          parameterId,
-          value,
-        ),
+      final updatedEnclosure = EnclosureParameterAdapter.updateParameter(
+        enclosure,
+        parameterId,
+        value,
       );
+      if (_sameJson(enclosure.toJson(), updatedEnclosure.toJson())) {
+        return;
+      }
+
+      _undoHistory.commit(
+        id: 'enclosure.parameter.$parameterId',
+        label: 'Изменить корпус',
+        nextState: _project.replaceEnclosure(updatedEnclosure),
+      );
+      _loadGeometry();
+      _viewportController.setSelectedSemanticId(_selection.id);
+      _viewportController.setGhostPreview(_ghostPreviewFor(_selection));
+    });
+  }
+
+  void _undo() {
+    if (!_undoHistory.canUndo) {
+      return;
+    }
+
+    setState(() {
+      _undoHistory.undo();
+      _loadGeometry();
+      _viewportController.setSelectedSemanticId(_selection.id);
+      _viewportController.setGhostPreview(_ghostPreviewFor(_selection));
+    });
+  }
+
+  void _redo() {
+    if (!_undoHistory.canRedo) {
+      return;
+    }
+
+    setState(() {
+      _undoHistory.redo();
       _loadGeometry();
       _viewportController.setSelectedSemanticId(_selection.id);
       _viewportController.setGhostPreview(_ghostPreviewFor(_selection));
@@ -147,7 +184,13 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
 
             return Column(
               children: [
-                _TopToolbar(projectName: _project.projectName),
+                _TopToolbar(
+                  projectName: _project.projectName,
+                  canUndo: _undoHistory.canUndo,
+                  canRedo: _undoHistory.canRedo,
+                  onUndo: _undo,
+                  onRedo: _redo,
+                ),
                 Expanded(
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -244,16 +287,34 @@ SelectionModel? _selectionFromViewportHit(ViewportHitResult? hit) {
   };
 }
 
+bool _sameJson(Map<String, Object?> left, Map<String, Object?> right) {
+  return jsonEncode(left) == jsonEncode(right);
+}
+
 class _TopToolbar extends StatelessWidget {
-  const _TopToolbar({required this.projectName});
+  const _TopToolbar({
+    required this.projectName,
+    required this.canUndo,
+    required this.canRedo,
+    required this.onUndo,
+    required this.onRedo,
+  });
 
   final String projectName;
+  final bool canUndo;
+  final bool canRedo;
+  final VoidCallback onUndo;
+  final VoidCallback onRedo;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final registry = CommandRegistry.core;
-    const commandContext = CommandContext(activeScope: CommandScope.workspace);
+    final commandContext = CommandContext(
+      activeScope: CommandScope.workspace,
+      canUndo: canUndo,
+      canRedo: canRedo,
+    );
 
     return Container(
       height: 44,
@@ -288,12 +349,12 @@ class _TopToolbar extends StatelessWidget {
           _ToolbarCommand(
             command: registry.byId(CommandIds.undo),
             context: commandContext,
-            onPressed: () {},
+            onPressed: onUndo,
           ),
           _ToolbarCommand(
             command: registry.byId(CommandIds.redo),
             context: commandContext,
-            onPressed: () {},
+            onPressed: onRedo,
           ),
           _ToolbarCommand(
             command: registry.byId(CommandIds.exportProject),
@@ -324,6 +385,7 @@ class _ToolbarCommand extends StatelessWidget {
     return Tooltip(
       message: command.label,
       child: IconButton(
+        key: ValueKey('toolbar-command-${command.id}'),
         icon: Icon(_iconForCommand(command.icon)),
         iconSize: 20,
         onPressed: enabled ? onPressed : null,

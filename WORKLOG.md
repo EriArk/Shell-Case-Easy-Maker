@@ -749,3 +749,69 @@ or the first native `occt_worker` executable slice.
 ### Notes for future Codex sessions
 Keep the default enclosure workflow generator-first. The inspector should expose
 semantic maker controls, not raw sketch/extrude/boolean operations.
+
+---
+
+## 2026-06-27 — M8 Parameter Undo/Redo
+
+### Goal
+Route first enclosure parameter edits through semantic undo/redo so parameter
+exploration is reversible.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `docs/31_COMMANDS_AND_UNDO.md`,
+`docs/32_USABLE_SHELL.md`, current workspace shell, command registry, and
+widget tests.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Replaced local mutable project field with `UndoHistory<ProjectModel>`.
+  - Commits effective enclosure parameter edits as semantic transactions.
+  - Enables/disables toolbar undo/redo from real history state.
+  - Restores project snapshots and refreshes preview/validation on undo/redo.
+  - Added stable toolbar command keys for widget coverage.
+- `test/widget_test.dart`:
+  - Added coverage for editing enclosure width, undoing it, and redoing it.
+- `docs/31_COMMANDS_AND_UNDO.md` and `docs/32_USABLE_SHELL.md`:
+  - Documented first undo wiring and current command limitations.
+- `ROADMAP.md` and `TASKS.md`:
+  - Added and marked M8 complete.
+
+### Tests run
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 47 tests.
+
+### Validation
+- Geometry checked?
+  - Mock preview/validation refresh after undo/redo.
+- Serialization checked?
+  - Existing project serialization tests still pass.
+- UI checked?
+  - Widget test verifies toolbar undo/redo availability and semantic size
+    restoration.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: There is still no command dispatcher/controller layer.
+  - Severity: Expected.
+  - Next action: introduce command execution before wiring more tools.
+- Issue: Undo grouping for continuous knobs/sliders is not used by inspector
+  fields yet.
+  - Severity: Expected.
+  - Next action: use continuous transactions for drag/knob controls later.
+- Issue: Save/load commands are still not wired to the edited project state.
+  - Severity: Important before real project use.
+  - Next action: connect file commands after command dispatcher shape is clear.
+
+### Next step
+Refresh latest Windows bundle, run final validation, commit, push, then continue
+with command execution or save/load wiring.
+
+### Notes for future Codex sessions
+Keep undo snapshots semantic. Preview generation and any future OCCT artifacts
+must be refreshable outputs, not undo state.

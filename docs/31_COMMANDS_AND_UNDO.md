@@ -44,6 +44,23 @@ Undo is snapshot-based for the first architecture slice:
 
 Continuous grouping is intended for future knob, drag, and encoder workflows.
 
+## First UI wiring
+
+The workspace shell now owns editable project state through
+`UndoHistory<ProjectModel>`.
+
+The first wired edits are enclosure inspector parameter changes:
+- width,
+- depth,
+- height,
+- wall thickness,
+- corner radius,
+- lid type.
+
+Each effective parameter submission commits a semantic project snapshot.
+Undo/redo restores the project snapshot and refreshes mock preview/validation.
+Generated preview data is not stored in the undo stack.
+
 ## Rules
 
 - Semantic state is the undo source of truth.
@@ -54,6 +71,6 @@ Continuous grouping is intended for future knob, drag, and encoder workflows.
 ## Current limitations
 
 - Commands are metadata-only; no command dispatcher is implemented yet.
-- Undo history is not wired into project editing UI yet.
+- Undo history is wired for first enclosure parameter edits only.
 - Selection and active surface context are available from the shell selection
-  model, but editing commands are not wired yet.
+  model, but most editing commands are not wired yet.

@@ -26,6 +26,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M5 — First Geometry Slice
 - [x] M6 — Parameter Model
 - [x] M7 — Enclosure Parameter Inspector
+- [x] M8 — Parameter Undo/Redo
 
 ---
 
@@ -276,3 +277,37 @@ the first semantic body can be edited without exposing low-level CAD actions.
 - Change width/depth/height/wall/radius in the inspector and press Enter.
 - Confirm the size row updates and the center mockup changes proportions.
 - Change lid type between no lid and top screw lid.
+
+---
+
+## M8 — Parameter Undo/Redo
+
+### Goal
+Route first enclosure parameter edits through the existing semantic undo stack
+so manual parameter exploration is reversible.
+
+### Tasks
+- [x] Make `UndoHistory<ProjectModel>` own the editable shell project state.
+- [x] Commit enclosure parameter edits as semantic undo transactions.
+- [x] Enable toolbar undo/redo according to real history state.
+- [x] Restore project state and refresh mock preview/validation on undo/redo.
+- [x] Add widget coverage for edit, undo, and redo.
+
+### Done Criteria
+- Undo/redo changes semantic `ProjectModel` snapshots, not preview-only state.
+- Empty/no-op parameter submissions do not create undo entries.
+- Toolbar command availability reflects `canUndo` and `canRedo`.
+- Mock viewport and inspector refresh after undo/redo.
+
+### Tests
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Select `main_enclosure`.
+- Change width to a clearly different value and press Enter.
+- Click undo in the top toolbar and confirm the size returns.
+- Click redo and confirm the edited size returns.

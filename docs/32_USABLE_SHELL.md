@@ -50,6 +50,10 @@ These controls update the semantic `ProjectModel` through
 refresh from the updated project. The editable source remains semantic
 enclosure data, not generated mesh or preview triangles.
 
+Effective parameter edits are committed to `UndoHistory<ProjectModel>`. The top
+toolbar enables undo/redo when semantic snapshots are available, then refreshes
+the inspector and mock preview after restoring a snapshot.
+
 ## Project browser
 
 The shell includes a compact semantic browser next to the icon rail.
@@ -80,4 +84,4 @@ are made.
 - Save/load is service-level only; no file picker or toolbar command is wired.
 - Viewport selection is still mocked and schematic, though direct hit testing
   already returns semantic IDs.
-- Undo history is not connected to inspector parameter edits yet.
+- Undo history is connected only to first enclosure parameter edits.
