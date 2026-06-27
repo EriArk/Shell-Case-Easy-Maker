@@ -29,8 +29,8 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Implement `ComponentTemplate` base model.
 - [x] Implement `Enclosure` model.
 - [ ] Implement `SelectionModel`.
-- [ ] Implement undo/redo transaction system.
-- [ ] Implement command registry.
+- [x] Implement undo/redo transaction system.
+- [x] Implement command registry.
 - [ ] Implement parameter model with units, ranges, steps, defaults.
 - [x] Implement validation result model.
 

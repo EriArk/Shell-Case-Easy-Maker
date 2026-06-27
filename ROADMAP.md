@@ -20,7 +20,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 
 - [x] R0 — Roadmap + Latest EXE
 - [x] M1 — Semantic Core
-- [ ] M2 — Commands + Undo
+- [x] M2 — Commands + Undo
 - [ ] M3 — Usable Shell
 - [ ] M4 — Viewport MVP
 - [ ] M5 — First Geometry Slice
@@ -95,11 +95,11 @@ Make the editable project model typed, versioned, and ready for feature/componen
 Create the command and undo foundations needed for safe semantic editing.
 
 ### Tasks
-- [ ] Implement a command registry with stable command IDs, labels, icons, scopes, and availability checks.
-- [ ] Add command context for active selection, active surface, and advanced mode.
-- [ ] Add undo/redo transaction model.
-- [ ] Add continuous transaction grouping skeleton for future knob/drag edits.
-- [ ] Add tests for availability and undo/redo behavior.
+- [x] Implement a command registry with stable command IDs, labels, icons, scopes, and availability checks.
+- [x] Add command context for active selection, active surface, and advanced mode.
+- [x] Add undo/redo transaction model.
+- [x] Add continuous transaction grouping skeleton for future knob/drag edits.
+- [x] Add tests for availability and undo/redo behavior.
 
 ### Done Criteria
 - Commands are metadata-driven, not hard-coded only in widgets.

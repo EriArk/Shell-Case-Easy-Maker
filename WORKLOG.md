@@ -332,3 +332,62 @@ Run final validation, regenerate the latest Windows bundle, then continue with M
 
 ### Notes for future Codex sessions
 Keep `ProjectModel` semantic-only. Do not add generated meshes, STL paths as source data, OCCT topology, or triangle IDs to these models.
+
+---
+
+## 2026-06-27 — M2 Commands and Undo
+
+### Goal
+Add command metadata, command availability rules, and undo/redo transaction foundations.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, existing `lib/commands/app_command.dart`, `lib/ui/shell/workspace_shell.dart`, and command/undo expectations from project docs.
+
+### Changes made
+- `lib/commands/`:
+  - Added stable command IDs, command registry, command availability rules, and snapshot-based undo history.
+  - Added continuous transaction grouping for future knob/drag/encoder edits.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Connected toolbar and rail labels/icons to command metadata while preserving the existing layout.
+- `docs/31_COMMANDS_AND_UNDO.md`:
+  - Documented command metadata, context, registry, undo behavior, and current limitations.
+- `test/`:
+  - Added tests for core command metadata, availability, advanced mode gating, undo/redo, redo clearing, and continuous grouping.
+- `ROADMAP.md` and `TASKS.md`:
+  - Marked M2 command/undo items complete.
+
+### Tests run
+- `dart format lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 16 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools/build_latest_windows.ps1`:
+  - Passed and refreshed `releases/latest/windows/shell_case_easy_maker.exe`.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Not applicable; no geometry backend changes.
+- Serialization checked?
+  - Existing serialization tests still pass.
+- UI checked?
+  - Widget test still covers shell rendering; latest Windows bundle was regenerated for manual launch.
+- Export checked?
+  - Not applicable yet.
+
+### Known issues
+- Issue: Commands are metadata-only and do not dispatch semantic edits yet.
+  - Severity: Expected for M2.
+  - Next action: wire commands into selection/project editing during M3/M2 follow-up.
+- Issue: Undo history is not connected to UI state yet.
+  - Severity: Expected for M2.
+  - Next action: connect it when project editing commands exist.
+
+### Next step
+Run final validation, refresh latest Windows bundle, then continue with M3 Usable Shell.
+
+### Notes for future Codex sessions
+Keep command availability based on semantic context: selected object ID, active surface ID, advanced mode, and undo/redo state. Do not base command availability on raw mesh or OCCT IDs.

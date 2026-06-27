@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../app/app_strings.dart';
+import '../../commands/app_command.dart';
+import '../../commands/command_ids.dart';
+import '../../commands/command_registry.dart';
 import '../../geometry/geometry_service.dart';
 import '../../project/project_model.dart';
 import '../../validation/validation_result.dart';
@@ -91,6 +94,8 @@ class _TopToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final registry = CommandRegistry.core;
+    const commandContext = CommandContext(activeScope: CommandScope.workspace);
 
     return Container(
       height: 44,
@@ -122,19 +127,19 @@ class _TopToolbar extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          _ToolbarIcon(
-            icon: Icons.undo_rounded,
-            label: 'Undo',
+          _ToolbarCommand(
+            command: registry.byId(CommandIds.undo),
+            context: commandContext,
             onPressed: () {},
           ),
-          _ToolbarIcon(
-            icon: Icons.redo_rounded,
-            label: 'Redo',
+          _ToolbarCommand(
+            command: registry.byId(CommandIds.redo),
+            context: commandContext,
             onPressed: () {},
           ),
-          _ToolbarIcon(
-            icon: Icons.file_download_outlined,
-            label: 'Export',
+          _ToolbarCommand(
+            command: registry.byId(CommandIds.exportProject),
+            context: commandContext,
             onPressed: () {},
           ),
         ],
@@ -143,22 +148,28 @@ class _TopToolbar extends StatelessWidget {
   }
 }
 
-class _ToolbarIcon extends StatelessWidget {
-  const _ToolbarIcon({
-    required this.icon,
-    required this.label,
+class _ToolbarCommand extends StatelessWidget {
+  const _ToolbarCommand({
+    required this.command,
+    required this.context,
     required this.onPressed,
   });
 
-  final IconData icon;
-  final String label;
+  final AppCommand command;
+  final CommandContext context;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
+    final enabled = command.isAvailable(this.context);
+
     return Tooltip(
-      message: label,
-      child: IconButton(icon: Icon(icon), iconSize: 20, onPressed: onPressed),
+      message: command.label,
+      child: IconButton(
+        icon: Icon(_iconForCommand(command.icon)),
+        iconSize: 20,
+        onPressed: enabled ? onPressed : null,
+      ),
     );
   }
 }
@@ -166,20 +177,21 @@ class _ToolbarIcon extends StatelessWidget {
 class _ToolRail extends StatelessWidget {
   const _ToolRail();
 
-  static const tools = [
-    _ToolItem(Icons.crop_square_rounded, AppStrings.toolEnclosure),
-    _ToolItem(Icons.memory_rounded, AppStrings.toolComponents),
-    _ToolItem(Icons.settings_input_component_rounded, AppStrings.toolPorts),
-    _ToolItem(Icons.radio_button_checked_rounded, AppStrings.toolButtons),
-    _ToolItem(Icons.construction_rounded, AppStrings.toolMounts),
-    _ToolItem(Icons.inventory_2_outlined, AppStrings.toolSlots),
-    _ToolItem(Icons.crop_16_9_rounded, AppStrings.toolGlass),
-    _ToolItem(Icons.cases_rounded, AppStrings.toolCases),
+  static const commandIds = [
+    CommandIds.createEnclosure,
+    CommandIds.placeComponent,
+    CommandIds.addUsbC,
+    CommandIds.createButtonGroup,
+    CommandIds.generateMount,
+    CommandIds.generateSlot,
+    CommandIds.createGlassRecess,
+    CommandIds.generateCase,
   ];
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final registry = CommandRegistry.core;
 
     return Container(
       width: 64,
@@ -192,25 +204,21 @@ class _ToolRail extends StatelessWidget {
       ),
       child: Column(
         children: [
-          for (var index = 0; index < tools.length; index++)
-            _RailButton(item: tools[index], selected: index == 0),
+          for (var index = 0; index < commandIds.length; index++)
+            _RailButton(
+              command: registry.byId(commandIds[index]),
+              selected: index == 0,
+            ),
         ],
       ),
     );
   }
 }
 
-class _ToolItem {
-  const _ToolItem(this.icon, this.label);
-
-  final IconData icon;
-  final String label;
-}
-
 class _RailButton extends StatelessWidget {
-  const _RailButton({required this.item, required this.selected});
+  const _RailButton({required this.command, required this.selected});
 
-  final _ToolItem item;
+  final AppCommand command;
   final bool selected;
 
   @override
@@ -220,9 +228,9 @@ class _RailButton extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Tooltip(
-        message: item.label,
+        message: command.label,
         child: IconButton(
-          icon: Icon(item.icon),
+          icon: Icon(_iconForCommand(command.icon)),
           color: selected
               ? theme.colorScheme.primary
               : theme.colorScheme.onSurfaceVariant,
@@ -239,6 +247,24 @@ class _RailButton extends StatelessWidget {
       ),
     );
   }
+}
+
+IconData _iconForCommand(String icon) {
+  return switch (icon) {
+    'undo' => Icons.undo_rounded,
+    'redo' => Icons.redo_rounded,
+    'export' => Icons.file_download_outlined,
+    'enclosure' => Icons.crop_square_rounded,
+    'component' => Icons.memory_rounded,
+    'port' => Icons.settings_input_component_rounded,
+    'button' => Icons.radio_button_checked_rounded,
+    'mount' => Icons.construction_rounded,
+    'slot' => Icons.inventory_2_outlined,
+    'glass' => Icons.crop_16_9_rounded,
+    'case' => Icons.cases_rounded,
+    'advanced' => Icons.architecture_rounded,
+    _ => Icons.circle_outlined,
+  };
 }
 
 class _ViewportArea extends StatelessWidget {
