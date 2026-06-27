@@ -3,6 +3,8 @@ class CommandIds {
 
   static const undo = 'workspace.undo';
   static const redo = 'workspace.redo';
+  static const openProject = 'workspace.open_project';
+  static const saveProject = 'workspace.save_project';
   static const exportProject = 'workspace.export_project';
 
   static const createEnclosure = 'enclosure.create';

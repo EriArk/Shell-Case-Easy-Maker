@@ -74,14 +74,19 @@ highlight.
 
 `ProjectFileService` provides basic JSON encode/decode and disk read/write.
 
-The service does not show native dialogs yet. A future command/controller layer
-should connect it to explicit open/save commands after dependency and UX choices
-are made.
+`ProjectFileDialogService` provides native open/save file selection through
+`file_selector`.
+
+The top toolbar now wires project open/save commands:
+- open loads `.enclosure.json` into semantic shell state,
+- save writes the current semantic project,
+- open resets undo/redo history for the loaded file,
+- generated preview data is refreshed after loading.
 
 ## Current limitations
 
 - Only the first enclosure parameter bank edits project state.
-- Save/load is service-level only; no file picker or toolbar command is wired.
+- There is no unsaved-changes prompt before opening another project.
 - Viewport selection is still mocked and schematic, though direct hit testing
   already returns semantic IDs.
 - Undo history is connected only to first enclosure parameter edits.

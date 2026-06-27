@@ -95,3 +95,21 @@ The first implementation lives under `lib/project/` and keeps project data seman
 - `ProjectMigration` is the central entrypoint for schema upgrades and currently supports version 1.
 
 Generated meshes, STL files, preview data, and OCCT topology are still excluded from the editable project model.
+
+## Open/save UI
+
+Project open/save commands use native file dialogs through
+`ProjectFileDialogService` and then delegate JSON read/write to
+`ProjectFileService`.
+
+Current behavior:
+- saved project files use `.enclosure.json` when the user does not provide a
+  `.json` suffix,
+- opening a project replaces shell state with the loaded semantic model,
+- opening a project resets undo/redo history for the new file,
+- generated previews are refreshed from the loaded semantic model.
+
+Current limitations:
+- no unsaved-changes prompt before opening another file,
+- no separate "Save As" command yet,
+- export commands for STL/STEP are still separate future work.

@@ -49,6 +49,20 @@ class CoreCommands {
       availability: {CommandAvailability.canRedo},
     ),
     AppCommand(
+      id: CommandIds.openProject,
+      label: 'Открыть',
+      icon: 'open',
+      scopes: {CommandScope.workspace},
+      undoBehavior: UndoBehavior.none,
+    ),
+    AppCommand(
+      id: CommandIds.saveProject,
+      label: 'Сохранить',
+      icon: 'save',
+      scopes: {CommandScope.workspace},
+      undoBehavior: UndoBehavior.none,
+    ),
+    AppCommand(
       id: CommandIds.exportProject,
       label: 'Экспорт',
       icon: 'export',

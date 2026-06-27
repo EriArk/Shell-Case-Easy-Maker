@@ -39,4 +39,16 @@ void main() {
 
     expect(() => service.decode('[]'), throwsA(isA<FormatException>()));
   });
+
+  test('project dialog helper preserves or adds project extension', () {
+    expect(
+      ensureProjectFileExtension(File('case.enclosure.json')).path,
+      'case.enclosure.json',
+    );
+    expect(ensureProjectFileExtension(File('case.json')).path, 'case.json');
+    expect(
+      ensureProjectFileExtension(File('case')).path,
+      'case.enclosure.json',
+    );
+  });
 }

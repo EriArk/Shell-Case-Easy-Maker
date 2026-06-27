@@ -33,6 +33,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Wire undo/redo to first enclosure parameter edits.
 - [x] Implement command registry.
 - [x] Implement project JSON file service.
+- [x] Wire project JSON open/save commands.
 - [x] Implement parameter model with units, ranges, steps, defaults.
 - [x] Implement validation result model.
 
@@ -51,6 +52,8 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Compact semantic project browser.
 - [x] Enclosure parameter controls in contextual inspector.
 - [x] Toolbar undo/redo for inspector parameter edits.
+- [x] Toolbar open/save for project JSON files.
+- [ ] Unsaved changes prompt before opening another project.
 
 ## Phase 3 — Viewport MVP
 

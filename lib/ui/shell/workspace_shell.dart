@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
@@ -23,10 +24,15 @@ class WorkspaceShell extends StatefulWidget {
     super.key,
     required this.project,
     required this.geometryService,
+    this.projectFileService = const ProjectFileService(),
+    this.projectFileDialogService =
+        const FileSelectorProjectFileDialogService(),
   });
 
   final ProjectModel project;
   final GeometryService geometryService;
+  final ProjectFileService projectFileService;
+  final ProjectFileDialogService projectFileDialogService;
 
   @override
   State<WorkspaceShell> createState() => _WorkspaceShellState();
@@ -38,6 +44,9 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
   late Future<GeometryPreview> _previewFuture;
   late Future<ValidationReport> _validationFuture;
   SelectionModel _selection = const SelectionModel.workspace();
+  File? _currentProjectFile;
+  String? _fileStatusMessage;
+  bool _fileBusy = false;
 
   ProjectModel get _project => _undoHistory.current;
 
@@ -164,6 +173,108 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     });
   }
 
+  Future<void> _openProject() async {
+    if (_fileBusy) {
+      return;
+    }
+
+    setState(() {
+      _fileBusy = true;
+      _fileStatusMessage = 'Открытие проекта...';
+    });
+
+    try {
+      final file = await widget.projectFileDialogService.pickOpenProjectFile();
+      if (!mounted) {
+        return;
+      }
+
+      if (file == null) {
+        setState(() {
+          _fileBusy = false;
+          _fileStatusMessage = 'Открытие отменено';
+        });
+        return;
+      }
+
+      final project = await widget.projectFileService.readProject(file);
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _undoHistory = app_undo.UndoHistory<ProjectModel>(project);
+        _currentProjectFile = file;
+        _selection = const SelectionModel.workspace();
+        _fileBusy = false;
+        _fileStatusMessage = 'Открыто: ${_fileName(file)}';
+        _loadGeometry();
+        _viewportController.setSelectedSemanticId(_selection.id);
+        _viewportController.setGhostPreview(_ghostPreviewFor(_selection));
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _fileBusy = false;
+        _fileStatusMessage = 'Не удалось открыть проект';
+      });
+    }
+  }
+
+  Future<void> _saveProject() async {
+    if (_fileBusy) {
+      return;
+    }
+
+    setState(() {
+      _fileBusy = true;
+      _fileStatusMessage = 'Сохранение проекта...';
+    });
+
+    try {
+      final selectedFile =
+          _currentProjectFile ??
+          await widget.projectFileDialogService.pickSaveProjectFile(
+            suggestedName: _suggestedProjectFileName(_project),
+          );
+      if (!mounted) {
+        return;
+      }
+
+      if (selectedFile == null) {
+        setState(() {
+          _fileBusy = false;
+          _fileStatusMessage = 'Сохранение отменено';
+        });
+        return;
+      }
+
+      final file = ensureProjectFileExtension(selectedFile);
+      await widget.projectFileService.writeProject(file, _project);
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _currentProjectFile = file;
+        _fileBusy = false;
+        _fileStatusMessage = 'Сохранено: ${_fileName(file)}';
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _fileBusy = false;
+        _fileStatusMessage = 'Не удалось сохранить проект';
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -188,6 +299,9 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                   projectName: _project.projectName,
                   canUndo: _undoHistory.canUndo,
                   canRedo: _undoHistory.canRedo,
+                  fileBusy: _fileBusy,
+                  onOpen: _openProject,
+                  onSave: _saveProject,
                   onUndo: _undo,
                   onRedo: _redo,
                 ),
@@ -231,6 +345,8 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                     return _StatusBar(
                       report: snapshot.data,
                       selectionDetails: details,
+                      fileStatusMessage: _fileStatusMessage,
+                      fileBusy: _fileBusy,
                     );
                   },
                 ),
@@ -291,11 +407,28 @@ bool _sameJson(Map<String, Object?> left, Map<String, Object?> right) {
   return jsonEncode(left) == jsonEncode(right);
 }
 
+String _fileName(File file) {
+  return file.path.split(Platform.pathSeparator).last;
+}
+
+String _suggestedProjectFileName(ProjectModel project) {
+  final safeName = project.projectName
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
+      .replaceAll(RegExp(r'_+'), '_')
+      .replaceAll(RegExp(r'^_|_$'), '');
+  return '${safeName.isEmpty ? 'project' : safeName}.enclosure.json';
+}
+
 class _TopToolbar extends StatelessWidget {
   const _TopToolbar({
     required this.projectName,
     required this.canUndo,
     required this.canRedo,
+    required this.fileBusy,
+    required this.onOpen,
+    required this.onSave,
     required this.onUndo,
     required this.onRedo,
   });
@@ -303,6 +436,9 @@ class _TopToolbar extends StatelessWidget {
   final String projectName;
   final bool canUndo;
   final bool canRedo;
+  final bool fileBusy;
+  final VoidCallback onOpen;
+  final VoidCallback onSave;
   final VoidCallback onUndo;
   final VoidCallback onRedo;
 
@@ -357,9 +493,19 @@ class _TopToolbar extends StatelessWidget {
             onPressed: onRedo,
           ),
           _ToolbarCommand(
+            command: registry.byId(CommandIds.openProject),
+            context: commandContext,
+            onPressed: fileBusy ? null : onOpen,
+          ),
+          _ToolbarCommand(
+            command: registry.byId(CommandIds.saveProject),
+            context: commandContext,
+            onPressed: fileBusy ? null : onSave,
+          ),
+          _ToolbarCommand(
             command: registry.byId(CommandIds.exportProject),
             context: commandContext,
-            onPressed: () {},
+            onPressed: null,
           ),
         ],
       ),
@@ -376,11 +522,11 @@ class _ToolbarCommand extends StatelessWidget {
 
   final AppCommand command;
   final CommandContext context;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
-    final enabled = command.isAvailable(this.context);
+    final enabled = command.isAvailable(this.context) && onPressed != null;
 
     return Tooltip(
       message: command.label,
@@ -479,6 +625,8 @@ IconData _iconForCommand(String icon) {
   return switch (icon) {
     'undo' => Icons.undo_rounded,
     'redo' => Icons.redo_rounded,
+    'open' => Icons.folder_open_rounded,
+    'save' => Icons.save_outlined,
     'export' => Icons.file_download_outlined,
     'enclosure' => Icons.crop_square_rounded,
     'component' => Icons.memory_rounded,
@@ -1338,10 +1486,17 @@ class _InspectorValue extends StatelessWidget {
 }
 
 class _StatusBar extends StatelessWidget {
-  const _StatusBar({required this.report, required this.selectionDetails});
+  const _StatusBar({
+    required this.report,
+    required this.selectionDetails,
+    required this.fileStatusMessage,
+    required this.fileBusy,
+  });
 
   final ValidationReport? report;
   final ProjectSelectionDetails selectionDetails;
+  final String? fileStatusMessage;
+  final bool fileBusy;
 
   @override
   Widget build(BuildContext context) {
@@ -1370,13 +1525,19 @@ class _StatusBar extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Text(
-            hasErrors ? 'Validation issue' : AppStrings.previewReady,
+            fileBusy
+                ? 'Файл...'
+                : hasErrors
+                ? 'Validation issue'
+                : AppStrings.previewReady,
             style: theme.textTheme.labelMedium,
           ),
           const Spacer(),
           Flexible(
             child: Text(
-              hasErrors ? AppStrings.viewportHint : selectionDetails.status,
+              hasErrors
+                  ? AppStrings.viewportHint
+                  : fileStatusMessage ?? selectionDetails.status,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.end,
               style: theme.textTheme.labelSmall?.copyWith(

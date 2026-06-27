@@ -1,7 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shell_case_easy_maker/app/case_maker_app.dart';
 import 'package:shell_case_easy_maker/commands/command_ids.dart';
+import 'package:shell_case_easy_maker/geometry/geometry_service.dart';
+import 'package:shell_case_easy_maker/project/project_model.dart';
+import 'package:shell_case_easy_maker/ui/shell/workspace_shell.dart';
 
 void main() {
   testWidgets('workspace shell shows semantic enclosure UI', (tester) async {
@@ -99,4 +104,142 @@ void main() {
 
     expect(find.text('150 x 70 x 28 mm'), findsOneWidget);
   });
+
+  testWidgets('save command writes current semantic project file', (
+    tester,
+  ) async {
+    final fileService = _MemoryProjectFileService();
+    final dialog = _FakeProjectFileDialogService(saveFile: File('edited_case'));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkspaceShell(
+          project: ProjectModel.initial(),
+          geometryService: const MockGeometryService(),
+          projectFileService: fileService,
+          projectFileDialogService: dialog,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('main_enclosure').first);
+    await _pumpAsyncUi(tester);
+    await tester.enterText(
+      find.byKey(const ValueKey('enclosure-param-width')),
+      '150',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await _pumpAsyncUi(tester);
+
+    await tester.tap(
+      find.byKey(const ValueKey('toolbar-command-${CommandIds.saveProject}')),
+    );
+    await _pumpAsyncUi(tester);
+
+    final savedFile = File('edited_case.enclosure.json');
+    final savedProject = await fileService.readProject(savedFile);
+
+    expect(fileService.hasFile(savedFile), isTrue);
+    expect(savedProject.bodies.single.size, [150, 70, 28]);
+    expect(dialog.saveCount, 1);
+    expect(find.textContaining('Сохранено:'), findsOneWidget);
+  });
+
+  testWidgets('open command loads semantic project file and resets undo', (
+    tester,
+  ) async {
+    final fileService = _MemoryProjectFileService();
+    final openFile = File('opened.enclosure.json');
+    final openedProject = ProjectModel.initial().replaceEnclosure(
+      ProjectModel.initial().bodies.single.copyWith(size: const [160, 80, 32]),
+    );
+    fileService.seed(openFile, openedProject);
+    final dialog = _FakeProjectFileDialogService(openFile: openFile);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkspaceShell(
+          project: ProjectModel.initial(),
+          geometryService: const MockGeometryService(),
+          projectFileService: fileService,
+          projectFileDialogService: dialog,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('toolbar-command-${CommandIds.openProject}')),
+    );
+    await _pumpAsyncUi(tester);
+
+    await tester.tap(find.text('main_enclosure').first);
+    await _pumpAsyncUi(tester);
+
+    final undoButton = find.byKey(
+      const ValueKey('toolbar-command-${CommandIds.undo}'),
+    );
+
+    expect(find.text('160 x 80 x 32 mm'), findsOneWidget);
+    expect(tester.widget<IconButton>(undoButton).onPressed, isNull);
+    expect(dialog.openCount, 1);
+    expect(find.textContaining('Открыто:'), findsOneWidget);
+  });
+}
+
+Future<void> _pumpAsyncUi(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 50));
+  await tester.pump();
+}
+
+class _FakeProjectFileDialogService implements ProjectFileDialogService {
+  _FakeProjectFileDialogService({this.openFile, this.saveFile});
+
+  final File? openFile;
+  final File? saveFile;
+  int openCount = 0;
+  int saveCount = 0;
+  String? lastSuggestedName;
+
+  @override
+  Future<File?> pickOpenProjectFile() async {
+    openCount += 1;
+    return openFile;
+  }
+
+  @override
+  Future<File?> pickSaveProjectFile({required String suggestedName}) async {
+    saveCount += 1;
+    lastSuggestedName = suggestedName;
+    return saveFile;
+  }
+}
+
+class _MemoryProjectFileService extends ProjectFileService {
+  final Map<String, String> _files = {};
+
+  void seed(File file, ProjectModel project) {
+    _files[file.path] = encode(project);
+  }
+
+  bool hasFile(File file) {
+    return _files.containsKey(file.path);
+  }
+
+  @override
+  Future<void> writeProject(File file, ProjectModel project) async {
+    _files[file.path] = encode(project);
+  }
+
+  @override
+  Future<ProjectModel> readProject(File file) async {
+    final source = _files[file.path];
+    if (source == null) {
+      throw FileSystemException('File not found.', file.path);
+    }
+
+    return decode(source);
+  }
 }

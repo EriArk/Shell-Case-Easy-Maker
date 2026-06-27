@@ -27,6 +27,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M6 — Parameter Model
 - [x] M7 — Enclosure Parameter Inspector
 - [x] M8 — Parameter Undo/Redo
+- [x] M9 — Project Open/Save
 
 ---
 
@@ -311,3 +312,41 @@ so manual parameter exploration is reversible.
 - Change width to a clearly different value and press Enter.
 - Click undo in the top toolbar and confirm the size returns.
 - Click redo and confirm the edited size returns.
+
+---
+
+## M9 — Project Open/Save
+
+### Goal
+Make edited semantic projects persistable through native desktop open/save file
+dialogs.
+
+### Tasks
+- [x] Check native file dialog dependency license and maintenance source.
+- [x] Add `file_selector` for desktop open/save dialogs.
+- [x] Add a small project file dialog service seam for tests and UI.
+- [x] Add toolbar open/save project commands.
+- [x] Save the current semantic `ProjectModel` to `.enclosure.json`.
+- [x] Open `.enclosure.json` into shell state and reset undo history.
+- [x] Add unit/widget tests for extension handling, save, and open.
+
+### Done Criteria
+- File commands read/write project JSON, not generated geometry.
+- Dialog code is isolated from JSON encoding/decoding.
+- Widget tests use fakes instead of opening native dialogs.
+- Opening a project resets undo history for the loaded file.
+
+### Tests
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Select `main_enclosure`, change width, and press Enter.
+- Click save in the top toolbar and choose a `.enclosure.json` file.
+- Change width again without saving.
+- Click open and choose the saved file.
+- Confirm the saved width returns and undo is reset for the opened file.

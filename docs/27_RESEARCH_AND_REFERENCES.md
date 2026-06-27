@@ -237,3 +237,43 @@ M5 should not compile OCCT yet. It should define the protocol boundary first:
 - Add the first `occt_worker` executable after the protocol is stable.
 - Add deterministic geometry tests around known dimensions and warning outputs.
 - Add license-notice packaging before distributing an OCCT-backed app.
+
+---
+
+## 2026-06-27 — Native project file dialogs
+
+## Question
+
+What dependency should provide desktop open/save file dialogs for project JSON
+files?
+
+## Sources checked
+
+- pub.dev package page:
+  [file_selector](https://pub.dev/packages/file_selector)
+- pub.dev license/version metadata:
+  [file_selector license metadata](https://pub.dev/packages/file_selector/versions/0.9.5/license)
+
+## Findings
+
+- `file_selector` is published by `flutter.dev`.
+- The package purpose matches this slice: native file selection UI for opening,
+  saving, and directory selection.
+- The pub.dev package metadata lists Android, iOS, Linux, macOS, Web, and
+  Windows support; Windows support is required for the manual build.
+- The package metadata lists `BSD-3-Clause`.
+- The repository should keep file dialogs behind a small service seam so tests
+  can use fakes and project JSON logic can remain independent of plugin APIs.
+
+## Decision
+
+Use `file_selector` for native project open/save dialogs.
+
+`ProjectFileService` stays responsible for JSON encode/decode/read/write.
+`ProjectFileDialogService` is responsible only for choosing a file path.
+
+## Follow-up tasks
+
+- Add unsaved-changes prompts before opening another project.
+- Add "Save As" when the command system grows beyond the compact toolbar.
+- Bundle dependency license notices during packaging work.

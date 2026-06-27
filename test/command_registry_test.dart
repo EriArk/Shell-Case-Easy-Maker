@@ -24,6 +24,17 @@ void main() {
     expect(redo.isAvailable(const CommandContext(canRedo: true)), isTrue);
   });
 
+  test('open and save project commands stay workspace scoped', () {
+    final registry = CommandRegistry.core;
+    final open = registry.byId(CommandIds.openProject);
+    final save = registry.byId(CommandIds.saveProject);
+
+    expect(open.scopes, {CommandScope.workspace});
+    expect(save.scopes, {CommandScope.workspace});
+    expect(open.undoBehavior, UndoBehavior.none);
+    expect(save.undoBehavior, UndoBehavior.none);
+  });
+
   test('surface commands require an active surface', () {
     final registry = CommandRegistry.core;
     final addUsbC = registry.byId(CommandIds.addUsbC);

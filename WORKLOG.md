@@ -815,3 +815,86 @@ with command execution or save/load wiring.
 ### Notes for future Codex sessions
 Keep undo snapshots semantic. Preview generation and any future OCCT artifacts
 must be refreshable outputs, not undo state.
+
+---
+
+## 2026-06-27 — M9 Project Open/Save
+
+### Goal
+Wire native desktop open/save dialogs to semantic project JSON so edited
+projects can be persisted and reopened.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `docs/05_PROJECT_FILE_FORMAT.md`,
+`docs/27_RESEARCH_AND_REFERENCES.md`, `docs/31_COMMANDS_AND_UNDO.md`,
+`docs/32_USABLE_SHELL.md`, `ProjectFileService`, command registry, and shell
+widget tests.
+
+### Dependency check
+- Added `file_selector` `^1.1.0`.
+- Checked pub.dev package metadata:
+  - publisher: `flutter.dev`,
+  - purpose: native file dialogs,
+  - supported platforms include Windows,
+  - license metadata: `BSD-3-Clause`.
+- No plugin source code was copied.
+
+### Changes made
+- `lib/project/project_file_dialog_service.dart`:
+  - Added `ProjectFileDialogService` seam.
+  - Added `FileSelectorProjectFileDialogService` using `file_selector`.
+  - Added `.enclosure.json` suffix helper.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added open/save toolbar wiring.
+  - Save writes current semantic `ProjectModel`.
+  - Open loads project JSON, resets undo history, selection, and preview state.
+  - Status bar reports file operation state.
+- `lib/commands/command_ids.dart` and `lib/commands/command_registry.dart`:
+  - Added workspace open/save commands.
+- `test/project_file_service_test.dart`, `test/command_registry_test.dart`,
+  and `test/widget_test.dart`:
+  - Added extension, command metadata, save, and open coverage.
+  - Widget tests use fake dialog/file services instead of native dialogs or
+    real disk IO.
+- `docs/05_PROJECT_FILE_FORMAT.md`, `docs/27_RESEARCH_AND_REFERENCES.md`,
+  `docs/31_COMMANDS_AND_UNDO.md`, and `docs/32_USABLE_SHELL.md`:
+  - Documented open/save behavior, dependency decision, and limitations.
+- `ROADMAP.md` and `TASKS.md`:
+  - Added and marked M9 complete.
+
+### Tests run
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 51 tests.
+
+### Validation
+- Geometry checked?
+  - Preview refreshes after opening a project.
+- Serialization checked?
+  - Save/open tests verify semantic project JSON round-trip behavior.
+- UI checked?
+  - Widget tests verify save and open toolbar commands with fakes.
+- Export checked?
+  - STL/STEP export remains future work and is separate from project save.
+
+### Known issues
+- Issue: No unsaved-changes prompt before opening another project.
+  - Severity: Important before real daily use.
+  - Next action: add dirty tracking and confirm dialog.
+- Issue: No separate "Save As" command yet.
+  - Severity: Expected for compact first slice.
+  - Next action: add when command/menu structure expands.
+- Issue: Dependency license notices are not bundled yet.
+  - Severity: Packaging-stage task.
+  - Next action: handle in packaging/license chunk.
+
+### Next step
+Refresh latest Windows bundle, run final validation, commit, push, then add
+dirty-state prompts or continue toward first real generator command.
+
+### Notes for future Codex sessions
+Project save/open is not geometry export. Keep editable files semantic; STEP,
+STL, DXF, preview meshes, and OCCT artifacts must stay generated outputs.

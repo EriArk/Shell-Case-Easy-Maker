@@ -61,6 +61,10 @@ Each effective parameter submission commits a semantic project snapshot.
 Undo/redo restores the project snapshot and refreshes mock preview/validation.
 Generated preview data is not stored in the undo stack.
 
+Project open/save commands are also wired from the toolbar. They use
+`UndoBehavior.none`: saving should not change semantic state, and opening a file
+replaces the current project with a fresh undo history for that file.
+
 ## Rules
 
 - Semantic state is the undo source of truth.
