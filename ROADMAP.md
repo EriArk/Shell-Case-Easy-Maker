@@ -29,6 +29,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M8 — Parameter Undo/Redo
 - [x] M9 — Project Open/Save
 - [x] M10 — Unsaved Changes Guard
+- [x] M11 — First Generator Command
 
 ---
 
@@ -388,3 +389,42 @@ Prevent accidental loss of unsaved semantic edits when opening another project.
 - Click open and press cancel in the warning dialog.
 - Confirm the current edited value remains.
 - Click open again, confirm, pick another project, and confirm it loads.
+
+---
+
+## M11 — First Generator Command
+
+### Goal
+Make the left tool rail execute the first semantic generator command while
+keeping unwired future tools visible but disabled.
+
+### Tasks
+- [x] Add a small command action map in the workspace shell.
+- [x] Wire `enclosure.create` from the left rail.
+- [x] Add a create-enclosure dialog powered by the rounded enclosure parameter
+      schema.
+- [x] Commit created/updated enclosure state through the semantic undo history.
+- [x] Disable rail commands that are available by context but not implemented
+      yet.
+- [x] Add widget tests for create, cancel, undo, and disabled future commands.
+
+### Done Criteria
+- Clicking the left `Корпус` tool opens a parameter dialog.
+- Confirming the dialog updates the semantic `ProjectModel`.
+- Canceling the dialog makes no project change and creates no undo entry.
+- Undo restores the previous enclosure dimensions.
+- Unimplemented rail commands do not run empty no-op callbacks.
+
+### Tests
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Click the left `Корпус` button.
+- Change width to a visibly different value and click `Создать`.
+- Confirm the inspector shows the new enclosure size.
+- Click undo and confirm the original size returns.
+- Click another left rail icon and confirm nothing unexpected opens.

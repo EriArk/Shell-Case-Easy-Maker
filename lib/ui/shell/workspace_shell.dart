@@ -131,26 +131,70 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       return;
     }
 
-    setState(() {
-      final updatedEnclosure = EnclosureParameterAdapter.updateParameter(
-        enclosure,
-        parameterId,
-        value,
-      );
-      if (_sameJson(enclosure.toJson(), updatedEnclosure.toJson())) {
-        return;
-      }
+    final updatedEnclosure = EnclosureParameterAdapter.updateParameter(
+      enclosure,
+      parameterId,
+      value,
+    );
+    _commitProjectEdit(
+      id: 'enclosure.parameter.$parameterId',
+      label: 'Изменить корпус',
+      nextState: _project.replaceEnclosure(updatedEnclosure),
+    );
+  }
 
-      _undoHistory.commit(
-        id: 'enclosure.parameter.$parameterId',
-        label: 'Изменить корпус',
-        nextState: _project.replaceEnclosure(updatedEnclosure),
-      );
+  void _commitProjectEdit({
+    required String id,
+    required String label,
+    required ProjectModel nextState,
+    SelectionModel? selection,
+  }) {
+    if (_sameJson(_project.toJson(), nextState.toJson())) {
+      return;
+    }
+
+    setState(() {
+      _undoHistory.commit(id: id, label: label, nextState: nextState);
+      if (selection != null) {
+        _selection = selection;
+      }
       _fileStatusMessage = null;
       _loadGeometry();
       _viewportController.setSelectedSemanticId(_selection.id);
       _viewportController.setGhostPreview(_ghostPreviewFor(_selection));
     });
+  }
+
+  VoidCallback? _commandActionFor(String commandId) {
+    return switch (commandId) {
+      CommandIds.createEnclosure => () {
+        _runCreateEnclosureCommand();
+      },
+      _ => null,
+    };
+  }
+
+  Future<void> _runCreateEnclosureCommand() async {
+    final baseEnclosure = _project.bodies.firstOrNull ?? _defaultEnclosure();
+    final values = await showDialog<Map<String, Object?>>(
+      context: context,
+      builder: (context) =>
+          _CreateEnclosureDialog(initialEnclosure: baseEnclosure),
+    );
+    if (!mounted || values == null) {
+      return;
+    }
+
+    final enclosure = EnclosureParameterAdapter.applyValues(
+      baseEnclosure,
+      values,
+    );
+    _commitProjectEdit(
+      id: CommandIds.createEnclosure,
+      label: 'Создать корпус',
+      nextState: _project.replaceEnclosure(enclosure),
+      selection: SelectionModel.enclosure(enclosure.id),
+    );
   }
 
   void _undo() {
@@ -362,7 +406,10 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _ToolRail(commandContext: commandContext),
+                      _ToolRail(
+                        commandContext: commandContext,
+                        commandActionFor: _commandActionFor,
+                      ),
                       _ProjectBrowser(
                         project: _project,
                         surfaces: preview?.surfaces ?? const [],
@@ -477,6 +524,17 @@ String _suggestedProjectFileName(ProjectModel project) {
       .replaceAll(RegExp(r'_+'), '_')
       .replaceAll(RegExp(r'^_|_$'), '');
   return '${safeName.isEmpty ? 'project' : safeName}.enclosure.json';
+}
+
+Enclosure _defaultEnclosure() {
+  return const Enclosure(
+    id: 'main_enclosure',
+    shape: 'rounded_box',
+    size: [120, 70, 28],
+    wallThickness: 2,
+    cornerRadius: 4,
+    lid: LidSpec(type: 'top_screw_lid', clearanceProfile: 'fdm_normal'),
+  );
 }
 
 class _TopToolbar extends StatelessWidget {
@@ -598,10 +656,16 @@ class _ToolbarCommand extends StatelessWidget {
   }
 }
 
+typedef _CommandActionFor = VoidCallback? Function(String commandId);
+
 class _ToolRail extends StatelessWidget {
-  const _ToolRail({required this.commandContext});
+  const _ToolRail({
+    required this.commandContext,
+    required this.commandActionFor,
+  });
 
   final CommandContext commandContext;
+  final _CommandActionFor commandActionFor;
 
   static const commandIds = [
     CommandIds.createEnclosure,
@@ -634,6 +698,7 @@ class _ToolRail extends StatelessWidget {
             _RailButton(
               command: registry.byId(commandIds[index]),
               commandContext: commandContext,
+              onPressed: commandActionFor(commandIds[index]),
             ),
         ],
       ),
@@ -642,15 +707,20 @@ class _ToolRail extends StatelessWidget {
 }
 
 class _RailButton extends StatelessWidget {
-  const _RailButton({required this.command, required this.commandContext});
+  const _RailButton({
+    required this.command,
+    required this.commandContext,
+    required this.onPressed,
+  });
 
   final AppCommand command;
   final CommandContext commandContext;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final enabled = command.isAvailable(commandContext);
+    final enabled = command.isAvailable(commandContext) && onPressed != null;
     final contextual =
         commandContext.activeScope != null &&
         command.scopes.contains(commandContext.activeScope);
@@ -660,6 +730,7 @@ class _RailButton extends StatelessWidget {
       child: Tooltip(
         message: command.label,
         child: IconButton(
+          key: ValueKey('rail-command-${command.id}'),
           icon: Icon(_iconForCommand(command.icon)),
           color: contextual && enabled
               ? theme.colorScheme.primary
@@ -672,7 +743,7 @@ class _RailButton extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             ),
           ),
-          onPressed: enabled ? () {} : null,
+          onPressed: enabled ? onPressed : null,
         ),
       ),
     );
@@ -1375,16 +1446,115 @@ class _EnclosureParameterEditor extends StatelessWidget {
   }
 }
 
+class _CreateEnclosureDialog extends StatefulWidget {
+  const _CreateEnclosureDialog({required this.initialEnclosure});
+
+  final Enclosure initialEnclosure;
+
+  @override
+  State<_CreateEnclosureDialog> createState() => _CreateEnclosureDialogState();
+}
+
+class _CreateEnclosureDialogState extends State<_CreateEnclosureDialog> {
+  late Map<String, Object?> _values;
+
+  @override
+  void initState() {
+    super.initState();
+    _values = EnclosureParameterAdapter.valuesFrom(widget.initialEnclosure);
+  }
+
+  void _updateValue(String id, Object? value) {
+    setState(() {
+      _values = EnclosureParameterAdapter.schema.applyDefaults({
+        ..._values,
+        id: value,
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final schema = EnclosureParameterAdapter.schema;
+    final issues = EnclosureParameterAdapter.validateValues(_values);
+
+    return AlertDialog(
+      title: const Text('Создать корпус'),
+      content: SizedBox(
+        width: 340,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final parameter in schema.parameters) ...[
+                if (parameter.kind == ParameterKind.choice)
+                  _ParameterChoiceField(
+                    keyPrefix: 'create-enclosure-param',
+                    parameter: parameter,
+                    value: _values[parameter.id] as String?,
+                    onChanged: (value) => _updateValue(parameter.id, value),
+                  )
+                else
+                  _ParameterNumberField(
+                    keyPrefix: 'create-enclosure-param',
+                    parameter: parameter,
+                    value: _values[parameter.id],
+                    onChanged: (value) => _updateValue(parameter.id, value),
+                    onSubmitted: (value) => _updateValue(parameter.id, value),
+                  ),
+                const SizedBox(height: 10),
+              ],
+              for (final issue in issues)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      issue.message,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          key: const ValueKey('create-enclosure-cancel'),
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Отмена'),
+        ),
+        FilledButton(
+          key: const ValueKey('create-enclosure-confirm'),
+          onPressed: issues.isEmpty
+              ? () => Navigator.of(
+                  context,
+                ).pop(Map<String, Object?>.from(_values))
+              : null,
+          child: const Text('Создать'),
+        ),
+      ],
+    );
+  }
+}
+
 class _ParameterNumberField extends StatefulWidget {
   const _ParameterNumberField({
     required this.parameter,
     required this.value,
     required this.onSubmitted,
+    this.onChanged,
+    this.keyPrefix = 'enclosure-param',
   });
 
   final ParameterDefinition parameter;
   final Object? value;
   final ValueChanged<double> onSubmitted;
+  final ValueChanged<double>? onChanged;
+  final String keyPrefix;
 
   @override
   State<_ParameterNumberField> createState() => _ParameterNumberFieldState();
@@ -1427,6 +1597,13 @@ class _ParameterNumberFieldState extends State<_ParameterNumberField> {
     }
   }
 
+  void _change(String value) {
+    final parsed = double.tryParse(value.trim().replaceAll(',', '.'));
+    if (parsed != null) {
+      widget.onChanged?.call(parsed);
+    }
+  }
+
   String _formatParameterValue() {
     final value = widget.value;
     if (value is num) {
@@ -1449,11 +1626,12 @@ class _ParameterNumberFieldState extends State<_ParameterNumberField> {
         : '${_formatNumber(range.min)}-${_formatNumber(range.max)}';
 
     return TextFormField(
-      key: ValueKey('enclosure-param-${parameter.id}'),
+      key: ValueKey('${widget.keyPrefix}-${parameter.id}'),
       controller: _controller,
       focusNode: _focusNode,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       textInputAction: TextInputAction.done,
+      onChanged: widget.onChanged == null ? null : _change,
       onFieldSubmitted: _submit,
       decoration: InputDecoration(
         labelText: parameter.label,
@@ -1472,16 +1650,18 @@ class _ParameterChoiceField extends StatelessWidget {
     required this.parameter,
     required this.value,
     required this.onChanged,
+    this.keyPrefix = 'enclosure-param',
   });
 
   final ParameterDefinition parameter;
   final String? value;
   final ValueChanged<String?> onChanged;
+  final String keyPrefix;
 
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<String>(
-      key: ValueKey('enclosure-param-${parameter.id}'),
+      key: ValueKey('$keyPrefix-${parameter.id}'),
       initialValue: value,
       isExpanded: true,
       items: [

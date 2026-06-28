@@ -65,6 +65,14 @@ Project open/save commands are also wired from the toolbar. They use
 `UndoBehavior.none`: saving should not change semantic state, and opening a file
 replaces the current project with a fresh undo history for that file.
 
+The first left rail generator command is `enclosure.create`. It opens a compact
+parameter dialog powered by `CoreParameterSchemas.roundedEnclosure`, applies the
+values to the semantic `Enclosure`, and commits the result as one undoable
+project snapshot. Canceling the dialog does not create a history entry.
+
+Rail commands that are contextually available but not implemented yet stay
+visible and disabled, instead of running empty callbacks.
+
 ## Rules
 
 - Semantic state is the undo source of truth.
@@ -74,7 +82,9 @@ replaces the current project with a fresh undo history for that file.
 
 ## Current limitations
 
-- Commands are metadata-only; no command dispatcher is implemented yet.
-- Undo history is wired for first enclosure parameter edits only.
+- There is still no central command dispatcher; the shell has a small explicit
+  action map for the first generator command.
+- Undo history is wired for first enclosure parameter edits and first enclosure
+  creation only.
 - Selection and active surface context are available from the shell selection
   model, but most editing commands are not wired yet.

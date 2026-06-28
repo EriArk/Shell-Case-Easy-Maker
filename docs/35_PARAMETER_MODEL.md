@@ -92,11 +92,14 @@ The contextual inspector uses this adapter for the first editable enclosure
 controls. Changes update the local semantic `ProjectModel`, then refresh the
 mock `GeometryService` preview and validation futures.
 
+The first create-enclosure rail command also uses this schema and adapter. Its
+dialog edits normalized schema values, then applies them to the semantic
+`Enclosure` before committing one undoable project snapshot.
+
 ## Current Limitations
 
 - Parameter values are not stored as a separate typed layer in `ProjectModel`
   yet; current semantic objects still store their existing fields/maps.
 - Cross-parameter validation, such as "corner radius must fit body dimensions",
   belongs in generator-specific validation and is not implemented here.
-- Inspector edits are local to the running app. Toolbar save/open commands are
-  not wired to native file dialogs yet.
+- Only the rounded enclosure schema is wired into UI controls so far.

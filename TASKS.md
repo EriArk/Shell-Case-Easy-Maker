@@ -54,6 +54,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Toolbar undo/redo for inspector parameter edits.
 - [x] Toolbar open/save for project JSON files.
 - [x] Unsaved changes prompt before opening another project.
+- [x] First executable left rail generator command.
 
 ## Phase 3 — Viewport MVP
 
@@ -85,7 +86,8 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 
 ## Phase 5 — Enclosure-first MVP
 
-- [ ] Create basic enclosure wizard.
+- [x] First-pass create enclosure command/dialog.
+- [ ] Guided enclosure wizard presets and validation polish.
 - [x] First-pass box dimensions, wall thickness, corner radius.
 - [ ] Lid type: none / top / bottom / screw lid.
 - [x] First-pass lid type: none / top screw lid.

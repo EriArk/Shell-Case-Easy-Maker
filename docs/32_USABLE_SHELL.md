@@ -86,9 +86,24 @@ The top toolbar now wires project open/save commands:
   persisted baseline,
 - generated preview data is refreshed after loading.
 
+## First Generator Command
+
+The left tool rail now executes the first semantic generator command:
+`enclosure.create`.
+
+Clicking `Корпус` opens a compact create-enclosure dialog using the same rounded
+enclosure parameter schema as the inspector. Confirming the dialog updates the
+semantic `ProjectModel`, selects the enclosure, refreshes the mock preview, and
+creates one undo history entry.
+
+Future rail tools remain visible to show the intended workflow, but they are
+disabled until their semantic command behavior is implemented and tested.
+
 ## Current limitations
 
-- Only the first enclosure parameter bank edits project state.
+- Only the first enclosure parameter bank and first create-enclosure command
+  edit project state.
 - Viewport selection is still mocked and schematic, though direct hit testing
   already returns semantic IDs.
-- Undo history is connected only to first enclosure parameter edits.
+- Undo history is connected only to enclosure parameter edits and the first
+  create-enclosure command.

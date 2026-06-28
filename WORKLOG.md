@@ -1004,3 +1004,74 @@ close before the user completed the save flow.
 
 ### Next step
 Run full validation, rebuild latest Windows bundle, commit, and push.
+
+---
+
+## 2026-06-28 — M11 First Generator Command
+
+### Goal
+Make the left tool rail execute the first real semantic generator command in a
+safe, undoable slice.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `docs/31_COMMANDS_AND_UNDO.md`,
+`docs/32_USABLE_SHELL.md`, `docs/35_PARAMETER_MODEL.md`,
+`lib/ui/shell/workspace_shell.dart`, command registry files, parameter adapter,
+and current widget tests.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added a small command action map for first wired rail commands.
+  - Wired `enclosure.create` to a compact create-enclosure dialog.
+  - Reused the rounded enclosure parameter schema and adapter for dialog values.
+  - Routed created enclosure state through the shared semantic undo pipeline.
+  - Disabled rail commands that are not implemented yet.
+- `test/widget_test.dart`:
+  - Added coverage for create, cancel, undo, and disabled future rail commands.
+- `ROADMAP.md`, `TASKS.md`, `docs/31_COMMANDS_AND_UNDO.md`,
+  `docs/32_USABLE_SHELL.md`, and `docs/35_PARAMETER_MODEL.md`:
+  - Documented M11 and the first executable generator command.
+
+### Tests run
+- `flutter test test\widget_test.dart`:
+  - Passed, 12 widget tests.
+- `flutter pub get`:
+  - Passed; 4 packages still have newer incompatible versions.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 57 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed `releases/latest/windows/shell_case_easy_maker.exe`.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Mock preview refreshes after the created enclosure edit.
+- Serialization checked?
+  - Existing semantic project serialization and file tests still pass.
+- UI checked?
+  - Widget tests cover create, cancel, undo, and disabled unwired rail commands.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: There is still no central command dispatcher/controller.
+  - Severity: Expected for this slice.
+  - Next action: introduce it when more rail commands need shared execution
+    behavior.
+- Issue: The create-enclosure dialog is first-pass and not a guided wizard yet.
+  - Severity: Low.
+  - Next action: add presets, richer validation, and clearer generator flow in a
+    later enclosure-first chunk.
+
+### Next step
+Commit and push M11, then continue with the next safe generator or shell
+interaction chunk.
+
+### Notes for future Codex sessions
+Keep rail commands honest: visible future tools are okay, but they should stay
+disabled until they have semantic behavior, tests, and undo considerations.

@@ -106,6 +106,88 @@ void main() {
     expect(find.text('150 x 70 x 28 mm'), findsOneWidget);
   });
 
+  testWidgets('create enclosure rail command commits through undo history', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const CaseMakerApp());
+    await tester.pumpAndSettle();
+
+    final createButton = find.byKey(
+      const ValueKey('rail-command-${CommandIds.createEnclosure}'),
+    );
+    final undoButton = find.byKey(
+      const ValueKey('toolbar-command-${CommandIds.undo}'),
+    );
+
+    expect(tester.widget<IconButton>(createButton).onPressed, isNotNull);
+
+    await tester.tap(createButton);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('create-enclosure-confirm')),
+      findsOneWidget,
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('create-enclosure-param-width')),
+      '180',
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('create-enclosure-confirm')));
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('180 x 70 x 28 mm'), findsOneWidget);
+    expect(tester.widget<IconButton>(undoButton).onPressed, isNotNull);
+
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('120 x 70 x 28 mm'), findsOneWidget);
+  });
+
+  testWidgets('create enclosure rail command can be cancelled', (tester) async {
+    await tester.pumpWidget(const CaseMakerApp());
+    await tester.pumpAndSettle();
+
+    final createButton = find.byKey(
+      const ValueKey('rail-command-${CommandIds.createEnclosure}'),
+    );
+    final undoButton = find.byKey(
+      const ValueKey('toolbar-command-${CommandIds.undo}'),
+    );
+
+    await tester.tap(createButton);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('create-enclosure-param-width')),
+      '180',
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('create-enclosure-cancel')));
+    await _pumpAsyncUi(tester);
+
+    await tester.tap(find.text('main_enclosure').first);
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('120 x 70 x 28 mm'), findsOneWidget);
+    expect(tester.widget<IconButton>(undoButton).onPressed, isNull);
+  });
+
+  testWidgets('unimplemented rail commands are visible but disabled', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const CaseMakerApp());
+    await tester.pumpAndSettle();
+
+    final placeComponentButton = find.byKey(
+      const ValueKey('rail-command-${CommandIds.placeComponent}'),
+    );
+
+    expect(placeComponentButton, findsOneWidget);
+    expect(tester.widget<IconButton>(placeComponentButton).onPressed, isNull);
+  });
+
   testWidgets('save command writes current semantic project file', (
     tester,
   ) async {
