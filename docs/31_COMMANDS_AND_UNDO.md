@@ -75,6 +75,11 @@ workspace and enclosure context when at least one component template exists.
 The command opens a placement dialog, creates a semantic `ComponentPlacement`,
 and commits it as one undoable project snapshot.
 
+The first surface-based rail command is `port.add_usb_c`. It is available only
+when the active selection is a semantic surface. The command creates a
+`usb_c_cutout` `SemanticFeature` targeted at that surface and commits it as one
+undoable project snapshot.
+
 Undo/redo now validates the active selection against the restored project. If
 the selected semantic object no longer exists after undo, the shell falls back
 to workspace selection instead of keeping a stale object ID.
@@ -94,6 +99,6 @@ visible and disabled, instead of running empty callbacks.
 - There is still no central command dispatcher; the shell has a small explicit
   action map for the first generator commands.
 - Undo history is wired for first enclosure parameter edits and first enclosure
-  creation/component placement only.
+  creation/component placement/USB-C cutout only.
 - Selection and active surface context are available from the shell selection
   model, but most editing commands are not wired yet.

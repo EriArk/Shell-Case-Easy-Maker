@@ -56,6 +56,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Unsaved changes prompt before opening another project.
 - [x] First executable left rail generator command.
 - [x] First executable component placement command.
+- [x] First executable surface-based USB-C command.
 
 ## Phase 3 — Viewport MVP
 
@@ -95,7 +96,8 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [ ] Add simple screw bosses.
 - [ ] Add generic circular cutout.
 - [ ] Add generic rectangular rounded cutout.
-- [ ] Add USB-C cutout.
+- [x] First-pass USB-C cutout command.
+- [ ] USB-C placement polish with face-local picking/snapping.
 - [ ] Export STL/STEP.
 - [ ] Validate wall thickness and cutout placement.
 

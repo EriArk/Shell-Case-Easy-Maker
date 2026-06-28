@@ -89,7 +89,7 @@ The top toolbar now wires project open/save commands:
 ## First Generator Command
 
 The left tool rail now executes the first semantic generator commands:
-`enclosure.create` and `component.place`.
+`enclosure.create`, `component.place`, and `port.add_usb_c`.
 
 Clicking `Корпус` opens a compact create-enclosure dialog using the same rounded
 enclosure parameter schema as the inspector. Confirming the dialog updates the
@@ -102,16 +102,24 @@ least one `ComponentTemplate`. Confirming the dialog appends a semantic
 undo history entry. If undo removes the selected placement, selection falls back
 to the workspace so the inspector does not point at a stale ID.
 
+Clicking `Порты` is enabled only after selecting a semantic surface such as
+`Front wall`. The command opens a compact USB-C dialog, appends a semantic
+`usb_c_cutout` feature targeted at the selected surface, selects the new
+feature, refreshes the mock preview, and creates one undo history entry.
+
 Future rail tools remain visible to show the intended workflow, but they are
 disabled until their semantic command behavior is implemented and tested.
 
 ## Current limitations
 
-- Only the first enclosure parameter bank, first create-enclosure command, and
-  first component placement command edit project state.
+- Only the first enclosure parameter bank, first create-enclosure command,
+  first component placement command, and first USB-C cutout command edit
+  project state.
 - Viewport selection is still mocked and schematic, though direct hit testing
   already returns semantic IDs.
 - Component placement still uses typed dialog values rather than viewport
   picking or snapping.
+- USB-C placement still uses dialog values and target surface selection rather
+  than face-local picking/snapping.
 - Undo history is connected only to enclosure parameter edits, first enclosure
-  creation, and first component placement.
+  creation, first component placement, and first USB-C cutout.

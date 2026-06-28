@@ -176,6 +176,12 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
             : () {
                 _runPlaceComponentCommand();
               },
+      CommandIds.addUsbC =>
+        _selection.kind == SelectionKind.surface
+            ? () {
+                _runAddUsbCCommand(_selection);
+              }
+            : null,
       _ => null,
     };
   }
@@ -229,6 +235,34 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       label: 'Разместить компонент',
       nextState: _project.replaceComponentPlacement(placement),
       selection: SelectionModel.componentPlacement(placement.id),
+    );
+  }
+
+  Future<void> _runAddUsbCCommand(SelectionModel surfaceSelection) async {
+    final targetSurfaceId = surfaceSelection.id;
+    if (surfaceSelection.kind != SelectionKind.surface ||
+        targetSurfaceId == null) {
+      return;
+    }
+
+    final feature = await showDialog<SemanticFeature>(
+      context: context,
+      builder: (context) => _UsbCCutoutDialog(
+        initialFeature: _defaultUsbCCutoutFeature(
+          id: _nextFeatureId(_project, 'usb_c_cutout'),
+          targetSurfaceId: targetSurfaceId,
+        ),
+      ),
+    );
+    if (!mounted || feature == null) {
+      return;
+    }
+
+    _commitProjectEdit(
+      id: CommandIds.addUsbC,
+      label: 'Добавить USB-C',
+      nextState: _project.replaceFeature(feature),
+      selection: SelectionModel.feature(feature.id),
     );
   }
 
@@ -597,6 +631,38 @@ String _nextComponentPlacementId(ProjectModel project, String templateId) {
     final exists = project.componentPlacements.any(
       (placement) => placement.id == candidate,
     );
+    if (!exists) {
+      return candidate;
+    }
+    index += 1;
+  }
+}
+
+SemanticFeature _defaultUsbCCutoutFeature({
+  required String id,
+  required String targetSurfaceId,
+}) {
+  return SemanticFeature(
+    id: id,
+    type: 'usb_c_cutout',
+    targetSurface: targetSurfaceId,
+    operation: 'negative',
+    parameters: const {
+      'width': 10.5,
+      'height': 4.2,
+      'cornerRadius': 1.0,
+      'clearanceProfile': 'fdm_normal',
+    },
+  );
+}
+
+String _nextFeatureId(ProjectModel project, String type) {
+  final safeType = _safeIdPart(type);
+  var index =
+      project.features.where((feature) => feature.type == type).length + 1;
+  while (true) {
+    final candidate = '${safeType}_$index';
+    final exists = project.features.any((feature) => feature.id == candidate);
     if (!exists) {
       return candidate;
     }
@@ -1831,6 +1897,150 @@ class _PlaceComponentDialogState extends State<_PlaceComponentDialog> {
   }
 }
 
+class _UsbCCutoutDialog extends StatefulWidget {
+  const _UsbCCutoutDialog({required this.initialFeature});
+
+  final SemanticFeature initialFeature;
+
+  @override
+  State<_UsbCCutoutDialog> createState() => _UsbCCutoutDialogState();
+}
+
+class _UsbCCutoutDialogState extends State<_UsbCCutoutDialog> {
+  late double _width;
+  late double _height;
+  late double _cornerRadius;
+  late String _clearanceProfile;
+
+  static const _profiles = [
+    _ClearanceProfileOption('fdm_normal', 'FDM обычный'),
+    _ClearanceProfileOption('fdm_loose', 'FDM свободный'),
+    _ClearanceProfileOption('resin_normal', 'Resin обычный'),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    final parameters = widget.initialFeature.parameters;
+    _width = _featureDouble(parameters, 'width', 10.5);
+    _height = _featureDouble(parameters, 'height', 4.2);
+    _cornerRadius = _featureDouble(parameters, 'cornerRadius', 1.0);
+    _clearanceProfile = _featureString(
+      parameters,
+      'clearanceProfile',
+      'fdm_normal',
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Добавить USB-C'),
+      content: SizedBox(
+        width: 340,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: _DialogNumberField(
+                      key: const ValueKey('usb-c-width'),
+                      label: 'Ширина',
+                      value: _width,
+                      onChanged: (value) => setState(() => _width = value),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _DialogNumberField(
+                      key: const ValueKey('usb-c-height'),
+                      label: 'Высота',
+                      value: _height,
+                      onChanged: (value) => setState(() => _height = value),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              _DialogNumberField(
+                key: const ValueKey('usb-c-corner-radius'),
+                label: 'Радиус',
+                value: _cornerRadius,
+                onChanged: (value) => setState(() => _cornerRadius = value),
+              ),
+              const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                key: const ValueKey('usb-c-clearance-profile'),
+                initialValue: _clearanceProfile,
+                isExpanded: true,
+                items: [
+                  for (final profile in _profiles)
+                    DropdownMenuItem(
+                      value: profile.id,
+                      child: Text(profile.label),
+                    ),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _clearanceProfile = value;
+                    });
+                  }
+                },
+                decoration: InputDecoration(
+                  labelText: 'Зазор',
+                  isDense: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 9,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          key: const ValueKey('usb-c-cancel'),
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Отмена'),
+        ),
+        FilledButton(
+          key: const ValueKey('usb-c-confirm'),
+          onPressed: () => Navigator.of(context).pop(
+            SemanticFeature(
+              id: widget.initialFeature.id,
+              type: widget.initialFeature.type,
+              targetSurface: widget.initialFeature.targetSurface,
+              operation: widget.initialFeature.operation,
+              parameters: {
+                'width': _clampDouble(_width, 4, 30),
+                'height': _clampDouble(_height, 1, 14),
+                'cornerRadius': _clampDouble(_cornerRadius, 0, 6),
+                'clearanceProfile': _clearanceProfile,
+              },
+            ),
+          ),
+          child: const Text('Добавить'),
+        ),
+      ],
+    );
+  }
+}
+
+class _ClearanceProfileOption {
+  const _ClearanceProfileOption(this.id, this.label);
+
+  final String id;
+  final String label;
+}
+
 class _MountingSideOption {
   const _MountingSideOption(this.id, this.label);
 
@@ -1875,6 +2085,28 @@ class _DialogNumberField extends StatelessWidget {
 
 double _positionAt(List<double> values, int index) {
   return values.length > index ? values[index] : 0;
+}
+
+double _featureDouble(
+  Map<String, Object?> parameters,
+  String key,
+  double fallback,
+) {
+  final value = parameters[key];
+  return value is num ? value.toDouble() : fallback;
+}
+
+String _featureString(
+  Map<String, Object?> parameters,
+  String key,
+  String fallback,
+) {
+  final value = parameters[key];
+  return value is String ? value : fallback;
+}
+
+double _clampDouble(double value, double min, double max) {
+  return value.clamp(min, max).toDouble();
 }
 
 class _ParameterNumberField extends StatefulWidget {

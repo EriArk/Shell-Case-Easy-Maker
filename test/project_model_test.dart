@@ -123,6 +123,32 @@ void main() {
     expect(replaced.componentPlacements.last.locked, isTrue);
   });
 
+  test('project replaces or appends semantic features by stable id', () {
+    final project = ProjectModel.initial();
+    const added = SemanticFeature(
+      id: 'usb_c_cutout_2',
+      type: 'usb_c_cutout',
+      targetSurface: 'main_enclosure.front_wall.outer',
+      operation: 'negative',
+      parameters: {'width': 12.0},
+    );
+
+    final withAdded = project.replaceFeature(added);
+    final replaced = withAdded.replaceFeature(
+      const SemanticFeature(
+        id: 'usb_c_cutout_2',
+        type: 'usb_c_cutout',
+        targetSurface: 'main_enclosure.front_wall.outer',
+        operation: 'negative',
+        parameters: {'width': 14.0},
+      ),
+    );
+
+    expect(withAdded.features, hasLength(3));
+    expect(replaced.features, hasLength(3));
+    expect(replaced.features.last.parameters['width'], 14.0);
+  });
+
   test('newer project versions fail explicitly', () {
     expect(
       () => ProjectModel.fromJson(const {

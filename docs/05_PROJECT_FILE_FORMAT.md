@@ -111,6 +111,8 @@ Current behavior:
 - saving or opening updates the clean project baseline,
 - the `Компоненты` rail command can append semantic `ComponentPlacement`
   entries from existing component templates,
+- the `Порты` rail command can append semantic `usb_c_cutout` features targeted
+  at a selected semantic surface,
 - generated previews are refreshed from the loaded semantic model.
 
 Current limitations:

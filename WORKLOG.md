@@ -1154,3 +1154,78 @@ Run full validation, refresh latest Windows bundle, commit, and push M12.
 Component templates remain semantic mechanical templates. Placements should
 later drive holes, mounts, clearances, and keepouts without flattening those
 requests into unrelated raw geometry.
+
+---
+
+## 2026-06-28 — M13 USB-C Cutout Command
+
+### Goal
+Make the first surface-based rail command create a semantic USB-C cutout on the
+selected enclosure face.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `docs/31_COMMANDS_AND_UNDO.md`,
+`docs/32_USABLE_SHELL.md`, `docs/05_PROJECT_FILE_FORMAT.md`,
+`lib/project/feature.dart`, `lib/project/project_model.dart`, current
+workspace shell, selection resolver, and widget/model tests.
+
+### Changes made
+- `lib/project/project_model.dart`:
+  - Added `replaceFeature()` for stable-ID append/replace behavior.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Wired `port.add_usb_c` from the left rail only when a semantic surface is
+    selected.
+  - Added a compact USB-C dialog for width, height, corner radius, and
+    clearance profile.
+  - Creates a semantic `usb_c_cutout` feature targeted at the active surface.
+  - Commits the new feature through semantic undo history and selects it.
+- `test/project_model_test.dart` and `test/widget_test.dart`:
+  - Added coverage for feature append/replace, disabled-without-surface,
+    create, cancel, and undo behavior.
+- `ROADMAP.md`, `TASKS.md`, `docs/31_COMMANDS_AND_UNDO.md`,
+  `docs/32_USABLE_SHELL.md`, and `docs/05_PROJECT_FILE_FORMAT.md`:
+  - Documented M13 and the first surface-based generator command.
+
+### Tests run
+- `flutter test test\project_model_test.dart test\widget_test.dart`:
+  - Passed, 26 targeted tests.
+- `flutter pub get`:
+  - Passed; 4 packages still have newer incompatible versions.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 65 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed `releases/latest/windows/shell_case_easy_maker.exe`.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Mock preview refreshes after the feature edit; no generated geometry is
+    stored as editable state.
+- Serialization checked?
+  - Semantic feature append/replace is covered at model level.
+- UI checked?
+  - Widget tests cover selected surface enablement, create, cancel, and undo.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: USB-C placement is targeted by selected surface only, without
+  face-local picking/snapping yet.
+  - Severity: Expected for this slice.
+  - Next action: add face-local placement controls after viewport picking is
+    ready.
+- Issue: The cutout is semantic only; no OCCT/B-Rep cut is generated yet.
+  - Severity: Expected.
+  - Next action: feed semantic features into real geometry generation later.
+
+### Next step
+Run full validation, refresh latest Windows bundle, commit, and push M13.
+
+### Notes for future Codex sessions
+Surface commands should continue to use semantic surface IDs from selection.
+Do not couple feature creation to raw triangle IDs or OCCT topology names.

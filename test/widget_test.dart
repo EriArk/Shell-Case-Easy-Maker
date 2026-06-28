@@ -258,7 +258,7 @@ void main() {
     expect(tester.widget<IconButton>(placeButton).onPressed, isNull);
   });
 
-  testWidgets('unimplemented rail commands are visible but disabled', (
+  testWidgets('add USB-C rail command commits through undo history', (
     tester,
   ) async {
     await tester.pumpWidget(const CaseMakerApp());
@@ -267,9 +267,71 @@ void main() {
     final addUsbCButton = find.byKey(
       const ValueKey('rail-command-${CommandIds.addUsbC}'),
     );
+    final undoButton = find.byKey(
+      const ValueKey('toolbar-command-${CommandIds.undo}'),
+    );
 
-    expect(addUsbCButton, findsOneWidget);
     expect(tester.widget<IconButton>(addUsbCButton).onPressed, isNull);
+
+    await tester.tap(find.text('Front wall').first);
+    await tester.pumpAndSettle();
+
+    expect(tester.widget<IconButton>(addUsbCButton).onPressed, isNotNull);
+
+    await tester.tap(addUsbCButton);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('usb-c-confirm')), findsOneWidget);
+
+    await tester.enterText(find.byKey(const ValueKey('usb-c-width')), '12');
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('usb-c-confirm')));
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('usb_c_cutout_2'), findsWidgets);
+    expect(find.text('12.0'), findsOneWidget);
+    expect(tester.widget<IconButton>(undoButton).onPressed, isNotNull);
+
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('usb_c_cutout_2'), findsNothing);
+  });
+
+  testWidgets('add USB-C rail command can be cancelled', (tester) async {
+    await tester.pumpWidget(const CaseMakerApp());
+    await tester.pumpAndSettle();
+
+    final addUsbCButton = find.byKey(
+      const ValueKey('rail-command-${CommandIds.addUsbC}'),
+    );
+    final undoButton = find.byKey(
+      const ValueKey('toolbar-command-${CommandIds.undo}'),
+    );
+
+    await tester.tap(find.text('Front wall').first);
+    await tester.pumpAndSettle();
+    await tester.tap(addUsbCButton);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('usb-c-cancel')));
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('usb_c_cutout_2'), findsNothing);
+    expect(tester.widget<IconButton>(undoButton).onPressed, isNull);
+  });
+
+  testWidgets('unimplemented rail commands are visible but disabled', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const CaseMakerApp());
+    await tester.pumpAndSettle();
+
+    final generateSlotButton = find.byKey(
+      const ValueKey('rail-command-${CommandIds.generateSlot}'),
+    );
+
+    expect(generateSlotButton, findsOneWidget);
+    expect(tester.widget<IconButton>(generateSlotButton).onPressed, isNull);
   });
 
   testWidgets('save command writes current semantic project file', (

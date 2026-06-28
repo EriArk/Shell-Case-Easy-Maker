@@ -121,6 +121,22 @@ class ProjectModel {
     );
   }
 
+  ProjectModel replaceFeature(SemanticFeature feature) {
+    var replaced = false;
+    final nextFeatures = <SemanticFeature>[];
+
+    for (final existing in features) {
+      if (existing.id == feature.id) {
+        nextFeatures.add(feature);
+        replaced = true;
+      } else {
+        nextFeatures.add(existing);
+      }
+    }
+
+    return copyWith(features: replaced ? nextFeatures : [...features, feature]);
+  }
+
   factory ProjectModel.initial() {
     return ProjectModel(
       projectName: 'Sample Button Board Case',

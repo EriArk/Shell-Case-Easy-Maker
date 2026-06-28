@@ -31,6 +31,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M10 — Unsaved Changes Guard
 - [x] M11 — First Generator Command
 - [x] M12 — Place Component Command
+- [x] M13 — USB-C Cutout Command
 
 ---
 
@@ -470,3 +471,44 @@ placements from existing component templates.
 - Confirm a new component placement appears in the browser.
 - Confirm the inspector shows position `24 x 0 x 4 mm`.
 - Click undo and confirm the new placement disappears.
+
+---
+
+## M13 — USB-C Cutout Command
+
+### Goal
+Make the first surface-based generator command add a semantic USB-C cutout to
+the selected enclosure face.
+
+### Tasks
+- [x] Add a semantic project helper for replacing/appending features by stable
+      ID.
+- [x] Wire `port.add_usb_c` from the left rail only when a surface is selected.
+- [x] Add a compact USB-C dialog for width, height, corner radius, and
+      clearance profile.
+- [x] Commit the new `usb_c_cutout` feature through the semantic undo history.
+- [x] Select the created feature and keep undo selection valid.
+- [x] Add unit/widget tests for append/replace, disabled-without-surface,
+      create, cancel, and undo behavior.
+
+### Done Criteria
+- `Порты` stays disabled without an active surface.
+- Selecting `Front wall` enables `Порты`.
+- Confirming the dialog appends a semantic `SemanticFeature` with
+  `type: usb_c_cutout`.
+- Canceling the dialog makes no project change and creates no undo entry.
+- Undo removes the new feature and leaves selection valid.
+
+### Tests
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Select `Front wall` in the project browser.
+- Click `Порты` in the left rail.
+- Change width to `12` and click `Добавить`.
+- Confirm `usb_c_cutout_2` appears in the feature list/inspector.
+- Click undo and confirm the new USB-C feature disappears.
