@@ -88,22 +88,30 @@ The top toolbar now wires project open/save commands:
 
 ## First Generator Command
 
-The left tool rail now executes the first semantic generator command:
-`enclosure.create`.
+The left tool rail now executes the first semantic generator commands:
+`enclosure.create` and `component.place`.
 
 Clicking `Корпус` opens a compact create-enclosure dialog using the same rounded
 enclosure parameter schema as the inspector. Confirming the dialog updates the
 semantic `ProjectModel`, selects the enclosure, refreshes the mock preview, and
 creates one undo history entry.
 
+Clicking `Компоненты` opens a compact placement dialog when the project has at
+least one `ComponentTemplate`. Confirming the dialog appends a semantic
+`ComponentPlacement`, selects it, refreshes the mock preview, and creates one
+undo history entry. If undo removes the selected placement, selection falls back
+to the workspace so the inspector does not point at a stale ID.
+
 Future rail tools remain visible to show the intended workflow, but they are
 disabled until their semantic command behavior is implemented and tested.
 
 ## Current limitations
 
-- Only the first enclosure parameter bank and first create-enclosure command
-  edit project state.
+- Only the first enclosure parameter bank, first create-enclosure command, and
+  first component placement command edit project state.
 - Viewport selection is still mocked and schematic, though direct hit testing
   already returns semantic IDs.
-- Undo history is connected only to enclosure parameter edits and the first
-  create-enclosure command.
+- Component placement still uses typed dialog values rather than viewport
+  picking or snapping.
+- Undo history is connected only to enclosure parameter edits, first enclosure
+  creation, and first component placement.

@@ -80,7 +80,11 @@ class CoreCommands {
       id: CommandIds.placeComponent,
       label: 'Компоненты',
       icon: 'component',
-      scopes: {CommandScope.workspace, CommandScope.component},
+      scopes: {
+        CommandScope.workspace,
+        CommandScope.enclosure,
+        CommandScope.component,
+      },
       undoBehavior: UndoBehavior.singleTransaction,
     ),
     AppCommand(

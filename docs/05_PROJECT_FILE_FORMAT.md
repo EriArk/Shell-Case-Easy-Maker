@@ -109,6 +109,8 @@ Current behavior:
 - opening a project resets undo/redo history for the new file,
 - opening another project while dirty asks before discarding unsaved edits,
 - saving or opening updates the clean project baseline,
+- the `Компоненты` rail command can append semantic `ComponentPlacement`
+  entries from existing component templates,
 - generated previews are refreshed from the loaded semantic model.
 
 Current limitations:

@@ -30,6 +30,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M9 — Project Open/Save
 - [x] M10 — Unsaved Changes Guard
 - [x] M11 — First Generator Command
+- [x] M12 — Place Component Command
 
 ---
 
@@ -428,3 +429,44 @@ keeping unwired future tools visible but disabled.
 - Confirm the inspector shows the new enclosure size.
 - Click undo and confirm the original size returns.
 - Click another left rail icon and confirm nothing unexpected opens.
+
+---
+
+## M12 — Place Component Command
+
+### Goal
+Make the second left rail generator command create semantic component
+placements from existing component templates.
+
+### Tasks
+- [x] Add a semantic project helper for replacing/appending component
+      placements by stable ID.
+- [x] Wire `component.place` from the left rail when component templates exist.
+- [x] Make the command available from workspace and enclosure context.
+- [x] Add a compact placement dialog with template, X/Y/Z, mounting side, and
+      lock controls.
+- [x] Commit new placement state through the semantic undo history.
+- [x] Coerce selection back to workspace if undo removes the selected object.
+- [x] Add unit/widget tests for append/replace, create, cancel, undo, and
+      no-template disabled state.
+
+### Done Criteria
+- Clicking `Компоненты` opens a placement dialog when templates exist.
+- Confirming the dialog appends a semantic `ComponentPlacement`.
+- The new placement appears in the project browser and inspector.
+- Canceling the dialog makes no project change and creates no undo entry.
+- Undo removes the new placement and leaves selection valid.
+
+### Tests
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Click `Компоненты` in the left rail.
+- Change X to a visible value such as `24` and click `Разместить`.
+- Confirm a new component placement appears in the browser.
+- Confirm the inspector shows position `24 x 0 x 4 mm`.
+- Click undo and confirm the new placement disappears.

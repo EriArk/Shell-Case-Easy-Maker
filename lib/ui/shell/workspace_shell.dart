@@ -170,6 +170,12 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       CommandIds.createEnclosure => () {
         _runCreateEnclosureCommand();
       },
+      CommandIds.placeComponent =>
+        _project.componentTemplates.isEmpty
+            ? null
+            : () {
+                _runPlaceComponentCommand();
+              },
       _ => null,
     };
   }
@@ -197,6 +203,35 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     );
   }
 
+  Future<void> _runPlaceComponentCommand() async {
+    if (_project.componentTemplates.isEmpty) {
+      return;
+    }
+
+    final template = _project.componentTemplates.first;
+    final placement = await showDialog<ComponentPlacement>(
+      context: context,
+      builder: (context) => _PlaceComponentDialog(
+        templates: _project.componentTemplates,
+        initialPlacement: _defaultComponentPlacement(
+          id: _nextComponentPlacementId(_project, template.id),
+          templateId: template.id,
+          index: _project.componentPlacements.length,
+        ),
+      ),
+    );
+    if (!mounted || placement == null) {
+      return;
+    }
+
+    _commitProjectEdit(
+      id: CommandIds.placeComponent,
+      label: 'Разместить компонент',
+      nextState: _project.replaceComponentPlacement(placement),
+      selection: SelectionModel.componentPlacement(placement.id),
+    );
+  }
+
   void _undo() {
     if (!_undoHistory.canUndo) {
       return;
@@ -204,6 +239,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
 
     setState(() {
       _undoHistory.undo();
+      _selection = _validSelectionFor(_project, _selection);
       _fileStatusMessage = null;
       _loadGeometry();
       _viewportController.setSelectedSemanticId(_selection.id);
@@ -218,6 +254,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
 
     setState(() {
       _undoHistory.redo();
+      _selection = _validSelectionFor(_project, _selection);
       _fileStatusMessage = null;
       _loadGeometry();
       _viewportController.setSelectedSemanticId(_selection.id);
@@ -535,6 +572,82 @@ Enclosure _defaultEnclosure() {
     cornerRadius: 4,
     lid: LidSpec(type: 'top_screw_lid', clearanceProfile: 'fdm_normal'),
   );
+}
+
+ComponentPlacement _defaultComponentPlacement({
+  required String id,
+  required String templateId,
+  required int index,
+}) {
+  return ComponentPlacement(
+    id: id,
+    templateId: templateId,
+    position: [index * 8.0, 0, 4],
+    rotation: const [0, 0, 0],
+    mountingSide: 'bottom_inside',
+    locked: false,
+  );
+}
+
+String _nextComponentPlacementId(ProjectModel project, String templateId) {
+  final safeTemplateId = _safeIdPart(templateId);
+  var index = project.componentPlacements.length + 1;
+  while (true) {
+    final candidate = '${safeTemplateId}_placement_$index';
+    final exists = project.componentPlacements.any(
+      (placement) => placement.id == candidate,
+    );
+    if (!exists) {
+      return candidate;
+    }
+    index += 1;
+  }
+}
+
+String _safeIdPart(String value) {
+  final safe = value
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
+      .replaceAll(RegExp(r'_+'), '_')
+      .replaceAll(RegExp(r'^_|_$'), '');
+  return safe.isEmpty ? 'component' : safe;
+}
+
+SelectionModel _validSelectionFor(
+  ProjectModel project,
+  SelectionModel selection,
+) {
+  final id = selection.id;
+  return switch (selection.kind) {
+    SelectionKind.workspace => selection,
+    SelectionKind.enclosure
+        when id != null && project.bodies.any((body) => body.id == id) =>
+      selection,
+    SelectionKind.surface
+        when selection.parentId != null &&
+            project.bodies.any((body) => body.id == selection.parentId) =>
+      selection,
+    SelectionKind.componentPlacement
+        when id != null &&
+            project.componentPlacements.any(
+              (placement) => placement.id == id,
+            ) =>
+      selection,
+    SelectionKind.componentTemplate
+        when id != null &&
+            project.componentTemplates.any((template) => template.id == id) =>
+      selection,
+    SelectionKind.feature
+        when id != null &&
+            project.features.any((feature) => feature.id == id) =>
+      selection,
+    SelectionKind.featureGroup
+        when id != null &&
+            project.featureGroups.any((group) => group.id == id) =>
+      selection,
+    _ => const SelectionModel.workspace(),
+  };
 }
 
 class _TopToolbar extends StatelessWidget {
@@ -1539,6 +1652,229 @@ class _CreateEnclosureDialogState extends State<_CreateEnclosureDialog> {
       ],
     );
   }
+}
+
+class _PlaceComponentDialog extends StatefulWidget {
+  const _PlaceComponentDialog({
+    required this.templates,
+    required this.initialPlacement,
+  });
+
+  final List<ComponentTemplate> templates;
+  final ComponentPlacement initialPlacement;
+
+  @override
+  State<_PlaceComponentDialog> createState() => _PlaceComponentDialogState();
+}
+
+class _PlaceComponentDialogState extends State<_PlaceComponentDialog> {
+  late String _templateId;
+  late double _x;
+  late double _y;
+  late double _z;
+  late String _mountingSide;
+  late bool _locked;
+
+  static const _mountingSides = [
+    _MountingSideOption('bottom_inside', 'Внутри на дне'),
+    _MountingSideOption('top_lid_inside', 'На крышке внутри'),
+    _MountingSideOption('free', 'Свободно'),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.initialPlacement;
+    _templateId = initial.templateId;
+    _x = _positionAt(initial.position, 0);
+    _y = _positionAt(initial.position, 1);
+    _z = _positionAt(initial.position, 2);
+    _mountingSide = initial.mountingSide;
+    _locked = initial.locked;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Разместить компонент'),
+      content: SizedBox(
+        width: 340,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<String>(
+                key: const ValueKey('place-component-template'),
+                initialValue: _templateId,
+                isExpanded: true,
+                items: [
+                  for (final template in widget.templates)
+                    DropdownMenuItem(
+                      value: template.id,
+                      child: Text(template.name),
+                    ),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _templateId = value;
+                    });
+                  }
+                },
+                decoration: InputDecoration(
+                  labelText: 'Шаблон',
+                  isDense: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 9,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: _DialogNumberField(
+                      key: const ValueKey('place-component-x'),
+                      label: 'X',
+                      value: _x,
+                      onChanged: (value) => setState(() => _x = value),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _DialogNumberField(
+                      key: const ValueKey('place-component-y'),
+                      label: 'Y',
+                      value: _y,
+                      onChanged: (value) => setState(() => _y = value),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _DialogNumberField(
+                      key: const ValueKey('place-component-z'),
+                      label: 'Z',
+                      value: _z,
+                      onChanged: (value) => setState(() => _z = value),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                key: const ValueKey('place-component-side'),
+                initialValue: _mountingSide,
+                isExpanded: true,
+                items: [
+                  for (final side in _mountingSides)
+                    DropdownMenuItem(value: side.id, child: Text(side.label)),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _mountingSide = value;
+                    });
+                  }
+                },
+                decoration: InputDecoration(
+                  labelText: 'Посадка',
+                  isDense: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 9,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              CheckboxListTile(
+                key: const ValueKey('place-component-locked'),
+                value: _locked,
+                onChanged: (value) => setState(() => _locked = value ?? false),
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Зафиксировать'),
+                controlAffinity: ListTileControlAffinity.leading,
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          key: const ValueKey('place-component-cancel'),
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Отмена'),
+        ),
+        FilledButton(
+          key: const ValueKey('place-component-confirm'),
+          onPressed: () => Navigator.of(context).pop(
+            ComponentPlacement(
+              id: widget.initialPlacement.id,
+              templateId: _templateId,
+              position: [_x, _y, _z],
+              rotation: widget.initialPlacement.rotation,
+              mountingSide: _mountingSide,
+              locked: _locked,
+            ),
+          ),
+          child: const Text('Разместить'),
+        ),
+      ],
+    );
+  }
+}
+
+class _MountingSideOption {
+  const _MountingSideOption(this.id, this.label);
+
+  final String id;
+  final String label;
+}
+
+class _DialogNumberField extends StatelessWidget {
+  const _DialogNumberField({
+    super.key,
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String label;
+  final double value;
+  final ValueChanged<double> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      initialValue: _formatNumber(value),
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      textInputAction: TextInputAction.next,
+      onChanged: (rawValue) {
+        final parsed = double.tryParse(rawValue.trim().replaceAll(',', '.'));
+        if (parsed != null) {
+          onChanged(parsed);
+        }
+      },
+      decoration: InputDecoration(
+        labelText: label,
+        suffixText: 'mm',
+        isDense: true,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      ),
+    );
+  }
+}
+
+double _positionAt(List<double> values, int index) {
+  return values.length > index ? values[index] : 0;
 }
 
 class _ParameterNumberField extends StatefulWidget {

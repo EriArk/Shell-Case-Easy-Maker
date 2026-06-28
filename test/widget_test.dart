@@ -174,18 +174,102 @@ void main() {
     expect(tester.widget<IconButton>(undoButton).onPressed, isNull);
   });
 
+  testWidgets('place component rail command commits through undo history', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const CaseMakerApp());
+    await tester.pumpAndSettle();
+
+    final placeButton = find.byKey(
+      const ValueKey('rail-command-${CommandIds.placeComponent}'),
+    );
+    final undoButton = find.byKey(
+      const ValueKey('toolbar-command-${CommandIds.undo}'),
+    );
+
+    expect(tester.widget<IconButton>(placeButton).onPressed, isNotNull);
+
+    await tester.tap(placeButton);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('place-component-confirm')),
+      findsOneWidget,
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('place-component-x')),
+      '24',
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('place-component-confirm')));
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('custom_button_board_v1_placement_2'), findsWidgets);
+    expect(find.text('24 x 0 x 4 mm'), findsOneWidget);
+    expect(tester.widget<IconButton>(undoButton).onPressed, isNotNull);
+
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('custom_button_board_v1_placement_2'), findsNothing);
+  });
+
+  testWidgets('place component rail command can be cancelled', (tester) async {
+    await tester.pumpWidget(const CaseMakerApp());
+    await tester.pumpAndSettle();
+
+    final placeButton = find.byKey(
+      const ValueKey('rail-command-${CommandIds.placeComponent}'),
+    );
+    final undoButton = find.byKey(
+      const ValueKey('toolbar-command-${CommandIds.undo}'),
+    );
+
+    await tester.tap(placeButton);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('place-component-cancel')));
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('custom_button_board_v1_placement_2'), findsNothing);
+    expect(tester.widget<IconButton>(undoButton).onPressed, isNull);
+  });
+
+  testWidgets('place component command is disabled without templates', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkspaceShell(
+          project: ProjectModel.initial().copyWith(
+            componentTemplates: const [],
+            componentPlacements: const [],
+          ),
+          geometryService: const MockGeometryService(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final placeButton = find.byKey(
+      const ValueKey('rail-command-${CommandIds.placeComponent}'),
+    );
+
+    expect(tester.widget<IconButton>(placeButton).onPressed, isNull);
+  });
+
   testWidgets('unimplemented rail commands are visible but disabled', (
     tester,
   ) async {
     await tester.pumpWidget(const CaseMakerApp());
     await tester.pumpAndSettle();
 
-    final placeComponentButton = find.byKey(
-      const ValueKey('rail-command-${CommandIds.placeComponent}'),
+    final addUsbCButton = find.byKey(
+      const ValueKey('rail-command-${CommandIds.addUsbC}'),
     );
 
-    expect(placeComponentButton, findsOneWidget);
-    expect(tester.widget<IconButton>(placeComponentButton).onPressed, isNull);
+    expect(addUsbCButton, findsOneWidget);
+    expect(tester.widget<IconButton>(addUsbCButton).onPressed, isNull);
   });
 
   testWidgets('save command writes current semantic project file', (

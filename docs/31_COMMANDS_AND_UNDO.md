@@ -70,6 +70,15 @@ parameter dialog powered by `CoreParameterSchemas.roundedEnclosure`, applies the
 values to the semantic `Enclosure`, and commits the result as one undoable
 project snapshot. Canceling the dialog does not create a history entry.
 
+The second wired rail command is `component.place`. It is available from
+workspace and enclosure context when at least one component template exists.
+The command opens a placement dialog, creates a semantic `ComponentPlacement`,
+and commits it as one undoable project snapshot.
+
+Undo/redo now validates the active selection against the restored project. If
+the selected semantic object no longer exists after undo, the shell falls back
+to workspace selection instead of keeping a stale object ID.
+
 Rail commands that are contextually available but not implemented yet stay
 visible and disabled, instead of running empty callbacks.
 
@@ -83,8 +92,8 @@ visible and disabled, instead of running empty callbacks.
 ## Current limitations
 
 - There is still no central command dispatcher; the shell has a small explicit
-  action map for the first generator command.
+  action map for the first generator commands.
 - Undo history is wired for first enclosure parameter edits and first enclosure
-  creation only.
+  creation/component placement only.
 - Selection and active surface context are available from the shell selection
   model, but most editing commands are not wired yet.

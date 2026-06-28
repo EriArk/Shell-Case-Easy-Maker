@@ -1075,3 +1075,82 @@ interaction chunk.
 ### Notes for future Codex sessions
 Keep rail commands honest: visible future tools are okay, but they should stay
 disabled until they have semantic behavior, tests, and undo considerations.
+
+---
+
+## 2026-06-28 — M12 Place Component Command
+
+### Goal
+Make the second left rail generator command create semantic component
+placements from existing component templates.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `docs/31_COMMANDS_AND_UNDO.md`,
+`docs/32_USABLE_SHELL.md`, `docs/05_PROJECT_FILE_FORMAT.md`,
+`lib/project/project_model.dart`, component template/placement models, current
+workspace shell, and command/widget tests.
+
+### Changes made
+- `lib/project/project_model.dart`:
+  - Added `replaceComponentPlacement()` for stable-ID append/replace behavior.
+- `lib/commands/command_registry.dart`:
+  - Made `component.place` available from workspace and enclosure context.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Wired `component.place` from the left rail when templates exist.
+  - Added a compact placement dialog for template, X/Y/Z, mounting side, and
+    lock state.
+  - Commits new placements through semantic undo history.
+  - Coerces selection back to workspace if undo removes the selected semantic
+    object.
+- `test/command_registry_test.dart`, `test/project_model_test.dart`, and
+  `test/widget_test.dart`:
+  - Added coverage for command scope, placement append/replace, create, cancel,
+    undo, and no-template disabled state.
+- `ROADMAP.md`, `TASKS.md`, `docs/31_COMMANDS_AND_UNDO.md`,
+  `docs/32_USABLE_SHELL.md`, and `docs/05_PROJECT_FILE_FORMAT.md`:
+  - Documented M12 and the first component placement command.
+
+### Tests run
+- `flutter test test\command_registry_test.dart test\project_model_test.dart test\widget_test.dart`:
+  - Passed, 29 targeted tests.
+- `flutter pub get`:
+  - Passed; 4 packages still have newer incompatible versions.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 62 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed `releases/latest/windows/shell_case_easy_maker.exe`.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Mock preview refreshes after placement changes; no generated geometry
+    source state is added.
+- Serialization checked?
+  - Component placement append/replace is covered at model level.
+- UI checked?
+  - Widget tests cover place, cancel, undo, and no-template disabled state.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Component placement is still numeric-dialog driven, not viewport
+  picking/snapping.
+  - Severity: Expected for this slice.
+  - Next action: add viewport picking and snapping after command flows settle.
+- Issue: Component-driven cutouts/mounts are not generated from the placement
+  yet.
+  - Severity: Expected.
+  - Next action: implement component-driven feature generation in a later chunk.
+
+### Next step
+Run full validation, refresh latest Windows bundle, commit, and push M12.
+
+### Notes for future Codex sessions
+Component templates remain semantic mechanical templates. Placements should
+later drive holes, mounts, clearances, and keepouts without flattening those
+requests into unrelated raw geometry.

@@ -101,6 +101,26 @@ class ProjectModel {
     return copyWith(bodies: replaced ? nextBodies : [...bodies, enclosure]);
   }
 
+  ProjectModel replaceComponentPlacement(ComponentPlacement placement) {
+    var replaced = false;
+    final nextPlacements = <ComponentPlacement>[];
+
+    for (final existing in componentPlacements) {
+      if (existing.id == placement.id) {
+        nextPlacements.add(placement);
+        replaced = true;
+      } else {
+        nextPlacements.add(existing);
+      }
+    }
+
+    return copyWith(
+      componentPlacements: replaced
+          ? nextPlacements
+          : [...componentPlacements, placement],
+    );
+  }
+
   factory ProjectModel.initial() {
     return ProjectModel(
       projectName: 'Sample Button Board Case',

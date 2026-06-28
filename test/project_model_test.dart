@@ -93,6 +93,36 @@ void main() {
     expect(encoded['zones'], isA<List<Object?>>());
   });
 
+  test('project replaces or appends component placements by stable id', () {
+    final project = ProjectModel.initial();
+    final added = const ComponentPlacement(
+      id: 'second_board_placement',
+      templateId: 'custom_button_board_v1',
+      position: [12, 0, 4],
+      rotation: [0, 0, 0],
+      mountingSide: 'bottom_inside',
+      locked: false,
+    );
+
+    final withAdded = project.replaceComponentPlacement(added);
+    final replaced = withAdded.replaceComponentPlacement(
+      const ComponentPlacement(
+        id: 'second_board_placement',
+        templateId: 'custom_button_board_v1',
+        position: [24, 0, 4],
+        rotation: [0, 0, 0],
+        mountingSide: 'top_lid_inside',
+        locked: true,
+      ),
+    );
+
+    expect(withAdded.componentPlacements, hasLength(2));
+    expect(replaced.componentPlacements, hasLength(2));
+    expect(replaced.componentPlacements.last.position, [24, 0, 4]);
+    expect(replaced.componentPlacements.last.mountingSide, 'top_lid_inside');
+    expect(replaced.componentPlacements.last.locked, isTrue);
+  });
+
   test('newer project versions fail explicitly', () {
     expect(
       () => ProjectModel.fromJson(const {

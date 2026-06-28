@@ -55,6 +55,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Toolbar open/save for project JSON files.
 - [x] Unsaved changes prompt before opening another project.
 - [x] First executable left rail generator command.
+- [x] First executable component placement command.
 
 ## Phase 3 — Viewport MVP
 
@@ -108,7 +109,8 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [ ] Button/switch semantic element.
 - [ ] Keepout zones.
 - [ ] Save/load component templates.
-- [ ] Place component inside enclosure.
+- [x] First-pass place component inside enclosure.
+- [ ] Guided component placement workflow with viewport picking.
 - [ ] Project switch centers and connector anchors to enclosure surfaces.
 
 ## Phase 7 — Component-driven enclosure generation

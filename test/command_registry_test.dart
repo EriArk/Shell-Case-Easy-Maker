@@ -56,6 +56,27 @@ void main() {
     );
   });
 
+  test(
+    'place component command works from workspace and enclosure context',
+    () {
+      final registry = CommandRegistry.core;
+      final placeComponent = registry.byId(CommandIds.placeComponent);
+
+      expect(
+        placeComponent.isAvailable(
+          const CommandContext(activeScope: CommandScope.workspace),
+        ),
+        isTrue,
+      );
+      expect(
+        placeComponent.isAvailable(
+          const CommandContext(activeScope: CommandScope.enclosure),
+        ),
+        isTrue,
+      );
+    },
+  );
+
   test('advanced commands are hidden until advanced mode is enabled', () {
     final registry = CommandRegistry.core;
     final sketch = registry.byId(CommandIds.advancedSketch);
