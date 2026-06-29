@@ -8,6 +8,7 @@ import 'package:shell_case_easy_maker/commands/command_ids.dart';
 import 'package:shell_case_easy_maker/geometry/geometry_service.dart';
 import 'package:shell_case_easy_maker/project/project_model.dart';
 import 'package:shell_case_easy_maker/ui/shell/workspace_shell.dart';
+import 'package:shell_case_easy_maker/viewport/viewport_controller.dart';
 
 void main() {
   testWidgets('workspace shell shows semantic enclosure UI', (tester) async {
@@ -483,6 +484,39 @@ void main() {
     expect(find.text('standoff_mounts_1'), findsWidgets);
     expect(find.text('6.0'), findsOneWidget);
     expect(tester.widget<IconButton>(undoButton).onPressed, isNotNull);
+
+    await tester.tap(find.text('main_enclosure').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Отверстие'), findsNothing);
+
+    final canvasFinder = find.byKey(const ValueKey('mock-viewport-canvas'));
+    final canvasTopLeft = tester.getTopLeft(canvasFinder);
+    final canvasSize = tester.getSize(canvasFinder);
+    final layout = MockViewportLayout.fromSize(
+      canvasSize,
+      const ViewportState(),
+    );
+    const mountGroup = MockViewportFeatureGroupPreview(
+      semanticId: 'standoff_mounts_1',
+      kind: MockViewportFeatureGroupKind.standoffMounts,
+      sourcePositions: [
+        Offset(-20, -12),
+        Offset(20, -12),
+        Offset(-20, 12),
+        Offset(20, 12),
+      ],
+      boardWidth: 48,
+      boardHeight: 32,
+      itemDiameter: 6,
+    );
+
+    await tester.tapAt(
+      canvasTopLeft + layout.featureGroupCenters(mountGroup).first,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Отверстие'), findsOneWidget);
 
     await tester.tap(undoButton);
     await _pumpAsyncUi(tester);

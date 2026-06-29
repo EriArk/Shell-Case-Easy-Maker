@@ -129,3 +129,7 @@ The generated group records:
 The editable project still stores this as semantic intent. Generated B-Rep,
 preview mesh, and export geometry should be derived later by `GeometryService`
 or the OCCT worker.
+
+The mock viewport also derives schematic standoff markers from the same source
+positions. Those markers are selectable affordances for the semantic
+`FeatureGroup`; they are not saved geometry.

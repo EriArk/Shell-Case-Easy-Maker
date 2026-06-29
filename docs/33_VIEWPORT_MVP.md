@@ -28,9 +28,23 @@ centers from `ViewportState`.
 - enclosure ID,
 - surface ID with parent object ID,
 - component placement ID,
-- feature ID.
+- feature ID,
+- feature group ID.
 
 It does not return mesh IDs, triangle IDs, OCCT face IDs, or generated topology.
+
+## Feature Group Markers
+
+The mock viewport can now draw semantic feature-group markers for
+`standoff_mounts`.
+
+The marker data is derived from the editable `FeatureGroup`:
+- source mounting-hole positions,
+- source component board size,
+- standoff diameter.
+
+The markers are a viewport affordance only. Clicking one marker selects the
+whole feature group, not an individual mesh primitive or flattened hole.
 
 ## Current Controls
 
@@ -65,5 +79,6 @@ license, and packaging complexity.
 
 - The viewport is still a stylized 2.5D mock drawing, not generated geometry.
 - Hit zones are deterministic mock zones, not mesh picking.
+- Standoff markers are schematic circles, not generated B-Rep bosses.
 - View cube is a compact fit control, not a full orientation gizmo.
 - Ghost previews are hard-coded for the sample semantic surfaces.

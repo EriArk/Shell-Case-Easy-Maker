@@ -68,6 +68,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Implement view cube / orientation gizmo.
 - [x] Implement selection highlight.
 - [x] Implement ghost preview.
+- [x] Implement semantic feature group viewport markers.
 - [ ] Implement local workplane overlay.
 - [x] Implement grid overlay.
 - [ ] Implement basic snapping visual hints.
@@ -121,6 +122,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 ## Phase 7 — Component-driven enclosure generation
 
 - [x] First-pass semantic standoff group from board mounting holes.
+- [x] First-pass standoff marker preview from board mounting holes.
 - [ ] Generate real standoff geometry from board mounting holes.
 - [ ] Generate side wall cutouts from ports.
 - [ ] Generate top/lid cutouts from switches/buttons.
@@ -133,6 +135,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 
 - [x] First-pass editable `FeatureGroup` command.
 - [ ] Implement generated pattern item preview/positions.
+- [x] First-pass generated standoff marker positions.
 - [ ] Line pattern.
 - [ ] Grid pattern.
 - [x] First-pass diamond/rhombus button pattern data.
@@ -149,6 +152,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 
 - [ ] Define mountable surfaces and forbidden zones in component templates.
 - [x] First-pass semantic screw standoff command from component mounting holes.
+- [x] First-pass visual standoff markers in mock viewport.
 - [ ] Generate pocket mount.
 - [ ] Generate friction-fit mount.
 - [ ] Generate side walls.

@@ -646,3 +646,44 @@ standoff mounts from the selected component placement's mounting holes.
 - Confirm `standoff_mounts_1` appears in the feature list/inspector.
 - Confirm the inspector shows diameter `6.0`, hole, height, and count data.
 - Click undo and confirm the new mount group disappears.
+
+---
+
+## M17 — Feature Group Viewport Markers
+
+### Goal
+Make semantic mount groups visible and selectable in the mock viewport before
+real OCCT geometry exists.
+
+### Tasks
+- [x] Add a `featureGroup` viewport hit kind.
+- [x] Add a typed mock feature-group preview object for standoff mounts.
+- [x] Map component mounting-hole positions into board-local viewport marker
+      positions.
+- [x] Draw standoff mount markers on top of the mock board.
+- [x] Hit-test mount markers before the board so clicks select the whole
+      `FeatureGroup`.
+- [x] Highlight selected `standoff_mounts` groups in the viewport.
+- [x] Add unit/widget tests for marker layout, semantic hit testing, and shell
+      selection from a viewport click.
+
+### Done Criteria
+- Creating `standoff_mounts_1` shows four visible markers on the mock board.
+- Clicking one marker selects the `standoff_mounts_1` feature group, not the
+  board placement underneath.
+- The inspector switches to the mount group details after marker selection.
+- No mesh IDs, triangle IDs, or OCCT IDs are used for selection.
+
+### Tests
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Select `button_board_placement`, click `Крепёж`, set `Стойка` to `6`, and
+  click `Создать`.
+- Confirm four yellow mount markers appear around the mock board.
+- Select `main_enclosure`, then click one mount marker in the viewport.
+- Confirm the inspector switches back to `Крепёж` / `standoff_mounts_1`.

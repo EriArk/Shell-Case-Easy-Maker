@@ -91,7 +91,9 @@ Current behavior:
   in the group pattern data,
 - stores editable standoff diameter, hole diameter, height, screw label, and
   clearance profile in the item prototype,
-- commits through semantic undo history and selects the new group.
+- commits through semantic undo history and selects the new group,
+- shows schematic standoff markers in the mock viewport and allows clicking a
+  marker to select the whole mount group.
 
 Current limitation:
 - no OCCT/B-Rep standoff bodies are generated yet; the semantic group is the

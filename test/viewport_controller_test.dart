@@ -88,4 +88,39 @@ void main() {
     expect(portHit?.kind, ViewportHitKind.feature);
     expect(portHit?.semanticId, 'front_usb_c');
   });
+
+  test('mock hit tester returns semantic feature group ids', () {
+    const state = ViewportState();
+    const size = Size(900, 600);
+    final layout = MockViewportLayout.fromSize(size, state);
+    const mountGroup = MockViewportFeatureGroupPreview(
+      semanticId: 'standoff_mounts_1',
+      kind: MockViewportFeatureGroupKind.standoffMounts,
+      sourcePositions: [
+        Offset(-20, -12),
+        Offset(20, -12),
+        Offset(-20, 12),
+        Offset(20, 12),
+      ],
+      boardWidth: 48,
+      boardHeight: 32,
+      itemDiameter: 6,
+    );
+    const hitTester = MockViewportHitTester();
+
+    final centers = layout.featureGroupCenters(mountGroup);
+    expect(centers, hasLength(4));
+    expect(centers.first.dx, lessThan(layout.boardRect.center.dx));
+    expect(centers.first.dy, greaterThan(layout.boardRect.center.dy));
+
+    final hit = hitTester.hitTest(
+      position: centers.first,
+      size: size,
+      state: state,
+      featureGroups: const [mountGroup],
+    );
+
+    expect(hit?.kind, ViewportHitKind.featureGroup);
+    expect(hit?.semanticId, 'standoff_mounts_1');
+  });
 }

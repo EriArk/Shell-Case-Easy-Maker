@@ -1,9 +1,17 @@
 import 'dart:math' as math;
 import 'dart:ui';
 
-enum ViewportHitKind { enclosure, surface, componentPlacement, feature }
+enum ViewportHitKind {
+  enclosure,
+  surface,
+  componentPlacement,
+  feature,
+  featureGroup,
+}
 
 enum GhostPreviewKind { usbC, buttonGroup }
+
+enum MockViewportFeatureGroupKind { standoffMounts }
 
 class ViewportController {
   ViewportController({ViewportState initialState = const ViewportState()})
@@ -153,6 +161,47 @@ class ViewportHitResult {
   final String? parentId;
 }
 
+class MockViewportFeatureGroupPreview {
+  const MockViewportFeatureGroupPreview({
+    required this.semanticId,
+    required this.kind,
+    required this.sourcePositions,
+    required this.boardWidth,
+    required this.boardHeight,
+    required this.itemDiameter,
+  });
+
+  final String semanticId;
+  final MockViewportFeatureGroupKind kind;
+  final List<Offset> sourcePositions;
+  final double boardWidth;
+  final double boardHeight;
+  final double itemDiameter;
+
+  @override
+  bool operator ==(Object other) {
+    return other is MockViewportFeatureGroupPreview &&
+        other.semanticId == semanticId &&
+        other.kind == kind &&
+        _offsetListsEqual(other.sourcePositions, sourcePositions) &&
+        other.boardWidth == boardWidth &&
+        other.boardHeight == boardHeight &&
+        other.itemDiameter == itemDiameter;
+  }
+
+  @override
+  int get hashCode {
+    return Object.hash(
+      semanticId,
+      kind,
+      Object.hashAll(sourcePositions),
+      boardWidth,
+      boardHeight,
+      itemDiameter,
+    );
+  }
+}
+
 class MockViewportBodyDimensions {
   const MockViewportBodyDimensions({
     this.width = 120,
@@ -205,6 +254,38 @@ class MockViewportLayout {
   final double boardRadius;
   final double buttonRadius;
   final double portRadius;
+
+  List<Offset> featureGroupCenters(MockViewportFeatureGroupPreview group) {
+    return [
+      for (final position in group.sourcePositions)
+        _boardLocalToCanvas(
+          position,
+          boardWidth: group.boardWidth,
+          boardHeight: group.boardHeight,
+        ),
+    ];
+  }
+
+  double featureGroupRadius(MockViewportFeatureGroupPreview group) {
+    final boardScale = math.min(
+      boardRect.width / group.boardWidth.clamp(1, 1000),
+      boardRect.height / group.boardHeight.clamp(1, 1000),
+    );
+    return (group.itemDiameter * boardScale / 2).clamp(5, 14).toDouble();
+  }
+
+  Offset _boardLocalToCanvas(
+    Offset position, {
+    required double boardWidth,
+    required double boardHeight,
+  }) {
+    final safeWidth = boardWidth.clamp(1, 1000).toDouble();
+    final safeHeight = boardHeight.clamp(1, 1000).toDouble();
+    return Offset(
+      boardRect.center.dx + (position.dx / safeWidth) * boardRect.width,
+      boardRect.center.dy - (position.dy / safeHeight) * boardRect.height,
+    );
+  }
 
   static MockViewportLayout fromSize(
     Size size,
@@ -286,12 +367,25 @@ class MockViewportHitTester {
     required ViewportState state,
     MockViewportBodyDimensions bodyDimensions =
         const MockViewportBodyDimensions(),
+    List<MockViewportFeatureGroupPreview> featureGroups = const [],
   }) {
     final layout = MockViewportLayout.fromSize(
       size,
       state,
       bodyDimensions: bodyDimensions,
     );
+
+    for (final group in featureGroups.reversed) {
+      final hitRadius = layout.featureGroupRadius(group) + 8 * state.zoom;
+      for (final center in layout.featureGroupCenters(group)) {
+        if ((position - center).distance <= hitRadius) {
+          return ViewportHitResult(
+            kind: ViewportHitKind.featureGroup,
+            semanticId: group.semanticId,
+          );
+        }
+      }
+    }
 
     if (layout.portRect.inflate(10 * state.zoom).contains(position)) {
       return const ViewportHitResult(
@@ -360,4 +454,18 @@ double _wrapDegrees(double value) {
     wrapped += 360;
   }
   return wrapped;
+}
+
+bool _offsetListsEqual(List<Offset> left, List<Offset> right) {
+  if (left.length != right.length) {
+    return false;
+  }
+
+  for (var index = 0; index < left.length; index++) {
+    if (left[index] != right[index]) {
+      return false;
+    }
+  }
+
+  return true;
 }

@@ -718,6 +718,7 @@ SelectionModel? _selectionFromViewportHit(ViewportHitResult? hit) {
       hit.semanticId,
     ),
     ViewportHitKind.feature => SelectionModel.feature(hit.semanticId),
+    ViewportHitKind.featureGroup => SelectionModel.featureGroup(hit.semanticId),
   };
 }
 
@@ -1540,6 +1541,7 @@ class _ViewportAreaState extends State<_ViewportArea> {
           size: viewportSize,
           state: widget.viewportState,
           bodyDimensions: _mockViewportBodyDimensions(widget.project),
+          featureGroups: _mockFeatureGroupPreviews(widget.project),
         ),
       );
     }
@@ -1583,9 +1585,13 @@ class _ViewportAreaState extends State<_ViewportArea> {
                 children: [
                   Positioned.fill(
                     child: CustomPaint(
+                      key: const ValueKey('mock-viewport-canvas'),
                       painter: _ViewportPainter(
                         colorScheme: theme.colorScheme,
                         bodyDimensions: _mockViewportBodyDimensions(
+                          widget.project,
+                        ),
+                        featureGroupPreviews: _mockFeatureGroupPreviews(
                           widget.project,
                         ),
                         selection: widget.selection,
@@ -3169,12 +3175,14 @@ class _ViewportPainter extends CustomPainter {
   const _ViewportPainter({
     required this.colorScheme,
     required this.bodyDimensions,
+    required this.featureGroupPreviews,
     required this.selection,
     required this.viewportState,
   });
 
   final ColorScheme colorScheme;
   final MockViewportBodyDimensions bodyDimensions;
+  final List<MockViewportFeatureGroupPreview> featureGroupPreviews;
   final SelectionModel selection;
   final ViewportState viewportState;
 
@@ -3254,6 +3262,7 @@ class _ViewportPainter extends CustomPainter {
       portPaint,
     );
 
+    _paintFeatureGroups(canvas, layout);
     _paintGhostPreview(canvas, layout);
 
     final highlightPaint = Paint()
@@ -3336,6 +3345,44 @@ class _ViewportPainter extends CustomPainter {
         );
       }
     }
+
+    if (selection.kind == SelectionKind.featureGroup) {
+      final group = featureGroupPreviews
+          .where((group) => group.semanticId == selection.id)
+          .firstOrNull;
+      if (group != null) {
+        final radius = layout.featureGroupRadius(group);
+        for (final center in layout.featureGroupCenters(group)) {
+          canvas.drawCircle(center, radius + 5, secondaryHighlightPaint);
+        }
+      }
+    }
+  }
+
+  void _paintFeatureGroups(Canvas canvas, MockViewportLayout layout) {
+    final mountFill = Paint()
+      ..color = const Color(0xFFE6C35A)
+      ..style = PaintingStyle.fill;
+    final mountStroke = Paint()
+      ..color = const Color(0xFF151719).withValues(alpha: 0.7)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    final mountHole = Paint()
+      ..color = const Color(0xFF151719).withValues(alpha: 0.62)
+      ..style = PaintingStyle.fill;
+
+    for (final group in featureGroupPreviews) {
+      if (group.kind != MockViewportFeatureGroupKind.standoffMounts) {
+        continue;
+      }
+
+      final radius = layout.featureGroupRadius(group);
+      for (final center in layout.featureGroupCenters(group)) {
+        canvas.drawCircle(center, radius, mountFill);
+        canvas.drawCircle(center, radius * 0.46, mountHole);
+        canvas.drawCircle(center, radius, mountStroke);
+      }
+    }
   }
 
   void _paintGhostPreview(Canvas canvas, MockViewportLayout layout) {
@@ -3387,6 +3434,7 @@ class _ViewportPainter extends CustomPainter {
   bool shouldRepaint(covariant _ViewportPainter oldDelegate) {
     return oldDelegate.colorScheme != colorScheme ||
         oldDelegate.bodyDimensions != bodyDimensions ||
+        oldDelegate.featureGroupPreviews != featureGroupPreviews ||
         oldDelegate.selection != selection ||
         oldDelegate.viewportState != viewportState;
   }
@@ -3404,6 +3452,127 @@ MockViewportBodyDimensions _mockViewportBodyDimensions(ProjectModel project) {
     height: _sizeAt(enclosure, 2, 28),
     cornerRadius: enclosure.cornerRadius,
   );
+}
+
+List<MockViewportFeatureGroupPreview> _mockFeatureGroupPreviews(
+  ProjectModel project,
+) {
+  final previews = <MockViewportFeatureGroupPreview>[];
+
+  for (final group in project.featureGroups) {
+    final preview = _mockFeatureGroupPreview(project, group);
+    if (preview != null) {
+      previews.add(preview);
+    }
+  }
+
+  return previews;
+}
+
+MockViewportFeatureGroupPreview? _mockFeatureGroupPreview(
+  ProjectModel project,
+  FeatureGroup group,
+) {
+  if (group.type != 'standoff_mounts') {
+    return null;
+  }
+
+  final template = _templateForMockFeatureGroup(project, group);
+  final sourcePositions = _featureGroupHolePositions(group);
+  final positions = sourcePositions.isNotEmpty
+      ? sourcePositions
+      : [
+          for (final hole in template?.mountingHoles ?? const <MountingHole>[])
+            ?_offsetFromDoubleList(hole.position),
+        ];
+
+  if (positions.isEmpty) {
+    return null;
+  }
+
+  return MockViewportFeatureGroupPreview(
+    semanticId: group.id,
+    kind: MockViewportFeatureGroupKind.standoffMounts,
+    sourcePositions: positions,
+    boardWidth: template?.board.outline.width ?? 48,
+    boardHeight: template?.board.outline.height ?? 32,
+    itemDiameter: _featureDouble(group.itemPrototype, 'diameter', 5),
+  );
+}
+
+ComponentTemplate? _templateForMockFeatureGroup(
+  ProjectModel project,
+  FeatureGroup group,
+) {
+  final sourceTemplateId = _featureString(
+    group.pattern,
+    'sourceTemplateId',
+    '',
+  );
+  if (sourceTemplateId.isNotEmpty) {
+    final template = project.componentTemplates
+        .where((template) => template.id == sourceTemplateId)
+        .firstOrNull;
+    if (template != null) {
+      return template;
+    }
+  }
+
+  final sourcePlacementId = _featureString(
+    group.placement,
+    'componentPlacementId',
+    _featureString(group.pattern, 'sourcePlacementId', ''),
+  );
+  final placement = project.componentPlacements
+      .where((placement) => placement.id == sourcePlacementId)
+      .firstOrNull;
+  if (placement == null) {
+    return null;
+  }
+
+  return project.componentTemplates
+      .where((template) => template.id == placement.templateId)
+      .firstOrNull;
+}
+
+List<Offset> _featureGroupHolePositions(FeatureGroup group) {
+  final rawPositions = group.pattern['holePositions'];
+  if (rawPositions is! List) {
+    return const [];
+  }
+
+  final positions = <Offset>[];
+  for (final rawEntry in rawPositions) {
+    final rawPosition = rawEntry is Map ? rawEntry['position'] : null;
+    final position = _offsetFromJsonList(rawPosition);
+    if (position != null) {
+      positions.add(position);
+    }
+  }
+
+  return positions;
+}
+
+Offset? _offsetFromJsonList(Object? rawValue) {
+  if (rawValue is! List || rawValue.length < 2) {
+    return null;
+  }
+
+  final x = rawValue[0];
+  final y = rawValue[1];
+  if (x is! num || y is! num) {
+    return null;
+  }
+
+  return Offset(x.toDouble(), y.toDouble());
+}
+
+Offset? _offsetFromDoubleList(List<double> values) {
+  if (values.length < 2) {
+    return null;
+  }
+
+  return Offset(values[0], values[1]);
 }
 
 double _sizeAt(Enclosure enclosure, int index, double fallback) {

@@ -124,6 +124,8 @@ template has mounting holes. The command opens a compact mount dialog and
 appends a semantic `standoff_mounts` `FeatureGroup` sourced from the template
 hole positions. The generated mounts stay editable as one group with standoff
 diameter, hole diameter, height, clearance profile, and source placement data.
+The mock viewport draws schematic markers for this group; clicking a marker
+selects the whole `FeatureGroup` and shows its inspector details.
 
 Future rail tools remain visible to show the intended workflow, but they are
 disabled until their semantic command behavior is implemented and tested.
@@ -144,7 +146,8 @@ disabled until their semantic command behavior is implemented and tested.
 - Glass recess placement still uses selected surface and dialog dimensions
   rather than face-local picking/snapping.
 - Mount generation currently creates semantic standoff group data only; real
-  B-Rep/mesh stand-off geometry is still future geometry-service work.
+  B-Rep/mesh stand-off geometry is still future geometry-service work. The
+  visible markers are mock viewport affordances.
 - Undo history is connected only to enclosure parameter edits, first enclosure
   creation, first component placement, first USB-C cutout, and first button
   group/glass recess/mount commands.
