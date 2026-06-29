@@ -65,6 +65,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M44 - Projected Anchor Validation
 - [x] M45 - Geometry Feature Intent Protocol
 - [x] M46 - Geometry Operation Plan
+- [x] M47 - Mock Worker Protocol Harness
 
 ---
 
@@ -1928,5 +1929,47 @@ that the future worker can consume before real B-Rep generation exists.
 
 ### Poke Checklist
 - No meaningful manual UI poke for this chunk; it is a backend planning change.
+- Launch latest Windows app and confirm the default project still opens with a
+  clean mock preview and validation status.
+
+---
+
+## M47 - Mock Worker Protocol Harness
+
+### Goal
+Add a local JSON worker-protocol harness so the future native OCCT worker
+boundary can be exercised from stdin/stdout before real OCCT generation exists.
+
+### Tasks
+- [x] Add `GeometryWorkerProtocolHandler` for request JSON to response JSON.
+- [x] Keep the handler backend-agnostic through a `buildGeometry` callback.
+- [x] Add structured errors for invalid JSON, invalid top-level shape, and
+      missing project payloads.
+- [x] Add `tool/mock_geometry_worker.dart` as a Dart stdin/stdout smoke
+      harness backed by `MockGeometryService`.
+- [x] Add protocol tests for successful worker handling and invalid requests.
+- [x] Document the mock worker command and current native-worker limitation.
+
+### Done Criteria
+- A geometry request JSON file can be piped into the mock worker harness.
+- The harness returns `shell_case.geometry.response` JSON and non-zero exit
+  code on error responses.
+- Flutter still depends on `GeometryService`; no OCCT types, topology IDs,
+  generated B-Rep, STL, or editable mesh state are introduced.
+- The real native `occt_worker` executable remains a future task.
+
+### Tests
+- `flutter test test\geometry_protocol_test.dart`
+- `Get-Content occt_worker\protocol\preview_request.example.json -Raw | dart run tool\mock_geometry_worker.dart`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- No meaningful manual UI poke for this chunk; it is a backend protocol harness.
+- Optional developer poke: run the mock worker command above and confirm status
+  is `ok`, backend is `mock`, and preview mesh counts are present.
 - Launch latest Windows app and confirm the default project still opens with a
   clean mock preview and validation status.

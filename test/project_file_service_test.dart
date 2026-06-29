@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shell_case_easy_maker/project/project_file_dialog_service.dart';
 import 'package:shell_case_easy_maker/project/project_model.dart';
 
 void main() {

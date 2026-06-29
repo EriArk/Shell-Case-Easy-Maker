@@ -277,6 +277,55 @@ void main() {
     expect(response.issues.single.code, 'mock.unsupported_operation');
   });
 
+  test('worker protocol handler processes JSON requests', () async {
+    const geometryService = MockGeometryService();
+    final handler = GeometryWorkerProtocolHandler(
+      buildGeometry: geometryService.buildGeometry,
+    );
+    final request = GeometryRequest.previewMesh(
+      ProjectModel.initial(),
+      requestId: 'worker_preview',
+    );
+
+    final responseJson = await handler.handleJsonToString(
+      jsonEncode(request.toJson()),
+    );
+    final response = GeometryResponse.fromJson(
+      jsonDecode(responseJson) as Map<String, Object?>,
+    );
+
+    expect(response.requestId, 'worker_preview');
+    expect(response.status, GeometryResponseStatus.ok);
+    expect(response.backend, 'mock');
+    expect(response.previewMesh?.vertexCount, 8);
+  });
+
+  test('worker protocol handler reports invalid JSON', () async {
+    const geometryService = MockGeometryService();
+    final handler = GeometryWorkerProtocolHandler(
+      buildGeometry: geometryService.buildGeometry,
+    );
+
+    final response = await handler.handleJson('{not json');
+
+    expect(response.status, GeometryResponseStatus.error);
+    expect(response.hasErrors, isTrue);
+    expect(response.issues.single.code, 'worker.request.invalid_json');
+  });
+
+  test('worker protocol handler reports invalid request payloads', () async {
+    const geometryService = MockGeometryService();
+    final handler = GeometryWorkerProtocolHandler(
+      buildGeometry: geometryService.buildGeometry,
+    );
+
+    final response = await handler.handleJson(jsonEncode({'requestId': 12}));
+
+    expect(response.status, GeometryResponseStatus.error);
+    expect(response.hasErrors, isTrue);
+    expect(response.issues.single.code, 'worker.request.invalid_payload');
+  });
+
   test('mock geometry validation returns semantic warnings', () async {
     const service = MockGeometryService();
     final initial = ProjectModel.initial();

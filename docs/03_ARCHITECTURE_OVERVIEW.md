@@ -143,3 +143,20 @@ deterministic backend operation plan. The plan uses semantic IDs, target
 surfaces, operation categories, placement/source metadata, and expanded group
 items to describe future cut/add/recess tasks for the worker. It is still
 request/response-scoped backend input, not saved editable project state.
+
+## Mock Worker Protocol Harness
+
+`GeometryWorkerProtocolHandler` is the first stdin/stdout-style boundary for
+worker requests. It receives request JSON, validates the top-level worker
+payload, decodes a `GeometryRequest`, calls a supplied `buildGeometry`
+function, and returns response JSON.
+
+The current CLI harness is Dart-only:
+
+```powershell
+Get-Content occt_worker\protocol\preview_request.example.json -Raw | dart run tool\mock_geometry_worker.dart
+```
+
+It uses `MockGeometryService` so protocol tests and smoke checks can exercise
+the worker boundary before the native OCCT executable exists. It does not make
+generated mesh, B-Rep, STL, or topology IDs editable project state.

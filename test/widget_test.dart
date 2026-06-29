@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shell_case_easy_maker/app/case_maker_app.dart';
 import 'package:shell_case_easy_maker/commands/command_ids.dart';
 import 'package:shell_case_easy_maker/geometry/geometry_service.dart';
+import 'package:shell_case_easy_maker/project/project_file_dialog_service.dart';
 import 'package:shell_case_easy_maker/project/project_model.dart';
 import 'package:shell_case_easy_maker/ui/shell/workspace_shell.dart';
 import 'package:shell_case_easy_maker/viewport/viewport_controller.dart';

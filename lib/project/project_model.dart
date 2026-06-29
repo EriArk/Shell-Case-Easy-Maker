@@ -14,7 +14,6 @@ export 'component_template.dart';
 export 'enclosure.dart';
 export 'feature.dart';
 export 'feature_group.dart';
-export 'project_file_dialog_service.dart';
 export 'project_file_service.dart';
 export 'project_migration.dart';
 export 'schema.dart';

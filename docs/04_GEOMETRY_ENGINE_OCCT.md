@@ -104,6 +104,16 @@ The mock backend exposes this plan in response metrics for testing and worker
 development. The plan is disposable backend input. It must not be saved as the
 editable project model and must not contain OCCT topology IDs.
 
+## Mock worker protocol harness
+
+Before the native OCCT executable exists, `tool/mock_geometry_worker.dart`
+provides a stdin/stdout JSON harness over the same request/response protocol.
+It is backed by `MockGeometryService` and exits with a non-zero code when the
+response contains errors.
+
+This harness is only a protocol and integration aid. It does not generate
+OpenCascade B-Rep, and it must not become the editable geometry source.
+
 ## Preview mesh
 
 Preview mesh is generated from B-Rep with adjustable quality:

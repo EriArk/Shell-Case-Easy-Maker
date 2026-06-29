@@ -35,6 +35,20 @@ Planned operations:
 - `export_stl`,
 - `validate`.
 
+## Mock Worker Harness
+
+The current Dart harness can exercise the JSON worker boundary without native
+OCCT:
+
+```powershell
+Get-Content occt_worker\protocol\preview_request.example.json -Raw | dart run tool\mock_geometry_worker.dart
+```
+
+`GeometryWorkerProtocolHandler` validates the top-level payload, decodes the
+request, calls a supplied build function, and emits response JSON. The harness
+uses `MockGeometryService`, so it is useful for protocol smoke tests but not a
+replacement for real B-Rep generation.
+
 ## Response
 
 `GeometryResponse` contains:
@@ -88,6 +102,8 @@ Expected sample dimensions:
 ## Current Limitations
 
 - No native OCCT executable is built yet.
+- `tool/mock_geometry_worker.dart` is a Dart-only protocol harness backed by
+  mock geometry.
 - Mock backend returns a deterministic cuboid preview mesh.
 - Mock backend validation now runs first-pass semantic checks for enclosure
   dimensions, wall thickness, USB-C/glass feature sizes, component placement

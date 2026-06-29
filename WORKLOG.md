@@ -42,6 +42,99 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-29 - M47 Mock worker protocol harness
+
+### Goal
+Exercise the worker JSON boundary through a local stdin/stdout harness before
+the native OCCT executable exists.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `lib/geometry/geometry_service.dart`,
+`lib/geometry/geometry_protocol.dart`, `test/geometry_protocol_test.dart`,
+`docs/03_ARCHITECTURE_OVERVIEW.md`, `docs/04_GEOMETRY_ENGINE_OCCT.md`,
+`docs/34_FIRST_GEOMETRY_SLICE.md`, and `occt_worker/README.md`.
+
+### Changes made
+- `lib/geometry/geometry_worker_protocol.dart`:
+  - Added `GeometryWorkerProtocolHandler`.
+  - Converts request JSON to response JSON.
+  - Reports structured errors for invalid JSON, invalid top-level shape, and
+    missing `project` payloads.
+  - Uses a `buildGeometry` callback so the handler is backend-agnostic.
+- `tool/mock_geometry_worker.dart`:
+  - Added a Dart stdin/stdout smoke harness backed by `MockGeometryService`.
+  - Returns exit code `2` when the geometry response contains errors.
+- `lib/project/project_model.dart`:
+  - Stopped exporting the Flutter/file-selector-backed dialog service so
+    geometry/worker code can import the semantic model in a pure Dart CLI.
+- `lib/ui/shell/workspace_shell.dart`, `test/widget_test.dart`, and
+  `test/project_file_service_test.dart`:
+  - Added explicit imports for `project_file_dialog_service.dart` where the
+    desktop dialog helper is actually used.
+- Docs/tasks/roadmap:
+  - Recorded M47 behavior, smoke command, and the fact that the real native
+    `occt_worker` executable is still future work.
+
+### Tests run
+- `flutter test test\geometry_protocol_test.dart`:
+  - Passed, 12 tests.
+- `Get-Content occt_worker\protocol\preview_request.example.json -Raw | dart run tool\mock_geometry_worker.dart`:
+  - Passed; `exit=0`, `status=ok`, `backend=mock`.
+- `'{not json' | dart run tool\mock_geometry_worker.dart`:
+  - Passed; `exit=2`, `status=error`, code
+    `worker.request.invalid_json`.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 135 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Protocol harness only; no generated B-Rep, STL, editable mesh, or OCCT
+    topology is introduced.
+- Serialization checked?
+  - Geometry protocol tests cover worker JSON handling and invalid request
+    responses.
+- UI checked?
+  - Full widget suite passes; no user-facing UI behavior changed.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: `tool/mock_geometry_worker.dart` is a Dart mock harness, not a native
+  OCCT worker.
+  - Severity: Expected.
+  - Next action: implement the real native worker after the OCCT build path is
+    ready.
+- Issue: The sample protocol fixture does not yet include feature intents, so
+  its mock `operationCount` is `0`.
+  - Severity: Low.
+  - Next action: add a richer protocol fixture when worker operation tests need
+    request-time cutout/mount tasks.
+
+### Next step
+Commit and push M47, then continue toward the real worker adapter/native
+`occt_worker` slice or a larger UI workflow chunk.
+
+### Notes for future Codex sessions
+Keep semantic model exports pure Dart. UI-only desktop services such as file
+dialogs should be imported explicitly by UI/tests, not exported through
+`project_model.dart`, because worker tooling needs to run with plain `dart run`.
+
+---
+
 ## 2026-06-29 - M46 Geometry operation plan
 
 ### Goal

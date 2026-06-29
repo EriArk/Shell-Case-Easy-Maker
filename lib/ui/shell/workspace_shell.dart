@@ -15,6 +15,7 @@ import '../../geometry/geometry_service.dart';
 import '../../parameters/enclosure_parameter_adapter.dart';
 import '../../parameters/parameter_model.dart';
 import '../../patterns/pattern_layout.dart';
+import '../../project/project_file_dialog_service.dart';
 import '../../project/project_model.dart';
 import '../../selection/project_selection_resolver.dart';
 import '../../selection/selection_model.dart';
