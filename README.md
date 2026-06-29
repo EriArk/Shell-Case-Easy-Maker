@@ -57,6 +57,12 @@ Run the local worker protocol smoke with:
 Get-Content occt_worker\protocol\preview_request.example.json -Raw | dart run occt_worker\bin\occt_worker.dart
 ```
 
+Inspect local worker backend capabilities with:
+
+```powershell
+dart run occt_worker\bin\occt_worker.dart --capabilities
+```
+
 Build the latest manual Windows bundle with:
 
 ```powershell

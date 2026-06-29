@@ -71,6 +71,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M50 - Geometry Backend Selection
 - [x] M51 - Generated Geometry Protocol Fixtures
 - [x] M52 - Local occt_worker CLI
+- [x] M53 - Worker Capability Contract
 
 ---
 
@@ -2213,5 +2214,51 @@ temporary tool script.
   boundary change.
 - Optional developer poke: pipe the generated fixture into
   `dart run occt_worker\bin\occt_worker.dart` and confirm `backend` is `mock`.
+- Launch latest Windows app normally and confirm the default project still opens
+  with the mock preview and clean validation status.
+
+---
+
+## M53 - Worker Capability Contract
+
+### Goal
+Make the local worker able to report backend readiness and supported operations
+without requiring a geometry request payload.
+
+### Tasks
+- [x] Add `GeometryWorkerCapabilities`.
+- [x] Add `GeometryWorkerBackendCapability`.
+- [x] Add `--capabilities` parsing to the worker runtime.
+- [x] Report mock backend as available for `preview_mesh`.
+- [x] Report native backend as a stub with planned preview/export/validate
+      operations.
+- [x] Keep source-of-truth metadata explicit: semantic project is editable,
+      generated geometry is not.
+- [x] Add unit and process tests for capability JSON.
+- [x] Document the capability command.
+
+### Done Criteria
+- `dart run occt_worker\bin\occt_worker.dart --capabilities` exits with code
+  `0` and emits `shell_case.geometry.worker.capabilities` JSON.
+- Capability JSON includes protocol schema/version metadata.
+- Capability JSON identifies `mock` as available and `native` as stub.
+- Capability JSON does not expose OCCT topology IDs or imply generated geometry
+  is editable.
+
+### Tests
+- `flutter test test\geometry_worker_runtime_test.dart`
+- `dart run occt_worker\bin\occt_worker.dart --capabilities`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- No meaningful manual UI poke for this chunk; it is a worker metadata
+  contract change.
+- Optional developer poke: run
+  `dart run occt_worker\bin\occt_worker.dart --capabilities` and confirm
+  `mock` is `available`, `native` is `stub`.
 - Launch latest Windows app normally and confirm the default project still opens
   with the mock preview and clean validation status.

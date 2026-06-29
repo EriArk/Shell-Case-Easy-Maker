@@ -106,6 +106,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Add developer geometry backend selection switch.
 - [x] Add generated protocol fixtures with feature intents and operation plan.
 - [x] Create `occt_worker` CLI or local service.
+- [x] Add worker capability contract for backend readiness and supported operations.
 - [x] Define JSON protocol for geometry requests.
 - [x] Add feature/group geometry intents to preview requests.
 - [x] Add deterministic geometry operation plan from feature intents.

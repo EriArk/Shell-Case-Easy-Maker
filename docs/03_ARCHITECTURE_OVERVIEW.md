@@ -181,6 +181,18 @@ The local CLI lets protocol tests and smoke checks exercise the worker boundary
 before native OCCT is available. It does not make generated mesh, B-Rep, STL,
 or topology IDs editable project state.
 
+Capability metadata is available without a geometry payload:
+
+```powershell
+dart run occt_worker\bin\occt_worker.dart --capabilities
+```
+
+The command emits `shell_case.geometry.worker.capabilities` JSON. It records
+protocol schema/version, the active backend, and backend readiness. Current
+metadata marks `mock` as available for `preview_mesh` and `native` as a stub for
+planned OCCT-backed preview/export/validate operations. This metadata is not
+project state and does not expose OCCT topology.
+
 ## Worker Process Client
 
 `GeometryWorkerProcessClient` is the first external-process adapter. It sends a

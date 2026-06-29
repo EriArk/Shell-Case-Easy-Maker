@@ -140,6 +140,17 @@ until the real OCCT implementation is available.
 This CLI is only a protocol and integration aid. It does not generate
 OpenCascade B-Rep yet, and it must not become the editable geometry source.
 
+Worker backend readiness can be inspected separately from geometry generation:
+
+```powershell
+dart run occt_worker\bin\occt_worker.dart --capabilities
+```
+
+The capability response marks the Dart mock backend as available for
+`preview_mesh` and the future OCCT backend as a `native` stub. The planned native
+operations are preview mesh, STEP export, STL export, and validation. Capability
+JSON is metadata; it must not contain raw OCCT topology IDs or generated B-Rep.
+
 ## Worker process client
 
 `GeometryWorkerProcessClient` is the Dart-side process adapter for the future

@@ -14,8 +14,9 @@ adds the Dart-side process client, and M49 adds the worker-backed
 `GeometryService` adapter. M50 adds an explicit backend selection switch for
 development runs. M51 keeps the checked-in protocol examples generated from a
 typed Dart fixture project and the mock backend. M52 adds
-`occt_worker/bin/occt_worker.dart` as the canonical local worker CLI. No native
-OCCT executable is built yet.
+`occt_worker/bin/occt_worker.dart` as the canonical local worker CLI. M53 adds
+worker capability JSON for backend readiness and supported operations. No
+native OCCT executable is built yet.
 
 Regenerate protocol fixtures:
 
@@ -45,6 +46,16 @@ Get-Content occt_worker\protocol\preview_request.example.json -Raw | dart run oc
 
 This currently returns a structured `worker.backend.native_not_implemented`
 error response.
+
+Capability command:
+
+```powershell
+dart run occt_worker\bin\occt_worker.dart --capabilities
+```
+
+This emits `shell_case.geometry.worker.capabilities` JSON. Today it reports the
+mock backend as `available` for `preview_mesh` and the native backend as
+`stub`. Capability JSON is metadata only; it is not editable project geometry.
 
 Process-client smoke command:
 

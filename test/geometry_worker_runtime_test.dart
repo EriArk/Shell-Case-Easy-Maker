@@ -39,6 +39,45 @@ void main() {
       ]).backend,
       GeometryWorkerRuntimeBackend.native,
     );
+    expect(
+      GeometryWorkerRuntimeSettings.fromArgs(const [
+        '--backend=native',
+        '--capabilities',
+      ]).emitCapabilities,
+      isTrue,
+    );
+  });
+
+  test('worker capabilities describe mock availability and native stub', () {
+    const runtime = GeometryWorkerRuntime(
+      settings: GeometryWorkerRuntimeSettings(
+        backend: GeometryWorkerRuntimeBackend.native,
+        emitCapabilities: true,
+      ),
+    );
+
+    final capabilities = runtime.capabilities().toJson();
+    final backends = capabilities['backends']! as List<Object?>;
+    final mock = backends.cast<Map<String, Object?>>().singleWhere(
+      (backend) => backend['id'] == 'mock',
+    );
+    final native = backends.cast<Map<String, Object?>>().singleWhere(
+      (backend) => backend['id'] == 'native',
+    );
+
+    expect(capabilities['schema'], GeometryWorkerCapabilities.schema);
+    expect(capabilities['activeBackend'], 'native');
+    expect(capabilities['sourceOfTruth'], 'semantic_project');
+    expect(capabilities['editableGeneratedGeometry'], isFalse);
+    expect(mock['status'], 'available');
+    expect(mock['supportedOperations'], contains('preview_mesh'));
+    expect(native['status'], 'stub');
+    expect(native['plannedOperations'], contains('export_step'));
+    expect(
+      native['issueCodes'],
+      contains('worker.backend.native_not_implemented'),
+    );
+    expect(jsonEncode(capabilities), isNot(contains('TopoDS')));
   });
 
   test('worker runtime rejects invalid payloads as protocol errors', () async {
@@ -114,6 +153,28 @@ void main() {
       expect(response.backend, 'mock');
       expect(response.previewMesh?.triangleCount, 12);
       expect(response.metrics['operationCount'], 2);
+    },
+    timeout: const Timeout(Duration(seconds: 45)),
+  );
+
+  test(
+    'canonical occt_worker CLI emits capabilities without stdin',
+    () async {
+      final result = await Process.run(
+        'dart',
+        const ['run', 'occt_worker/bin/occt_worker.dart', '--capabilities'],
+        workingDirectory: Directory.current.path,
+        runInShell: Platform.isWindows,
+      );
+      final decoded = jsonDecode(result.stdout as String);
+
+      expect(result.exitCode, 0);
+      expect(decoded, isA<Map<String, Object?>>());
+      expect(
+        (decoded as Map<String, Object?>)['schema'],
+        GeometryWorkerCapabilities.schema,
+      );
+      expect(decoded['activeBackend'], 'mock');
     },
     timeout: const Timeout(Duration(seconds: 45)),
   );

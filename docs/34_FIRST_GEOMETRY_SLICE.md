@@ -57,6 +57,16 @@ The CLI defaults to `--backend=mock`. Passing `--backend=native` returns a
 structured `worker.backend.native_not_implemented` response until the real OCCT
 backend exists.
 
+The CLI can also report backend readiness without reading stdin:
+
+```powershell
+dart run occt_worker\bin\occt_worker.dart --capabilities
+```
+
+This emits `shell_case.geometry.worker.capabilities` JSON. Current capability
+metadata marks mock geometry as available for `preview_mesh` and native OCCT as
+a stub with planned preview/export/validate operations.
+
 `GeometryWorkerProcessClient` can also exercise the same harness across a real
 process boundary:
 
@@ -161,6 +171,8 @@ Expected sample dimensions:
 - No native OCCT executable is built yet.
 - `occt_worker/bin/occt_worker.dart` is a Dart-only local worker CLI backed by
   mock geometry by default.
+- `dart run occt_worker\bin\occt_worker.dart --capabilities` reports worker
+  backend readiness, not generated geometry.
 - `tool/mock_geometry_worker.dart` is only a compatibility alias for the local
   worker runtime.
 - `--backend=native` currently returns a structured not-implemented response,

@@ -42,6 +42,91 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-29 - M53 Worker capability contract
+
+### Goal
+Let the local worker report backend readiness and supported/planned operations
+without requiring a geometry request payload.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`,
+`lib/geometry/geometry_worker_runtime.dart`,
+`test/geometry_worker_runtime_test.dart`, `README.md`,
+`docs/03_ARCHITECTURE_OVERVIEW.md`, `docs/04_GEOMETRY_ENGINE_OCCT.md`,
+`docs/34_FIRST_GEOMETRY_SLICE.md`, and `occt_worker/README.md`.
+
+### Changes made
+- `lib/geometry/geometry_worker_runtime.dart`:
+  - Added `GeometryWorkerCapabilities`.
+  - Added `GeometryWorkerBackendCapability`.
+  - Added `--capabilities` runtime parsing.
+  - Capability JSON reports protocol schema/version, active/default backend,
+    semantic-project source of truth, and non-editable generated geometry.
+  - Capability JSON marks `mock` as available for `preview_mesh`.
+  - Capability JSON marks `native` as a stub with planned preview/export/validate
+    operations and `worker.backend.native_not_implemented`.
+- `test/geometry_worker_runtime_test.dart`:
+  - Added unit coverage for capability metadata.
+  - Added process coverage for
+    `dart run occt_worker\bin\occt_worker.dart --capabilities`.
+- Docs/tasks/roadmap:
+  - Recorded M53 and documented the capability command in README, worker docs,
+    and geometry architecture notes.
+
+### Tests run
+- `flutter test test\geometry_worker_runtime_test.dart`:
+  - Passed, 8 tests.
+- `dart run occt_worker\bin\occt_worker.dart --capabilities`:
+  - Passed; emitted `shell_case.geometry.worker.capabilities` JSON with
+    `mock` available and `native` stub.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 159 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed; Git reported markdown line-ending normalization warnings only.
+
+### Validation
+- Geometry checked?
+  - Metadata contract only. No native OCCT geometry was generated.
+- Serialization checked?
+  - Yes. Capability JSON is generated deterministically and parsed in tests.
+- UI checked?
+  - Full widget suite passes; latest Windows bundle rebuilt.
+- Export checked?
+  - Not implemented yet; capability JSON marks export as planned for native.
+
+### Known issues
+- Issue: Native backend remains a stub.
+  - Severity: Expected.
+  - Next action: continue toward native worker scaffold/build and first rounded
+    enclosure B-Rep slice.
+- Issue: Capability JSON is not consumed by the Flutter UI yet.
+  - Severity: Low.
+  - Next action: use it when worker backend selection becomes user-visible or
+    when native backend launch policy is finalized.
+
+### Next step
+Commit and push M53, then continue toward the first native worker scaffold or
+OCCT-backed rounded enclosure generation slice.
+
+### Notes for future Codex sessions
+Use `dart run occt_worker\bin\occt_worker.dart --capabilities` to inspect the
+current worker readiness contract before changing worker launch or native
+backend behavior.
+
+---
+
 ## 2026-06-29 - M52 Local occt_worker CLI
 
 ### Goal
