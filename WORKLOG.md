@@ -42,6 +42,97 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-29 - M51 Generated geometry protocol fixtures
+
+### Goal
+Make `occt_worker/protocol` example request/response JSON reproducible from
+typed Dart models and the mock backend, instead of maintaining large protocol
+fixtures by hand.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`,
+`lib/geometry/geometry_service.dart`, `lib/project/project_model.dart`,
+`docs/03_ARCHITECTURE_OVERVIEW.md`, `docs/04_GEOMETRY_ENGINE_OCCT.md`,
+`docs/34_FIRST_GEOMETRY_SLICE.md`, and `occt_worker/README.md`.
+
+### Changes made
+- `tool/generate_geometry_protocol_fixtures.dart`:
+  - Added a generator for the worker preview request and response examples.
+  - Builds the fixture from `ProjectModel.initial()` plus projected button and
+    standoff feature groups.
+  - Uses `MockGeometryService` to produce the response fixture.
+- `occt_worker/protocol/preview_request.example.json`:
+  - Regenerated with four semantic `featureIntents`: `front_usb_c`,
+    `abxy_buttons`, `projected_buttons`, and `standoff_mounts_1`.
+  - Includes expanded projected button and standoff group items.
+- `occt_worker/protocol/preview_response.example.json`:
+  - Regenerated from the mock backend.
+  - Includes operation-plan metrics with `operationCount=10`.
+- `test/geometry_protocol_fixture_test.dart`:
+  - Added fixture coverage for expected feature intents, group item counts,
+    response metrics, and mock rebuild parity.
+- Docs/tasks/roadmap:
+  - Recorded M51 fixture regeneration command, current mock-backend limitation,
+    and backend-only poke checklist.
+
+### Tests run
+- `dart run tool\generate_geometry_protocol_fixtures.dart`:
+  - Passed; reported `featureIntents=4` and `operationCount=10`.
+- `flutter test test\geometry_protocol_fixture_test.dart`:
+  - Passed, 3 tests.
+- `Get-Content occt_worker\protocol\preview_request.example.json -Raw | dart run tool\mock_geometry_worker.dart`:
+  - Passed; returned `status=ok`, `backend=mock`, `featureIntents=4`,
+    `operationCount=10`, and 10 operation-plan entries.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 151 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed; Git reported markdown line-ending normalization warnings only.
+
+### Validation
+- Geometry checked?
+  - Protocol/fixture path only. The response is mock backend output with a
+    deterministic preview mesh and operation plan, not native OCCT B-Rep.
+- Serialization checked?
+  - Yes. Fixture request/response are decoded back into typed geometry models,
+    and the request rebuilds through `MockGeometryService`.
+- UI checked?
+  - Full widget test suite passes; latest Windows bundle rebuilt.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: The generated response fixture is still mock output, not native OCCT
+  geometry.
+  - Severity: Expected.
+  - Next action: continue toward the first native `occt_worker` executable.
+- Issue: The fixture project is a curated protocol sample, not a user-facing
+  project template.
+  - Severity: Acceptable.
+  - Next action: keep fixture scenarios small and deterministic as worker
+    coverage grows.
+
+### Next step
+Commit and push M51, then continue with the next safe worker/geometry chunk.
+
+### Notes for future Codex sessions
+Regenerate fixtures with `dart run tool\generate_geometry_protocol_fixtures.dart`
+after changing feature intent serialization, operation planning, or mock
+geometry response metrics.
+
+---
+
 ## 2026-06-29 - M50 Geometry backend selection
 
 ### Goal

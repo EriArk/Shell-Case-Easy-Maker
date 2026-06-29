@@ -69,6 +69,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M48 - Worker Process Client
 - [x] M49 - Worker GeometryService Adapter
 - [x] M50 - Geometry Backend Selection
+- [x] M51 - Generated Geometry Protocol Fixtures
 
 ---
 
@@ -2115,3 +2116,52 @@ making the worker the default.
   with the mock preview and clean validation status.
 - Optional developer poke later:
   `flutter run -d windows --dart-define=SHELL_CASE_GEOMETRY_BACKEND=worker --dart-define=SHELL_CASE_GEOMETRY_WORKER_EXECUTABLE=dart "--dart-define=SHELL_CASE_GEOMETRY_WORKER_ARGUMENTS=run|tool/mock_geometry_worker.dart"`
+
+---
+
+## M51 - Generated Geometry Protocol Fixtures
+
+### Goal
+Keep worker protocol example files generated from typed semantic project models
+and the mock backend so future worker changes have realistic request/response
+fixtures.
+
+### Tasks
+- [x] Add `tool/generate_geometry_protocol_fixtures.dart`.
+- [x] Generate the preview request fixture from a typed semantic project with
+      USB-C, source button-group, projected button-group, and standoff feature
+      intents.
+- [x] Generate the preview response fixture from `MockGeometryService`.
+- [x] Include expanded button group and standoff mount items in the request
+      fixture.
+- [x] Include operation-plan metrics in the response fixture.
+- [x] Add fixture tests for feature intents, group item expansion, response
+      metrics, and mock rebuild parity.
+
+### Done Criteria
+- `occt_worker/protocol/preview_request.example.json` includes semantic
+  `featureIntents`.
+- `occt_worker/protocol/preview_response.example.json` includes mock backend
+  metrics with an `operationPlan`.
+- The fixture project stores semantic groups and templates, not editable mesh,
+  B-Rep, STL, OCCT topology IDs, or preview triangle IDs.
+- The mock worker smoke command returns `featureIntents=4` and
+  `operationCount=10` for the generated fixture.
+
+### Tests
+- `dart run tool\generate_geometry_protocol_fixtures.dart`
+- `flutter test test\geometry_protocol_fixture_test.dart`
+- `Get-Content occt_worker\protocol\preview_request.example.json -Raw | dart run tool\mock_geometry_worker.dart`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- No meaningful manual UI poke for this chunk; it is a backend fixture and
+  protocol reproducibility change.
+- Optional developer poke: regenerate the fixtures and run the mock worker
+  smoke command above.
+- Launch latest Windows app normally and confirm the default project still opens
+  with the mock preview and clean validation status.

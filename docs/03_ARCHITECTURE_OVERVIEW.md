@@ -144,6 +144,21 @@ surfaces, operation categories, placement/source metadata, and expanded group
 items to describe future cut/add/recess tasks for the worker. It is still
 request/response-scoped backend input, not saved editable project state.
 
+## Generated Geometry Protocol Fixtures
+
+`tool/generate_geometry_protocol_fixtures.dart` regenerates the protocol
+examples from typed Dart models and `MockGeometryService`:
+
+```powershell
+dart run tool\generate_geometry_protocol_fixtures.dart
+```
+
+The checked-in request fixture includes semantic feature intents and expanded
+group items for the sample worker project. The checked-in response fixture is
+mock backend output with operation-plan metrics. These files are test fixtures
+for protocol development; they are not editable project state and they are not
+native OCCT B-Rep output.
+
 ## Mock Worker Protocol Harness
 
 `GeometryWorkerProtocolHandler` is the first stdin/stdout-style boundary for

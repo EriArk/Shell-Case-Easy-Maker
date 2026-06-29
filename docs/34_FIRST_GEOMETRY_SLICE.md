@@ -74,6 +74,30 @@ Normal builds use mock geometry. A developer can opt into a worker command with
 flutter run -d windows --dart-define=SHELL_CASE_GEOMETRY_BACKEND=worker --dart-define=SHELL_CASE_GEOMETRY_WORKER_EXECUTABLE=dart "--dart-define=SHELL_CASE_GEOMETRY_WORKER_ARGUMENTS=run|tool/mock_geometry_worker.dart"
 ```
 
+## Generated Protocol Fixtures
+
+The example worker payloads are generated from typed Dart models instead of
+being hand-edited:
+
+```powershell
+dart run tool\generate_geometry_protocol_fixtures.dart
+```
+
+The generator writes:
+- `occt_worker/protocol/preview_request.example.json`,
+- `occt_worker/protocol/preview_response.example.json`.
+
+The request fixture contains the semantic sample project plus derived
+`featureIntents` for USB-C, the source button group, projected button-group
+items, and standoff work. The response fixture is produced by
+`MockGeometryService`, so it records the current mock preview mesh and
+operation-plan metrics while the native OCCT worker is still absent.
+
+Current fixture smoke expectations:
+- `featureIntents`: `4`,
+- `operationCount`: `10`,
+- backend: `mock`.
+
 ## Response
 
 `GeometryResponse` contains:
@@ -135,6 +159,8 @@ Expected sample dimensions:
   `GeometryService` adapter through the same mock worker process.
 - The normal app backend selector defaults to mock unless worker backend and
   executable are both explicitly configured.
+- The protocol example files are generated fixtures backed by the typed Dart
+  sample project and mock backend, not native OCCT output.
 - Mock backend returns a deterministic cuboid preview mesh.
 - Mock backend validation now runs first-pass semantic checks for enclosure
   dimensions, wall thickness, USB-C/glass feature sizes, component placement

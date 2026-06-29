@@ -4,7 +4,7 @@
   "requestId": "preview_sample_001",
   "operation": "preview_mesh",
   "project": {
-    "schema": "shell_case_project",
+    "schema": "abyss-enclosure-project",
     "version": 1,
     "units": "mm",
     "projectName": "Sample Button Board Case",
@@ -14,22 +14,694 @@
         "id": "main_enclosure",
         "type": "enclosure",
         "shape": "rounded_box",
-        "size": [120, 70, 28],
-        "wallThickness": 2,
-        "cornerRadius": 4,
+        "size": [
+          120.0,
+          70.0,
+          28.0
+        ],
+        "wallThickness": 2.0,
+        "cornerRadius": 4.0,
         "lid": {
           "type": "top_screw_lid",
           "clearanceProfile": "fdm_normal"
         }
       }
     ],
-    "componentTemplates": [],
-    "componentPlacements": [],
-    "features": [],
-    "featureGroups": [],
+    "componentTemplates": [
+      {
+        "schema": "abyss-component-template",
+        "version": 1,
+        "id": "custom_button_board_v1",
+        "name": "Custom Button Board",
+        "units": "mm",
+        "board": {
+          "outline": {
+            "type": "rounded_rectangle",
+            "width": 48.0,
+            "height": 32.0,
+            "cornerRadius": 2.0
+          },
+          "thickness": 1.6,
+          "referencePlane": "bottom"
+        },
+        "mountingHoles": [
+          {
+            "id": "mh1",
+            "position": [
+              -20.0,
+              -12.0
+            ],
+            "diameter": 2.2,
+            "screw": "M2"
+          },
+          {
+            "id": "mh2",
+            "position": [
+              20.0,
+              -12.0
+            ],
+            "diameter": 2.2,
+            "screw": "M2"
+          },
+          {
+            "id": "mh3",
+            "position": [
+              -20.0,
+              12.0
+            ],
+            "diameter": 2.2,
+            "screw": "M2"
+          },
+          {
+            "id": "mh4",
+            "position": [
+              20.0,
+              12.0
+            ],
+            "diameter": 2.2,
+            "screw": "M2"
+          }
+        ],
+        "features": [
+          {
+            "id": "usb_c",
+            "type": "usb_c",
+            "position": [
+              0.0,
+              -16.0
+            ],
+            "direction": "front",
+            "protrusion": 1.2,
+            "cutout": {
+              "shape": "rounded_rectangle",
+              "width": 10.5,
+              "height": 4.2,
+              "cornerRadius": 1.0,
+              "clearanceProfile": "fdm_normal"
+            },
+            "keepout": {
+              "type": "box",
+              "size": [
+                16,
+                12,
+                8
+              ]
+            }
+          },
+          {
+            "id": "sw_a",
+            "type": "switch",
+            "position": [
+              7.0,
+              0.0
+            ],
+            "direction": "top",
+            "actuationHeight": 5.0
+          },
+          {
+            "id": "sw_b",
+            "type": "switch",
+            "position": [
+              0.0,
+              -7.0
+            ],
+            "direction": "top",
+            "actuationHeight": 5.0
+          },
+          {
+            "id": "sw_x",
+            "type": "switch",
+            "position": [
+              0.0,
+              7.0
+            ],
+            "direction": "top",
+            "actuationHeight": 5.0
+          },
+          {
+            "id": "sw_y",
+            "type": "switch",
+            "position": [
+              -7.0,
+              0.0
+            ],
+            "direction": "top",
+            "actuationHeight": 5.0
+          }
+        ],
+        "zones": [
+          {
+            "id": "solder_zone",
+            "type": "forbidden_clamp_zone",
+            "shape": "rectangle",
+            "position": [
+              0,
+              14
+            ],
+            "size": [
+              42,
+              4
+            ]
+          },
+          {
+            "id": "safe_side_clamp_left",
+            "type": "mountable_surface",
+            "side": "left"
+          },
+          {
+            "id": "safe_side_clamp_right",
+            "type": "mountable_surface",
+            "side": "right"
+          }
+        ]
+      }
+    ],
+    "componentPlacements": [
+      {
+        "id": "button_board_placement",
+        "templateId": "custom_button_board_v1",
+        "position": [
+          0.0,
+          0.0,
+          4.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "mountingSide": "bottom_inside",
+        "locked": false,
+        "visible": true
+      }
+    ],
+    "features": [
+      {
+        "id": "front_usb_c",
+        "type": "usb_c_cutout",
+        "targetSurface": "main_enclosure.front_wall.outer",
+        "operation": "negative",
+        "parameters": {
+          "width": 10.5,
+          "height": 4.2,
+          "cornerRadius": 1.0,
+          "clearanceProfile": "fdm_normal"
+        }
+      },
+      {
+        "id": "abxy_buttons",
+        "type": "button_group",
+        "targetSurface": "main_enclosure.top_lid.outer",
+        "operation": "composite",
+        "parameters": {
+          "pattern": "diamond",
+          "count": 4,
+          "diameter": 8.0,
+          "mode": "plunger"
+        }
+      }
+    ],
+    "featureGroups": [
+      {
+        "id": "projected_buttons",
+        "type": "button_group",
+        "targetSurface": "main_enclosure.top_lid.outer",
+        "pattern": {
+          "layout": "from_component_switches",
+          "count": 4,
+          "sourcePlacementId": "button_board_placement",
+          "sourceTemplateId": "custom_button_board_v1",
+          "switchPositions": [
+            {
+              "id": "sw_a",
+              "position": [
+                7.0,
+                0.0
+              ],
+              "componentFeaturePosition": [
+                7.0,
+                0.0,
+                0.0
+              ],
+              "surfaceAxes": [
+                "x",
+                "y"
+              ],
+              "direction": "top"
+            },
+            {
+              "id": "sw_b",
+              "position": [
+                0.0,
+                -7.0
+              ],
+              "componentFeaturePosition": [
+                0.0,
+                -7.0,
+                0.0
+              ],
+              "surfaceAxes": [
+                "x",
+                "y"
+              ],
+              "direction": "top"
+            },
+            {
+              "id": "sw_x",
+              "position": [
+                0.0,
+                7.0
+              ],
+              "componentFeaturePosition": [
+                0.0,
+                7.0,
+                0.0
+              ],
+              "surfaceAxes": [
+                "x",
+                "y"
+              ],
+              "direction": "top"
+            },
+            {
+              "id": "sw_y",
+              "position": [
+                -7.0,
+                0.0
+              ],
+              "componentFeaturePosition": [
+                -7.0,
+                0.0,
+                0.0
+              ],
+              "surfaceAxes": [
+                "x",
+                "y"
+              ],
+              "direction": "top"
+            }
+          ]
+        },
+        "itemPrototype": {
+          "type": "button",
+          "diameter": 8.0,
+          "mode": "plunger"
+        },
+        "placement": {
+          "anchor": "component_switch_centers"
+        }
+      },
+      {
+        "id": "standoff_mounts_1",
+        "type": "standoff_mounts",
+        "targetSurface": "main_enclosure.bottom_inside",
+        "pattern": {
+          "layout": "from_component_mounting_holes",
+          "sourcePlacementId": "button_board_placement",
+          "sourceTemplateId": "custom_button_board_v1"
+        },
+        "itemPrototype": {
+          "type": "standoff",
+          "diameter": 5.0,
+          "holeDiameter": 2.2,
+          "height": 4.0
+        },
+        "placement": {
+          "anchor": "component_mounting_holes"
+        }
+      }
+    ],
     "constraints": [],
     "exports": []
   },
+  "featureIntents": [
+    {
+      "id": "front_usb_c",
+      "semanticType": "feature",
+      "kind": "usb_c_cutout",
+      "targetSurface": "main_enclosure.front_wall.outer",
+      "operation": "negative",
+      "parameters": {
+        "width": 10.5,
+        "height": 4.2,
+        "cornerRadius": 1.0,
+        "clearanceProfile": "fdm_normal"
+      }
+    },
+    {
+      "id": "abxy_buttons",
+      "semanticType": "feature",
+      "kind": "button_group",
+      "targetSurface": "main_enclosure.top_lid.outer",
+      "operation": "composite",
+      "parameters": {
+        "pattern": "diamond",
+        "count": 4,
+        "diameter": 8.0,
+        "mode": "plunger"
+      }
+    },
+    {
+      "id": "projected_buttons",
+      "semanticType": "feature_group",
+      "kind": "button_group",
+      "targetSurface": "main_enclosure.top_lid.outer",
+      "operation": "composite",
+      "parameters": {
+        "pattern": {
+          "layout": "from_component_switches",
+          "count": 4,
+          "sourcePlacementId": "button_board_placement",
+          "sourceTemplateId": "custom_button_board_v1",
+          "switchPositions": [
+            {
+              "id": "sw_a",
+              "position": [
+                7.0,
+                0.0
+              ],
+              "componentFeaturePosition": [
+                7.0,
+                0.0,
+                0.0
+              ],
+              "surfaceAxes": [
+                "x",
+                "y"
+              ],
+              "direction": "top"
+            },
+            {
+              "id": "sw_b",
+              "position": [
+                0.0,
+                -7.0
+              ],
+              "componentFeaturePosition": [
+                0.0,
+                -7.0,
+                0.0
+              ],
+              "surfaceAxes": [
+                "x",
+                "y"
+              ],
+              "direction": "top"
+            },
+            {
+              "id": "sw_x",
+              "position": [
+                0.0,
+                7.0
+              ],
+              "componentFeaturePosition": [
+                0.0,
+                7.0,
+                0.0
+              ],
+              "surfaceAxes": [
+                "x",
+                "y"
+              ],
+              "direction": "top"
+            },
+            {
+              "id": "sw_y",
+              "position": [
+                -7.0,
+                0.0
+              ],
+              "componentFeaturePosition": [
+                -7.0,
+                0.0,
+                0.0
+              ],
+              "surfaceAxes": [
+                "x",
+                "y"
+              ],
+              "direction": "top"
+            }
+          ]
+        },
+        "itemPrototype": {
+          "type": "button",
+          "diameter": 8.0,
+          "mode": "plunger"
+        }
+      },
+      "placement": {
+        "anchor": "component_switch_centers"
+      },
+      "source": {
+        "componentPlacementId": "button_board_placement",
+        "componentTemplateId": "custom_button_board_v1"
+      },
+      "items": [
+        {
+          "id": "projected_buttons.sw_a",
+          "index": 0,
+          "position": [
+            7.0,
+            0.0
+          ],
+          "parameters": {
+            "type": "button",
+            "diameter": 8.0,
+            "mode": "plunger"
+          },
+          "source": {
+            "id": "sw_a",
+            "position": [
+              7.0,
+              0.0
+            ],
+            "componentFeaturePosition": [
+              7.0,
+              0.0,
+              0.0
+            ],
+            "surfaceAxes": [
+              "x",
+              "y"
+            ],
+            "direction": "top"
+          }
+        },
+        {
+          "id": "projected_buttons.sw_b",
+          "index": 1,
+          "position": [
+            0.0,
+            -7.0
+          ],
+          "parameters": {
+            "type": "button",
+            "diameter": 8.0,
+            "mode": "plunger"
+          },
+          "source": {
+            "id": "sw_b",
+            "position": [
+              0.0,
+              -7.0
+            ],
+            "componentFeaturePosition": [
+              0.0,
+              -7.0,
+              0.0
+            ],
+            "surfaceAxes": [
+              "x",
+              "y"
+            ],
+            "direction": "top"
+          }
+        },
+        {
+          "id": "projected_buttons.sw_x",
+          "index": 2,
+          "position": [
+            0.0,
+            7.0
+          ],
+          "parameters": {
+            "type": "button",
+            "diameter": 8.0,
+            "mode": "plunger"
+          },
+          "source": {
+            "id": "sw_x",
+            "position": [
+              0.0,
+              7.0
+            ],
+            "componentFeaturePosition": [
+              0.0,
+              7.0,
+              0.0
+            ],
+            "surfaceAxes": [
+              "x",
+              "y"
+            ],
+            "direction": "top"
+          }
+        },
+        {
+          "id": "projected_buttons.sw_y",
+          "index": 3,
+          "position": [
+            -7.0,
+            0.0
+          ],
+          "parameters": {
+            "type": "button",
+            "diameter": 8.0,
+            "mode": "plunger"
+          },
+          "source": {
+            "id": "sw_y",
+            "position": [
+              -7.0,
+              0.0
+            ],
+            "componentFeaturePosition": [
+              -7.0,
+              0.0,
+              0.0
+            ],
+            "surfaceAxes": [
+              "x",
+              "y"
+            ],
+            "direction": "top"
+          }
+        }
+      ]
+    },
+    {
+      "id": "standoff_mounts_1",
+      "semanticType": "feature_group",
+      "kind": "standoff_mounts",
+      "targetSurface": "main_enclosure.bottom_inside",
+      "operation": "composite",
+      "parameters": {
+        "pattern": {
+          "layout": "from_component_mounting_holes",
+          "sourcePlacementId": "button_board_placement",
+          "sourceTemplateId": "custom_button_board_v1"
+        },
+        "itemPrototype": {
+          "type": "standoff",
+          "diameter": 5.0,
+          "holeDiameter": 2.2,
+          "height": 4.0
+        }
+      },
+      "placement": {
+        "anchor": "component_mounting_holes"
+      },
+      "source": {
+        "componentPlacementId": "button_board_placement",
+        "componentTemplateId": "custom_button_board_v1"
+      },
+      "items": [
+        {
+          "id": "standoff_mounts_1.mh1",
+          "index": 0,
+          "position": [
+            -20.0,
+            -12.0
+          ],
+          "parameters": {
+            "type": "standoff",
+            "diameter": 5.0,
+            "holeDiameter": 2.2,
+            "height": 4.0
+          },
+          "source": {
+            "id": "mh1",
+            "position": [
+              -20.0,
+              -12.0
+            ],
+            "diameter": 2.2,
+            "screw": "M2"
+          }
+        },
+        {
+          "id": "standoff_mounts_1.mh2",
+          "index": 1,
+          "position": [
+            20.0,
+            -12.0
+          ],
+          "parameters": {
+            "type": "standoff",
+            "diameter": 5.0,
+            "holeDiameter": 2.2,
+            "height": 4.0
+          },
+          "source": {
+            "id": "mh2",
+            "position": [
+              20.0,
+              -12.0
+            ],
+            "diameter": 2.2,
+            "screw": "M2"
+          }
+        },
+        {
+          "id": "standoff_mounts_1.mh3",
+          "index": 2,
+          "position": [
+            -20.0,
+            12.0
+          ],
+          "parameters": {
+            "type": "standoff",
+            "diameter": 5.0,
+            "holeDiameter": 2.2,
+            "height": 4.0
+          },
+          "source": {
+            "id": "mh3",
+            "position": [
+              -20.0,
+              12.0
+            ],
+            "diameter": 2.2,
+            "screw": "M2"
+          }
+        },
+        {
+          "id": "standoff_mounts_1.mh4",
+          "index": 3,
+          "position": [
+            20.0,
+            12.0
+          ],
+          "parameters": {
+            "type": "standoff",
+            "diameter": 5.0,
+            "holeDiameter": 2.2,
+            "height": 4.0
+          },
+          "source": {
+            "id": "mh4",
+            "position": [
+              20.0,
+              12.0
+            ],
+            "diameter": 2.2,
+            "screw": "M2"
+          }
+        }
+      ]
+    }
+  ],
   "options": {
     "linearDeflection": 0.3,
     "angularDeflection": 0.35

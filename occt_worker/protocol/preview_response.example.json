@@ -3,37 +3,811 @@
   "version": 1,
   "requestId": "preview_sample_001",
   "status": "ok",
-  "backend": "occt_worker",
+  "backend": "mock",
   "previewMesh": {
     "units": "mm",
-    "vertices": [],
-    "triangles": [],
+    "vertices": [
+      -60.0,
+      -35.0,
+      0.0,
+      60.0,
+      -35.0,
+      0.0,
+      60.0,
+      35.0,
+      0.0,
+      -60.0,
+      35.0,
+      0.0,
+      -60.0,
+      -35.0,
+      28.0,
+      60.0,
+      -35.0,
+      28.0,
+      60.0,
+      35.0,
+      28.0,
+      -60.0,
+      35.0,
+      28.0
+    ],
+    "triangles": [
+      4,
+      5,
+      6,
+      4,
+      6,
+      7,
+      0,
+      2,
+      1,
+      0,
+      3,
+      2,
+      1,
+      5,
+      6,
+      1,
+      6,
+      2,
+      0,
+      7,
+      4,
+      0,
+      3,
+      7,
+      3,
+      6,
+      2,
+      3,
+      7,
+      6,
+      0,
+      1,
+      5,
+      0,
+      5,
+      4
+    ],
     "bounds": {
-      "min": [-60, -35, 0],
-      "max": [60, 35, 28]
+      "min": [
+        -60.0,
+        -35.0,
+        0.0
+      ],
+      "max": [
+        60.0,
+        35.0,
+        28.0
+      ]
     },
     "surfaces": [
       {
         "semanticId": "main_enclosure.top_lid.outer",
         "label": "Top lid",
-        "triangleRanges": []
-      },
-      {
-        "semanticId": "main_enclosure.front_wall.outer",
-        "label": "Front wall",
-        "triangleRanges": []
+        "triangleRanges": [
+          {
+            "start": 0,
+            "count": 2
+          }
+        ]
       },
       {
         "semanticId": "main_enclosure.bottom_inside",
         "label": "Bottom inside",
-        "triangleRanges": []
+        "triangleRanges": [
+          {
+            "start": 2,
+            "count": 2
+          }
+        ]
+      },
+      {
+        "semanticId": "main_enclosure.front_wall.outer",
+        "label": "Front wall",
+        "triangleRanges": [
+          {
+            "start": 4,
+            "count": 2
+          }
+        ]
       }
     ]
   },
-  "issues": [],
   "metrics": {
-    "linearDeflection": 0.3,
-    "angularDeflection": 0.35,
-    "source": "brep"
+    "source": "semantic",
+    "deterministic": true,
+    "worker": "mock",
+    "featureIntents": 4,
+    "operationCount": 10,
+    "operationPlan": [
+      {
+        "id": "front_usb_c",
+        "kind": "cutout.usb_c",
+        "semanticId": "front_usb_c",
+        "targetSurface": "main_enclosure.front_wall.outer",
+        "operation": "negative",
+        "parameters": {
+          "width": 10.5,
+          "height": 4.2,
+          "cornerRadius": 1.0,
+          "clearanceProfile": "fdm_normal"
+        }
+      },
+      {
+        "id": "abxy_buttons",
+        "kind": "feature.button_group",
+        "semanticId": "abxy_buttons",
+        "targetSurface": "main_enclosure.top_lid.outer",
+        "operation": "composite",
+        "parameters": {
+          "pattern": "diamond",
+          "count": 4,
+          "diameter": 8.0,
+          "mode": "plunger"
+        }
+      },
+      {
+        "id": "projected_buttons.sw_a",
+        "kind": "cutout.button",
+        "semanticId": "projected_buttons.sw_a",
+        "targetSurface": "main_enclosure.top_lid.outer",
+        "operation": "negative",
+        "parentId": "projected_buttons",
+        "itemIndex": 0,
+        "parameters": {
+          "pattern": {
+            "layout": "from_component_switches",
+            "count": 4,
+            "sourcePlacementId": "button_board_placement",
+            "sourceTemplateId": "custom_button_board_v1",
+            "switchPositions": [
+              {
+                "id": "sw_a",
+                "position": [
+                  7.0,
+                  0.0
+                ],
+                "componentFeaturePosition": [
+                  7.0,
+                  0.0,
+                  0.0
+                ],
+                "surfaceAxes": [
+                  "x",
+                  "y"
+                ],
+                "direction": "top"
+              },
+              {
+                "id": "sw_b",
+                "position": [
+                  0.0,
+                  -7.0
+                ],
+                "componentFeaturePosition": [
+                  0.0,
+                  -7.0,
+                  0.0
+                ],
+                "surfaceAxes": [
+                  "x",
+                  "y"
+                ],
+                "direction": "top"
+              },
+              {
+                "id": "sw_x",
+                "position": [
+                  0.0,
+                  7.0
+                ],
+                "componentFeaturePosition": [
+                  0.0,
+                  7.0,
+                  0.0
+                ],
+                "surfaceAxes": [
+                  "x",
+                  "y"
+                ],
+                "direction": "top"
+              },
+              {
+                "id": "sw_y",
+                "position": [
+                  -7.0,
+                  0.0
+                ],
+                "componentFeaturePosition": [
+                  -7.0,
+                  0.0,
+                  0.0
+                ],
+                "surfaceAxes": [
+                  "x",
+                  "y"
+                ],
+                "direction": "top"
+              }
+            ]
+          },
+          "itemPrototype": {
+            "type": "button",
+            "diameter": 8.0,
+            "mode": "plunger"
+          },
+          "type": "button",
+          "diameter": 8.0,
+          "mode": "plunger",
+          "position": [
+            7.0,
+            0.0
+          ]
+        },
+        "placement": {
+          "anchor": "component_switch_centers"
+        },
+        "source": {
+          "componentPlacementId": "button_board_placement",
+          "componentTemplateId": "custom_button_board_v1",
+          "id": "sw_a",
+          "position": [
+            7.0,
+            0.0
+          ],
+          "componentFeaturePosition": [
+            7.0,
+            0.0,
+            0.0
+          ],
+          "surfaceAxes": [
+            "x",
+            "y"
+          ],
+          "direction": "top"
+        }
+      },
+      {
+        "id": "projected_buttons.sw_b",
+        "kind": "cutout.button",
+        "semanticId": "projected_buttons.sw_b",
+        "targetSurface": "main_enclosure.top_lid.outer",
+        "operation": "negative",
+        "parentId": "projected_buttons",
+        "itemIndex": 1,
+        "parameters": {
+          "pattern": {
+            "layout": "from_component_switches",
+            "count": 4,
+            "sourcePlacementId": "button_board_placement",
+            "sourceTemplateId": "custom_button_board_v1",
+            "switchPositions": [
+              {
+                "id": "sw_a",
+                "position": [
+                  7.0,
+                  0.0
+                ],
+                "componentFeaturePosition": [
+                  7.0,
+                  0.0,
+                  0.0
+                ],
+                "surfaceAxes": [
+                  "x",
+                  "y"
+                ],
+                "direction": "top"
+              },
+              {
+                "id": "sw_b",
+                "position": [
+                  0.0,
+                  -7.0
+                ],
+                "componentFeaturePosition": [
+                  0.0,
+                  -7.0,
+                  0.0
+                ],
+                "surfaceAxes": [
+                  "x",
+                  "y"
+                ],
+                "direction": "top"
+              },
+              {
+                "id": "sw_x",
+                "position": [
+                  0.0,
+                  7.0
+                ],
+                "componentFeaturePosition": [
+                  0.0,
+                  7.0,
+                  0.0
+                ],
+                "surfaceAxes": [
+                  "x",
+                  "y"
+                ],
+                "direction": "top"
+              },
+              {
+                "id": "sw_y",
+                "position": [
+                  -7.0,
+                  0.0
+                ],
+                "componentFeaturePosition": [
+                  -7.0,
+                  0.0,
+                  0.0
+                ],
+                "surfaceAxes": [
+                  "x",
+                  "y"
+                ],
+                "direction": "top"
+              }
+            ]
+          },
+          "itemPrototype": {
+            "type": "button",
+            "diameter": 8.0,
+            "mode": "plunger"
+          },
+          "type": "button",
+          "diameter": 8.0,
+          "mode": "plunger",
+          "position": [
+            0.0,
+            -7.0
+          ]
+        },
+        "placement": {
+          "anchor": "component_switch_centers"
+        },
+        "source": {
+          "componentPlacementId": "button_board_placement",
+          "componentTemplateId": "custom_button_board_v1",
+          "id": "sw_b",
+          "position": [
+            0.0,
+            -7.0
+          ],
+          "componentFeaturePosition": [
+            0.0,
+            -7.0,
+            0.0
+          ],
+          "surfaceAxes": [
+            "x",
+            "y"
+          ],
+          "direction": "top"
+        }
+      },
+      {
+        "id": "projected_buttons.sw_x",
+        "kind": "cutout.button",
+        "semanticId": "projected_buttons.sw_x",
+        "targetSurface": "main_enclosure.top_lid.outer",
+        "operation": "negative",
+        "parentId": "projected_buttons",
+        "itemIndex": 2,
+        "parameters": {
+          "pattern": {
+            "layout": "from_component_switches",
+            "count": 4,
+            "sourcePlacementId": "button_board_placement",
+            "sourceTemplateId": "custom_button_board_v1",
+            "switchPositions": [
+              {
+                "id": "sw_a",
+                "position": [
+                  7.0,
+                  0.0
+                ],
+                "componentFeaturePosition": [
+                  7.0,
+                  0.0,
+                  0.0
+                ],
+                "surfaceAxes": [
+                  "x",
+                  "y"
+                ],
+                "direction": "top"
+              },
+              {
+                "id": "sw_b",
+                "position": [
+                  0.0,
+                  -7.0
+                ],
+                "componentFeaturePosition": [
+                  0.0,
+                  -7.0,
+                  0.0
+                ],
+                "surfaceAxes": [
+                  "x",
+                  "y"
+                ],
+                "direction": "top"
+              },
+              {
+                "id": "sw_x",
+                "position": [
+                  0.0,
+                  7.0
+                ],
+                "componentFeaturePosition": [
+                  0.0,
+                  7.0,
+                  0.0
+                ],
+                "surfaceAxes": [
+                  "x",
+                  "y"
+                ],
+                "direction": "top"
+              },
+              {
+                "id": "sw_y",
+                "position": [
+                  -7.0,
+                  0.0
+                ],
+                "componentFeaturePosition": [
+                  -7.0,
+                  0.0,
+                  0.0
+                ],
+                "surfaceAxes": [
+                  "x",
+                  "y"
+                ],
+                "direction": "top"
+              }
+            ]
+          },
+          "itemPrototype": {
+            "type": "button",
+            "diameter": 8.0,
+            "mode": "plunger"
+          },
+          "type": "button",
+          "diameter": 8.0,
+          "mode": "plunger",
+          "position": [
+            0.0,
+            7.0
+          ]
+        },
+        "placement": {
+          "anchor": "component_switch_centers"
+        },
+        "source": {
+          "componentPlacementId": "button_board_placement",
+          "componentTemplateId": "custom_button_board_v1",
+          "id": "sw_x",
+          "position": [
+            0.0,
+            7.0
+          ],
+          "componentFeaturePosition": [
+            0.0,
+            7.0,
+            0.0
+          ],
+          "surfaceAxes": [
+            "x",
+            "y"
+          ],
+          "direction": "top"
+        }
+      },
+      {
+        "id": "projected_buttons.sw_y",
+        "kind": "cutout.button",
+        "semanticId": "projected_buttons.sw_y",
+        "targetSurface": "main_enclosure.top_lid.outer",
+        "operation": "negative",
+        "parentId": "projected_buttons",
+        "itemIndex": 3,
+        "parameters": {
+          "pattern": {
+            "layout": "from_component_switches",
+            "count": 4,
+            "sourcePlacementId": "button_board_placement",
+            "sourceTemplateId": "custom_button_board_v1",
+            "switchPositions": [
+              {
+                "id": "sw_a",
+                "position": [
+                  7.0,
+                  0.0
+                ],
+                "componentFeaturePosition": [
+                  7.0,
+                  0.0,
+                  0.0
+                ],
+                "surfaceAxes": [
+                  "x",
+                  "y"
+                ],
+                "direction": "top"
+              },
+              {
+                "id": "sw_b",
+                "position": [
+                  0.0,
+                  -7.0
+                ],
+                "componentFeaturePosition": [
+                  0.0,
+                  -7.0,
+                  0.0
+                ],
+                "surfaceAxes": [
+                  "x",
+                  "y"
+                ],
+                "direction": "top"
+              },
+              {
+                "id": "sw_x",
+                "position": [
+                  0.0,
+                  7.0
+                ],
+                "componentFeaturePosition": [
+                  0.0,
+                  7.0,
+                  0.0
+                ],
+                "surfaceAxes": [
+                  "x",
+                  "y"
+                ],
+                "direction": "top"
+              },
+              {
+                "id": "sw_y",
+                "position": [
+                  -7.0,
+                  0.0
+                ],
+                "componentFeaturePosition": [
+                  -7.0,
+                  0.0,
+                  0.0
+                ],
+                "surfaceAxes": [
+                  "x",
+                  "y"
+                ],
+                "direction": "top"
+              }
+            ]
+          },
+          "itemPrototype": {
+            "type": "button",
+            "diameter": 8.0,
+            "mode": "plunger"
+          },
+          "type": "button",
+          "diameter": 8.0,
+          "mode": "plunger",
+          "position": [
+            -7.0,
+            0.0
+          ]
+        },
+        "placement": {
+          "anchor": "component_switch_centers"
+        },
+        "source": {
+          "componentPlacementId": "button_board_placement",
+          "componentTemplateId": "custom_button_board_v1",
+          "id": "sw_y",
+          "position": [
+            -7.0,
+            0.0
+          ],
+          "componentFeaturePosition": [
+            -7.0,
+            0.0,
+            0.0
+          ],
+          "surfaceAxes": [
+            "x",
+            "y"
+          ],
+          "direction": "top"
+        }
+      },
+      {
+        "id": "standoff_mounts_1.mh1",
+        "kind": "mount.standoff",
+        "semanticId": "standoff_mounts_1.mh1",
+        "targetSurface": "main_enclosure.bottom_inside",
+        "operation": "positive",
+        "parentId": "standoff_mounts_1",
+        "itemIndex": 0,
+        "parameters": {
+          "pattern": {
+            "layout": "from_component_mounting_holes",
+            "sourcePlacementId": "button_board_placement",
+            "sourceTemplateId": "custom_button_board_v1"
+          },
+          "itemPrototype": {
+            "type": "standoff",
+            "diameter": 5.0,
+            "holeDiameter": 2.2,
+            "height": 4.0
+          },
+          "type": "standoff",
+          "diameter": 5.0,
+          "holeDiameter": 2.2,
+          "height": 4.0,
+          "position": [
+            -20.0,
+            -12.0
+          ]
+        },
+        "placement": {
+          "anchor": "component_mounting_holes"
+        },
+        "source": {
+          "componentPlacementId": "button_board_placement",
+          "componentTemplateId": "custom_button_board_v1",
+          "id": "mh1",
+          "position": [
+            -20.0,
+            -12.0
+          ],
+          "diameter": 2.2,
+          "screw": "M2"
+        }
+      },
+      {
+        "id": "standoff_mounts_1.mh2",
+        "kind": "mount.standoff",
+        "semanticId": "standoff_mounts_1.mh2",
+        "targetSurface": "main_enclosure.bottom_inside",
+        "operation": "positive",
+        "parentId": "standoff_mounts_1",
+        "itemIndex": 1,
+        "parameters": {
+          "pattern": {
+            "layout": "from_component_mounting_holes",
+            "sourcePlacementId": "button_board_placement",
+            "sourceTemplateId": "custom_button_board_v1"
+          },
+          "itemPrototype": {
+            "type": "standoff",
+            "diameter": 5.0,
+            "holeDiameter": 2.2,
+            "height": 4.0
+          },
+          "type": "standoff",
+          "diameter": 5.0,
+          "holeDiameter": 2.2,
+          "height": 4.0,
+          "position": [
+            20.0,
+            -12.0
+          ]
+        },
+        "placement": {
+          "anchor": "component_mounting_holes"
+        },
+        "source": {
+          "componentPlacementId": "button_board_placement",
+          "componentTemplateId": "custom_button_board_v1",
+          "id": "mh2",
+          "position": [
+            20.0,
+            -12.0
+          ],
+          "diameter": 2.2,
+          "screw": "M2"
+        }
+      },
+      {
+        "id": "standoff_mounts_1.mh3",
+        "kind": "mount.standoff",
+        "semanticId": "standoff_mounts_1.mh3",
+        "targetSurface": "main_enclosure.bottom_inside",
+        "operation": "positive",
+        "parentId": "standoff_mounts_1",
+        "itemIndex": 2,
+        "parameters": {
+          "pattern": {
+            "layout": "from_component_mounting_holes",
+            "sourcePlacementId": "button_board_placement",
+            "sourceTemplateId": "custom_button_board_v1"
+          },
+          "itemPrototype": {
+            "type": "standoff",
+            "diameter": 5.0,
+            "holeDiameter": 2.2,
+            "height": 4.0
+          },
+          "type": "standoff",
+          "diameter": 5.0,
+          "holeDiameter": 2.2,
+          "height": 4.0,
+          "position": [
+            -20.0,
+            12.0
+          ]
+        },
+        "placement": {
+          "anchor": "component_mounting_holes"
+        },
+        "source": {
+          "componentPlacementId": "button_board_placement",
+          "componentTemplateId": "custom_button_board_v1",
+          "id": "mh3",
+          "position": [
+            -20.0,
+            12.0
+          ],
+          "diameter": 2.2,
+          "screw": "M2"
+        }
+      },
+      {
+        "id": "standoff_mounts_1.mh4",
+        "kind": "mount.standoff",
+        "semanticId": "standoff_mounts_1.mh4",
+        "targetSurface": "main_enclosure.bottom_inside",
+        "operation": "positive",
+        "parentId": "standoff_mounts_1",
+        "itemIndex": 3,
+        "parameters": {
+          "pattern": {
+            "layout": "from_component_mounting_holes",
+            "sourcePlacementId": "button_board_placement",
+            "sourceTemplateId": "custom_button_board_v1"
+          },
+          "itemPrototype": {
+            "type": "standoff",
+            "diameter": 5.0,
+            "holeDiameter": 2.2,
+            "height": 4.0
+          },
+          "type": "standoff",
+          "diameter": 5.0,
+          "holeDiameter": 2.2,
+          "height": 4.0,
+          "position": [
+            20.0,
+            12.0
+          ]
+        },
+        "placement": {
+          "anchor": "component_mounting_holes"
+        },
+        "source": {
+          "componentPlacementId": "button_board_placement",
+          "componentTemplateId": "custom_button_board_v1",
+          "id": "mh4",
+          "position": [
+            20.0,
+            12.0
+          ],
+          "diameter": 2.2,
+          "screw": "M2"
+        }
+      }
+    ]
   }
 }

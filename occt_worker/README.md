@@ -12,7 +12,19 @@ preview/export results.
 M5 adds the protocol skeleton, M47 adds a Dart-only mock protocol harness, M48
 adds the Dart-side process client, and M49 adds the worker-backed
 `GeometryService` adapter. M50 adds an explicit backend selection switch for
-development runs. No native executable is built yet.
+development runs. M51 keeps the checked-in protocol examples generated from a
+typed Dart fixture project and the mock backend. No native executable is built
+yet.
+
+Regenerate protocol fixtures:
+
+```powershell
+dart run tool\generate_geometry_protocol_fixtures.dart
+```
+
+The generated request includes semantic `featureIntents`; the generated
+response includes mock backend operation-plan metrics. These files are protocol
+fixtures, not editable project geometry and not native OCCT output.
 
 Smoke command:
 

@@ -104,6 +104,21 @@ The mock backend exposes this plan in response metrics for testing and worker
 development. The plan is disposable backend input. It must not be saved as the
 editable project model and must not contain OCCT topology IDs.
 
+## Generated protocol fixtures
+
+The protocol example files under `occt_worker/protocol/` are generated from a
+typed Dart fixture project:
+
+```powershell
+dart run tool\generate_geometry_protocol_fixtures.dart
+```
+
+The request example contains semantic feature intents and expanded repeated
+items. The response example is produced by `MockGeometryService`, including the
+mock preview mesh and operation plan metrics. These fixtures let the future
+native worker develop against realistic payloads without making mock mesh,
+B-Rep, STL, or OCCT topology editable project state.
+
 ## Mock worker protocol harness
 
 Before the native OCCT executable exists, `tool/mock_geometry_worker.dart`
