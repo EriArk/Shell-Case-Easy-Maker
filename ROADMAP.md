@@ -80,6 +80,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M59 - Opt-in OCCT Native Target Scaffold
 - [x] M60 - OCCT vcpkg Manifest Restore Path
 - [x] M61 - Repo-local vcpkg Bootstrap Helper
+- [x] M62 - Local OCCT Restore + Link Smoke
 
 ---
 
@@ -2630,3 +2631,52 @@ committing vcpkg sources, OCCT binaries, or generated install output.
 - No meaningful manual UI poke for this chunk; it is local dependency setup.
 - Optional developer poke when a long dependency install is acceptable:
   `tools\bootstrap_vcpkg_windows.ps1 -InstallOpenCascade`.
+
+---
+
+## M62 - Local OCCT Restore + Link Smoke
+
+### Goal
+Make OCCT locally ready on this workstation and prove the opt-in native target
+can link and run against the restored package.
+
+### Tasks
+- [x] Run repo-local vcpkg bootstrap with explicit `-InstallOpenCascade`.
+- [x] Keep generated dependency output ignored by Git.
+- [x] Update readiness detection for manifest-mode `vcpkg_installed` output.
+- [x] Fix readiness empty-candidate handling on Windows PowerShell.
+- [x] Build `occt_worker_native_occt` with `-AllowVcpkgInstall -Clean`.
+- [x] Run native OCCT capabilities smoke.
+- [x] Run native OCCT request smoke and confirm request ID preservation.
+- [x] Update README, OCCT docs, tasks, and worklog.
+
+### Done Criteria
+- `tools\check_occt_windows_readiness.ps1` reports `ready: true`.
+- `OpenCASCADEConfig.cmake` is found under
+  `occt_worker/native/vcpkg_installed/x64-windows`.
+- `build/occt_worker_native_occt/Release/occt_worker_native_occt.exe` exists.
+- Capabilities report `status=linked_smoke` and `occtVersion=8.0.0`.
+- Native request smoke returns `worker.backend.occt_link_smoke_only` with
+  `linkSmokeShapeNull=false`.
+- No vcpkg source tree, installed dependency tree, OCCT DLLs, or build output is
+  committed.
+
+### Tests
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\bootstrap_vcpkg_windows.ps1 -InstallOpenCascade`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_occt_windows_readiness.ps1`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall -Clean`
+- `build\occt_worker_native_occt\Release\occt_worker_native_occt.exe --capabilities`
+- `Get-Content occt_worker\protocol\preview_request.example.json -Raw | build\occt_worker_native_occt\Release\occt_worker_native_occt.exe`
+- `flutter test test\occt_windows_readiness_test.dart test\occt_native_target_scaffold_test.dart test\vcpkg_bootstrap_script_test.dart`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- No meaningful manual UI poke for this chunk; it is native dependency
+  readiness.
+- Optional developer poke: run
+  `build\occt_worker_native_occt\Release\occt_worker_native_occt.exe --capabilities`
+  and confirm it reports OCCT `8.0.0`.

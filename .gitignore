@@ -33,6 +33,7 @@ migrate_working_dir/
 /build/
 /coverage/
 /external/
+/occt_worker/native/vcpkg_installed/
 /releases/
 
 # Symbolication related

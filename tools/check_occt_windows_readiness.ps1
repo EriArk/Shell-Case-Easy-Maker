@@ -30,7 +30,11 @@ function Test-FilePath {
 }
 
 function Get-FirstExistingFile {
-    param([AllowEmptyCollection()][string[]]$Candidates = @())
+    param([AllowNull()][string[]]$Candidates = @())
+
+    if ($null -eq $Candidates) {
+        return $null
+    }
 
     foreach ($candidate in $Candidates) {
         if (Test-FilePath $candidate) {
@@ -43,7 +47,7 @@ function Get-FirstExistingFile {
 
 function Add-ConfigCandidate {
     param(
-        [Parameter(Mandatory = $true)][System.Collections.Generic.List[string]]$Candidates,
+        [AllowEmptyCollection()][System.Collections.Generic.List[string]]$Candidates,
         [AllowNull()][string]$Path
     )
 
@@ -56,12 +60,13 @@ $cmakePath = Get-CommandPath "cmake"
 $vcpkgPath = Get-CommandPath "vcpkg"
 $environmentVcpkgRoot = $env:VCPKG_ROOT
 $repoLocalVcpkgRoot = Join-Path $repoRoot "external\vcpkg"
+$manifestInstallRoot = Join-Path $repoRoot "occt_worker\native\vcpkg_installed"
 $vcpkgRoot = $environmentVcpkgRoot
 $vcpkgRootSource = $null
 if (-not [string]::IsNullOrWhiteSpace($environmentVcpkgRoot)) {
     $vcpkgRootSource = "environment"
 }
-elseif (Test-FilePath (Join-Path $repoLocalVcpkgRoot "scripts\buildsystems\vcpkg.cmake")) {
+elseif (Test-Path -LiteralPath (Join-Path $repoLocalVcpkgRoot "scripts\buildsystems\vcpkg.cmake") -PathType Leaf) {
     $vcpkgRoot = $repoLocalVcpkgRoot
     $vcpkgRootSource = "repo-local"
 }
@@ -96,8 +101,14 @@ if (-not [string]::IsNullOrWhiteSpace($vcpkgRoot)) {
     Add-ConfigCandidate -Candidates $configCandidates -Path (Join-Path $vcpkgRoot "installed\$Triplet\share\OpenCASCADE\OpenCASCADEConfig.cmake")
     Add-ConfigCandidate -Candidates $configCandidates -Path (Join-Path $vcpkgRoot "installed\$Triplet\share\occt\OpenCASCADEConfig.cmake")
 }
+Add-ConfigCandidate -Candidates $configCandidates -Path (Join-Path $manifestInstallRoot "$Triplet\share\opencascade\OpenCASCADEConfig.cmake")
+Add-ConfigCandidate -Candidates $configCandidates -Path (Join-Path $manifestInstallRoot "$Triplet\share\OpenCASCADE\OpenCASCADEConfig.cmake")
+Add-ConfigCandidate -Candidates $configCandidates -Path (Join-Path $manifestInstallRoot "$Triplet\share\occt\OpenCASCADEConfig.cmake")
 
-$openCascadeConfig = Get-FirstExistingFile -Candidates $configCandidates.ToArray()
+$openCascadeConfig = $null
+if ($configCandidates.Count -gt 0) {
+    $openCascadeConfig = Get-FirstExistingFile -Candidates $configCandidates.ToArray()
+}
 $ready = -not [string]::IsNullOrWhiteSpace($openCascadeConfig)
 $vcpkgToolchainFound = Test-FilePath $vcpkgToolchain
 
@@ -130,6 +141,7 @@ $summary = [ordered]@{
         path = $vcpkgPath
         root = $vcpkgRoot
         rootSource = $vcpkgRootSource
+        manifestInstalledRoot = $manifestInstallRoot
         toolchain = $vcpkgToolchain
         toolchainFound = $vcpkgToolchainFound
     }

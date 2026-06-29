@@ -115,6 +115,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Add opt-in OCCT native target scaffold.
 - [x] Add vcpkg manifest restore path for OCCT target.
 - [x] Add repo-local vcpkg bootstrap helper.
+- [x] Restore repo-local OCCT package and build linked smoke target.
 - [x] Define JSON protocol for geometry requests.
 - [x] Add feature/group geometry intents to preview requests.
 - [x] Add deterministic geometry operation plan from feature intents.

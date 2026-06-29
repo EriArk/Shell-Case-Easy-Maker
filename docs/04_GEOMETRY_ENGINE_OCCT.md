@@ -192,7 +192,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\bootstrap_vcpkg_window
 ```
 
 The helper uses `external/vcpkg`, which is ignored by Git. It only restores
-`opencascade` when `-InstallOpenCascade` is provided.
+`opencascade` when `-InstallOpenCascade` is provided. Manifest restore output
+lives in ignored `occt_worker/native/vcpkg_installed`.
 
 Opt-in OCCT target build command after readiness is true:
 
@@ -203,6 +204,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt
 If `VCPKG_ROOT` is configured and the developer intentionally wants vcpkg to
 restore the manifest dependency, add `-AllowVcpkgInstall`. The manifest lives at
 `occt_worker/native/vcpkg.json` and currently declares only `opencascade`.
+After the first local restore, `tools\check_occt_windows_readiness.ps1` should
+report `ready=true`. If an earlier CMake configure used different manifest
+settings, rerun the OCCT build command with `-AllowVcpkgInstall -Clean`.
 
 This builds `occt_worker_native_occt`, a separate link-smoke target that
 references OCCT modeling APIs but still returns

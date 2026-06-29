@@ -103,7 +103,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\bootstrap_vcpkg_window
 ```
 
 The helper uses ignored `external/vcpkg` output and restores `opencascade` only
-when `-InstallOpenCascade` is passed.
+when `-InstallOpenCascade` is passed. Manifest-mode installed packages are
+local-only under ignored `occt_worker/native/vcpkg_installed`.
 
 Once readiness is true, build the opt-in OCCT link-smoke target:
 
@@ -113,6 +114,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt
 
 To let vcpkg restore `occt_worker/native/vcpkg.json` explicitly, rerun that
 command with `-AllowVcpkgInstall` after `VCPKG_ROOT` is configured.
+Use `-Clean` once if the native build directory was configured before OCCT
+readiness became true or before manifest mode was enabled.
 
 The target is `occt_worker_native_occt`. It is separate from
 `occt_worker_native_stub`, references OCCT modeling APIs, and returns

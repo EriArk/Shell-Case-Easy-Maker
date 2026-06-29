@@ -42,6 +42,123 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-29 - M62 Local OCCT restore and link smoke
+
+### Goal
+Restore OCCT locally through the explicit repo-local vcpkg path, make readiness
+true, and prove the opt-in native OCCT worker can link and run.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`, `.gitignore`, `README.md`,
+`tools/bootstrap_vcpkg_windows.ps1`, `tools/check_occt_windows_readiness.ps1`,
+`tools/build_occt_worker_occt.ps1`, `docs/35_OCCT_WINDOWS_DEPENDENCY_PLAN.md`,
+`docs/04_GEOMETRY_ENGINE_OCCT.md`, `docs/34_FIRST_GEOMETRY_SLICE.md`,
+`docs/03_ARCHITECTURE_OVERVIEW.md`, `occt_worker/README.md`,
+`test/occt_windows_readiness_test.dart`, and
+`test/occt_native_target_scaffold_test.dart`.
+
+### Changes made
+- Local dependency output:
+  - Cloned and bootstrapped repo-local vcpkg under ignored `external/vcpkg`.
+  - Restored `opencascade[core,freetype]` `8.0.0#1`.
+  - Manifest-mode packages landed under ignored
+    `occt_worker/native/vcpkg_installed`.
+- `.gitignore`:
+  - Ignored `occt_worker/native/vcpkg_installed/`.
+- `tools/check_occt_windows_readiness.ps1`:
+  - Detects repo-local manifest install output.
+  - Reports `manifestInstalledRoot`.
+  - Fixed Windows PowerShell empty-list binding in `Add-ConfigCandidate`.
+- `tools/build_occt_worker_occt.ps1`:
+  - Gives a clean `EXIT:2` guidance when OCCT is ready from
+    `vcpkg_installed` but `-AllowVcpkgInstall` is omitted.
+  - Keeps manifest dependency resolution explicit for the manifest install
+    path.
+- Docs/tasks/roadmap:
+  - Recorded M62 and documented the installed local OCCT path and linked build
+    command.
+- Tests:
+  - Updated script-contract tests for `vcpkg_installed`,
+    `manifestInstalledRoot`, and manifest build guidance.
+
+### Tests run
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\bootstrap_vcpkg_windows.ps1 -InstallOpenCascade`:
+  - Restored all requested packages successfully in about 1.5 hours.
+  - The command then hit a readiness-script bug that was fixed in this chunk.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_occt_windows_readiness.ps1`:
+  - Passed after the fix; reports `ready=true` and finds
+    `occt_worker/native/vcpkg_installed/x64-windows/share/opencascade/OpenCASCADEConfig.cmake`.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1`:
+  - Returned expected `EXIT:2` with guidance to add `-AllowVcpkgInstall` for
+    manifest-installed OCCT.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall -Clean`:
+  - Passed; built
+    `build\occt_worker_native_occt\Release\occt_worker_native_occt.exe` and
+    deployed required OCCT DLLs beside it.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`:
+  - Passed; repeat build is quick and reports packages already installed.
+- `build\occt_worker_native_occt\Release\occt_worker_native_occt.exe --capabilities`:
+  - Passed; reports `status=linked_smoke` and `occtVersion=8.0.0`.
+- `Get-Content occt_worker\protocol\preview_request.example.json -Raw | build\occt_worker_native_occt\Release\occt_worker_native_occt.exe`:
+  - Returned expected `worker.backend.occt_link_smoke_only`, preserved request
+    ID, and reports `linkSmokeShapeNull=false`.
+- `dart format lib test tool occt_worker`:
+  - Passed, no files changed.
+- `flutter test test\occt_windows_readiness_test.dart test\occt_native_target_scaffold_test.dart test\vcpkg_bootstrap_script_test.dart`:
+  - Passed, 8 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_occt_windows_readiness.ps1 -RequireOcct`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed, 177 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Native OCCT link smoke only. The worker creates a smoke shape internally and
+    reports `linkSmokeShapeNull=false`, but no semantic B-Rep generation,
+    preview mesh, STL workflow, or editable generated geometry was added.
+- Serialization checked?
+  - Readiness JSON, capabilities JSON, and native request/response JSON were
+    exercised. Full protocol tests passed.
+- UI checked?
+  - Full widget suite passed and the latest Windows bundle was rebuilt. No
+    user-facing UI changed in this chunk.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: `occt_worker_native_occt` still returns
+  `worker.backend.occt_link_smoke_only` for geometry requests.
+  - Severity: Expected.
+  - Next action: Replace the link smoke with the first deterministic rounded
+    enclosure B-Rep/metrics response.
+- Issue: Manifest-installed OCCT requires `-AllowVcpkgInstall` for linked
+  native builds so CMake can resolve transitive vcpkg dependencies.
+  - Severity: Expected.
+  - Next action: Keep using `tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`
+    for the repo-local manifest path.
+
+### Next step
+Implement the first deterministic OCCT rounded enclosure generation slice behind
+the native worker protocol, starting with metrics or a minimal preview response
+that remains disposable output and does not expose OCCT topology IDs to Flutter.
+
+### Notes for future Codex sessions
+OCCT is now locally ready on this machine. Do not commit `external/`,
+`occt_worker/native/vcpkg_installed/`, `build/`, release output, or copied OCCT
+DLLs. Use `-AllowVcpkgInstall` for the manifest-installed OCCT path.
+
 ## 2026-06-29 - M61 Repo-local vcpkg bootstrap helper
 
 ### Goal

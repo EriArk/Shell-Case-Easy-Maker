@@ -16,6 +16,8 @@ void main() {
       expect(script, contains('OpenCASCADE_DIR'));
       expect(script, contains('CASROOT'));
       expect(script, contains('external\\vcpkg'));
+      expect(script, contains('vcpkg_installed'));
+      expect(script, contains('manifestInstalledRoot'));
       expect(script, contains('rootSource'));
       expect(script, contains('RequireOcct'));
       expect(script, contains('ConvertTo-Json'));

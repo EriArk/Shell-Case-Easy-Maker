@@ -50,6 +50,13 @@ if (-not $readiness.ready -and -not $canUseVcpkgManifest) {
     exit 2
 }
 
+$openCascadeConfigPath = [string]$readiness.opencascade.configPath
+$usesManifestInstalledOcct = -not [string]::IsNullOrWhiteSpace($openCascadeConfigPath) -and $openCascadeConfigPath.IndexOf("\vcpkg_installed\", [StringComparison]::OrdinalIgnoreCase) -ge 0
+if ($usesManifestInstalledOcct -and -not $AllowVcpkgInstall) {
+    [Console]::Error.WriteLine("OCCT is ready from a vcpkg manifest install. Rerun with -AllowVcpkgInstall so CMake can resolve manifest dependencies.")
+    exit 2
+}
+
 if ($Clean -and (Test-Path -LiteralPath $buildDir)) {
     Assert-ChildPath -Path $buildDir -Parent $buildRoot
     Remove-Item -LiteralPath $buildDir -Recurse -Force
@@ -66,6 +73,9 @@ if ($readiness.vcpkg.toolchainFound) {
     $cmakeConfigureArgs += "-DVCPKG_TARGET_TRIPLET=$Triplet"
     if ($AllowVcpkgInstall) {
         $cmakeConfigureArgs += "-DVCPKG_MANIFEST_MODE=ON"
+    }
+    else {
+        $cmakeConfigureArgs += "-DVCPKG_MANIFEST_MODE=OFF"
     }
 }
 

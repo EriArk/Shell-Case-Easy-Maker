@@ -222,7 +222,9 @@ configured with `SHELL_CASE_ENABLE_OCCT=ON` through
 uses `occt_worker/native/vcpkg.json` only when `-AllowVcpkgInstall` is provided.
 `tools/bootstrap_vcpkg_windows.ps1` can create a repo-local `external/vcpkg`
 checkout, and the readiness checker auto-detects that path without requiring a
-global `VCPKG_ROOT`.
+global `VCPKG_ROOT`. Manifest-mode installed packages live under ignored
+`occt_worker/native/vcpkg_installed`; they are native dependency output, not
+project state.
 
 ## Worker Process Client
 

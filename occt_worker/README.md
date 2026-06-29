@@ -106,7 +106,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\bootstrap_vcpkg_window
 ```
 
 The bootstrap helper uses ignored `external/vcpkg` output and installs the OCCT
-manifest dependency only when `-InstallOpenCascade` is passed.
+manifest dependency only when `-InstallOpenCascade` is passed. Manifest-mode
+package output is ignored under `occt_worker/native/vcpkg_installed`.
 
 Opt-in OCCT target build command after readiness is true:
 
@@ -117,6 +118,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt
 If `VCPKG_ROOT` is configured but OCCT is not installed yet, add
 `-AllowVcpkgInstall` to let vcpkg restore `occt_worker/native/vcpkg.json`
 explicitly.
+Use `-Clean` once if the build directory was configured with different manifest
+mode settings.
 
 This builds `occt_worker_native_occt` under `build/occt_worker_native_occt`.
 The target references OCCT modeling APIs and reports

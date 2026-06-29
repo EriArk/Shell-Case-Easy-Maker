@@ -103,17 +103,28 @@ expected:
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/bootstrap_vcpkg_windows.ps1 -InstallOpenCascade
 ```
 
-Build the opt-in OCCT native worker after readiness is true with:
+Manifest restore output is local-only and ignored at
+`occt_worker/native/vcpkg_installed`.
+
+Build the opt-in OCCT native worker after explicit `OpenCASCADE_DIR` /
+`CASROOT` readiness is true with:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/build_occt_worker_occt.ps1
 ```
 
-When `VCPKG_ROOT` is configured but OCCT is not installed yet, allow vcpkg
-manifest restore explicitly with:
+When using the repo-local manifest install in
+`occt_worker/native/vcpkg_installed`, build with:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/build_occt_worker_occt.ps1 -AllowVcpkgInstall
+```
+
+If CMake was previously configured before OCCT readiness became true, run the
+first linked manifest build cleanly with:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/build_occt_worker_occt.ps1 -AllowVcpkgInstall -Clean
 ```
 
 Build the latest manual Windows bundle with:

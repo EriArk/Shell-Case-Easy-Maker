@@ -36,5 +36,6 @@ void main() {
     final gitignore = File('.gitignore').readAsStringSync();
 
     expect(gitignore, contains('/external/'));
+    expect(gitignore, contains('/occt_worker/native/vcpkg_installed/'));
   });
 }

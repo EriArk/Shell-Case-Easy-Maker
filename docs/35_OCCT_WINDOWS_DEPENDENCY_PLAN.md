@@ -50,6 +50,18 @@ On this machine during M58:
 This means native OCCT linking is not locally ready yet, but the existing
 native stub build remains valid and should keep working.
 
+Update from M62:
+
+- Repo-local vcpkg was cloned and bootstrapped under ignored `external/vcpkg`.
+- The explicit manifest restore installed `opencascade[core,freetype]`
+  `8.0.0#1`.
+- Manifest-mode packages are available under ignored
+  `occt_worker/native/vcpkg_installed/x64-windows`.
+- `tools/check_occt_windows_readiness.ps1` now reports `ready: true` and finds
+  `OpenCASCADEConfig.cmake` in that manifest install tree.
+- `occt_worker_native_occt` builds and reports `status=linked_smoke` with
+  `occtVersion=8.0.0`.
+
 ## License / compatibility notes
 
 - Do not copy OCCT source into this repository.
@@ -121,8 +133,9 @@ This creates/uses `external/vcpkg`, bootstraps `vcpkg.exe`, and leaves
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\bootstrap_vcpkg_windows.ps1 -InstallOpenCascade
 ```
 
-`external/` is ignored by Git. Do not commit vcpkg sources, installed packages,
-OCCT binaries, or generated worker build output.
+`external/` and `occt_worker/native/vcpkg_installed/` are ignored by Git. Do not
+commit vcpkg sources, installed packages, OCCT binaries, or generated worker
+build output.
 
 ## Future native target shape
 
@@ -134,14 +147,15 @@ occt_worker_native_occt  -> opt-in, requires OpenCASCADEConfig.cmake
 ```
 
 `occt_worker_native_occt` is enabled with `SHELL_CASE_ENABLE_OCCT=ON` and is
-built through:
+built through the default script when OCCT is provided by explicit
+`OpenCASCADE_DIR` / `CASROOT`:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1
 ```
 
-When `VCPKG_ROOT` is configured but `OpenCASCADEConfig.cmake` is not present
-yet, allow vcpkg manifest restore explicitly:
+When using the repo-local vcpkg manifest install, keep manifest dependency
+resolution explicit:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall
@@ -149,6 +163,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt
 
 This uses `occt_worker/native/vcpkg.json`, which currently depends only on
 `opencascade`.
+
+If a previous configure used different manifest-mode settings, clean the native
+build directory once:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall -Clean
+```
 
 The current OCCT target is a link smoke only. It references
 `BRepPrimAPI_MakeBox` and reports `worker.backend.occt_link_smoke_only`; it does

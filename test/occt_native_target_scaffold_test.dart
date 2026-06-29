@@ -56,6 +56,9 @@ void main() {
       expect(script, contains('CMAKE_TOOLCHAIN_FILE'));
       expect(script, contains('VCPKG_TARGET_TRIPLET'));
       expect(script, contains('VCPKG_MANIFEST_MODE=ON'));
+      expect(script, contains('VCPKG_MANIFEST_MODE=OFF'));
+      expect(script, contains('vcpkg_installed'));
+      expect(script, contains('OCCT is ready from a vcpkg manifest install'));
       expect(script, contains('OpenCASCADE_DIR'));
       expect(script, contains('exit 2'));
       expect(script, isNot(contains('& vcpkg')));
