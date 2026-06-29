@@ -1,8 +1,11 @@
+import 'dart:io';
+
 import 'geometry_service.dart';
 
 enum GeometryBackendKind {
   mock('mock'),
-  worker('worker');
+  worker('worker'),
+  nativeOcct('native_occt');
 
   const GeometryBackendKind(this.wireName);
 
@@ -64,6 +67,10 @@ class GeometryBackendSettings {
   bool get canUseWorker =>
       backend == GeometryBackendKind.worker &&
       workerExecutable.trim().isNotEmpty;
+
+  bool get canUseExplicitNativeOcctWorker =>
+      backend == GeometryBackendKind.nativeOcct &&
+      workerExecutable.trim().isNotEmpty;
 }
 
 GeometryService createGeometryServiceFromEnvironment() {
@@ -72,7 +79,12 @@ GeometryService createGeometryServiceFromEnvironment() {
   );
 }
 
-GeometryService createGeometryService(GeometryBackendSettings settings) {
+GeometryService createGeometryService(
+  GeometryBackendSettings settings, {
+  String Function() nativeOcctWorkerExecutablePath =
+      defaultNativeOcctWorkerExecutablePath,
+  bool Function(String path) fileExists = _fileExists,
+}) {
   if (settings.canUseWorker) {
     return WorkerGeometryService(
       workerClient: GeometryWorkerProcessClient(
@@ -86,7 +98,38 @@ GeometryService createGeometryService(GeometryBackendSettings settings) {
     );
   }
 
+  if (settings.backend == GeometryBackendKind.nativeOcct) {
+    final explicitExecutable = settings.workerExecutable.trim();
+    final executable = explicitExecutable.isNotEmpty
+        ? explicitExecutable
+        : nativeOcctWorkerExecutablePath();
+    final canUseNativeWorker =
+        explicitExecutable.isNotEmpty || fileExists(executable);
+
+    if (canUseNativeWorker) {
+      return WorkerGeometryService(
+        workerClient: GeometryWorkerProcessClient(
+          command: GeometryWorkerProcessCommand(
+            executable: executable,
+            arguments: settings.workerArguments,
+            workingDirectory:
+                settings.workerWorkingDirectory ?? _parentDirectory(executable),
+          ),
+          timeout: settings.workerTimeout,
+        ),
+      );
+    }
+  }
+
   return const MockGeometryService();
+}
+
+String defaultNativeOcctWorkerExecutablePath() {
+  return _joinPath(File(Platform.resolvedExecutable).parent.path, const [
+    'occt_worker',
+    'native',
+    'occt_worker_native_occt.exe',
+  ]);
 }
 
 List<String> parseGeometryWorkerArguments(String rawValue) {
@@ -95,4 +138,12 @@ List<String> parseGeometryWorkerArguments(String rawValue) {
       .map((argument) => argument.trim())
       .where((argument) => argument.isNotEmpty)
       .toList(growable: false);
+}
+
+bool _fileExists(String path) => File(path).existsSync();
+
+String _parentDirectory(String path) => File(path).parent.path;
+
+String _joinPath(String root, List<String> parts) {
+  return [root, ...parts].join(Platform.pathSeparator);
 }

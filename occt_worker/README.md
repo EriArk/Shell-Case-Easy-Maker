@@ -163,6 +163,15 @@ Developer app backend switch:
 flutter run -d windows --dart-define=SHELL_CASE_GEOMETRY_BACKEND=worker --dart-define=SHELL_CASE_GEOMETRY_WORKER_EXECUTABLE=dart "--dart-define=SHELL_CASE_GEOMETRY_WORKER_ARGUMENTS=run|occt_worker/bin/occt_worker.dart"
 ```
 
+Bundled native OCCT app backend:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct
+```
+
+This builds the app with `SHELL_CASE_GEOMETRY_BACKEND=native_occt` and copies
+the worker bundle to `releases/latest/windows/occt_worker/native`.
+
 Normal app builds still default to mock geometry. The worker backend is selected
 only when explicitly configured.
 

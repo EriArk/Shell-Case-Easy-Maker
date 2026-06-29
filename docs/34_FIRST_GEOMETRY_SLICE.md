@@ -167,6 +167,18 @@ Normal builds use mock geometry. A developer can opt into a worker command with
 flutter run -d windows --dart-define=SHELL_CASE_GEOMETRY_BACKEND=worker --dart-define=SHELL_CASE_GEOMETRY_WORKER_EXECUTABLE=dart "--dart-define=SHELL_CASE_GEOMETRY_WORKER_ARGUMENTS=run|occt_worker/bin/occt_worker.dart"
 ```
 
+The app also has a native OCCT preset:
+
+```powershell
+flutter run -d windows --dart-define=SHELL_CASE_GEOMETRY_BACKEND=native_occt
+```
+
+For local manual builds, `tools/build_latest_windows.ps1 -NativeOcct` builds the
+app with that backend and bundles the native worker under
+`releases/latest/windows/occt_worker/native`. The factory resolves that worker
+relative to the app executable and falls back to mock if the bundled worker is
+missing.
+
 ## Generated Protocol Fixtures
 
 The example worker payloads are generated from typed Dart models instead of

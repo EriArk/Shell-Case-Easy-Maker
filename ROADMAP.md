@@ -83,6 +83,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M62 - Local OCCT Restore + Link Smoke
 - [x] M63 - First Native Rounded Enclosure Metrics
 - [x] M64 - First Native Preview Mesh
+- [x] M65 - Native OCCT App Backend Wiring
 
 ---
 
@@ -2783,3 +2784,49 @@ enclosure B-Rep while keeping the editable project semantic-only.
 - Optional developer poke: run
   `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build` and
   confirm `previewSmoke.ok` is `true`, with 800 vertices and 1060 triangles.
+
+---
+
+## M65 - Native OCCT App Backend Wiring
+
+### Goal
+Make the Flutter app able to select the local native OCCT worker as a bundled
+developer backend without hard-coding project-local absolute paths.
+
+### Tasks
+- [x] Add `GeometryBackendKind.nativeOcct` with wire value `native_occt`.
+- [x] Resolve bundled worker path relative to the app executable:
+      `occt_worker/native/occt_worker_native_occt.exe`.
+- [x] Fall back to mock geometry when the bundled native worker is missing.
+- [x] Allow explicit worker executable overrides for development.
+- [x] Add `tools/build_latest_windows.ps1 -NativeOcct`.
+- [x] Copy the full native worker release bundle beside the latest Windows app.
+- [x] Keep the default latest build on mock unless `-NativeOcct` is explicit.
+- [x] Add tests for backend resolution and build-script safety.
+
+### Done Criteria
+- `SHELL_CASE_GEOMETRY_BACKEND=native_occt` can create a
+  `WorkerGeometryService` when the bundled worker exists.
+- Missing bundled native worker falls back to `MockGeometryService`.
+- `tools\build_latest_windows.ps1 -NativeOcct` builds the app and copies
+  `occt_worker_native_occt.exe` plus adjacent DLLs under
+  `releases/latest/windows/occt_worker/native`.
+- The copied worker runs `--capabilities` from the release folder.
+- No native build output, release bundle, vcpkg tree, or OCCT DLL is committed.
+
+### Tests
+- `flutter test test\geometry_backend_test.dart test\build_latest_windows_script_test.dart --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `releases\latest\windows\occt_worker\native\occt_worker_native_occt.exe --capabilities`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `git diff --check`
+
+### Poke Checklist
+- Open
+  `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- Confirm the viewport label shows `occt_worker_native_occt` instead of `mock`.
+- The drawn center model is still the existing schematic viewport until the next
+  rendering slice consumes native mesh vertices.

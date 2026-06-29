@@ -42,6 +42,97 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-29 - M65 Native OCCT app backend wiring
+
+### Goal
+Make the Flutter app able to select the native OCCT worker as a bundled
+developer backend without hard-coding project-local absolute paths.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/geometry/geometry_backend.dart`, `lib/geometry/geometry_service.dart`,
+`lib/ui/shell/workspace_shell.dart`, `tools/build_latest_windows.ps1`,
+`test/geometry_backend_test.dart`, `test/geometry_worker_service_test.dart`,
+`docs/03_ARCHITECTURE_OVERVIEW.md`, `docs/34_FIRST_GEOMETRY_SLICE.md`,
+`README.md`, and `occt_worker/README.md`.
+
+### Changes made
+- `lib/geometry/geometry_backend.dart`:
+  - Added `GeometryBackendKind.nativeOcct` with wire value `native_occt`.
+  - Resolves the bundled native worker beside the app executable at
+    `occt_worker/native/occt_worker_native_occt.exe`.
+  - Falls back to `MockGeometryService` when the bundled worker is missing.
+  - Keeps explicit executable overrides available for development.
+- `tools/build_latest_windows.ps1`:
+  - Added explicit `-NativeOcct` and `-SkipNativeOcctBuild` switches.
+  - Builds Flutter with `SHELL_CASE_GEOMETRY_BACKEND=native_occt` when
+    requested.
+  - Copies the native worker release bundle under
+    `releases/latest/windows/occt_worker/native`.
+- Tests:
+  - Added backend resolution coverage for `native_occt`.
+  - Added build-script safety coverage for native worker bundling.
+- Docs/tasks/roadmap:
+  - Recorded the `native_occt` backend preset and explicit latest build flow.
+
+### Tests run
+- `flutter test test\geometry_backend_test.dart test\build_latest_windows_script_test.dart --reporter compact`:
+  - Passed, 8 tests after fixing a Dart raw-string expectation.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed; built latest Windows app with the native OCCT backend define and
+    copied the worker bundle.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `Test-Path releases\latest\windows\occt_worker\native\occt_worker_native_occt.exe`:
+  - Passed.
+- `releases\latest\windows\occt_worker\native\occt_worker_native_occt.exe --capabilities`:
+  - Passed; copied worker reports `status=preview_mesh_smoke` and OCCT
+    `8.0.0`.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed, 182 tests.
+
+### Validation
+- Geometry checked?
+  - The copied native worker can run from the latest release folder and report
+    capabilities. The app still needs a future rendering slice to draw native
+    mesh vertices in the viewport.
+- Serialization checked?
+  - Backend setting parsing and process-client boundary remain covered by the
+    existing geometry tests.
+- UI checked?
+  - Full widget suite passed. Manual poke is now meaningful: open the latest exe
+    and confirm the viewport label reports `occt_worker_native_occt`.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: The viewport painter still draws the schematic mock body even when the
+  backend is native OCCT.
+  - Severity: Expected.
+  - Next action: Add a viewport rendering path that consumes `PreviewMesh`
+    vertices/triangles.
+- Issue: Semantic surface mapping for native preview mesh is still pending.
+  - Severity: Expected.
+  - Next action: Add stable semantic face mapping later without exposing OCCT
+    topology IDs.
+
+### Next step
+Commit and push M65, then continue toward rendering native preview mesh
+vertices in the Flutter viewport.
+
+### Notes for future Codex sessions
+The default `tools\build_latest_windows.ps1` path stays mock. Use
+`tools\build_latest_windows.ps1 -NativeOcct` when the latest manual exe should
+launch against the bundled native worker. Do not commit `releases/`, `build/`,
+`external/`, `occt_worker/native/vcpkg_installed/`, or copied OCCT DLLs.
+
 ## 2026-06-29 - M64 First native preview mesh
 
 ### Goal

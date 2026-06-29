@@ -144,6 +144,17 @@ Build the latest manual Windows bundle with:
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/build_latest_windows.ps1
 ```
 
+Build the latest manual Windows bundle wired to the bundled native OCCT worker
+with:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/build_latest_windows.ps1 -NativeOcct
+```
+
+That form copies the native worker bundle to
+`releases/latest/windows/occt_worker/native` and builds the app with
+`SHELL_CASE_GEOMETRY_BACKEND=native_occt`.
+
 Open the latest local build at:
 
 ```text

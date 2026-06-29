@@ -215,16 +215,17 @@ The first OCCT dependency decision is documented in
 stub stay independent of OCCT until `tools/check_occt_windows_readiness.ps1`
 finds a local `OpenCASCADEConfig.cmake`.
 
-`occt_worker_native_occt` is the separate opt-in OCCT link-smoke target. It is
-configured with `SHELL_CASE_ENABLE_OCCT=ON` through
-`tools/build_occt_worker_occt.ps1` and should remain separate from
-`occt_worker_native_stub`. Its vcpkg manifest is also opt-in: the build script
-uses `occt_worker/native/vcpkg.json` only when `-AllowVcpkgInstall` is provided.
-`tools/bootstrap_vcpkg_windows.ps1` can create a repo-local `external/vcpkg`
-checkout, and the readiness checker auto-detects that path without requiring a
-global `VCPKG_ROOT`. Manifest-mode installed packages live under ignored
-`occt_worker/native/vcpkg_installed`; they are native dependency output, not
-project state.
+`occt_worker_native_occt` is the separate opt-in OCCT target. It is configured
+with `SHELL_CASE_ENABLE_OCCT=ON` through `tools/build_occt_worker_occt.ps1` and
+should remain separate from `occt_worker_native_stub`. It now builds the sample
+rounded enclosure B-Rep, emits disposable preview mesh data, and still keeps
+generated B-Rep/mesh out of editable project state. Its vcpkg manifest is also
+opt-in: the build script uses `occt_worker/native/vcpkg.json` only when
+`-AllowVcpkgInstall` is provided. `tools/bootstrap_vcpkg_windows.ps1` can create
+a repo-local `external/vcpkg` checkout, and the readiness checker auto-detects
+that path without requiring a global `VCPKG_ROOT`. Manifest-mode installed
+packages live under ignored `occt_worker/native/vcpkg_installed`; they are
+native dependency output, not project state.
 
 ## Worker Process Client
 
@@ -286,13 +287,25 @@ Compile-time developer switch:
 flutter run -d windows --dart-define=SHELL_CASE_GEOMETRY_BACKEND=worker --dart-define=SHELL_CASE_GEOMETRY_WORKER_EXECUTABLE=dart "--dart-define=SHELL_CASE_GEOMETRY_WORKER_ARGUMENTS=run|occt_worker/bin/occt_worker.dart"
 ```
 
+Bundled native OCCT worker preset:
+
+```powershell
+flutter run -d windows --dart-define=SHELL_CASE_GEOMETRY_BACKEND=native_occt
+```
+
+For local release bundles, `tools/build_latest_windows.ps1 -NativeOcct` builds
+the app with that backend and copies the native worker bundle beside the app at
+`occt_worker/native/occt_worker_native_occt.exe`.
+
 Supported values:
-- `SHELL_CASE_GEOMETRY_BACKEND`: `mock` or `worker`.
+- `SHELL_CASE_GEOMETRY_BACKEND`: `mock`, `worker`, or `native_occt`.
 - `SHELL_CASE_GEOMETRY_WORKER_EXECUTABLE`: executable path/name.
 - `SHELL_CASE_GEOMETRY_WORKER_ARGUMENTS`: pipe-separated argument list.
 - `SHELL_CASE_GEOMETRY_WORKER_WORKING_DIRECTORY`: optional working directory.
 - `SHELL_CASE_GEOMETRY_WORKER_TIMEOUT_MS`: optional timeout, default `30000`.
 
 If `worker` is requested without an executable, the factory falls back to the
-mock backend. Widgets still receive only `GeometryService`; they do not know
-about process clients or native worker command details.
+mock backend. If `native_occt` is requested without an executable override, the
+factory looks for a bundled worker next to the app executable and falls back to
+mock when it is missing. Widgets still receive only `GeometryService`; they do
+not know about process clients or native worker command details.
