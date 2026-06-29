@@ -67,6 +67,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M46 - Geometry Operation Plan
 - [x] M47 - Mock Worker Protocol Harness
 - [x] M48 - Worker Process Client
+- [x] M49 - Worker GeometryService Adapter
 
 ---
 
@@ -2022,5 +2023,52 @@ failures before the real native `occt_worker` exists.
 - Optional developer poke: run `dart run tool\mock_geometry_worker_client_smoke.dart`
   and confirm status is `ok`, backend is `mock`, `featureIntents` is `2`, and
   `operationCount` is `2`.
+- Launch latest Windows app and confirm the default project still opens with a
+  clean mock preview and validation status.
+
+---
+
+## M49 - Worker GeometryService Adapter
+
+### Goal
+Add a `GeometryService` implementation that uses the worker process client for
+preview/build requests while keeping semantic validation and UI selection
+metadata local and testable.
+
+### Tasks
+- [x] Add `WorkerGeometryService`.
+- [x] Route `buildGeometry` through `GeometryWorkerProcessClient`.
+- [x] Route `generatePreview` through a worker preview-mesh request.
+- [x] Keep semantic selectable surfaces local and reusable by mock and worker
+      services.
+- [x] Keep semantic validation local through `ProjectSemanticValidator`.
+- [x] Add `tool/mock_worker_geometry_service_smoke.dart` for the full adapter
+      path against the mock worker process.
+- [x] Add unit tests for build routing, preview stats, worker error stats, and
+      local validation.
+
+### Done Criteria
+- The app has a concrete worker-backed `GeometryService` adapter.
+- The default app shell still uses `MockGeometryService`; no user-facing runtime
+  switch is enabled accidentally.
+- Worker preview requests include semantic project data and feature intents.
+- Process diagnostics stay response/preview metadata and do not become editable
+  project state.
+
+### Tests
+- `flutter test test\geometry_worker_service_test.dart`
+- `dart run tool\mock_worker_geometry_service_smoke.dart`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- No meaningful manual UI poke for this chunk; the default app still uses the
+  in-process mock backend.
+- Optional developer poke: run `dart run tool\mock_worker_geometry_service_smoke.dart`
+  and confirm backend is `mock`, response status is `ok`, `featureIntents` is
+  `2`, `operationCount` is `2`, and `surfaceCount` is `3`.
 - Launch latest Windows app and confirm the default project still opens with a
   clean mock preview and validation status.

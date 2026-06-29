@@ -183,3 +183,28 @@ Smoke command:
 ```powershell
 dart run tool\mock_geometry_worker_client_smoke.dart
 ```
+
+## Worker GeometryService Adapter
+
+`WorkerGeometryService` implements the same app-facing `GeometryService`
+contract as the in-process mock service, but routes preview/build requests
+through `GeometryWorkerProcessClient`.
+
+Current split:
+- `buildGeometry(request)` goes to the worker process client.
+- `generatePreview(project)` builds a preview-mesh request and reports response
+  stats such as backend, status, preview vertex/triangle counts, feature
+  intents, and operation count.
+- `validateGeometry(project)` stays semantic/local through
+  `ProjectSemanticValidator`.
+- selectable surfaces stay semantic/local through `defaultSelectableSurfaces`.
+
+The default app shell still instantiates `MockGeometryService`. The worker
+adapter exists so a future runtime switch or native worker can be introduced
+without changing UI widgets.
+
+Adapter smoke command:
+
+```powershell
+dart run tool\mock_worker_geometry_service_smoke.dart
+```

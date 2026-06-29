@@ -102,6 +102,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Add `occt_worker` protocol skeleton.
 - [x] Add first-pass mock worker protocol CLI harness.
 - [x] Add first-pass worker process client.
+- [x] Add first-pass worker-backed `GeometryService` adapter.
 - [ ] Create `occt_worker` CLI or local service.
 - [x] Define JSON protocol for geometry requests.
 - [x] Add feature/group geometry intents to preview requests.

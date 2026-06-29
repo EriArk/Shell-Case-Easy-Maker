@@ -42,6 +42,95 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-29 - M49 Worker GeometryService adapter
+
+### Goal
+Add an app-facing `GeometryService` adapter over the worker process client
+without switching the default Flutter shell away from the stable mock backend.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `lib/geometry/geometry_service.dart`,
+`lib/geometry/geometry_worker_process_client.dart`,
+`test/geometry_worker_process_client_test.dart`,
+`docs/03_ARCHITECTURE_OVERVIEW.md`, `docs/04_GEOMETRY_ENGINE_OCCT.md`,
+`docs/34_FIRST_GEOMETRY_SLICE.md`, and `occt_worker/README.md`.
+
+### Changes made
+- `lib/geometry/geometry_service.dart`:
+  - Added reusable `defaultSelectableSurfaces(project)`.
+  - Updated `MockGeometryService` to use the shared semantic surface catalog.
+  - Added `WorkerGeometryService`.
+  - Routes `buildGeometry` through `GeometryWorkerProcessClient`.
+  - Routes `generatePreview` through a preview-mesh worker request and reports
+    backend/status/preview/intent/operation stats.
+  - Keeps validation local through `ProjectSemanticValidator`.
+- `test/geometry_worker_service_test.dart`:
+  - Added coverage for build routing, preview stats, worker error stats, and
+    local semantic validation.
+- `tool/mock_worker_geometry_service_smoke.dart`:
+  - Added a developer smoke command for the full
+    `WorkerGeometryService -> process client -> mock worker` path.
+- Docs/tasks/roadmap:
+  - Recorded M49 behavior, current limitations, smoke command, and poke
+    checklist.
+
+### Tests run
+- `flutter test test\geometry_worker_service_test.dart`:
+  - Passed, 4 tests.
+- `dart run tool\mock_worker_geometry_service_smoke.dart`:
+  - Passed; `exit=0`, `backend=mock`, `responseStatus=ok`,
+    `featureIntents=2`, `operationCount=2`, `surfaceCount=3`.
+- `dart format --output=none --set-exit-if-changed lib test tool`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 144 tests.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Adapter path only; it still uses mock geometry in smoke tests and does not
+    introduce generated B-Rep, editable mesh, STL, or OCCT topology.
+- Serialization checked?
+  - Worker service tests verify preview requests carry feature intents through
+    process payloads.
+- UI checked?
+  - Full widget suite passes; the default app shell still uses
+    `MockGeometryService`.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: `WorkerGeometryService` is not the default runtime backend.
+  - Severity: Expected.
+  - Next action: add a deliberate developer/backend switch only when useful.
+- Issue: `WorkerGeometryService` uses semantic/local validation and selectable
+  surface IDs until native worker validation/surface mapping exists.
+  - Severity: Expected.
+  - Next action: replace only the generated-geometry side first, keeping stable
+    semantic IDs at the UI boundary.
+
+### Next step
+Commit and push M49, then continue toward either a deliberate backend switch or
+the first native `occt_worker` executable slice.
+
+### Notes for future Codex sessions
+`WorkerGeometryService` is the intended app-facing bridge for native geometry.
+Do not make widgets call process clients directly; keep all backend switching
+behind `GeometryService`.
+
+---
+
 ## 2026-06-29 - M48 Worker process client
 
 ### Goal

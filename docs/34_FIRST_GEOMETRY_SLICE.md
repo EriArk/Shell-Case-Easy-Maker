@@ -59,6 +59,13 @@ dart run tool\mock_geometry_worker_client_smoke.dart
 The process client captures stdout/stderr, preserves worker error responses,
 and normalizes process failures into `GeometryResponse` issues.
 
+`WorkerGeometryService` wraps the process client behind the app-facing
+`GeometryService` interface. It can be smoke-tested against the mock worker:
+
+```powershell
+dart run tool\mock_worker_geometry_service_smoke.dart
+```
+
 ## Response
 
 `GeometryResponse` contains:
@@ -116,6 +123,8 @@ Expected sample dimensions:
   mock geometry.
 - `tool/mock_geometry_worker_client_smoke.dart` runs that mock harness through
   the process client, not through native OCCT.
+- `tool/mock_worker_geometry_service_smoke.dart` runs the worker-backed
+  `GeometryService` adapter through the same mock worker process.
 - Mock backend returns a deterministic cuboid preview mesh.
 - Mock backend validation now runs first-pass semantic checks for enclosure
   dimensions, wall thickness, USB-C/glass feature sizes, component placement

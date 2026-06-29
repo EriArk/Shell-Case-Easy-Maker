@@ -126,6 +126,17 @@ that do not return an error response. This keeps Flutter isolated from native
 worker crashes and prevents native process details from becoming editable
 project data.
 
+## Worker-backed GeometryService
+
+`WorkerGeometryService` is the replaceable service adapter that UI code can use
+later instead of `MockGeometryService`. It speaks only the public geometry
+protocol and process-client API; it does not expose native OCCT types, topology
+IDs, process stderr, or generated mesh as editable project state.
+
+Until native geometry validation exists, semantic validation remains local in
+Dart. Selectable surface IDs are also semantic and local, not derived from
+preview triangle IDs.
+
 ## Preview mesh
 
 Preview mesh is generated from B-Rep with adjustable quality:

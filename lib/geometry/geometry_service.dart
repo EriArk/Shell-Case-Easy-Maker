@@ -3,6 +3,7 @@ import '../validation/project_semantic_validator.dart';
 import '../validation/validation_result.dart';
 import 'geometry_operation_plan.dart';
 import 'geometry_protocol.dart';
+import 'geometry_worker_process_client.dart';
 
 export 'geometry_operation_plan.dart';
 export 'geometry_protocol.dart';
@@ -38,6 +39,20 @@ class SelectableSurface {
 
   final String id;
   final String label;
+}
+
+List<SelectableSurface> defaultSelectableSurfaces(ProjectModel project) {
+  return const [
+    SelectableSurface(id: 'main_enclosure.top_lid.outer', label: 'Top lid'),
+    SelectableSurface(
+      id: 'main_enclosure.front_wall.outer',
+      label: 'Front wall',
+    ),
+    SelectableSurface(
+      id: 'main_enclosure.bottom_inside',
+      label: 'Bottom inside',
+    ),
+  ];
 }
 
 class MockGeometryService implements GeometryService {
@@ -109,19 +124,7 @@ class MockGeometryService implements GeometryService {
   @override
   Future<List<SelectableSurface>> getSelectableSurfaces(
     ProjectModel project,
-  ) async {
-    return const [
-      SelectableSurface(id: 'main_enclosure.top_lid.outer', label: 'Top lid'),
-      SelectableSurface(
-        id: 'main_enclosure.front_wall.outer',
-        label: 'Front wall',
-      ),
-      SelectableSurface(
-        id: 'main_enclosure.bottom_inside',
-        label: 'Bottom inside',
-      ),
-    ];
-  }
+  ) async => defaultSelectableSurfaces(project);
 
   @override
   Future<ValidationReport> validateGeometry(ProjectModel project) async {
@@ -224,6 +227,56 @@ class MockGeometryService implements GeometryService {
         ),
       ],
     );
+  }
+}
+
+class WorkerGeometryService implements GeometryService {
+  const WorkerGeometryService({required this.workerClient});
+
+  final GeometryWorkerProcessClient workerClient;
+
+  @override
+  Future<GeometryResponse> buildGeometry(GeometryRequest request) {
+    return workerClient.buildGeometry(request);
+  }
+
+  @override
+  Future<GeometryPreview> generatePreview(ProjectModel project) async {
+    final request = GeometryRequest.previewMesh(
+      project,
+      requestId: 'worker_preview',
+    );
+    final response = await buildGeometry(request);
+    final surfaces = await getSelectableSurfaces(project);
+
+    return GeometryPreview(
+      backendLabel: response.backend,
+      projectName: project.projectName,
+      surfaces: surfaces,
+      stats: {
+        'bodies': project.bodies.length,
+        'features': project.features.length,
+        'featureGroups': project.featureGroups.length,
+        'source': 'worker_process',
+        'responseStatus': response.status.wireName,
+        'previewVertices': response.previewMesh?.vertexCount ?? 0,
+        'previewTriangles': response.previewMesh?.triangleCount ?? 0,
+        'issueCount': response.issues.length,
+        'featureIntents': request.featureIntents.length,
+        if (response.metrics.containsKey('operationCount'))
+          'operationCount': response.metrics['operationCount'],
+      },
+    );
+  }
+
+  @override
+  Future<List<SelectableSurface>> getSelectableSurfaces(ProjectModel project) {
+    return Future.value(defaultSelectableSurfaces(project));
+  }
+
+  @override
+  Future<ValidationReport> validateGeometry(ProjectModel project) async {
+    return ProjectSemanticValidator.validate(project);
   }
 }
 
