@@ -28,6 +28,23 @@ Use human UI labels:
 
 ## Creation modes
 
+### Manual glass recess
+
+The first implementation wires `glass.create_recess` to the left rail `Стекло`
+command.
+
+When a semantic surface is selected, the command creates a `SemanticFeature`
+with:
+- `type: glass_recess`,
+- `operation: recess`,
+- `targetSurface` from the active semantic surface,
+- parameters for width, height, recess depth, ledge width, corner radius,
+  insert thickness, and clearance profile.
+
+This is still semantic project state only. It does not store generated mesh,
+B-Rep, DXF contours, or OCCT topology. Later geometry/export work should consume
+this feature and produce B-Rep, preview mesh, STL/STEP, and DXF outputs.
+
 ### From feature
 
 Select screen/window/button group and create panel around it.

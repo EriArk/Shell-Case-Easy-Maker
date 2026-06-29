@@ -1310,3 +1310,81 @@ Run full validation, refresh latest Windows bundle, commit, and push M14.
 ### Notes for future Codex sessions
 Button groups must remain editable feature groups. Do not flatten them into
 unrelated `SemanticFeature` holes unless the user explicitly detaches a pattern.
+
+---
+
+## 2026-06-28 — M15 Glass Recess Command
+
+### Goal
+Make the next surface-based rail command create a semantic glass/insert recess
+on the selected enclosure face.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`,
+`docs/13_PANEL_RECESS_INSERT_GLASS_SYSTEM.md`,
+`docs/31_COMMANDS_AND_UNDO.md`, `docs/32_USABLE_SHELL.md`,
+current workspace shell, selection resolver, and widget/resolver tests.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Wired `glass.create_recess` from the left rail only when a semantic surface
+    is selected.
+  - Added a compact glass recess dialog for window size, recess depth, ledge
+    width, corner radius, insert thickness, and clearance profile.
+  - Creates a semantic `glass_recess` feature targeted at the active surface.
+  - Commits the new recess through semantic undo history and selects it.
+- `lib/selection/project_selection_resolver.dart`:
+  - Added a human label for `glass_recess` features.
+- `test/project_selection_resolver_test.dart` and `test/widget_test.dart`:
+  - Added coverage for the display label, disabled-without-surface state,
+    create, cancel, and undo behavior.
+- `ROADMAP.md`, `TASKS.md`, `docs/05_PROJECT_FILE_FORMAT.md`,
+  `docs/13_PANEL_RECESS_INSERT_GLASS_SYSTEM.md`,
+  `docs/31_COMMANDS_AND_UNDO.md`, and `docs/32_USABLE_SHELL.md`:
+  - Documented M15 and the first glass recess command.
+
+### Tests run
+- `flutter test test\project_selection_resolver_test.dart test\widget_test.dart`:
+  - Passed, 26 targeted tests.
+- `flutter pub get`:
+  - Passed; 4 packages still have newer incompatible versions.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 72 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed `releases/latest/windows/shell_case_easy_maker.exe`.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Mock preview refreshes after the feature edit; generated geometry remains a
+    future output.
+- Serialization checked?
+  - Existing semantic feature serialization path is reused.
+- UI checked?
+  - Widget tests cover selected surface enablement, create, cancel, and undo.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Glass recess placement is selected-surface plus dialog dimensions only,
+  without face-local picking/snapping.
+  - Severity: Expected for this slice.
+  - Next action: add face-local placement controls after viewport picking is
+    ready.
+- Issue: DXF/glass contour export is not generated yet.
+  - Severity: Expected.
+  - Next action: feed `glass_recess` features into geometry/export pipeline
+    later.
+
+### Next step
+Run full validation, refresh latest Windows bundle, commit, and push M15.
+
+### Notes for future Codex sessions
+Glass/insert recesses are semantic features. Keep DXF contours, B-Rep, and mesh
+outputs generated from this semantic source rather than storing them in the
+editable project file.

@@ -385,6 +385,71 @@ void main() {
     expect(tester.widget<IconButton>(undoButton).onPressed, isNull);
   });
 
+  testWidgets('glass recess rail command commits through undo history', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const CaseMakerApp());
+    await tester.pumpAndSettle();
+
+    final glassButton = find.byKey(
+      const ValueKey('rail-command-${CommandIds.createGlassRecess}'),
+    );
+    final undoButton = find.byKey(
+      const ValueKey('toolbar-command-${CommandIds.undo}'),
+    );
+
+    expect(tester.widget<IconButton>(glassButton).onPressed, isNull);
+
+    await tester.tap(find.text('Top lid').first);
+    await tester.pumpAndSettle();
+
+    expect(tester.widget<IconButton>(glassButton).onPressed, isNotNull);
+
+    await tester.tap(glassButton);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('glass-recess-confirm')), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('glass-recess-width')),
+      '50',
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('glass-recess-confirm')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('glass_recess_1'), findsWidgets);
+    expect(find.text('50.0'), findsOneWidget);
+    expect(tester.widget<IconButton>(undoButton).onPressed, isNotNull);
+
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('glass_recess_1'), findsNothing);
+  });
+
+  testWidgets('glass recess rail command can be cancelled', (tester) async {
+    await tester.pumpWidget(const CaseMakerApp());
+    await tester.pumpAndSettle();
+
+    final glassButton = find.byKey(
+      const ValueKey('rail-command-${CommandIds.createGlassRecess}'),
+    );
+    final undoButton = find.byKey(
+      const ValueKey('toolbar-command-${CommandIds.undo}'),
+    );
+
+    await tester.tap(find.text('Top lid').first);
+    await tester.pumpAndSettle();
+    await tester.tap(glassButton);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('glass-recess-cancel')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('glass_recess_1'), findsNothing);
+    expect(tester.widget<IconButton>(undoButton).onPressed, isNull);
+  });
+
   testWidgets('unimplemented rail commands are visible but disabled', (
     tester,
   ) async {

@@ -86,6 +86,11 @@ available only when a semantic surface is selected. The command creates a
 undoable project snapshot. Repeated buttons are not flattened into independent
 features.
 
+`glass.create_recess` is the first glass/insert command. It is available only
+when a semantic surface is selected. The command creates a `glass_recess`
+`SemanticFeature` targeted at that surface and commits it as one undoable
+project snapshot.
+
 Undo/redo now validates the active selection against the restored project. If
 the selected semantic object no longer exists after undo, the shell falls back
 to workspace selection instead of keeping a stale object ID.
@@ -105,6 +110,6 @@ visible and disabled, instead of running empty callbacks.
 - There is still no central command dispatcher; the shell has a small explicit
   action map for the first generator commands.
 - Undo history is wired for first enclosure parameter edits and first enclosure
-  creation/component placement/USB-C cutout/button group only.
+  creation/component placement/USB-C cutout/button group/glass recess only.
 - Selection and active surface context are available from the shell selection
   model, but most editing commands are not wired yet.

@@ -90,7 +90,7 @@ The top toolbar now wires project open/save commands:
 
 The left tool rail now executes the first semantic generator commands:
 `enclosure.create`, `component.place`, `port.add_usb_c`, and
-`button.create_group`.
+`button.create_group`, and `glass.create_recess`.
 
 Clicking `Корпус` opens a compact create-enclosure dialog using the same rounded
 enclosure parameter schema as the inspector. Confirming the dialog updates the
@@ -114,6 +114,11 @@ semantic `FeatureGroup` with editable layout/count/diameter/spacing data. The
 group remains one semantic object rather than becoming several unrelated
 button holes.
 
+Clicking `Стекло` is enabled only after selecting a semantic surface. The
+command opens a compact glass recess dialog and appends a semantic
+`glass_recess` feature with window size, recess depth, ledge width, radius,
+insert thickness, and clearance profile data.
+
 Future rail tools remain visible to show the intended workflow, but they are
 disabled until their semantic command behavior is implemented and tested.
 
@@ -121,7 +126,7 @@ disabled until their semantic command behavior is implemented and tested.
 
 - Only the first enclosure parameter bank, first create-enclosure command,
   first component placement command, first USB-C cutout command, and first
-  button group command edit project state.
+  button group/glass recess commands edit project state.
 - Viewport selection is still mocked and schematic, though direct hit testing
   already returns semantic IDs.
 - Component placement still uses typed dialog values rather than viewport
@@ -130,6 +135,8 @@ disabled until their semantic command behavior is implemented and tested.
   than face-local picking/snapping.
 - Button group placement still uses centered dialog defaults rather than
   face-local picking/snapping or generated item previews.
+- Glass recess placement still uses selected surface and dialog dimensions
+  rather than face-local picking/snapping.
 - Undo history is connected only to enclosure parameter edits, first enclosure
   creation, first component placement, first USB-C cutout, and first button
-  group.
+  group/glass recess commands.

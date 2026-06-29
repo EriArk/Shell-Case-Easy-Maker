@@ -58,6 +58,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] First executable component placement command.
 - [x] First executable surface-based USB-C command.
 - [x] First executable surface-based button group command.
+- [x] First executable surface-based glass recess command.
 
 ## Phase 3 — Viewport MVP
 
@@ -168,6 +169,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 
 ## Phase 11 — Glass, inserts, panel recesses
 
+- [x] First-pass manual glass recess command.
 - [ ] Recess from screen/window feature.
 - [ ] Free recessed panel.
 - [ ] Insert/glass definition.

@@ -33,6 +33,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M12 — Place Component Command
 - [x] M13 — USB-C Cutout Command
 - [x] M14 — Button Group Command
+- [x] M15 — Glass Recess Command
 
 ---
 
@@ -558,3 +559,43 @@ pattern group instead of flattening repeated buttons into independent holes.
 - Change count to `6` and click `Создать`.
 - Confirm `button_group_1` appears in the feature list/inspector.
 - Click undo and confirm the new button group disappears.
+
+---
+
+## M15 — Glass Recess Command
+
+### Goal
+Make the next surface-based generator command create a semantic glass/insert
+recess on the selected enclosure face.
+
+### Tasks
+- [x] Wire `glass.create_recess` from the left rail only when a surface is
+      selected.
+- [x] Add a compact glass recess dialog for width, height, depth, ledge, radius,
+      insert thickness, and clearance profile.
+- [x] Store the result as a `SemanticFeature` with `type: glass_recess`.
+- [x] Commit the new recess through semantic undo history and select it.
+- [x] Add a human inspector label for glass recess features.
+- [x] Add widget/resolver tests for disabled state, create, cancel, undo, and
+      display label.
+
+### Done Criteria
+- `Стекло` stays disabled without an active surface.
+- Selecting `Top lid` enables `Стекло`.
+- Confirming the dialog appends a semantic `glass_recess` feature.
+- Canceling the dialog makes no project change and creates no undo entry.
+- Undo removes the new recess and leaves selection valid.
+
+### Tests
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Select `Top lid` in the project browser.
+- Click `Стекло` in the left rail.
+- Change width to `50` and click `Создать`.
+- Confirm `glass_recess_1` appears in the feature list/inspector.
+- Click undo and confirm the new recess disappears.

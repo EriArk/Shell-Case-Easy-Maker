@@ -271,6 +271,7 @@ String _formatSize(List<double> values) {
 String _humanizeFeatureType(String type) {
   return switch (type) {
     'usb_c_cutout' => 'USB-C',
+    'glass_recess' => 'Посадка под стекло',
     'button_group' => 'Группа кнопок',
     _ => type.replaceAll('_', ' '),
   };

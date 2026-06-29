@@ -115,6 +115,8 @@ Current behavior:
   at a selected semantic surface,
 - the `Кнопки` rail command can append semantic `button_group` feature groups
   with editable pattern and item prototype data,
+- the `Стекло` rail command can append semantic `glass_recess` features targeted
+  at a selected semantic surface,
 - generated previews are refreshed from the loaded semantic model.
 
 Current limitations:

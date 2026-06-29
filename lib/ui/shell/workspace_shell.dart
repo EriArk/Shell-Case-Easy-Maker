@@ -188,6 +188,12 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                 _runCreateButtonGroupCommand(_selection);
               }
             : null,
+      CommandIds.createGlassRecess =>
+        _selection.kind == SelectionKind.surface
+            ? () {
+                _runCreateGlassRecessCommand(_selection);
+              }
+            : null,
       _ => null,
     };
   }
@@ -299,6 +305,36 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       label: 'Создать группу кнопок',
       nextState: _project.replaceFeatureGroup(group),
       selection: SelectionModel.featureGroup(group.id),
+    );
+  }
+
+  Future<void> _runCreateGlassRecessCommand(
+    SelectionModel surfaceSelection,
+  ) async {
+    final targetSurfaceId = surfaceSelection.id;
+    if (surfaceSelection.kind != SelectionKind.surface ||
+        targetSurfaceId == null) {
+      return;
+    }
+
+    final feature = await showDialog<SemanticFeature>(
+      context: context,
+      builder: (context) => _GlassRecessDialog(
+        initialFeature: _defaultGlassRecessFeature(
+          id: _nextFeatureId(_project, 'glass_recess'),
+          targetSurfaceId: targetSurfaceId,
+        ),
+      ),
+    );
+    if (!mounted || feature == null) {
+      return;
+    }
+
+    _commitProjectEdit(
+      id: CommandIds.createGlassRecess,
+      label: 'Посадка под стекло',
+      nextState: _project.replaceFeature(feature),
+      selection: SelectionModel.feature(feature.id),
     );
   }
 
@@ -687,6 +723,27 @@ SemanticFeature _defaultUsbCCutoutFeature({
       'width': 10.5,
       'height': 4.2,
       'cornerRadius': 1.0,
+      'clearanceProfile': 'fdm_normal',
+    },
+  );
+}
+
+SemanticFeature _defaultGlassRecessFeature({
+  required String id,
+  required String targetSurfaceId,
+}) {
+  return SemanticFeature(
+    id: id,
+    type: 'glass_recess',
+    targetSurface: targetSurfaceId,
+    operation: 'recess',
+    parameters: const {
+      'width': 42.0,
+      'height': 24.0,
+      'recessDepth': 1.2,
+      'ledgeWidth': 1.5,
+      'cornerRadius': 2.0,
+      'insertThickness': 1.0,
       'clearanceProfile': 'fdm_normal',
     },
   );
@@ -2289,6 +2346,192 @@ class _ButtonModeOption {
 
   final String id;
   final String label;
+}
+
+class _GlassRecessDialog extends StatefulWidget {
+  const _GlassRecessDialog({required this.initialFeature});
+
+  final SemanticFeature initialFeature;
+
+  @override
+  State<_GlassRecessDialog> createState() => _GlassRecessDialogState();
+}
+
+class _GlassRecessDialogState extends State<_GlassRecessDialog> {
+  late double _width;
+  late double _height;
+  late double _recessDepth;
+  late double _ledgeWidth;
+  late double _cornerRadius;
+  late double _insertThickness;
+  late String _clearanceProfile;
+
+  static const _profiles = [
+    _ClearanceProfileOption('fdm_normal', 'FDM обычный'),
+    _ClearanceProfileOption('fdm_loose', 'FDM свободный'),
+    _ClearanceProfileOption('resin_normal', 'Resin обычный'),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    final parameters = widget.initialFeature.parameters;
+    _width = _featureDouble(parameters, 'width', 42);
+    _height = _featureDouble(parameters, 'height', 24);
+    _recessDepth = _featureDouble(parameters, 'recessDepth', 1.2);
+    _ledgeWidth = _featureDouble(parameters, 'ledgeWidth', 1.5);
+    _cornerRadius = _featureDouble(parameters, 'cornerRadius', 2);
+    _insertThickness = _featureDouble(parameters, 'insertThickness', 1);
+    _clearanceProfile = _featureString(
+      parameters,
+      'clearanceProfile',
+      'fdm_normal',
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Посадка под стекло'),
+      content: SizedBox(
+        width: 340,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: _DialogNumberField(
+                      key: const ValueKey('glass-recess-width'),
+                      label: 'Ширина',
+                      value: _width,
+                      onChanged: (value) => setState(() => _width = value),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _DialogNumberField(
+                      key: const ValueKey('glass-recess-height'),
+                      label: 'Высота',
+                      value: _height,
+                      onChanged: (value) => setState(() => _height = value),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: _DialogNumberField(
+                      key: const ValueKey('glass-recess-depth'),
+                      label: 'Глубина',
+                      value: _recessDepth,
+                      onChanged: (value) =>
+                          setState(() => _recessDepth = value),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _DialogNumberField(
+                      key: const ValueKey('glass-recess-ledge'),
+                      label: 'Полка',
+                      value: _ledgeWidth,
+                      onChanged: (value) => setState(() => _ledgeWidth = value),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: _DialogNumberField(
+                      key: const ValueKey('glass-recess-radius'),
+                      label: 'Радиус',
+                      value: _cornerRadius,
+                      onChanged: (value) =>
+                          setState(() => _cornerRadius = value),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _DialogNumberField(
+                      key: const ValueKey('glass-recess-thickness'),
+                      label: 'Стекло',
+                      value: _insertThickness,
+                      onChanged: (value) =>
+                          setState(() => _insertThickness = value),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                key: const ValueKey('glass-recess-clearance-profile'),
+                initialValue: _clearanceProfile,
+                isExpanded: true,
+                items: [
+                  for (final profile in _profiles)
+                    DropdownMenuItem(
+                      value: profile.id,
+                      child: Text(profile.label),
+                    ),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _clearanceProfile = value;
+                    });
+                  }
+                },
+                decoration: InputDecoration(
+                  labelText: 'Зазор',
+                  isDense: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 9,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          key: const ValueKey('glass-recess-cancel'),
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Отмена'),
+        ),
+        FilledButton(
+          key: const ValueKey('glass-recess-confirm'),
+          onPressed: () => Navigator.of(context).pop(
+            SemanticFeature(
+              id: widget.initialFeature.id,
+              type: widget.initialFeature.type,
+              targetSurface: widget.initialFeature.targetSurface,
+              operation: widget.initialFeature.operation,
+              parameters: {
+                'width': _clampDouble(_width, 8, 180),
+                'height': _clampDouble(_height, 8, 140),
+                'recessDepth': _clampDouble(_recessDepth, 0.2, 8),
+                'ledgeWidth': _clampDouble(_ledgeWidth, 0.2, 12),
+                'cornerRadius': _clampDouble(_cornerRadius, 0, 24),
+                'insertThickness': _clampDouble(_insertThickness, 0.2, 8),
+                'clearanceProfile': _clearanceProfile,
+              },
+            ),
+          ),
+          child: const Text('Создать'),
+        ),
+      ],
+    );
+  }
 }
 
 class _ClearanceProfileOption {

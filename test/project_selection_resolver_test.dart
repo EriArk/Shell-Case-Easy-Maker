@@ -49,6 +49,27 @@ void main() {
     );
   });
 
+  test('describes glass recess with human label', () {
+    final project = ProjectModel.initial().replaceFeature(
+      const SemanticFeature(
+        id: 'glass_recess_1',
+        type: 'glass_recess',
+        targetSurface: 'main_enclosure.top_lid.outer',
+        operation: 'recess',
+        parameters: {'width': 50.0},
+      ),
+    );
+    final details = ProjectSelectionResolver(
+      project,
+    ).describe(const SelectionModel.feature('glass_recess_1'));
+
+    expect(details.title, 'Посадка под стекло');
+    expect(
+      details.properties.map((property) => property.label),
+      contains('width'),
+    );
+  });
+
   test('describes feature group pattern details', () {
     final project = ProjectModel.initial().replaceFeatureGroup(
       const FeatureGroup(
