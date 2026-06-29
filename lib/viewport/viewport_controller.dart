@@ -11,7 +11,7 @@ enum ViewportHitKind {
 
 enum GhostPreviewKind { usbC, buttonGroup }
 
-enum MockViewportFeatureGroupKind { standoffMounts }
+enum MockViewportFeatureGroupKind { buttonGroup, standoffMounts }
 
 class ViewportController {
   ViewportController({ViewportState initialState = const ViewportState()})
@@ -166,16 +166,16 @@ class MockViewportFeatureGroupPreview {
     required this.semanticId,
     required this.kind,
     required this.sourcePositions,
-    required this.boardWidth,
-    required this.boardHeight,
+    required this.referenceWidth,
+    required this.referenceHeight,
     required this.itemDiameter,
   });
 
   final String semanticId;
   final MockViewportFeatureGroupKind kind;
   final List<Offset> sourcePositions;
-  final double boardWidth;
-  final double boardHeight;
+  final double referenceWidth;
+  final double referenceHeight;
   final double itemDiameter;
 
   @override
@@ -184,8 +184,8 @@ class MockViewportFeatureGroupPreview {
         other.semanticId == semanticId &&
         other.kind == kind &&
         _offsetListsEqual(other.sourcePositions, sourcePositions) &&
-        other.boardWidth == boardWidth &&
-        other.boardHeight == boardHeight &&
+        other.referenceWidth == referenceWidth &&
+        other.referenceHeight == referenceHeight &&
         other.itemDiameter == itemDiameter;
   }
 
@@ -195,8 +195,8 @@ class MockViewportFeatureGroupPreview {
       semanticId,
       kind,
       Object.hashAll(sourcePositions),
-      boardWidth,
-      boardHeight,
+      referenceWidth,
+      referenceHeight,
       itemDiameter,
     );
   }
@@ -258,33 +258,44 @@ class MockViewportLayout {
   List<Offset> featureGroupCenters(MockViewportFeatureGroupPreview group) {
     return [
       for (final position in group.sourcePositions)
-        _boardLocalToCanvas(
+        _featureGroupLocalToCanvas(
+          group.kind,
           position,
-          boardWidth: group.boardWidth,
-          boardHeight: group.boardHeight,
+          referenceWidth: group.referenceWidth,
+          referenceHeight: group.referenceHeight,
         ),
     ];
   }
 
   double featureGroupRadius(MockViewportFeatureGroupPreview group) {
+    final targetRect = _featureGroupTargetRect(group.kind);
     final boardScale = math.min(
-      boardRect.width / group.boardWidth.clamp(1, 1000),
-      boardRect.height / group.boardHeight.clamp(1, 1000),
+      targetRect.width / group.referenceWidth.clamp(1, 1000),
+      targetRect.height / group.referenceHeight.clamp(1, 1000),
     );
     return (group.itemDiameter * boardScale / 2).clamp(5, 14).toDouble();
   }
 
-  Offset _boardLocalToCanvas(
+  Offset _featureGroupLocalToCanvas(
+    MockViewportFeatureGroupKind kind,
     Offset position, {
-    required double boardWidth,
-    required double boardHeight,
+    required double referenceWidth,
+    required double referenceHeight,
   }) {
-    final safeWidth = boardWidth.clamp(1, 1000).toDouble();
-    final safeHeight = boardHeight.clamp(1, 1000).toDouble();
+    final targetRect = _featureGroupTargetRect(kind);
+    final safeWidth = referenceWidth.clamp(1, 1000).toDouble();
+    final safeHeight = referenceHeight.clamp(1, 1000).toDouble();
     return Offset(
-      boardRect.center.dx + (position.dx / safeWidth) * boardRect.width,
-      boardRect.center.dy - (position.dy / safeHeight) * boardRect.height,
+      targetRect.center.dx + (position.dx / safeWidth) * targetRect.width,
+      targetRect.center.dy - (position.dy / safeHeight) * targetRect.height,
     );
+  }
+
+  Rect _featureGroupTargetRect(MockViewportFeatureGroupKind kind) {
+    return switch (kind) {
+      MockViewportFeatureGroupKind.buttonGroup => lidRect,
+      MockViewportFeatureGroupKind.standoffMounts => boardRect,
+    };
   }
 
   static MockViewportLayout fromSize(

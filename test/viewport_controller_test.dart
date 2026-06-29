@@ -102,8 +102,8 @@ void main() {
         Offset(-20, 12),
         Offset(20, 12),
       ],
-      boardWidth: 48,
-      boardHeight: 32,
+      referenceWidth: 48,
+      referenceHeight: 32,
       itemDiameter: 6,
     );
     const hitTester = MockViewportHitTester();
@@ -122,5 +122,39 @@ void main() {
 
     expect(hit?.kind, ViewportHitKind.featureGroup);
     expect(hit?.semanticId, 'standoff_mounts_1');
+  });
+
+  test('mock hit tester maps button group markers to lid surface', () {
+    const state = ViewportState();
+    const size = Size(900, 600);
+    final layout = MockViewportLayout.fromSize(size, state);
+    const buttonGroup = MockViewportFeatureGroupPreview(
+      semanticId: 'button_group_1',
+      kind: MockViewportFeatureGroupKind.buttonGroup,
+      sourcePositions: [
+        Offset(14, 0),
+        Offset(0, -14),
+        Offset(0, 14),
+        Offset(-14, 0),
+      ],
+      referenceWidth: 120,
+      referenceHeight: 70,
+      itemDiameter: 8,
+    );
+    const hitTester = MockViewportHitTester();
+
+    final centers = layout.featureGroupCenters(buttonGroup);
+    expect(centers, hasLength(4));
+    expect(layout.lidRect.contains(centers.first), isTrue);
+
+    final hit = hitTester.hitTest(
+      position: centers.first,
+      size: size,
+      state: state,
+      featureGroups: const [buttonGroup],
+    );
+
+    expect(hit?.kind, ViewportHitKind.featureGroup);
+    expect(hit?.semanticId, 'button_group_1');
   });
 }

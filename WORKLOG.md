@@ -1561,3 +1561,85 @@ Run full validation, refresh latest Windows bundle, commit, and push M17.
 ### Notes for future Codex sessions
 Viewport marker clicks must keep returning semantic IDs. Do not introduce mesh,
 triangle, or OCCT topology IDs into default selection state.
+
+---
+
+## 2026-06-28 — M18 Button Group Viewport Markers
+
+### Goal
+Make newly created semantic button groups visible and selectable in the mock
+viewport through the same feature-group marker path as mounts.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`,
+`docs/09_PATTERN_AND_LAYOUT_SYSTEM.md`, `docs/32_USABLE_SHELL.md`,
+`docs/33_VIEWPORT_MVP.md`, viewport controller, workspace shell, and
+widget/viewport tests.
+
+### Changes made
+- `lib/viewport/viewport_controller.dart`:
+  - Added `MockViewportFeatureGroupKind.buttonGroup`.
+  - Generalized feature-group preview dimensions from board-only to reference
+    width/height so button groups can use the lid/surface frame while mounts
+    keep using the board frame.
+  - Hit-testing continues to return semantic `featureGroup` IDs before
+    underlying board/sample features.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Generates first-pass button marker positions from `layout`, `count`, and
+    `spacing`.
+  - Supports deterministic `diamond`, `row`, and `grid` marker expansion.
+  - Draws created button-group markers in the mock viewport and highlights
+    selected button groups.
+- `test/viewport_controller_test.dart` and `test/widget_test.dart`:
+  - Added coverage for button marker mapping to the lid frame and full shell
+    marker-click selection after creating `button_group_1`.
+- `ROADMAP.md`, `TASKS.md`, `docs/09_PATTERN_AND_LAYOUT_SYSTEM.md`,
+  `docs/32_USABLE_SHELL.md`, and `docs/33_VIEWPORT_MVP.md`:
+  - Documented M18 and the current boundary between preview marker expansion
+    and saved/generated geometry.
+
+### Tests run
+- `flutter test test\viewport_controller_test.dart test\widget_test.dart`:
+  - Passed, 30 targeted tests.
+- `flutter pub get`:
+  - Passed; 4 packages still have newer incompatible versions.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 77 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed `releases/latest/windows/shell_case_easy_maker.exe`.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Markers are derived from semantic pattern data only; no generated B-Rep or
+    mesh is created yet.
+- Serialization checked?
+  - No schema change; generated marker positions are not saved.
+- UI checked?
+  - Widget test creates a button group, deselects it, clicks a marker, and
+    verifies the group inspector returns.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Pattern expansion lives in the mock viewport shell for now.
+  - Severity: Expected for this slice.
+  - Next action: promote pattern expansion into reusable layout logic before
+    geometry generation consumes it.
+- Issue: Marker expansion is first-pass for diamond, row, and grid only.
+  - Severity: Expected.
+  - Next action: add square/circle/arc/path expansion when those pattern types
+    are introduced.
+
+### Next step
+Run full validation, refresh latest Windows bundle, commit, and push M18.
+
+### Notes for future Codex sessions
+Button groups must stay editable semantic `FeatureGroup` objects. Viewport
+markers are transient affordances and must not become saved per-button project
+items unless the user explicitly detaches the pattern.

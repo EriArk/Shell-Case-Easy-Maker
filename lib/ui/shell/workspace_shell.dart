@@ -3360,6 +3360,12 @@ class _ViewportPainter extends CustomPainter {
   }
 
   void _paintFeatureGroups(Canvas canvas, MockViewportLayout layout) {
+    final buttonFill = Paint()
+      ..color = colorScheme.primary.withValues(alpha: 0.92)
+      ..style = PaintingStyle.fill;
+    final buttonHole = Paint()
+      ..color = Colors.black.withValues(alpha: 0.28)
+      ..style = PaintingStyle.fill;
     final mountFill = Paint()
       ..color = const Color(0xFFE6C35A)
       ..style = PaintingStyle.fill;
@@ -3372,15 +3378,21 @@ class _ViewportPainter extends CustomPainter {
       ..style = PaintingStyle.fill;
 
     for (final group in featureGroupPreviews) {
-      if (group.kind != MockViewportFeatureGroupKind.standoffMounts) {
-        continue;
-      }
-
       final radius = layout.featureGroupRadius(group);
-      for (final center in layout.featureGroupCenters(group)) {
-        canvas.drawCircle(center, radius, mountFill);
-        canvas.drawCircle(center, radius * 0.46, mountHole);
-        canvas.drawCircle(center, radius, mountStroke);
+      final centers = layout.featureGroupCenters(group);
+
+      switch (group.kind) {
+        case MockViewportFeatureGroupKind.buttonGroup:
+          for (final center in centers) {
+            canvas.drawCircle(center, radius, buttonFill);
+            canvas.drawCircle(center, radius * 0.44, buttonHole);
+          }
+        case MockViewportFeatureGroupKind.standoffMounts:
+          for (final center in centers) {
+            canvas.drawCircle(center, radius, mountFill);
+            canvas.drawCircle(center, radius * 0.46, mountHole);
+            canvas.drawCircle(center, radius, mountStroke);
+          }
       }
     }
   }
@@ -3473,10 +3485,37 @@ MockViewportFeatureGroupPreview? _mockFeatureGroupPreview(
   ProjectModel project,
   FeatureGroup group,
 ) {
-  if (group.type != 'standoff_mounts') {
+  return switch (group.type) {
+    'button_group' => _mockButtonGroupPreview(project, group),
+    'standoff_mounts' => _mockStandoffMountPreview(project, group),
+    _ => null,
+  };
+}
+
+MockViewportFeatureGroupPreview? _mockButtonGroupPreview(
+  ProjectModel project,
+  FeatureGroup group,
+) {
+  final positions = _buttonGroupPatternPositions(group);
+  if (positions.isEmpty) {
     return null;
   }
 
+  final enclosure = project.bodies.firstOrNull;
+  return MockViewportFeatureGroupPreview(
+    semanticId: group.id,
+    kind: MockViewportFeatureGroupKind.buttonGroup,
+    sourcePositions: positions,
+    referenceWidth: enclosure == null ? 120 : _sizeAt(enclosure, 0, 120),
+    referenceHeight: enclosure == null ? 70 : _sizeAt(enclosure, 1, 70),
+    itemDiameter: _featureDouble(group.itemPrototype, 'diameter', 8),
+  );
+}
+
+MockViewportFeatureGroupPreview? _mockStandoffMountPreview(
+  ProjectModel project,
+  FeatureGroup group,
+) {
   final template = _templateForMockFeatureGroup(project, group);
   final sourcePositions = _featureGroupHolePositions(group);
   final positions = sourcePositions.isNotEmpty
@@ -3494,8 +3533,8 @@ MockViewportFeatureGroupPreview? _mockFeatureGroupPreview(
     semanticId: group.id,
     kind: MockViewportFeatureGroupKind.standoffMounts,
     sourcePositions: positions,
-    boardWidth: template?.board.outline.width ?? 48,
-    boardHeight: template?.board.outline.height ?? 32,
+    referenceWidth: template?.board.outline.width ?? 48,
+    referenceHeight: template?.board.outline.height ?? 32,
     itemDiameter: _featureDouble(group.itemPrototype, 'diameter', 5),
   );
 }
@@ -3533,6 +3572,69 @@ ComponentTemplate? _templateForMockFeatureGroup(
   return project.componentTemplates
       .where((template) => template.id == placement.templateId)
       .firstOrNull;
+}
+
+List<Offset> _buttonGroupPatternPositions(FeatureGroup group) {
+  final count = _featureDouble(group.pattern, 'count', 4).round().clamp(1, 24);
+  final spacing = _featureDouble(group.pattern, 'spacing', 14).clamp(4, 80);
+  final layout = _featureString(group.pattern, 'layout', 'diamond');
+
+  return switch (layout) {
+    'row' => _rowPatternPositions(count, spacing.toDouble()),
+    'grid' => _gridPatternPositions(count, spacing.toDouble()),
+    'diamond' => _diamondPatternPositions(count, spacing.toDouble()),
+    _ => _rowPatternPositions(count, spacing.toDouble()),
+  };
+}
+
+List<Offset> _rowPatternPositions(int count, double spacing) {
+  final origin = (count - 1) / 2;
+  return [
+    for (var index = 0; index < count; index++)
+      Offset((index - origin) * spacing, 0),
+  ];
+}
+
+List<Offset> _gridPatternPositions(int count, double spacing) {
+  final columns = math.sqrt(count).ceil().clamp(1, count);
+  final rows = (count / columns).ceil();
+  final positions = <Offset>[];
+
+  for (var index = 0; index < count; index++) {
+    final column = index % columns;
+    final row = index ~/ columns;
+    positions.add(
+      Offset(
+        (column - (columns - 1) / 2) * spacing,
+        ((rows - 1) / 2 - row) * spacing,
+      ),
+    );
+  }
+
+  return positions;
+}
+
+List<Offset> _diamondPatternPositions(int count, double spacing) {
+  if (count == 1) {
+    return const [Offset.zero];
+  }
+
+  if (count == 4) {
+    return [
+      Offset(spacing, 0),
+      Offset(0, -spacing),
+      Offset(0, spacing),
+      Offset(-spacing, 0),
+    ];
+  }
+
+  return [
+    for (var index = 0; index < count; index++)
+      Offset(
+        math.cos(index * math.pi * 2 / count) * spacing,
+        math.sin(index * math.pi * 2 / count) * spacing,
+      ),
+  ];
 }
 
 List<Offset> _featureGroupHolePositions(FeatureGroup group) {

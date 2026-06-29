@@ -107,6 +107,15 @@ dialog and creates a `FeatureGroup` with:
 The group is committed as one undoable semantic object. It is not flattened
 into independent button holes.
 
+The mock viewport now derives schematic markers from the same group data:
+- `diamond`,
+- `row`,
+- `grid`.
+
+This is first-pass preview expansion only. Generated marker positions are not
+stored back into the project file, and the editable source remains the
+`FeatureGroup` pattern plus item prototype.
+
 ## Per-item overrides
 
 Allow advanced overrides without losing group identity:

@@ -69,6 +69,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Implement selection highlight.
 - [x] Implement ghost preview.
 - [x] Implement semantic feature group viewport markers.
+- [x] Implement semantic button group viewport markers.
 - [ ] Implement local workplane overlay.
 - [x] Implement grid overlay.
 - [ ] Implement basic snapping visual hints.
@@ -134,11 +135,13 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 ## Phase 8 — Pattern/layout system
 
 - [x] First-pass editable `FeatureGroup` command.
-- [ ] Implement generated pattern item preview/positions.
+- [x] First-pass generated pattern item preview/positions.
+- [ ] Promote pattern expansion out of mock viewport into reusable layout logic.
 - [x] First-pass generated standoff marker positions.
 - [ ] Line pattern.
 - [ ] Grid pattern.
 - [x] First-pass diamond/rhombus button pattern data.
+- [x] First-pass diamond/row/grid marker expansion.
 - [ ] Square pattern.
 - [ ] Circle/arc pattern.
 - [ ] Path/curve pattern.
@@ -198,6 +201,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [ ] Travel stop.
 - [ ] Button cap texture.
 - [x] First-pass manual button group generator.
+- [x] First-pass manual button group viewport markers.
 - [ ] Pattern generation from switch groups.
 
 ## Phase 13 — Shape and aesthetics

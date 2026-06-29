@@ -358,6 +358,34 @@ void main() {
     expect(find.text('6'), findsOneWidget);
     expect(tester.widget<IconButton>(undoButton).onPressed, isNotNull);
 
+    await tester.tap(find.text('main_enclosure').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Тип кнопки'), findsNothing);
+
+    final canvasFinder = find.byKey(const ValueKey('mock-viewport-canvas'));
+    final canvasTopLeft = tester.getTopLeft(canvasFinder);
+    final canvasSize = tester.getSize(canvasFinder);
+    final layout = MockViewportLayout.fromSize(
+      canvasSize,
+      const ViewportState(),
+    );
+    const createdButtonGroup = MockViewportFeatureGroupPreview(
+      semanticId: 'button_group_1',
+      kind: MockViewportFeatureGroupKind.buttonGroup,
+      sourcePositions: [Offset(14, 0)],
+      referenceWidth: 120,
+      referenceHeight: 70,
+      itemDiameter: 8,
+    );
+
+    await tester.tapAt(
+      canvasTopLeft + layout.featureGroupCenters(createdButtonGroup).first,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Тип кнопки'), findsOneWidget);
+
     await tester.tap(undoButton);
     await _pumpAsyncUi(tester);
 
@@ -506,8 +534,8 @@ void main() {
         Offset(-20, 12),
         Offset(20, 12),
       ],
-      boardWidth: 48,
-      boardHeight: 32,
+      referenceWidth: 48,
+      referenceHeight: 32,
       itemDiameter: 6,
     );
 

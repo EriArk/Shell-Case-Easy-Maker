@@ -687,3 +687,44 @@ real OCCT geometry exists.
 - Confirm four yellow mount markers appear around the mock board.
 - Select `main_enclosure`, then click one mount marker in the viewport.
 - Confirm the inspector switches back to `Крепёж` / `standoff_mounts_1`.
+
+---
+
+## M18 — Button Group Viewport Markers
+
+### Goal
+Make newly created semantic button groups visible and selectable in the mock
+viewport through the same feature-group marker path as mounts.
+
+### Tasks
+- [x] Extend mock feature-group previews with a button-group marker kind.
+- [x] Generate deterministic marker positions from button group `layout`,
+      `count`, and `spacing`.
+- [x] Support first-pass `diamond`, `row`, and `grid` pattern expansion.
+- [x] Map button markers to the selected lid/surface reference frame instead
+      of the component board frame used by standoff mounts.
+- [x] Draw button-group markers in the viewport.
+- [x] Hit-test button-group markers before hard-coded sample features so
+      marker clicks select the semantic `FeatureGroup`.
+- [x] Add unit/widget tests for button group marker mapping and shell marker
+      selection.
+
+### Done Criteria
+- Creating `button_group_1` shows visible semantic button markers.
+- Clicking a created button-group marker selects `button_group_1`.
+- The inspector switches to button group details after marker selection.
+- Repeated buttons remain one editable `FeatureGroup`.
+- No mesh IDs, triangle IDs, or OCCT IDs are used for selection.
+
+### Tests
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Select `Top lid`, click `Кнопки`, set count to `6`, and click `Создать`.
+- Confirm the new button markers appear on the mock lid area.
+- Select `main_enclosure`, then click one of the new button markers.
+- Confirm the inspector switches back to `Группа кнопок` / `button_group_1`.

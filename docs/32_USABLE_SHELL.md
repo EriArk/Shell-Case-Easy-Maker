@@ -112,7 +112,8 @@ Clicking `Кнопки` is enabled only after selecting a semantic surface such 
 `Top lid`. The command opens a compact button group dialog and appends a
 semantic `FeatureGroup` with editable layout/count/diameter/spacing data. The
 group remains one semantic object rather than becoming several unrelated
-button holes.
+button holes. The mock viewport derives schematic markers from that pattern;
+clicking one marker selects the whole button group.
 
 Clicking `Стекло` is enabled only after selecting a semantic surface. The
 command opens a compact glass recess dialog and appends a semantic

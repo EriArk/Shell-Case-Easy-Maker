@@ -35,10 +35,17 @@ It does not return mesh IDs, triangle IDs, OCCT face IDs, or generated topology.
 
 ## Feature Group Markers
 
-The mock viewport can now draw semantic feature-group markers for
-`standoff_mounts`.
+The mock viewport can now draw semantic feature-group markers for:
+- `button_group`,
+- `standoff_mounts`.
 
-The marker data is derived from the editable `FeatureGroup`:
+Button-group markers are derived from the editable pattern data:
+- layout,
+- count,
+- spacing,
+- item diameter.
+
+Standoff markers are derived from component mounting data:
 - source mounting-hole positions,
 - source component board size,
 - standoff diameter.
@@ -79,6 +86,8 @@ license, and packaging complexity.
 
 - The viewport is still a stylized 2.5D mock drawing, not generated geometry.
 - Hit zones are deterministic mock zones, not mesh picking.
+- Button-group marker expansion supports first-pass diamond, row, and grid
+  layouts only.
 - Standoff markers are schematic circles, not generated B-Rep bosses.
 - View cube is a compact fit control, not a full orientation gizmo.
 - Ghost previews are hard-coded for the sample semantic surfaces.
