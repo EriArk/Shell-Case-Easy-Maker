@@ -66,6 +66,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M45 - Geometry Feature Intent Protocol
 - [x] M46 - Geometry Operation Plan
 - [x] M47 - Mock Worker Protocol Harness
+- [x] M48 - Worker Process Client
 
 ---
 
@@ -1971,5 +1972,55 @@ boundary can be exercised from stdin/stdout before real OCCT generation exists.
 - No meaningful manual UI poke for this chunk; it is a backend protocol harness.
 - Optional developer poke: run the mock worker command above and confirm status
   is `ok`, backend is `mock`, and preview mesh counts are present.
+- Launch latest Windows app and confirm the default project still opens with a
+  clean mock preview and validation status.
+
+---
+
+## M48 - Worker Process Client
+
+### Goal
+Add a testable process client that can run a worker executable, send request
+JSON over stdin, parse response JSON from stdout, and normalize process-level
+failures before the real native `occt_worker` exists.
+
+### Tasks
+- [x] Add `GeometryWorkerProcessCommand` for executable, args, environment,
+      working directory, and shell settings.
+- [x] Add `GeometryWorkerProcessClient.buildGeometry`.
+- [x] Add the default `Process.start` runner that writes stdin and captures
+      stdout/stderr.
+- [x] Preserve structured worker error responses even when the worker exits
+      non-zero.
+- [x] Normalize invalid worker JSON, non-zero clean responses, process
+      failures, and timeouts into `GeometryResponse` errors.
+- [x] Add `tool/mock_geometry_worker_client_smoke.dart` to exercise the client
+      against the mock worker process.
+- [x] Add unit tests with a fake process runner.
+
+### Done Criteria
+- A geometry request can cross a real process boundary and return a normal
+  `GeometryResponse`.
+- Worker process failures produce response issues instead of crashing callers.
+- Request payloads still contain semantic project data and feature intents, not
+  editable mesh/B-Rep/topology IDs.
+- The normal Flutter app still uses the in-process mock service until a real
+  worker integration switch is intentionally added.
+
+### Tests
+- `flutter test test\geometry_worker_process_client_test.dart`
+- `dart run tool\mock_geometry_worker_client_smoke.dart`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- No meaningful manual UI poke for this chunk; it is a backend worker-process
+  adapter.
+- Optional developer poke: run `dart run tool\mock_geometry_worker_client_smoke.dart`
+  and confirm status is `ok`, backend is `mock`, `featureIntents` is `2`, and
+  `operationCount` is `2`.
 - Launch latest Windows app and confirm the default project still opens with a
   clean mock preview and validation status.

@@ -6,6 +6,7 @@ import 'geometry_protocol.dart';
 
 export 'geometry_operation_plan.dart';
 export 'geometry_protocol.dart';
+export 'geometry_worker_process_client.dart';
 export 'geometry_worker_protocol.dart';
 
 abstract interface class GeometryService {

@@ -160,3 +160,26 @@ Get-Content occt_worker\protocol\preview_request.example.json -Raw | dart run to
 It uses `MockGeometryService` so protocol tests and smoke checks can exercise
 the worker boundary before the native OCCT executable exists. It does not make
 generated mesh, B-Rep, STL, or topology IDs editable project state.
+
+## Worker Process Client
+
+`GeometryWorkerProcessClient` is the first external-process adapter. It sends a
+`GeometryRequest` JSON payload to a configured worker command through stdin,
+captures stdout/stderr, parses a `GeometryResponse`, and converts process-level
+failures into normal geometry response issues.
+
+Current normalized failures:
+- worker launch/process failure,
+- timeout,
+- invalid response JSON,
+- non-zero exit code without a worker error response.
+
+The client is not wired into the default app shell yet. The app still uses
+`MockGeometryService` for interactive preview until a real worker executable
+exists and the runtime switch is deliberate.
+
+Smoke command:
+
+```powershell
+dart run tool\mock_geometry_worker_client_smoke.dart
+```

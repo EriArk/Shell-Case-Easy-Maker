@@ -9,8 +9,8 @@ preview/export results.
 
 ## Current status
 
-M5 adds the protocol skeleton, and M47 adds a Dart-only mock protocol harness.
-No native executable is built yet.
+M5 adds the protocol skeleton, M47 adds a Dart-only mock protocol harness, and
+M48 adds the Dart-side process client. No native executable is built yet.
 
 Smoke command:
 
@@ -20,6 +20,15 @@ Get-Content occt_worker\protocol\preview_request.example.json -Raw | dart run to
 
 The smoke harness is backed by `MockGeometryService`; it exercises request and
 response JSON only.
+
+Process-client smoke command:
+
+```powershell
+dart run tool\mock_geometry_worker_client_smoke.dart
+```
+
+This starts the mock harness as a child process and verifies the stdin/stdout
+adapter path that the future native worker will use.
 
 ## Planned responsibilities
 

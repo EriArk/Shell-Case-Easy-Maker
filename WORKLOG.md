@@ -42,6 +42,93 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-29 - M48 Worker process client
+
+### Goal
+Add a process-boundary client for geometry requests so a future native
+`occt_worker` can be launched through stdin/stdout without coupling Flutter to
+OCCT internals.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `lib/geometry/geometry_service.dart`,
+`lib/geometry/geometry_protocol.dart`, `lib/geometry/geometry_worker_protocol.dart`,
+`docs/03_ARCHITECTURE_OVERVIEW.md`, `docs/04_GEOMETRY_ENGINE_OCCT.md`,
+`docs/34_FIRST_GEOMETRY_SLICE.md`, and `occt_worker/README.md`.
+
+### Changes made
+- `lib/geometry/geometry_worker_process_client.dart`:
+  - Added `GeometryWorkerProcessCommand`.
+  - Added `GeometryWorkerProcessClient.buildGeometry`.
+  - Added the default `Process.start` runner that writes request JSON to stdin
+    and captures stdout/stderr.
+  - Preserves structured worker error responses from non-zero worker exits.
+  - Normalizes launch failures, timeouts, invalid response JSON, and non-zero
+    clean responses into `GeometryResponse` errors.
+- `tool/mock_geometry_worker_client_smoke.dart`:
+  - Added a developer smoke command that launches `tool/mock_geometry_worker.dart`
+    as a child process and prints the geometry response.
+- `test/geometry_worker_process_client_test.dart`:
+  - Added fake-runner coverage for request payloads, worker error preservation,
+    invalid response JSON, non-zero exits, and timeouts.
+- Docs/tasks/roadmap:
+  - Recorded M48 behavior, smoke command, limitations, and poke checklist.
+
+### Tests run
+- `flutter test test\geometry_worker_process_client_test.dart`:
+  - Passed, 5 tests.
+- `dart run tool\mock_geometry_worker_client_smoke.dart`:
+  - Passed; `exit=0`, `status=ok`, `backend=mock`, `featureIntents=2`,
+    `operationCount=2`.
+- `dart format --output=none --set-exit-if-changed lib test tool`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 140 tests.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Process adapter only; no generated B-Rep, STL, editable mesh, or OCCT
+    topology is introduced.
+- Serialization checked?
+  - Tests verify request JSON crosses the process client with feature intents.
+- UI checked?
+  - Full widget suite passes; the default app shell still uses the in-process
+    mock service.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: The process client is not yet wired into the default Flutter runtime.
+  - Severity: Expected.
+  - Next action: add an explicit backend switch only when a real worker or
+    intentional developer mode needs it.
+- Issue: `tool/mock_geometry_worker_client_smoke.dart` still uses mock geometry.
+  - Severity: Expected.
+  - Next action: replace the command target with native `occt_worker` once it
+    exists.
+
+### Next step
+Commit and push M48, then continue toward a worker-backed `GeometryService`
+adapter or the first native `occt_worker` executable slice.
+
+### Notes for future Codex sessions
+Keep worker failures as `GeometryResponse` issues. Native stderr, exit codes,
+and process command details are diagnostics only; they must not become editable
+project semantics or UI selection IDs.
+
+---
+
 ## 2026-06-29 - M47 Mock worker protocol harness
 
 ### Goal

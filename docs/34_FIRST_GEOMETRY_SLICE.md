@@ -49,6 +49,16 @@ request, calls a supplied build function, and emits response JSON. The harness
 uses `MockGeometryService`, so it is useful for protocol smoke tests but not a
 replacement for real B-Rep generation.
 
+`GeometryWorkerProcessClient` can also exercise the same harness across a real
+process boundary:
+
+```powershell
+dart run tool\mock_geometry_worker_client_smoke.dart
+```
+
+The process client captures stdout/stderr, preserves worker error responses,
+and normalizes process failures into `GeometryResponse` issues.
+
 ## Response
 
 `GeometryResponse` contains:
@@ -104,6 +114,8 @@ Expected sample dimensions:
 - No native OCCT executable is built yet.
 - `tool/mock_geometry_worker.dart` is a Dart-only protocol harness backed by
   mock geometry.
+- `tool/mock_geometry_worker_client_smoke.dart` runs that mock harness through
+  the process client, not through native OCCT.
 - Mock backend returns a deterministic cuboid preview mesh.
 - Mock backend validation now runs first-pass semantic checks for enclosure
   dimensions, wall thickness, USB-C/glass feature sizes, component placement

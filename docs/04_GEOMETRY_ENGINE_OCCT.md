@@ -114,6 +114,18 @@ response contains errors.
 This harness is only a protocol and integration aid. It does not generate
 OpenCascade B-Rep, and it must not become the editable geometry source.
 
+## Worker process client
+
+`GeometryWorkerProcessClient` is the Dart-side process adapter for the future
+native worker. It writes request JSON to stdin, reads response JSON from stdout,
+and treats stderr/exit codes as process metadata rather than product semantics.
+
+It preserves structured worker error responses, but reports adapter-level
+issues for invalid JSON, process launch failures, timeouts, and non-zero exits
+that do not return an error response. This keeps Flutter isolated from native
+worker crashes and prevents native process details from becoming editable
+project data.
+
 ## Preview mesh
 
 Preview mesh is generated from B-Rep with adjustable quality:
