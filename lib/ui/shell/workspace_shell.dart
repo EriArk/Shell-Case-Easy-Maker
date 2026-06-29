@@ -405,6 +405,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     final placement = await showDialog<ComponentPlacement>(
       context: context,
       builder: (context) => _PlaceComponentDialog(
+        project: _project,
         templates: _project.componentTemplates,
         initialPlacement: _defaultComponentPlacement(
           id: _nextComponentPlacementId(_project, template.id),
@@ -1241,6 +1242,13 @@ ValidationMessage? _activeSnapPlacementIssue(
     return null;
   }
 
+  return _prospectivePlacementIssue(project, placement);
+}
+
+ValidationMessage? _prospectivePlacementIssue(
+  ProjectModel project,
+  ComponentPlacement placement,
+) {
   final report = ProjectSemanticValidator.validate(
     project.replaceComponentPlacement(placement),
   );
@@ -3381,11 +3389,13 @@ class _CreateEnclosureDialogState extends State<_CreateEnclosureDialog> {
 
 class _PlaceComponentDialog extends StatefulWidget {
   const _PlaceComponentDialog({
+    required this.project,
     required this.templates,
     required this.initialPlacement,
     this.snapHint,
   });
 
+  final ProjectModel project;
   final List<ComponentTemplate> templates;
   final ComponentPlacement initialPlacement;
   final String? snapHint;
@@ -3422,6 +3432,12 @@ class _PlaceComponentDialogState extends State<_PlaceComponentDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final candidatePlacement = _candidatePlacement;
+    final placementIssue = _prospectivePlacementIssue(
+      widget.project,
+      candidatePlacement,
+    );
+
     return AlertDialog(
       title: const Text('Разместить компонент'),
       content: SizedBox(
@@ -3542,6 +3558,7 @@ class _PlaceComponentDialogState extends State<_PlaceComponentDialog> {
                 title: const Text('Зафиксировать'),
                 controlAffinity: ListTileControlAffinity.leading,
               ),
+              _PlacementDialogCheck(issue: placementIssue),
             ],
           ),
         ),
@@ -3554,20 +3571,58 @@ class _PlaceComponentDialogState extends State<_PlaceComponentDialog> {
         ),
         FilledButton(
           key: const ValueKey('place-component-confirm'),
-          onPressed: () => Navigator.of(context).pop(
-            ComponentPlacement(
-              id: widget.initialPlacement.id,
-              templateId: _templateId,
-              position: [_x, _y, _z],
-              rotation: widget.initialPlacement.rotation,
-              mountingSide: _mountingSide,
-              locked: _locked,
-              visible: widget.initialPlacement.visible,
-            ),
-          ),
+          onPressed: () => Navigator.of(context).pop(candidatePlacement),
           child: const Text('Разместить'),
         ),
       ],
+    );
+  }
+
+  ComponentPlacement get _candidatePlacement {
+    return ComponentPlacement(
+      id: widget.initialPlacement.id,
+      templateId: _templateId,
+      position: [_x, _y, _z],
+      rotation: widget.initialPlacement.rotation,
+      mountingSide: _mountingSide,
+      locked: _locked,
+      visible: widget.initialPlacement.visible,
+    );
+  }
+}
+
+class _PlacementDialogCheck extends StatelessWidget {
+  const _PlacementDialogCheck({required this.issue});
+
+  final ValidationMessage? issue;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final hasIssue = issue != null;
+    final color = hasIssue
+        ? _validationSeverityColor(theme, issue!.severity)
+        : theme.colorScheme.primary;
+    final icon = hasIssue
+        ? _validationSeverityIcon(issue!.severity)
+        : Icons.check_circle_outline_rounded;
+
+    return Padding(
+      key: const ValueKey('place-component-fit-check'),
+      padding: const EdgeInsets.only(top: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              hasIssue ? issue!.message : 'Плата помещается в текущий корпус.',
+              style: theme.textTheme.labelSmall?.copyWith(color: color),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

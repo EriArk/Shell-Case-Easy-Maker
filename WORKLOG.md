@@ -2991,3 +2991,83 @@ component anchor mapping.
 ### Notes for future Codex sessions
 Use temporary semantic objects for preview validation. Do not store preview IDs,
 snap indices, or validation state in `ProjectModel`.
+
+---
+
+## 2026-06-29 - M35 Placement Dialog Live Fit Check
+
+### Goal
+Show semantic fit feedback inside the component placement dialog while the user
+edits candidate placement values.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `docs/31_COMMANDS_AND_UNDO.md`,
+`docs/32_USABLE_SHELL.md`, `lib/ui/shell/workspace_shell.dart`, and placement
+widget tests.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Passes the current semantic project into `_PlaceComponentDialog`.
+  - Builds the current dialog candidate as a temporary `ComponentPlacement`.
+  - Reuses prospective placement validation for dialog X/Y/Z/template values.
+  - Shows a compact fit/status row in the dialog.
+  - Keeps dialog validation as feedback only; commit still happens only after
+    `Разместить`.
+- `test/widget_test.dart`:
+  - Added coverage that the dialog starts with a valid fit message.
+  - Added coverage that editing X outside the enclosure reports a semantic
+    placement error before commit.
+- Docs/tasks/roadmap:
+  - Recorded M35 behavior, done criteria, limitations, and poke checklist.
+
+### Tests run
+- `flutter test test\widget_test.dart --plain-name "place component dialog validates current candidate placement"`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "place component rail command commits through undo history"`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "active snap target inspector action opens placement dialog"`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 115 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Semantic bounds validation only; no generated B-Rep or mesh is created.
+- Serialization checked?
+  - Not applicable; dialog candidate validation is transient and not saved.
+- UI checked?
+  - Widget tests confirm valid and invalid candidate dialog states.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Dialog fit feedback still uses coarse semantic bounds, not real
+  generated geometry/collision.
+  - Severity: Expected.
+  - Next action: add geometry-service clearance checks when generated preview
+    geometry exists.
+- Issue: The dialog does not yet update the viewport footprint live while fields
+  are edited.
+  - Severity: Expected.
+  - Next action: connect dialog edits to a live viewport placement session if we
+    move beyond modal placement.
+
+### Next step
+Commit and push M35, then continue toward guided component placement or
+component anchor mapping.
+
+### Notes for future Codex sessions
+Keep validation feedback transient until the user confirms a semantic placement.
+Temporary candidate objects are fine for validation, but should not be persisted.

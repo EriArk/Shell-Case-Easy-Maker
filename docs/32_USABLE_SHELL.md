@@ -179,6 +179,8 @@ Clicking `Компоненты` opens a compact placement dialog when the projec
 least one `ComponentTemplate`. The command is available from workspace,
 enclosure, surface, and component contexts. If a snap hint was clicked first,
 the dialog shows that snap label and starts from the snap target's coordinates.
+The dialog validates its current candidate placement as X/Y/Z/template values
+change and shows whether it fits before commit.
 Confirming the dialog appends a semantic `ComponentPlacement`, selects it,
 refreshes the mock preview, and creates one undo history entry. If undo removes
 the selected placement, selection falls back to the workspace so the inspector

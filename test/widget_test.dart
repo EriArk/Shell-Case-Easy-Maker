@@ -840,6 +840,32 @@ void main() {
     expect(find.text('custom_button_board_v1_placement_2'), findsNothing);
   });
 
+  testWidgets('place component dialog validates current candidate placement', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const CaseMakerApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('rail-command-${CommandIds.placeComponent}')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('place-component-fit-check')),
+      findsOneWidget,
+    );
+    expect(find.text('Плата помещается в текущий корпус.'), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('place-component-x')),
+      '200',
+    );
+    await tester.pump();
+
+    expect(find.textContaining('Компонент выходит'), findsOneWidget);
+  });
+
   testWidgets('place component rail command can be cancelled', (tester) async {
     await tester.pumpWidget(const CaseMakerApp());
     await tester.pumpAndSettle();

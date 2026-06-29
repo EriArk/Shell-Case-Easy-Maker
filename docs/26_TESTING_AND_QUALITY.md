@@ -58,6 +58,7 @@ Use deterministic test fixtures.
 - Active snap footprint previews appear and clear with transient snap state.
 - Snap placement fit feedback uses semantic validation and reports oversized
   previews before commit.
+- Component placement dialogs validate current candidate values before commit.
 - Validation status/details show warning and error messages.
 - Context popovers show correct actions.
 - Parameter knob updates model.

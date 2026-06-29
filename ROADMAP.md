@@ -53,6 +53,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M32 — Active Snap Inspector Action
 - [x] M33 — Snap Placement Footprint Preview
 - [x] M34 — Snap Placement Fit Feedback
+- [x] M35 — Placement Dialog Live Fit Check
 
 ---
 
@@ -1415,3 +1416,42 @@ the future component fits in the current enclosure.
 - Confirm the snap panel says the board fits the current enclosure.
 - After later adding/editing a very large component template, confirm this same
   panel warns before committing placement.
+
+---
+
+## M35 — Placement Dialog Live Fit Check
+
+### Goal
+Show semantic fit feedback inside the component placement dialog while the user
+edits template/position fields.
+
+### Tasks
+- [x] Pass the current semantic project into the placement dialog.
+- [x] Build the current dialog candidate as a temporary `ComponentPlacement`.
+- [x] Reuse prospective placement validation for dialog values.
+- [x] Show a compact fit/status row in the dialog.
+- [x] Update the status as X/Y/Z/template values change.
+- [x] Add widget coverage for valid and invalid dialog candidate states.
+
+### Done Criteria
+- Opening `Компоненты` shows whether the current candidate fits.
+- Editing X/Y/Z to an invalid value shows the semantic placement error before
+  commit.
+- The dialog still writes a normal `ComponentPlacement` only after confirm.
+- Preview validation state does not enter undo/redo history or project JSON.
+- No mesh, B-Rep, triangle ID, or OCCT topology becomes editable state.
+
+### Tests
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Click `Компоненты`.
+- Confirm the dialog says the board fits.
+- Change X to `200`.
+- Confirm the dialog reports that the component leaves the enclosure before you
+  press `Разместить`.
+- Cancel and confirm no new component was created.

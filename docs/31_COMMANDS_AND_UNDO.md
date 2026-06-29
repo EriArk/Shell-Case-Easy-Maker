@@ -108,6 +108,10 @@ target. This preview is not command state and does not enter undo/redo history.
 Its fit feedback is computed from a temporary semantic placement and discarded
 after rendering.
 
+The placement dialog uses the same temporary-placement validation while the user
+edits X/Y/Z/template values. Dialog validation is feedback only; undo history
+starts only when the user confirms and the semantic placement is committed.
+
 The first surface-based rail command is `port.add_usb_c`. It is available only
 when the active selection is a semantic surface. The command creates a
 `usb_c_cutout` `SemanticFeature` targeted at that surface and commits it as one
