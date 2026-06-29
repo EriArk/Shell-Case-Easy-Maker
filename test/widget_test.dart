@@ -1344,6 +1344,65 @@ void main() {
     expect(tester.widget<IconButton>(undoButton).onPressed, isNull);
   });
 
+  testWidgets('component USB-C rail command creates sourced cutout', (
+    tester,
+  ) async {
+    final fileService = _MemoryProjectFileService();
+    final saveFile = File('component_usb.enclosure.json');
+    final dialog = _FakeProjectFileDialogService(saveFile: saveFile);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkspaceShell(
+          project: ProjectModel.initial(),
+          geometryService: const MockGeometryService(),
+          projectFileService: fileService,
+          projectFileDialogService: dialog,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final addUsbCButton = find.byKey(
+      const ValueKey('rail-command-${CommandIds.addUsbC}'),
+    );
+
+    await tester.tap(find.text('button_board_placement').first);
+    await tester.pumpAndSettle();
+
+    expect(tester.widget<IconButton>(addUsbCButton).onPressed, isNotNull);
+
+    await tester.tap(addUsbCButton);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('usb-c-confirm')), findsOneWidget);
+    expect(_dialogNumberText(tester, 'usb-c-width'), '10.5');
+    expect(_dialogNumberText(tester, 'usb-c-height'), '4.2');
+
+    await tester.tap(find.byKey(const ValueKey('usb-c-confirm')));
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('usb_c_cutout_2'), findsWidgets);
+
+    await tester.tap(
+      find.byKey(const ValueKey('toolbar-command-${CommandIds.saveProject}')),
+    );
+    await _pumpAsyncUi(tester);
+
+    final saved = await fileService.readProject(saveFile);
+    final created = saved.features.singleWhere(
+      (feature) => feature.id == 'usb_c_cutout_2',
+    );
+
+    expect(created.targetSurface, 'main_enclosure.front_wall.outer');
+    expect(created.parameters['width'], 10.5);
+    expect(created.parameters['height'], 4.2);
+    expect(created.source?['componentPlacementId'], 'button_board_placement');
+    expect(created.source?['componentTemplateId'], 'custom_button_board_v1');
+    expect(created.source?['componentFeatureId'], 'usb_c');
+    expect(created.placement?['componentFeatureDirection'], 'front');
+  });
+
   testWidgets('button group rail command commits through undo history', (
     tester,
   ) async {

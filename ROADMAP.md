@@ -59,6 +59,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M38 — Placement Quick Presets
 - [x] M39 — Placement Dialog Rotation
 - [x] M40 — Snap Anchor Placement
+- [x] M41 — Component USB-C Cutout Propagation
 
 ---
 
@@ -1661,3 +1662,45 @@ point before commit.
 - Click rotate-right and confirm the candidate keeps that anchor aligned.
 - Click `Разместить` and confirm the committed placement uses the new
   position/rotation.
+
+---
+
+## M41 — Component USB-C Cutout Propagation
+
+### Goal
+Start component-driven enclosure generation by creating a semantic USB-C cutout
+from a selected placed component's connector template data.
+
+### Tasks
+- [x] Allow the `Порты` command to run from selected component placement
+      context when the template exposes a USB-C feature with cutout metadata.
+- [x] Keep the existing surface-based manual USB-C command behavior.
+- [x] Build the generated `usb_c_cutout` dimensions from component feature
+      `metadata.cutout`.
+- [x] Resolve the first target surface from the component feature direction.
+- [x] Preserve source placement/template/feature metadata on the generated
+      semantic cutout.
+- [x] Add command and widget coverage, including saved project source data.
+
+### Done Criteria
+- Selecting `button_board_placement` enables `Порты`.
+- Confirming the USB-C dialog creates a normal semantic `usb_c_cutout`.
+- The new feature records its component placement/template/feature source.
+- Surface-selected manual USB-C creation still works.
+- No generated mesh, B-Rep, triangle ID, or OCCT topology becomes editable
+  project state.
+
+### Tests
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Select `button_board_placement`.
+- Click `Порты`.
+- Confirm the USB-C dialog opens with the template dimensions.
+- Click `Добавить`.
+- Confirm `usb_c_cutout_2` appears and can be selected/edited like a normal
+  USB-C feature.

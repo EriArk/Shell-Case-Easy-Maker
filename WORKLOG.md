@@ -3476,3 +3476,97 @@ viewport-driven confirmation or projected connector/switch workflows.
 Anchor selection is a placement aid, not project data. Do not serialize
 selected anchor IDs unless the product explicitly grows editable placement
 constraints later.
+
+---
+
+## 2026-06-29 - M41 Component USB-C Cutout Propagation
+
+### Goal
+Start component-driven enclosure generation by creating a semantic USB-C cutout
+from a selected component placement's template connector metadata.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `docs/07_COMPONENT_TEMPLATE_SYSTEM.md`,
+`docs/31_COMMANDS_AND_UNDO.md`, `docs/32_USABLE_SHELL.md`,
+`lib/commands/command_registry.dart`, `lib/ui/shell/workspace_shell.dart`, and
+USB-C command widget tests.
+
+### Changes made
+- `lib/commands/command_registry.dart`:
+  - Allows `port.add_usb_c` from surface and component scopes.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Keeps existing surface-selected manual USB-C creation.
+  - Enables `Порты` from a selected component placement only when its template
+    has a USB-C feature with `cutout` metadata and a resolvable target surface.
+  - Builds the initial `usb_c_cutout` dimensions/profile from component
+    feature metadata.
+  - Resolves the first target semantic surface from the component feature
+    direction.
+  - Preserves source placement/template/feature IDs plus component feature
+    position/direction on the generated semantic feature.
+  - Keeps `source`, `placement`, and metadata when the USB-C dialog confirms.
+- `test/command_registry_test.dart`:
+  - Updated command availability coverage for surface and component contexts.
+- `test/widget_test.dart`:
+  - Added coverage for component-driven USB-C creation and saved JSON source
+    metadata.
+- Docs/tasks/roadmap:
+  - Recorded M41 behavior, limitations, tests, and poke checklist.
+
+### Tests run
+- `flutter test test\command_registry_test.dart --plain-name "USB-C command works from surface and component context"`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "component USB-C rail command creates sourced cutout"`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "add USB-C rail command commits through undo history"`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "add USB-C rail command can be cancelled"`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 119 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Semantic feature generation only; no generated B-Rep or mesh is created.
+- Serialization checked?
+  - Widget test saves the project and verifies generated cutout source metadata.
+- UI checked?
+  - Widget tests cover both the old surface-selected USB-C path and the new
+    component-selected path.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: The generated cutout uses the connector direction for the target
+  surface but does not yet store face-local connector coordinates.
+  - Severity: Expected first-pass limitation.
+  - Next action: add face-local projected placement metadata before real
+    geometry generation.
+- Issue: This creates a semantic `usb_c_cutout`; it does not yet cut real
+  generated geometry.
+  - Severity: Expected.
+  - Next action: connect semantic features to geometry service/OCCT worker
+    later.
+
+### Next step
+Commit and push M41, then continue toward projected connector coordinates or
+component-driven switch/button cutout propagation.
+
+### Notes for future Codex sessions
+Component-driven port creation should remain semantic and traceable. Do not
+flatten it into generated mesh or OCCT topology; source IDs are the bridge for
+future regeneration/update behavior.

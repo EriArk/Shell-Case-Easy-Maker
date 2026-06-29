@@ -35,13 +35,13 @@ void main() {
     expect(save.undoBehavior, UndoBehavior.none);
   });
 
-  test('surface commands require an active surface', () {
+  test('USB-C command works from surface and component context', () {
     final registry = CommandRegistry.core;
     final addUsbC = registry.byId(CommandIds.addUsbC);
 
     expect(
       addUsbC.isAvailable(
-        const CommandContext(activeScope: CommandScope.surface),
+        const CommandContext(activeScope: CommandScope.workspace),
       ),
       isFalse,
     );
@@ -49,7 +49,17 @@ void main() {
       addUsbC.isAvailable(
         const CommandContext(
           activeScope: CommandScope.surface,
+          selectedObjectId: 'main_enclosure',
           activeSurfaceId: 'main_enclosure.front_wall.outer',
+        ),
+      ),
+      isTrue,
+    );
+    expect(
+      addUsbC.isAvailable(
+        const CommandContext(
+          activeScope: CommandScope.component,
+          selectedObjectId: 'button_board_placement',
         ),
       ),
       isTrue,

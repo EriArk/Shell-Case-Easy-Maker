@@ -352,12 +352,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
             : () {
                 _runPlaceComponentCommand();
               },
-      CommandIds.addUsbC =>
-        _selection.kind == SelectionKind.surface
-            ? () {
-                _runAddUsbCCommand(_selection);
-              }
-            : null,
+      CommandIds.addUsbC => _usbCCommandAction(),
       CommandIds.createButtonGroup =>
         _selection.kind == SelectionKind.surface
             ? () {
@@ -383,6 +378,27 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
 
     return () {
       _runGenerateMountCommand(target.placement, target.template);
+    };
+  }
+
+  VoidCallback? _usbCCommandAction() {
+    if (_selection.kind == SelectionKind.surface) {
+      return () {
+        _runAddUsbCCommand(_selection);
+      };
+    }
+
+    final target = _selectedUsbCComponentPort();
+    if (target == null) {
+      return null;
+    }
+
+    return () {
+      _runAddUsbCFromComponentCommand(
+        target.placement,
+        target.template,
+        target.feature,
+      );
     };
   }
 
@@ -481,6 +497,43 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     _commitProjectEdit(
       id: CommandIds.addUsbC,
       label: 'Добавить USB-C',
+      nextState: _project.replaceFeature(feature),
+      selection: SelectionModel.feature(feature.id),
+    );
+  }
+
+  Future<void> _runAddUsbCFromComponentCommand(
+    ComponentPlacement placement,
+    ComponentTemplate template,
+    ComponentFeature componentFeature,
+  ) async {
+    final targetSurfaceId = _targetSurfaceForComponentFeature(
+      _project,
+      componentFeature,
+    );
+    if (targetSurfaceId == null) {
+      return;
+    }
+
+    final feature = await showDialog<SemanticFeature>(
+      context: context,
+      builder: (context) => _UsbCCutoutDialog(
+        initialFeature: _usbCCutoutFeatureFromComponent(
+          id: _nextFeatureId(_project, 'usb_c_cutout'),
+          targetSurfaceId: targetSurfaceId,
+          placement: placement,
+          template: template,
+          componentFeature: componentFeature,
+        ),
+      ),
+    );
+    if (!mounted || feature == null) {
+      return;
+    }
+
+    _commitProjectEdit(
+      id: CommandIds.addUsbC,
+      label: 'Добавить USB-C от компонента',
       nextState: _project.replaceFeature(feature),
       selection: SelectionModel.feature(feature.id),
     );
@@ -598,6 +651,44 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     }
 
     return (placement: placement, template: template);
+  }
+
+  ({
+    ComponentPlacement placement,
+    ComponentTemplate template,
+    ComponentFeature feature,
+  })?
+  _selectedUsbCComponentPort() {
+    if (_selection.kind != SelectionKind.componentPlacement ||
+        _selection.id == null) {
+      return null;
+    }
+
+    final placement = _project.componentPlacements
+        .where((placement) => placement.id == _selection.id)
+        .firstOrNull;
+    if (placement == null) {
+      return null;
+    }
+
+    final template = _componentTemplateForPlacement(placement);
+    if (template == null) {
+      return null;
+    }
+
+    final feature = template.features
+        .where(
+          (feature) =>
+              feature.type == 'usb_c' &&
+              _componentFeatureCutout(feature).isNotEmpty &&
+              _targetSurfaceForComponentFeature(_project, feature) != null,
+        )
+        .firstOrNull;
+    if (feature == null) {
+      return null;
+    }
+
+    return (placement: placement, template: template, feature: feature);
   }
 
   ComponentTemplate? _componentTemplateForPlacement(
@@ -1429,6 +1520,89 @@ SemanticFeature _defaultUsbCCutoutFeature({
       'clearanceProfile': 'fdm_normal',
     },
   );
+}
+
+SemanticFeature _usbCCutoutFeatureFromComponent({
+  required String id,
+  required String targetSurfaceId,
+  required ComponentPlacement placement,
+  required ComponentTemplate template,
+  required ComponentFeature componentFeature,
+}) {
+  final cutout = _componentFeatureCutout(componentFeature);
+
+  return SemanticFeature(
+    id: id,
+    type: 'usb_c_cutout',
+    targetSurface: targetSurfaceId,
+    operation: 'negative',
+    source: {
+      'componentPlacementId': placement.id,
+      'componentTemplateId': template.id,
+      'componentFeatureId': componentFeature.id,
+    },
+    placement: {
+      'componentPosition': placement.position,
+      'componentRotation': placement.rotation,
+      'componentFeaturePosition': componentFeature.position,
+      if (componentFeature.direction != null)
+        'componentFeatureDirection': componentFeature.direction,
+    },
+    parameters: {
+      'width': _mapDouble(cutout, 'width', 10.5),
+      'height': _mapDouble(cutout, 'height', 4.2),
+      'cornerRadius': _mapDouble(cutout, 'cornerRadius', 1.0),
+      'clearanceProfile': _mapString(cutout, 'clearanceProfile', 'fdm_normal'),
+    },
+  );
+}
+
+Map<String, Object?> _componentFeatureCutout(ComponentFeature feature) {
+  final cutout = feature.metadata['cutout'];
+  if (cutout is Map<Object?, Object?>) {
+    return {
+      for (final entry in cutout.entries)
+        if (entry.key is String) entry.key as String: entry.value,
+    };
+  }
+
+  return const {};
+}
+
+String? _targetSurfaceForComponentFeature(
+  ProjectModel project,
+  ComponentFeature feature,
+) {
+  final enclosure = project.bodies.firstOrNull;
+  if (enclosure == null) {
+    return null;
+  }
+
+  final direction = feature.direction ?? 'front';
+  final surfacePart = switch (direction) {
+    'front' => 'front_wall',
+    'back' => 'back_wall',
+    'left' => 'left_wall',
+    'right' => 'right_wall',
+    'top' => 'top_lid',
+    'bottom' => 'bottom',
+    _ => null,
+  };
+  if (surfacePart == null) {
+    return null;
+  }
+
+  return '${enclosure.id}.$surfacePart.outer';
+}
+
+double _mapDouble(Map<String, Object?> values, String key, double fallback) {
+  final value = values[key];
+  return value is num ? value.toDouble() : fallback;
+}
+
+String _mapString(Map<String, Object?> values, String key, String fallback) {
+  final value = values[key];
+  return value is String ? value : fallback;
 }
 
 SemanticFeature _defaultGlassRecessFeature({
@@ -4272,6 +4446,9 @@ class _UsbCCutoutDialogState extends State<_UsbCCutoutDialog> {
               type: widget.initialFeature.type,
               targetSurface: widget.initialFeature.targetSurface,
               operation: widget.initialFeature.operation,
+              source: widget.initialFeature.source,
+              placement: widget.initialFeature.placement,
+              metadata: widget.initialFeature.metadata,
               parameters: {
                 'width': _clampDouble(_width, 4, 30),
                 'height': _clampDouble(_height, 1, 14),

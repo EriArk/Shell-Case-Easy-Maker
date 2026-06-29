@@ -208,6 +208,13 @@ feature, refreshes the mock preview, and creates one undo history entry. The
 mock viewport draws a schematic USB-C marker; clicking it selects the semantic
 feature.
 
+`Порты` is also available when a selected component placement's template has a
+USB-C feature with `cutout` metadata. In that context the same USB-C dialog is
+pre-filled from the component template, targets the first semantic enclosure
+surface implied by the connector direction, and preserves source placement,
+template, and component feature IDs on the generated `usb_c_cutout`. The
+editable result is still a normal semantic feature, not generated geometry.
+
 Clicking `Кнопки` is enabled only after selecting a semantic surface such as
 `Top lid`. The command opens a compact button group dialog and appends a
 semantic `FeatureGroup` with editable layout/count/diameter/spacing data. The

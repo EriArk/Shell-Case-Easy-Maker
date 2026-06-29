@@ -92,9 +92,9 @@ class CoreCommands {
       id: CommandIds.addUsbC,
       label: 'Порты',
       icon: 'port',
-      scopes: {CommandScope.surface, CommandScope.feature},
+      scopes: {CommandScope.surface, CommandScope.component},
       undoBehavior: UndoBehavior.singleTransaction,
-      availability: {CommandAvailability.activeSurface},
+      availability: {CommandAvailability.selectedObject},
     ),
     AppCommand(
       id: CommandIds.createButtonGroup,

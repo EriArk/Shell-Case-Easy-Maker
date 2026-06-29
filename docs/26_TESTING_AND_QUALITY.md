@@ -68,6 +68,8 @@ Use deterministic test fixtures.
   committed inspector state.
 - Snap-seeded component placement can align semantic component anchors to the
   selected snap point without saving anchor UI state.
+- Component-driven USB-C cutout generation preserves source placement/template
+  data in saved project JSON.
 - Validation status/details show warning and error messages.
 - Context popovers show correct actions.
 - Parameter knob updates model.

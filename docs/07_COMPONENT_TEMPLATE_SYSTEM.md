@@ -141,6 +141,11 @@ the placement center so that anchor lands on the selected snap point. The
 project still stores only the resulting semantic `ComponentPlacement`; selected
 anchor UI state is not serialized.
 
+When a component placement is selected, the `Порты` generator can also create a
+first-pass semantic `usb_c_cutout` from a template USB-C feature's `cutout`
+metadata. The generated cutout records source placement/template/feature IDs so
+future geometry and propagation tools can trace where it came from.
+
 `ProjectSemanticValidator` also performs a first-pass component placement check
 against the enclosure inner volume. It treats the component board as a semantic
 outline/thickness envelope, accounts for the placement's Z rotation with a

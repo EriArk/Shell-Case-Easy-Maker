@@ -65,6 +65,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Component placement dialog quick position presets.
 - [x] Component placement dialog rotation editing.
 - [x] Component placement dialog snap anchor selection.
+- [x] First-pass component-driven USB-C cutout command.
 - [x] First-pass component placement inspector editing.
 - [x] First-pass component placement rotation editing.
 - [x] First-pass component placement lock guard.
@@ -164,6 +165,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Reusable standoff source-anchor layout helper.
 - [ ] Generate real standoff geometry from board mounting holes.
 - [ ] Generate side wall cutouts from ports.
+- [x] First-pass semantic USB-C cutout from component connector metadata.
 - [ ] Generate top/lid cutouts from switches/buttons.
 - [x] First-pass keepout warnings.
 - [ ] Generate support ribs from drawn line.
@@ -272,6 +274,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [ ] Grip case.
 - [ ] Pseudo-button generation for case.
 - [ ] Port cutout propagation.
+- [x] First-pass project USB-C connector to semantic cutout propagation.
 - [ ] Case add-ons: grips, bumpers, feet, stand, stylus slot.
 - [ ] Kickstand / hinge tools.
 

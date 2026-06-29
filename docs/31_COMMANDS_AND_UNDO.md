@@ -114,9 +114,11 @@ starts only when the user confirms and the semantic placement is committed.
 The shell also mirrors the dialog candidate into a transient viewport footprint;
 that candidate is cleared on cancel/confirm and does not enter undo history.
 
-The first surface-based rail command is `port.add_usb_c`. It is available only
-when the active selection is a semantic surface. The command creates a
-`usb_c_cutout` `SemanticFeature` targeted at that surface and commits it as one
+The first port rail command is `port.add_usb_c`. From a semantic surface it
+creates a manual `usb_c_cutout` `SemanticFeature` targeted at that surface. From
+a selected component placement with a USB-C template feature, it pre-fills the
+same dialog from the component feature's cutout metadata and records source
+placement/template/feature IDs on the generated cutout. Both paths commit one
 undoable project snapshot.
 
 The next surface-based rail command is `button.create_group`. It is also
