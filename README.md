@@ -90,6 +90,13 @@ Build the opt-in OCCT native worker after readiness is true with:
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/build_occt_worker_occt.ps1
 ```
 
+When `VCPKG_ROOT` is configured but OCCT is not installed yet, allow vcpkg
+manifest restore explicitly with:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/build_occt_worker_occt.ps1 -AllowVcpkgInstall
+```
+
 Build the latest manual Windows bundle with:
 
 ```powershell

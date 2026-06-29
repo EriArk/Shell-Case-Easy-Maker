@@ -218,7 +218,8 @@ finds a local `OpenCASCADEConfig.cmake`.
 `occt_worker_native_occt` is the separate opt-in OCCT link-smoke target. It is
 configured with `SHELL_CASE_ENABLE_OCCT=ON` through
 `tools/build_occt_worker_occt.ps1` and should remain separate from
-`occt_worker_native_stub`.
+`occt_worker_native_stub`. Its vcpkg manifest is also opt-in: the build script
+uses `occt_worker/native/vcpkg.json` only when `-AllowVcpkgInstall` is provided.
 
 ## Worker Process Client
 

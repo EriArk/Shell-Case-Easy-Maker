@@ -105,6 +105,10 @@ Opt-in OCCT target build command after readiness is true:
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1
 ```
 
+If `VCPKG_ROOT` is configured but OCCT is not installed yet, add
+`-AllowVcpkgInstall` to let vcpkg restore `occt_worker/native/vcpkg.json`
+explicitly.
+
 This builds `occt_worker_native_occt` under `build/occt_worker_native_occt`.
 The target references OCCT modeling APIs and reports
 `worker.backend.occt_link_smoke_only`; semantic B-Rep generation is still not

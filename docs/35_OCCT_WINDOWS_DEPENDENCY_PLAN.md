@@ -66,13 +66,16 @@ Use vcpkg as the first Windows developer acquisition path for OCCT, but keep it
 outside normal Flutter builds:
 
 1. Keep `occt_worker_native_stub` as the no-OCCT target.
-2. Add a separate opt-in OCCT-linked native target only after readiness is true.
+2. Keep `occt_worker_native_occt` as a separate opt-in OCCT-linked native
+   target.
 3. Configure that target with a package config discovered through one of:
    - `OpenCASCADE_DIR`,
    - `CASROOT`,
    - `$env:VCPKG_ROOT\installed\x64-windows\share\...\OpenCASCADEConfig.cmake`.
-4. Keep Flutter talking only to `GeometryService` / process-client protocol.
-5. Keep generated B-Rep and preview mesh disposable worker output.
+4. Use `occt_worker/native/vcpkg.json` only when vcpkg manifest restore is
+   explicitly allowed.
+5. Keep Flutter talking only to `GeometryService` / process-client protocol.
+6. Keep generated B-Rep and preview mesh disposable worker output.
 
 ## Readiness command
 
@@ -109,6 +112,16 @@ built through:
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1
 ```
 
+When `VCPKG_ROOT` is configured but `OpenCASCADEConfig.cmake` is not present
+yet, allow vcpkg manifest restore explicitly:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall
+```
+
+This uses `occt_worker/native/vcpkg.json`, which currently depends only on
+`opencascade`.
+
 The current OCCT target is a link smoke only. It references
 `BRepPrimAPI_MakeBox` and reports `worker.backend.occt_link_smoke_only`; it does
 not generate semantic enclosure geometry yet. STEP/STL export should stay out of
@@ -117,7 +130,7 @@ the first linker slice unless required by the exact test.
 ## Follow-up tasks
 
 - Install/configure vcpkg locally or set `OpenCASCADE_DIR` / `CASROOT`.
-- Add an opt-in CMake target for OCCT after readiness is true.
+- Use `-AllowVcpkgInstall` only when a large vcpkg manifest restore is expected.
 - Add a deterministic native smoke that returns a generated rounded enclosure
   preview or a narrower geometric metrics response.
 - Add third-party license notice packaging before distributing OCCT DLLs.

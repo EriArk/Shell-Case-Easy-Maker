@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -46,12 +47,15 @@ void main() {
       ).readAsStringSync();
 
       expect(script, contains('check_occt_windows_readiness.ps1'));
+      expect(script, contains('AllowVcpkgInstall'));
       expect(script, contains('occt_worker_native_occt'));
       expect(script, contains('SHELL_CASE_ENABLE_OCCT=ON'));
       expect(script, contains('Assert-ChildPath'));
       expect(script, contains('build'));
       expect(script, contains('occt_worker_native_occt'));
       expect(script, contains('CMAKE_TOOLCHAIN_FILE'));
+      expect(script, contains('VCPKG_TARGET_TRIPLET'));
+      expect(script, contains('VCPKG_MANIFEST_MODE=ON'));
       expect(script, contains('OpenCASCADE_DIR'));
       expect(script, contains('exit 2'));
       expect(script, isNot(contains('& vcpkg')));
@@ -60,4 +64,16 @@ void main() {
       expect(script, isNot(contains('releases')));
     },
   );
+
+  test('OCCT vcpkg manifest keeps dependency explicit', () {
+    final manifest =
+        jsonDecode(File('occt_worker/native/vcpkg.json').readAsStringSync())
+            as Map<String, Object?>;
+    final dependencies = manifest['dependencies']! as List<Object?>;
+
+    expect(manifest['name'], 'shell-case-occt-worker-native');
+    expect(dependencies, contains('opencascade'));
+    expect(jsonEncode(manifest), isNot(contains('freecad')));
+    expect(jsonEncode(manifest), isNot(contains('opencascade source')));
+  });
 }

@@ -78,6 +78,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M57 - Native Worker Request Envelope
 - [x] M58 - OCCT Windows Dependency Readiness
 - [x] M59 - Opt-in OCCT Native Target Scaffold
+- [x] M60 - OCCT vcpkg Manifest Restore Path
 
 ---
 
@@ -2544,5 +2545,47 @@ native stub buildable without OCCT.
 - No meaningful manual UI poke for this chunk; it is a native build scaffold.
 - Optional developer poke: run `tools\build_occt_worker_occt.ps1` and confirm it
   exits with readiness guidance until OCCT is configured.
+- Launch latest Windows app normally and confirm the default project still opens
+  with the mock preview and clean validation status.
+
+---
+
+## M60 - OCCT vcpkg Manifest Restore Path
+
+### Goal
+Add an explicit vcpkg manifest path for the OCCT target without making package
+installation automatic during normal builds.
+
+### Tasks
+- [x] Add `occt_worker/native/vcpkg.json`.
+- [x] Declare only the `opencascade` dependency.
+- [x] Add `-AllowVcpkgInstall` to `tools/build_occt_worker_occt.ps1`.
+- [x] Keep the default OCCT build script path read-only when readiness is false.
+- [x] Allow vcpkg manifest mode only when `VCPKG_ROOT`/toolchain is configured
+      and the explicit flag is provided.
+- [x] Add tests for the manifest and script safety.
+- [x] Update README, OCCT docs, worker docs, tasks, and worklog.
+
+### Done Criteria
+- Normal Flutter builds remain independent of OCCT.
+- `tools/build_occt_worker_occt.ps1` still exits with readiness guidance by
+  default when OCCT is missing.
+- `-AllowVcpkgInstall` is the only path that lets vcpkg restore the manifest.
+- No vcpkg install tree, OCCT source, OCCT binaries, build output, or release
+  artifact is committed.
+
+### Tests
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`
+- `flutter test test\occt_native_target_scaffold_test.dart`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- No meaningful manual UI poke for this chunk; it is dependency plumbing.
+- Optional developer poke: after installing/configuring vcpkg, run
+  `tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`.
 - Launch latest Windows app normally and confirm the default project still opens
   with the mock preview and clean validation status.

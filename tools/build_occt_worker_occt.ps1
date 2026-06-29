@@ -3,6 +3,7 @@ param(
     [ValidateSet("Debug", "Release")]
     [string]$Configuration = "Release",
     [string]$Triplet = "x64-windows",
+    [switch]$AllowVcpkgInstall,
     [switch]$Clean
 )
 
@@ -43,8 +44,9 @@ $readinessOutput = & $readinessScript -Triplet $Triplet
 $readinessText = $readinessOutput -join [Environment]::NewLine
 Write-Host $readinessText
 $readiness = $readinessText | ConvertFrom-Json
-if (-not $readiness.ready) {
-    [Console]::Error.WriteLine("OCCT is not ready for '$Triplet'. Configure vcpkg/OpenCASCADE_DIR/CASROOT and rerun the readiness check.")
+$canUseVcpkgManifest = $AllowVcpkgInstall -and $readiness.vcpkg.toolchainFound
+if (-not $readiness.ready -and -not $canUseVcpkgManifest) {
+    [Console]::Error.WriteLine("OCCT is not ready for '$Triplet'. Configure vcpkg/OpenCASCADE_DIR/CASROOT, or rerun with -AllowVcpkgInstall when VCPKG_ROOT is configured.")
     exit 2
 }
 
@@ -61,6 +63,10 @@ $cmakeConfigureArgs = @(
 
 if ($readiness.vcpkg.toolchainFound) {
     $cmakeConfigureArgs += "-DCMAKE_TOOLCHAIN_FILE=$($readiness.vcpkg.toolchain)"
+    $cmakeConfigureArgs += "-DVCPKG_TARGET_TRIPLET=$Triplet"
+    if ($AllowVcpkgInstall) {
+        $cmakeConfigureArgs += "-DVCPKG_MANIFEST_MODE=ON"
+    }
 }
 
 if ($readiness.opencascade.configPath) {

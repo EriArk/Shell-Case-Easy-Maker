@@ -42,6 +42,86 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-29 - M60 OCCT vcpkg manifest restore path
+
+### Goal
+Add an explicit opt-in vcpkg manifest restore path for the OCCT-linked native
+worker target without making normal Flutter builds or default native checks
+install packages silently.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `tools/build_occt_worker_occt.ps1`,
+`docs/35_OCCT_WINDOWS_DEPENDENCY_PLAN.md`,
+`docs/04_GEOMETRY_ENGINE_OCCT.md`, `docs/34_FIRST_GEOMETRY_SLICE.md`,
+`occt_worker/README.md`, and `test/occt_native_target_scaffold_test.dart`.
+
+### Changes made
+- `occt_worker/native/vcpkg.json`:
+  - Added a minimal manifest that declares only the `opencascade` dependency.
+- `tools/build_occt_worker_occt.ps1`:
+  - Added `-AllowVcpkgInstall`.
+  - Keeps the default path readiness-only when OCCT is missing.
+  - Enables CMake vcpkg manifest mode only when the flag is present and the
+    vcpkg toolchain is discoverable.
+- `test/occt_native_target_scaffold_test.dart`:
+  - Added manifest parsing coverage and script safety checks for the new flag.
+- Docs/tasks/roadmap:
+  - Documented the manifest restore path and marked the M60 task complete.
+
+### Tests run
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`:
+  - Returned expected `EXIT:2` because this machine still has no configured
+    `VCPKG_ROOT`, vcpkg toolchain, or local OCCT config.
+- `flutter test test\occt_native_target_scaffold_test.dart`:
+  - Passed, 4 tests.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed, 175 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Dependency plumbing only. No editable generated B-Rep, mesh, STL workflow,
+    or product semantics were added to the worker.
+- Serialization checked?
+  - `vcpkg.json` is parsed by the scaffold test; existing worker protocol tests
+    passed in the full suite.
+- UI checked?
+  - Full widget suite passed and the latest Windows bundle was rebuilt. No
+    user-facing UI changed in this chunk.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: `-AllowVcpkgInstall` cannot proceed until vcpkg is configured locally.
+  - Severity: Expected.
+  - Next action: Set `VCPKG_ROOT` or provide an explicit OCCT install before
+    building the OCCT-linked worker.
+- Issue: The OCCT target remains a link/readiness scaffold.
+  - Severity: Expected.
+  - Next action: After dependency readiness is true, add the first deterministic
+    rounded enclosure B-Rep generation slice behind the worker protocol.
+
+### Next step
+Configure vcpkg/OCCT locally or add an explicit bootstrap helper, then run
+`tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall` and continue toward the
+first real rounded enclosure generation response.
+
+### Notes for future Codex sessions
+Keep manifest restore opt-in. Do not run a large vcpkg restore from the normal
+Flutter build path, and do not commit generated vcpkg trees, OCCT binaries,
+worker build output, or `releases/`.
+
 ## 2026-06-29 - M59 Opt-in OCCT native target scaffold
 
 ### Goal

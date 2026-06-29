@@ -191,6 +191,10 @@ Opt-in OCCT target build command after readiness is true:
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1
 ```
 
+If `VCPKG_ROOT` is configured and the developer intentionally wants vcpkg to
+restore the manifest dependency, add `-AllowVcpkgInstall`. The manifest lives at
+`occt_worker/native/vcpkg.json` and currently declares only `opencascade`.
+
 This builds `occt_worker_native_occt`, a separate link-smoke target that
 references OCCT modeling APIs but still returns
 `worker.backend.occt_link_smoke_only` for geometry requests. It does not replace

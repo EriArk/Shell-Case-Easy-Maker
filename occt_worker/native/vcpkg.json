@@ -1,0 +1,8 @@
+{
+  "name": "shell-case-occt-worker-native",
+  "version-string": "0.1.0",
+  "description": "Optional OpenCascade dependency manifest for the Shell Case native worker.",
+  "dependencies": [
+    "opencascade"
+  ]
+}

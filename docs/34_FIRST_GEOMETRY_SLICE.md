@@ -102,6 +102,9 @@ Once readiness is true, build the opt-in OCCT link-smoke target:
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1
 ```
 
+To let vcpkg restore `occt_worker/native/vcpkg.json` explicitly, rerun that
+command with `-AllowVcpkgInstall` after `VCPKG_ROOT` is configured.
+
 The target is `occt_worker_native_occt`. It is separate from
 `occt_worker_native_stub`, references OCCT modeling APIs, and returns
 `worker.backend.occt_link_smoke_only` until semantic B-Rep generation is added.
