@@ -84,6 +84,25 @@ Check local Windows OCCT readiness with:
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/check_occt_windows_readiness.ps1
 ```
 
+Preview the repo-local vcpkg setup steps with:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/bootstrap_vcpkg_windows.ps1 -PlanOnly
+```
+
+Bootstrap a repo-local vcpkg checkout in `external/vcpkg` with:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/bootstrap_vcpkg_windows.ps1
+```
+
+Restore the OCCT manifest dependency only when a large dependency install is
+expected:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/bootstrap_vcpkg_windows.ps1 -InstallOpenCascade
+```
+
 Build the opt-in OCCT native worker after readiness is true with:
 
 ```powershell

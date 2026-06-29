@@ -99,6 +99,15 @@ discoverable through `OpenCASCADE_DIR`, `CASROOT`, or a vcpkg-style install.
 The dependency decision is recorded in
 `docs/35_OCCT_WINDOWS_DEPENDENCY_PLAN.md`.
 
+Preview repo-local vcpkg setup without cloning or installing:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\bootstrap_vcpkg_windows.ps1 -PlanOnly
+```
+
+The bootstrap helper uses ignored `external/vcpkg` output and installs the OCCT
+manifest dependency only when `-InstallOpenCascade` is passed.
+
 Opt-in OCCT target build command after readiness is true:
 
 ```powershell

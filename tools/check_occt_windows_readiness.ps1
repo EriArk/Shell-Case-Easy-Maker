@@ -6,6 +6,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..")).Path
+
 function Get-CommandPath {
     param([Parameter(Mandatory = $true)][string]$Name)
 
@@ -52,13 +54,29 @@ function Add-ConfigCandidate {
 
 $cmakePath = Get-CommandPath "cmake"
 $vcpkgPath = Get-CommandPath "vcpkg"
-$vcpkgRoot = $env:VCPKG_ROOT
+$environmentVcpkgRoot = $env:VCPKG_ROOT
+$repoLocalVcpkgRoot = Join-Path $repoRoot "external\vcpkg"
+$vcpkgRoot = $environmentVcpkgRoot
+$vcpkgRootSource = $null
+if (-not [string]::IsNullOrWhiteSpace($environmentVcpkgRoot)) {
+    $vcpkgRootSource = "environment"
+}
+elseif (Test-FilePath (Join-Path $repoLocalVcpkgRoot "scripts\buildsystems\vcpkg.cmake")) {
+    $vcpkgRoot = $repoLocalVcpkgRoot
+    $vcpkgRootSource = "repo-local"
+}
 $openCascadeDir = $env:OpenCASCADE_DIR
 $casRoot = $env:CASROOT
 
 $vcpkgToolchain = $null
 if (-not [string]::IsNullOrWhiteSpace($vcpkgRoot)) {
     $vcpkgToolchain = Join-Path $vcpkgRoot "scripts\buildsystems\vcpkg.cmake"
+}
+if (-not $vcpkgPath -and -not [string]::IsNullOrWhiteSpace($vcpkgRoot)) {
+    $localVcpkgExe = Join-Path $vcpkgRoot "vcpkg.exe"
+    if (Test-FilePath $localVcpkgExe) {
+        $vcpkgPath = [System.IO.Path]::GetFullPath($localVcpkgExe)
+    }
 }
 
 $configCandidates = [System.Collections.Generic.List[string]]::new()
@@ -88,7 +106,7 @@ if (-not $cmakePath) {
     $recommendedNext += "Install CMake and make it available on PATH."
 }
 if (-not $vcpkgPath -and [string]::IsNullOrWhiteSpace($vcpkgRoot)) {
-    $recommendedNext += "Install vcpkg or set VCPKG_ROOT to an existing vcpkg checkout."
+    $recommendedNext += "Run tools/bootstrap_vcpkg_windows.ps1 or set VCPKG_ROOT to an existing vcpkg checkout."
 }
 if (-not $ready) {
     $recommendedNext += "Install OpenCASCADE for the $Triplet triplet or set OpenCASCADE_DIR/CASROOT to an installed OCCT package."
@@ -111,6 +129,7 @@ $summary = [ordered]@{
         found = -not [string]::IsNullOrWhiteSpace($vcpkgPath)
         path = $vcpkgPath
         root = $vcpkgRoot
+        rootSource = $vcpkgRootSource
         toolchain = $vcpkgToolchain
         toolchainFound = $vcpkgToolchainFound
     }

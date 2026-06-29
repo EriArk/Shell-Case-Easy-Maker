@@ -79,6 +79,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M58 - OCCT Windows Dependency Readiness
 - [x] M59 - Opt-in OCCT Native Target Scaffold
 - [x] M60 - OCCT vcpkg Manifest Restore Path
+- [x] M61 - Repo-local vcpkg Bootstrap Helper
 
 ---
 
@@ -2589,3 +2590,43 @@ installation automatic during normal builds.
   `tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`.
 - Launch latest Windows app normally and confirm the default project still opens
   with the mock preview and clean validation status.
+
+---
+
+## M61 - Repo-local vcpkg Bootstrap Helper
+
+### Goal
+Make the OCCT dependency setup reproducible on this Windows workstation without
+committing vcpkg sources, OCCT binaries, or generated install output.
+
+### Tasks
+- [x] Add `tools/bootstrap_vcpkg_windows.ps1`.
+- [x] Keep the default helper flow free of `opencascade` package restore unless
+      `-InstallOpenCascade` is provided.
+- [x] Add `-PlanOnly` so the setup can be inspected without changing files.
+- [x] Ignore `external/` for repo-local dependency tool output.
+- [x] Teach `tools/check_occt_windows_readiness.ps1` to detect
+      `external/vcpkg` when `VCPKG_ROOT` is not set.
+- [x] Add tests for helper safety and readiness auto-detection contract.
+- [x] Update README, OCCT docs, worker docs, tasks, and worklog.
+
+### Done Criteria
+- The helper can print a JSON setup plan without cloning or installing.
+- Repo-local vcpkg output stays ignored by Git.
+- OpenCASCADE restore remains an explicit large-dependency action.
+- Normal Flutter builds and native stub builds remain independent of OCCT.
+
+### Tests
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\bootstrap_vcpkg_windows.ps1 -PlanOnly`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_occt_windows_readiness.ps1`
+- `flutter test test\occt_windows_readiness_test.dart test\vcpkg_bootstrap_script_test.dart`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- No meaningful manual UI poke for this chunk; it is local dependency setup.
+- Optional developer poke when a long dependency install is acceptable:
+  `tools\bootstrap_vcpkg_windows.ps1 -InstallOpenCascade`.

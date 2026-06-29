@@ -185,6 +185,15 @@ Readiness command:
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_occt_windows_readiness.ps1
 ```
 
+Repo-local vcpkg setup can be previewed without cloning or installing:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\bootstrap_vcpkg_windows.ps1 -PlanOnly
+```
+
+The helper uses `external/vcpkg`, which is ignored by Git. It only restores
+`opencascade` when `-InstallOpenCascade` is provided.
+
 Opt-in OCCT target build command after readiness is true:
 
 ```powershell

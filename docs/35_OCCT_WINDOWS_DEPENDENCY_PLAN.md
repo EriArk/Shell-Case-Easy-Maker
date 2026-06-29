@@ -88,6 +88,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_occt_windows_rea
 The command is read-only. It prints `shell_case.occt.windows_readiness` JSON and
 exits `0` by default even when OCCT is missing.
 
+The readiness checker also looks for a repo-local vcpkg checkout at
+`external/vcpkg`. This lets a developer keep the dependency toolchain local to
+the project without setting a global `VCPKG_ROOT`.
+
 Require OCCT when a future build step needs it:
 
 ```powershell
@@ -95,6 +99,30 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_occt_windows_rea
 ```
 
 That form exits `2` when no `OpenCASCADEConfig.cmake` is found.
+
+## Repo-local vcpkg bootstrap helper
+
+Preview the local setup steps without cloning or installing anything:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\bootstrap_vcpkg_windows.ps1 -PlanOnly
+```
+
+Bootstrap a repo-local vcpkg checkout:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\bootstrap_vcpkg_windows.ps1
+```
+
+This creates/uses `external/vcpkg`, bootstraps `vcpkg.exe`, and leaves
+`opencascade` uninstalled unless the explicit install flag is provided:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\bootstrap_vcpkg_windows.ps1 -InstallOpenCascade
+```
+
+`external/` is ignored by Git. Do not commit vcpkg sources, installed packages,
+OCCT binaries, or generated worker build output.
 
 ## Future native target shape
 
@@ -130,6 +158,8 @@ the first linker slice unless required by the exact test.
 ## Follow-up tasks
 
 - Install/configure vcpkg locally or set `OpenCASCADE_DIR` / `CASROOT`.
+- Use `tools\bootstrap_vcpkg_windows.ps1 -PlanOnly` to inspect the local vcpkg
+  setup before cloning or installing anything.
 - Use `-AllowVcpkgInstall` only when a large vcpkg manifest restore is expected.
 - Add a deterministic native smoke that returns a generated rounded enclosure
   preview or a narrower geometric metrics response.

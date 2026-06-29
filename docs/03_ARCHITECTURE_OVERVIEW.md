@@ -220,6 +220,9 @@ configured with `SHELL_CASE_ENABLE_OCCT=ON` through
 `tools/build_occt_worker_occt.ps1` and should remain separate from
 `occt_worker_native_stub`. Its vcpkg manifest is also opt-in: the build script
 uses `occt_worker/native/vcpkg.json` only when `-AllowVcpkgInstall` is provided.
+`tools/bootstrap_vcpkg_windows.ps1` can create a repo-local `external/vcpkg`
+checkout, and the readiness checker auto-detects that path without requiring a
+global `VCPKG_ROOT`.
 
 ## Worker Process Client
 

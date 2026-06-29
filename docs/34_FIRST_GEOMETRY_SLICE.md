@@ -96,6 +96,15 @@ run:
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_occt_windows_readiness.ps1
 ```
 
+To inspect the repo-local vcpkg setup before changing local files, run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\bootstrap_vcpkg_windows.ps1 -PlanOnly
+```
+
+The helper uses ignored `external/vcpkg` output and restores `opencascade` only
+when `-InstallOpenCascade` is passed.
+
 Once readiness is true, build the opt-in OCCT link-smoke target:
 
 ```powershell

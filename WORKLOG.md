@@ -42,6 +42,99 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-29 - M61 Repo-local vcpkg bootstrap helper
+
+### Goal
+Make the Windows OCCT dependency setup reproducible from the repository while
+keeping vcpkg sources, installed packages, OCCT binaries, build output, and
+release bundles out of Git.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`, `.gitignore`, `README.md`,
+`tools/check_occt_windows_readiness.ps1`, `tools/build_occt_worker_occt.ps1`,
+`docs/35_OCCT_WINDOWS_DEPENDENCY_PLAN.md`,
+`docs/04_GEOMETRY_ENGINE_OCCT.md`, `docs/34_FIRST_GEOMETRY_SLICE.md`,
+`docs/03_ARCHITECTURE_OVERVIEW.md`, `occt_worker/README.md`, and
+`test/occt_windows_readiness_test.dart`.
+
+### Changes made
+- `.gitignore`:
+  - Ignored `external/` so repo-local vcpkg output cannot be committed
+    accidentally.
+- `tools/bootstrap_vcpkg_windows.ps1`:
+  - Added a repo-local vcpkg helper with `-PlanOnly`,
+    `-InstallOpenCascade`, and `-SetUserEnvironment`.
+  - Keeps `opencascade` manifest restore explicit instead of automatic.
+- `tools/check_occt_windows_readiness.ps1`:
+  - Added auto-detection for `external/vcpkg` when `VCPKG_ROOT` is not set.
+  - Reports `rootSource` so readiness output explains where vcpkg came from.
+- Tests:
+  - Added bootstrap helper safety coverage.
+  - Extended readiness script coverage for repo-local vcpkg detection.
+- Docs/tasks/roadmap:
+  - Recorded the M61 chunk and documented the new helper commands.
+
+### Tests run
+- `dart format lib test tool occt_worker`:
+  - Formatted `test\vcpkg_bootstrap_script_test.dart`.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\bootstrap_vcpkg_windows.ps1 -PlanOnly`:
+  - Passed; printed `shell_case.occt.vcpkg_bootstrap` JSON without cloning or
+    installing anything.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_occt_windows_readiness.ps1`:
+  - Passed; readiness remains `false` because no local vcpkg/OCCT install
+    exists yet, and now recommends the bootstrap helper.
+- `flutter test test\occt_windows_readiness_test.dart test\vcpkg_bootstrap_script_test.dart`:
+  - Passed, 4 tests.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed, 177 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\bootstrap_vcpkg_windows.ps1 -PlanOnly -InstallOpenCascade`:
+  - Passed; printed the large-install plan without restoring dependencies.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Dependency setup only. No generated B-Rep, preview mesh, STL workflow, or
+    editable geometry state was added.
+- Serialization checked?
+  - Bootstrap `-PlanOnly` and readiness JSON contracts were exercised; full
+    worker protocol tests passed in the full suite.
+- UI checked?
+  - Full widget suite passed and the latest Windows bundle was rebuilt. No
+    user-facing UI changed in this chunk.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: OCCT readiness is still false on this machine.
+  - Severity: Expected.
+  - Next action: Run `tools\bootstrap_vcpkg_windows.ps1 -InstallOpenCascade`
+    when the long dependency restore is acceptable.
+- Issue: The OCCT target remains link-smoke only.
+  - Severity: Expected.
+  - Next action: After readiness is true, build the OCCT target and add the
+    first deterministic rounded enclosure generation response.
+
+### Next step
+Run the explicit repo-local vcpkg/OCCT restore, then use
+`tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall` to validate the linked
+worker before implementing real rounded enclosure B-Rep generation.
+
+### Notes for future Codex sessions
+The helper intentionally does not restore `opencascade` unless
+`-InstallOpenCascade` is provided. Keep `external/` ignored and do not commit
+dependency trees or native binaries.
+
 ## 2026-06-29 - M60 OCCT vcpkg manifest restore path
 
 ### Goal
