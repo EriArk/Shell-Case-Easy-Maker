@@ -122,12 +122,13 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Generate rounded box B-Rep.
 - [ ] Generate shell/cavity for box.
 - [x] Generate mock preview mesh through protocol.
-- [ ] Generate OCCT preview mesh.
+- [x] Generate OCCT preview mesh.
 - [ ] Export STEP.
 - [ ] Export STL.
 - [x] Define response issues/warnings model.
 - [x] Add protocol tests for known mock dimensions.
 - [x] Add native OCCT metrics smoke for known rounded-box dimensions.
+- [x] Add native OCCT preview mesh smoke for known rounded-box dimensions.
 - [x] First-pass semantic validation warnings/errors.
 - [x] First-pass component placement and keepout semantic validation.
 - [x] Rotation-aware component placement bounds validation.

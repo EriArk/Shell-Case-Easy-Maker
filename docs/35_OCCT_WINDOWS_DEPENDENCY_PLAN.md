@@ -73,6 +73,16 @@ Update from M63:
 - Preview mesh vertices, generated B-Rep, STEP/STL artifacts, raw OCCT topology
   IDs, and triangle IDs are still not returned to Flutter.
 
+Update from M64:
+
+- `occt_worker_native_occt` now reports `status=preview_mesh_smoke`.
+- The target meshes the generated rounded enclosure B-Rep with
+  `BRepMesh_IncrementalMesh`.
+- The sample smoke emits 800 preview vertices and 1060 preview triangles with
+  the same deterministic bounds and metrics.
+- Semantic surface mapping is intentionally still pending; preview mesh output
+  remains disposable and not editable project state.
+
 ## License / compatibility notes
 
 - Do not copy OCCT source into this repository.
@@ -182,11 +192,12 @@ build directory once:
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall -Clean
 ```
 
-The current OCCT target is a metrics smoke. It references OCCT box, fillet,
-bounding-box, surface-property, and volume-property APIs. For the sample
-rounded enclosure it returns deterministic metrics while keeping generated
-B-Rep internal to the worker. STEP/STL export and preview mesh emission should
-stay out of this slice unless required by a later exact test.
+The current OCCT target is a preview mesh smoke. It references OCCT box, fillet,
+meshing, triangulation, bounding-box, surface-property, and volume-property
+APIs. For the sample rounded enclosure it returns deterministic metrics and a
+disposable preview mesh while keeping generated B-Rep internal to the worker.
+STEP/STL export should stay out of this slice unless required by a later exact
+test.
 
 ## Follow-up tasks
 
@@ -194,6 +205,6 @@ stay out of this slice unless required by a later exact test.
 - Use `tools\bootstrap_vcpkg_windows.ps1 -PlanOnly` to inspect the local vcpkg
   setup before cloning or installing anything.
 - Use `-AllowVcpkgInstall` only when a large vcpkg manifest restore is expected.
-- Add native preview mesh emission from the generated rounded enclosure B-Rep.
 - Add shell/cavity generation after the metrics contract remains stable.
+- Add stable semantic surface mapping for generated preview mesh faces.
 - Add third-party license notice packaging before distributing OCCT DLLs.

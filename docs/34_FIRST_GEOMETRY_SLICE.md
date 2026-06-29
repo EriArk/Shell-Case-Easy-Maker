@@ -119,20 +119,21 @@ readiness became true or before manifest mode was enabled.
 
 The target is `occt_worker_native_occt`. It is separate from
 `occt_worker_native_stub`, references OCCT modeling APIs, and now implements the
-first metrics-only rounded enclosure slice for `preview_mesh` requests.
-Capabilities report `status=metrics_smoke`.
+first rounded enclosure preview mesh slice for `preview_mesh` requests.
+Capabilities report `status=preview_mesh_smoke`.
 
-The native OCCT metrics smoke command verifies the built target through the Dart
-process client:
+The native OCCT smoke command verifies the built target through the Dart process
+client:
 
 ```powershell
 dart run tool\native_occt_worker_metrics_smoke.dart --skip-build
 ```
 
 The current native response returns deterministic bounds, dimensions, surface
-area, and volume for the first semantic enclosure. It deliberately reports
-`previewMeshEmitted=false`; no preview mesh vertices, STL, B-Rep, OCCT topology
-IDs, or triangle IDs are returned to Flutter.
+area, volume, and disposable preview mesh data for the first semantic enclosure.
+For the sample enclosure it emits 800 vertices and 1060 triangles. It still does
+not return STL, B-Rep, OCCT topology IDs, or triangle IDs as stable editable
+references.
 
 The scaffold smoke command wraps build, capability query, and request smoke:
 
@@ -224,19 +225,21 @@ stable project IDs and must not leak into semantic editing.
 
 ## Initial Rounded Enclosure Plan
 
-The first native OCCT slice now:
+The first native OCCT slices now:
 
 1. Read the semantic enclosure body.
 2. Validate dimensions, wall thickness, and corner radius.
 3. Build a box from `size`.
 4. Apply radius to eligible enclosure edges.
 5. Return deterministic bounds, dimensions, surface area, and volume.
+6. Mesh the generated B-Rep with explicit linear/angular deflection settings.
+7. Return disposable preview mesh vertices and triangle indices.
 
 The next native geometry slices should:
 
 1. Preserve named semantic surface mappings.
-2. Mesh with explicit linear/angular deflection settings.
-3. Return disposable preview mesh data, mesh stats, and warnings.
+2. Generate shell/cavity geometry.
+3. Consume feature intents for cutouts and mounts.
 
 Expected sample dimensions:
 - size: `120 x 70 x 28 mm`,
@@ -251,8 +254,8 @@ Expected sample dimensions:
 - `dart run occt_worker\bin\occt_worker.dart --capabilities` reports worker
   backend readiness, not generated geometry.
 - `occt_worker/native` has both a no-OCCT stub and an opt-in OCCT target. The
-  OCCT target can build a rounded enclosure B-Rep internally and return metrics,
-  but it does not emit preview mesh yet.
+  OCCT target can build a rounded enclosure B-Rep internally and return a
+  disposable preview mesh plus metrics.
 - `tool/mock_geometry_worker.dart` is only a compatibility alias for the local
   worker runtime.
 - `--backend=native` currently returns a structured not-implemented response,
@@ -262,7 +265,8 @@ Expected sample dimensions:
 - `tool/mock_worker_geometry_service_smoke.dart` runs the worker-backed
   `GeometryService` adapter through the same mock worker process.
 - `tool/native_occt_worker_metrics_smoke.dart` runs the native OCCT target
-  through the Dart process client and checks the metrics-only response.
+  through the Dart process client and checks the preview mesh plus metrics
+  response.
 - The normal app backend selector defaults to mock unless worker backend and
   executable are both explicitly configured.
 - The protocol example files are generated fixtures backed by the typed Dart
@@ -273,7 +277,7 @@ Expected sample dimensions:
   bounds, component feature keepouts, and standoff mount safety. Component
   placement/keepout bounds account for Z rotation using conservative envelopes.
   This is still pre-geometry validation, not OCCT body validation.
-- Rounded edges are implemented for the first native metrics slice; shell/cavity
-  generation and semantic surface mapping are still planned.
+- Rounded edges and first native preview mesh emission are implemented;
+  shell/cavity generation and semantic surface mapping are still planned.
 - STEP/STL export operations intentionally return unsupported in the mock
   backend.

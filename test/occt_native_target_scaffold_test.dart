@@ -22,39 +22,50 @@ void main() {
     expect(findPackageIndex, greaterThan(optionIndex));
   });
 
-  test('OCCT target source emits deterministic rounded enclosure metrics', () {
-    final source = File(
-      'occt_worker/native/src/occt_main.cpp',
-    ).readAsStringSync();
+  test(
+    'OCCT target source emits deterministic rounded enclosure preview mesh',
+    () {
+      final source = File(
+        'occt_worker/native/src/occt_main.cpp',
+      ).readAsStringSync();
 
-    expect(source, contains('BRepPrimAPI_MakeBox'));
-    expect(source, contains('BRepFilletAPI_MakeFillet'));
-    expect(source, contains('BRepBndLib'));
-    expect(source, contains('BRepGProp'));
-    expect(source, contains('GProp_GProps'));
-    expect(source, contains('Standard_Version'));
-    expect(source, contains('occt_worker_native_occt'));
-    expect(source, contains('metrics_smoke'));
-    expect(source, contains('occt.rounded_enclosure.metrics.v1'));
-    expect(source, contains('ReadNativeRequest'));
-    expect(source, contains('BuildRoundedEnclosureShape'));
-    expect(source, contains('ComputeShapeMetrics'));
-    expect(source, contains('worker.backend.occt_operation_not_implemented'));
-    expect(source, contains('worker.geometry.invalid_enclosure_dimensions'));
-    expect(source, contains('cornerRadiusApplied'));
-    expect(source, contains('filletedEdgeCount'));
-    expect(source, contains('bounds'));
-    expect(source, contains('surfaceArea'));
-    expect(source, contains('volume'));
-    expect(source, contains('previewMeshEmitted'));
-    expect(source, contains('editableGeneratedGeometry'));
-    expect(source, contains('semantic_project'));
-    expect(source, contains('nativeHealthShapeNull'));
-    expect(source, isNot(contains('linked_smoke')));
-    expect(source, isNot(contains('worker.backend.occt_link_smoke_only')));
-    expect(source, isNot(contains('topologyId')));
-    expect(source, isNot(contains('triangleId')));
-  });
+      expect(source, contains('BRepPrimAPI_MakeBox'));
+      expect(source, contains('BRepFilletAPI_MakeFillet'));
+      expect(source, contains('BRepMesh_IncrementalMesh'));
+      expect(source, contains('BRep_Tool'));
+      expect(source, contains('Poly_Triangulation'));
+      expect(source, contains('BRepBndLib'));
+      expect(source, contains('BRepGProp'));
+      expect(source, contains('GProp_GProps'));
+      expect(source, contains('Standard_Version'));
+      expect(source, contains('occt_worker_native_occt'));
+      expect(source, contains('preview_mesh_smoke'));
+      expect(source, contains('occt.rounded_enclosure.preview_mesh.v1'));
+      expect(source, contains('ReadNativeRequest'));
+      expect(source, contains('BuildRoundedEnclosureShape'));
+      expect(source, contains('BuildPreviewMesh'));
+      expect(source, contains('ComputeShapeMetrics'));
+      expect(source, contains('WritePreviewMesh'));
+      expect(source, contains('worker.backend.occt_operation_not_implemented'));
+      expect(source, contains('worker.geometry.invalid_enclosure_dimensions'));
+      expect(source, contains('cornerRadiusApplied'));
+      expect(source, contains('filletedEdgeCount'));
+      expect(source, contains('bounds'));
+      expect(source, contains('surfaceArea'));
+      expect(source, contains('volume'));
+      expect(source, contains('previewMeshEmitted'));
+      expect(source, contains('previewVertexCount'));
+      expect(source, contains('previewTriangleCount'));
+      expect(source, contains('pending_semantic_face_mapping'));
+      expect(source, contains('editableGeneratedGeometry'));
+      expect(source, contains('semantic_project'));
+      expect(source, contains('nativeHealthShapeNull'));
+      expect(source, isNot(contains('linked_smoke')));
+      expect(source, isNot(contains('worker.backend.occt_link_smoke_only')));
+      expect(source, isNot(contains('topologyId')));
+      expect(source, isNot(contains('triangleId')));
+    },
+  );
 
   test(
     'OCCT build script requires readiness and does not install packages',
@@ -97,25 +108,31 @@ void main() {
     expect(jsonEncode(manifest), isNot(contains('opencascade source')));
   });
 
-  test('OCCT metrics smoke tool validates the native response contract', () {
-    final tool = File(
-      'tool/native_occt_worker_metrics_smoke.dart',
-    ).readAsStringSync();
+  test(
+    'OCCT smoke tool validates the native preview mesh response contract',
+    () {
+      final tool = File(
+        'tool/native_occt_worker_metrics_smoke.dart',
+      ).readAsStringSync();
 
-    expect(tool, contains('build_occt_worker_occt.ps1'));
-    expect(tool, contains('AllowVcpkgInstall'));
-    expect(tool, contains('GeometryWorkerProcessClient'));
-    expect(tool, contains('queryCapabilities()'));
-    expect(tool, contains('GeometryRequest.previewMesh'));
-    expect(tool, contains('metrics_smoke'));
-    expect(tool, contains('occt.rounded_enclosure.metrics.v1'));
-    expect(tool, contains('surfaceArea'));
-    expect(tool, contains('volume'));
-    expect(tool, contains('previewMeshEmitted'));
-    expect(tool, contains('editableGeneratedGeometry'));
-    expect(tool, contains('topologyId'));
-    expect(tool, contains('triangleId'));
-    expect(tool, contains('--skip-build'));
-    expect(tool, contains('--configuration'));
-  });
+      expect(tool, contains('build_occt_worker_occt.ps1'));
+      expect(tool, contains('AllowVcpkgInstall'));
+      expect(tool, contains('GeometryWorkerProcessClient'));
+      expect(tool, contains('queryCapabilities()'));
+      expect(tool, contains('GeometryRequest.previewMesh'));
+      expect(tool, contains('preview_mesh_smoke'));
+      expect(tool, contains('occt.rounded_enclosure.preview_mesh.v1'));
+      expect(tool, contains('previewMesh.vertexCount'));
+      expect(tool, contains('previewMesh.triangleCount'));
+      expect(tool, contains('pending_semantic_face_mapping'));
+      expect(tool, contains('surfaceArea'));
+      expect(tool, contains('volume'));
+      expect(tool, contains('previewMeshEmitted'));
+      expect(tool, contains('editableGeneratedGeometry'));
+      expect(tool, contains('topologyId'));
+      expect(tool, contains('triangleId'));
+      expect(tool, contains('--skip-build'));
+      expect(tool, contains('--configuration'));
+    },
+  );
 }

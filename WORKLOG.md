@@ -42,6 +42,105 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-29 - M64 First native preview mesh
+
+### Goal
+Emit the first disposable native OCCT preview mesh from the generated rounded
+enclosure B-Rep while keeping editable project state semantic-only.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`occt_worker/native/src/occt_main.cpp`,
+`tool/native_occt_worker_metrics_smoke.dart`,
+`test/occt_native_target_scaffold_test.dart`, `lib/geometry/geometry_protocol.dart`,
+`docs/34_FIRST_GEOMETRY_SLICE.md`, `docs/04_GEOMETRY_ENGINE_OCCT.md`,
+`docs/35_OCCT_WINDOWS_DEPENDENCY_PLAN.md`, `occt_worker/README.md`, and local
+OCCT headers for `BRepMesh_IncrementalMesh`, `BRep_Tool::Triangulation`,
+`Poly_Triangulation`, and `Poly_Triangle`.
+
+### Changes made
+- `occt_worker/native/src/occt_main.cpp`:
+  - Meshes the generated rounded enclosure B-Rep with
+    `BRepMesh_IncrementalMesh`.
+  - Extracts face triangulations through `BRep_Tool::Triangulation`.
+  - Emits `previewMesh` vertices, triangle indices, bounds, and mesh metadata.
+  - Updates capability status to `preview_mesh_smoke`.
+  - Keeps semantic surface mapping empty with explicit pending metadata instead
+    of exposing unstable OCCT face IDs.
+- `tool/native_occt_worker_metrics_smoke.dart`:
+  - Updated the existing smoke to verify preview mesh output plus deterministic
+    metrics.
+  - Checks 800 vertices, 1060 triangles, bounds, dimensions, area, volume,
+    request ID preservation, and non-editable generated geometry flags.
+- `test/occt_native_target_scaffold_test.dart`:
+  - Updated source-contract expectations for OCCT meshing APIs and preview mesh
+    response metadata.
+- Docs/tasks/roadmap:
+  - Recorded M64, marked OCCT preview mesh generation complete, and left
+    shell/cavity, semantic face mapping, STEP, and STL open.
+
+### Tests run
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`:
+  - Passed; rebuilt `occt_worker_native_occt.exe` and deployed `TKMesh.dll`
+    beside the worker.
+- `dart format tool\native_occt_worker_metrics_smoke.dart test\occt_native_target_scaffold_test.dart`:
+  - Passed; formatted 2 files.
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`:
+  - Passed; capabilities report `preview_mesh_smoke`, response status is `ok`,
+    and sample preview mesh reports 800 vertices and 1060 triangles.
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`:
+  - Passed, 5 tests.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed, 178 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed; Git reported markdown line-ending normalization warnings only.
+
+### Validation
+- Geometry checked?
+  - Yes. The native worker builds rounded enclosure B-Rep, meshes it, and emits
+    deterministic disposable preview mesh data.
+- Serialization checked?
+  - Native request/response JSON is exercised through
+    `GeometryWorkerProcessClient`; Dart parses `PreviewMesh`.
+- UI checked?
+  - Full widget suite passed and the latest Windows bundle was rebuilt. No
+    default UI behavior changed; the app still uses mock geometry unless a
+    worker backend is explicitly configured.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Preview mesh has no semantic surface mappings yet.
+  - Severity: Expected.
+  - Next action: Add stable semantic face mapping without exposing OCCT topology
+    IDs.
+- Issue: Shell/cavity, feature cutouts, STEP, and STL remain unimplemented in
+  the native target.
+  - Severity: Expected.
+  - Next action: Continue in safe geometry slices.
+
+### Next step
+Commit and push M64, then continue toward semantic surface mapping or
+shell/cavity.
+
+### Notes for future Codex sessions
+The smoke command name remains `native_occt_worker_metrics_smoke.dart` for
+compatibility, but it now validates preview mesh output too. Do not commit
+`external/`, `occt_worker/native/vcpkg_installed/`, `build/`, `releases/`, or
+OCCT DLLs.
+
 ## 2026-06-29 - M63 First native rounded enclosure metrics
 
 ### Goal

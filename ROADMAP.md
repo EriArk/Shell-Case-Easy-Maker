@@ -82,6 +82,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M61 - Repo-local vcpkg Bootstrap Helper
 - [x] M62 - Local OCCT Restore + Link Smoke
 - [x] M63 - First Native Rounded Enclosure Metrics
+- [x] M64 - First Native Preview Mesh
 
 ---
 
@@ -2730,4 +2731,55 @@ worker.
   viewport.
 - Optional developer poke: run
   `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build` and
-  confirm `metricsSmoke.ok` is `true`.
+  confirm the command exits successfully.
+
+---
+
+## M64 - First Native Preview Mesh
+
+### Goal
+Emit the first disposable native OCCT preview mesh from the generated rounded
+enclosure B-Rep while keeping the editable project semantic-only.
+
+### Tasks
+- [x] Mesh the generated rounded enclosure B-Rep with
+      `BRepMesh_IncrementalMesh`.
+- [x] Extract face triangulations through `BRep_Tool::Triangulation`.
+- [x] Return `PreviewMesh` vertices, triangle indices, bounds, and mesh metadata
+      through the existing geometry protocol.
+- [x] Keep semantic surface mapping empty until a stable semantic face-mapping
+      slice exists.
+- [x] Record deterministic sample mesh counts in the native OCCT smoke.
+- [x] Update capability status to `preview_mesh_smoke`.
+- [x] Update docs, roadmap, tasks, worklog, and source-contract tests.
+
+### Done Criteria
+- `occt_worker_native_occt --capabilities` reports
+  `status=preview_mesh_smoke`.
+- A sample `preview_mesh` request returns `status=ok`,
+  `generator=occt.rounded_enclosure.preview_mesh.v1`, and request ID
+  preservation.
+- The sample response includes `previewMesh` with 800 vertices and 1060
+  triangles, bounds `[-60, -35, 0]` to `[60, 35, 28]`, and dimensions
+  `[120, 70, 28]`.
+- The response explicitly reports `editableGeneratedGeometry=false`.
+- The response does not expose OCCT topology IDs, generated B-Rep, STL, or
+  triangle IDs as stable editable references.
+
+### Tests
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`
+- `git diff --check`
+
+### Poke Checklist
+- No meaningful manual UI poke yet; the normal app still defaults to the mock
+  viewport.
+- Optional developer poke: run
+  `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build` and
+  confirm `previewSmoke.ok` is `true`, with 800 vertices and 1060 triangles.

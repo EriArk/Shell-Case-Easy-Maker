@@ -37,7 +37,7 @@ Future<void> main(List<String> args) async {
     ),
   );
   final capabilities = await client.queryCapabilities();
-  const smokeRequestId = 'native_occt_metrics_smoke';
+  const smokeRequestId = 'native_occt_preview_smoke';
   final response = await client.buildGeometry(
     GeometryRequest.previewMesh(
       ProjectModel.initial(),
@@ -61,8 +61,8 @@ Future<void> main(List<String> args) async {
     failures,
   );
   _expect(
-    nativeBackend?.status == 'metrics_smoke',
-    'native backend status must be metrics_smoke',
+    nativeBackend?.status == 'preview_mesh_smoke',
+    'native backend status must be preview_mesh_smoke',
     failures,
   );
   _expect(
@@ -85,16 +85,78 @@ Future<void> main(List<String> args) async {
     'response backend must be occt_worker_native_occt',
     failures,
   );
+  final previewMesh = response.previewMesh;
   _expect(
-    response.previewMesh == null,
-    'metrics smoke must not emit preview mesh vertices yet',
+    previewMesh != null,
+    'preview_mesh response must emit previewMesh',
     failures,
   );
+  if (previewMesh != null) {
+    _expect(
+      previewMesh.units == 'mm',
+      'previewMesh units must be mm',
+      failures,
+    );
+    _expect(
+      previewMesh.vertexCount == 800,
+      'previewMesh must contain the deterministic sample vertex count',
+      failures,
+    );
+    _expect(
+      previewMesh.triangleCount == 1060,
+      'previewMesh must contain the deterministic sample triangle count',
+      failures,
+    );
+    _expect(
+      previewMesh.vertices.length == previewMesh.vertexCount * 3,
+      'previewMesh vertices must be xyz triplets',
+      failures,
+    );
+    _expect(
+      previewMesh.triangles.length == previewMesh.triangleCount * 3,
+      'previewMesh triangles must be index triplets',
+      failures,
+    );
+    _expect(
+      previewMesh.triangles.every(
+        (index) => index >= 0 && index < previewMesh.vertexCount,
+      ),
+      'previewMesh triangle indices must reference emitted vertices',
+      failures,
+    );
+    _expect(
+      previewMesh.surfaces.isEmpty,
+      'semantic surface mapping must stay empty until face mapping is implemented',
+      failures,
+    );
+    _expect(
+      previewMesh.metadata['source'] == 'occt_brep',
+      'previewMesh source metadata must identify disposable OCCT B-Rep output',
+      failures,
+    );
+    _expect(
+      previewMesh.metadata['surfaceMapping'] == 'pending_semantic_face_mapping',
+      'previewMesh must not pretend semantic face mapping is implemented',
+      failures,
+    );
+    _expectDoubleList(
+      previewMesh.bounds.min,
+      const [-60, -35, 0],
+      'previewMesh.bounds.min',
+      failures,
+    );
+    _expectDoubleList(
+      previewMesh.bounds.max,
+      const [60, 35, 28],
+      'previewMesh.bounds.max',
+      failures,
+    );
+  }
 
   final metrics = response.metrics;
   _expect(
-    metrics['generator'] == 'occt.rounded_enclosure.metrics.v1',
-    'generator metric must identify the rounded enclosure metrics slice',
+    metrics['generator'] == 'occt.rounded_enclosure.preview_mesh.v1',
+    'generator metric must identify the rounded enclosure preview mesh slice',
     failures,
   );
   _expect(
@@ -118,13 +180,37 @@ Future<void> main(List<String> args) async {
     failures,
   );
   _expect(
-    metrics['previewMeshEmitted'] == false,
-    'previewMeshEmitted must be false',
+    metrics['previewMeshEmitted'] == true,
+    'previewMeshEmitted must be true',
     failures,
   );
   _expect(
     metrics['editableGeneratedGeometry'] == false,
     'editableGeneratedGeometry must be false',
+    failures,
+  );
+  _expect(
+    metrics['previewVertexCount'] == previewMesh?.vertexCount,
+    'previewVertexCount metric must match previewMesh.vertexCount',
+    failures,
+  );
+  _expect(
+    metrics['previewTriangleCount'] == previewMesh?.triangleCount,
+    'previewTriangleCount metric must match previewMesh.triangleCount',
+    failures,
+  );
+  _expectClose(
+    _readNumber(metrics['linearDeflection']),
+    0.3,
+    0.000001,
+    'linearDeflection',
+    failures,
+  );
+  _expectClose(
+    _readNumber(metrics['angularDeflection']),
+    0.35,
+    0.000001,
+    'angularDeflection',
     failures,
   );
   _expect(
@@ -198,12 +284,14 @@ Future<void> main(List<String> args) async {
       if (capabilities.issues.isNotEmpty)
         'issues': [for (final issue in capabilities.issues) issue.toJson()],
     },
-    'metricsSmoke': {
+    'previewSmoke': {
       'ok': failures.isEmpty,
       'requestId': response.requestId,
       'status': response.status.wireName,
       'backend': response.backend,
       'previewMeshEmitted': metrics['previewMeshEmitted'],
+      'previewVertices': previewMesh?.vertexCount,
+      'previewTriangles': previewMesh?.triangleCount,
       'bounds': metrics['bounds'],
       'dimensions': metrics['dimensions'],
       'surfaceArea': metrics['surfaceArea'],

@@ -21,8 +21,8 @@ native smoke command. M57 makes the native stub read and validate the top-level
 request envelope before returning scaffold responses. M58 records the Windows
 OCCT dependency decision. M59-M62 add and locally restore the separate opt-in
 `occt_worker_native_occt` target. M63 makes that target build the first rounded
-enclosure B-Rep internally and return deterministic metrics without emitting
-preview mesh vertices.
+enclosure B-Rep internally and return deterministic metrics. M64 emits the first
+disposable native preview mesh from that B-Rep.
 
 Regenerate protocol fixtures:
 
@@ -123,10 +123,10 @@ Use `-Clean` once if the build directory was configured with different manifest
 mode settings.
 
 This builds `occt_worker_native_occt` under `build/occt_worker_native_occt`.
-The target references OCCT modeling APIs, reports `status=metrics_smoke`, and
-returns deterministic rounded enclosure metrics for `preview_mesh` requests.
-It still does not emit preview mesh vertices, STEP/STL artifacts, or editable
-generated geometry.
+The target references OCCT modeling APIs, reports `status=preview_mesh_smoke`,
+and returns a disposable rounded enclosure preview mesh plus deterministic
+metrics for `preview_mesh` requests. It still does not emit STEP/STL artifacts
+or editable generated geometry.
 
 Native OCCT metrics smoke command:
 
@@ -136,8 +136,8 @@ dart run tool\native_occt_worker_metrics_smoke.dart --skip-build
 
 The smoke command queries capabilities through
 `GeometryWorkerProcessClient.queryCapabilities()`, sends the sample preview
-request, and verifies bounds, dimensions, surface area, volume, request ID
-preservation, and `previewMeshEmitted=false`.
+request, and verifies bounds, dimensions, surface area, volume, preview mesh
+counts, request ID preservation, and `editableGeneratedGeometry=false`.
 
 Process-client smoke command:
 
@@ -198,11 +198,13 @@ project:
    slice.
 3. Return deterministic bounds, dimensions, surface area, and volume. Done for
    the native metrics slice.
-4. Preserve semantic surface mapping for top lid, front wall, and bottom inside.
-5. Read `featureIntents` and their derived operation plan to prepare
+4. Mesh the generated B-Rep with explicit deflection settings. Done for the
+   native preview mesh slice.
+5. Return preview mesh, bounds, issues, and metrics. First pass done with empty
+   semantic surface mapping.
+6. Preserve semantic surface mapping for top lid, front wall, and bottom inside.
+7. Read `featureIntents` and their derived operation plan to prepare
    deterministic future cutout/mount operations.
-6. Mesh the generated B-Rep with explicit deflection settings.
-7. Return preview mesh, bounds, issues, and metrics.
 
 The worker implementation should be added only after the OCCT build/distribution
 choice is finalized for Windows development.

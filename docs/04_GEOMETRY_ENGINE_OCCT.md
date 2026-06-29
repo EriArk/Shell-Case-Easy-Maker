@@ -209,9 +209,9 @@ report `ready=true`. If an earlier CMake configure used different manifest
 settings, rerun the OCCT build command with `-AllowVcpkgInstall -Clean`.
 
 This builds `occt_worker_native_occt`, a separate opt-in OCCT target. It now
-builds the first semantic rounded enclosure B-Rep internally and returns
-deterministic metrics for `preview_mesh` requests. It does not replace the
-stub, and it still does not return preview mesh vertices, STEP/STL artifacts, or
+builds the first semantic rounded enclosure B-Rep internally and returns a
+disposable preview mesh plus deterministic metrics for `preview_mesh` requests.
+It does not replace the stub, and it still does not return STEP/STL artifacts or
 editable generated geometry.
 
 Native OCCT metrics smoke command:
@@ -221,7 +221,8 @@ dart run tool\native_occt_worker_metrics_smoke.dart --skip-build
 ```
 
 The smoke checks capabilities, request ID preservation, sample bounds,
-dimensions, surface area, volume, and the `previewMeshEmitted=false` contract.
+dimensions, surface area, volume, preview mesh counts, and the
+`editableGeneratedGeometry=false` contract.
 
 Native scaffold smoke command:
 

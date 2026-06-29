@@ -120,15 +120,16 @@ When using the repo-local manifest install in
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/build_occt_worker_occt.ps1 -AllowVcpkgInstall
 ```
 
-Run the native OCCT rounded enclosure metrics smoke with:
+Run the native OCCT rounded enclosure preview smoke with:
 
 ```powershell
 dart run tool/native_occt_worker_metrics_smoke.dart --skip-build
 ```
 
 This verifies the built `occt_worker_native_occt` capabilities and the
-deterministic sample bounds, dimensions, surface area, and volume. It still does
-not emit preview mesh vertices.
+deterministic sample bounds, dimensions, surface area, volume, and preview mesh
+counts. The command name is kept for compatibility with the previous
+metrics-only smoke.
 
 If CMake was previously configured before OCCT readiness became true, run the
 first linked manifest build cleanly with:

@@ -1,14 +1,21 @@
 #include <BRepBndLib.hxx>
 #include <BRepFilletAPI_MakeFillet.hxx>
 #include <BRepGProp.hxx>
+#include <BRepMesh_IncrementalMesh.hxx>
 #include <BRepPrimAPI_MakeBox.hxx>
+#include <BRep_Tool.hxx>
 #include <Bnd_Box.hxx>
 #include <GProp_GProps.hxx>
+#include <Poly_Triangle.hxx>
+#include <Poly_Triangulation.hxx>
+#include <TopAbs_Orientation.hxx>
 #include <Standard_Version.hxx>
 #include <TopAbs_ShapeEnum.hxx>
 #include <TopExp_Explorer.hxx>
+#include <TopLoc_Location.hxx>
 #include <TopoDS.hxx>
 #include <TopoDS_Edge.hxx>
+#include <TopoDS_Face.hxx>
 #include <TopoDS_Shape.hxx>
 #include <gp_Pnt.hxx>
 
@@ -35,6 +42,8 @@ constexpr const char* kRequestSchema = "shell_case.geometry.request";
 constexpr const char* kResponseSchema = "shell_case.geometry.response";
 constexpr const char* kBackend = "occt_worker_native_occt";
 constexpr const char* kInvalidRequestId = "invalid_request";
+constexpr double kPreviewLinearDeflection = 0.3;
+constexpr double kPreviewAngularDeflection = 0.35;
 
 struct NativeRequestEnvelope {
   std::string request_id = kInvalidRequestId;
@@ -67,6 +76,17 @@ struct ShapeMetrics {
   double volume = 0.0;
   bool corner_radius_applied = false;
   int filleted_edge_count = 0;
+};
+
+struct PreviewMeshData {
+  std::vector<double> vertices;
+  std::vector<int> triangles;
+  int face_count = 0;
+  int skipped_face_count = 0;
+  int mesher_status = 0;
+
+  int vertex_count() const { return static_cast<int>(vertices.size() / 3); }
+  int triangle_count() const { return static_cast<int>(triangles.size() / 3); }
 };
 
 std::string ReadStdin() {
@@ -124,6 +144,28 @@ std::string FormatDouble(double value) {
 void WriteDoubleArray(const std::array<double, 3>& values) {
   std::cout << "[" << FormatDouble(values[0]) << ", " << FormatDouble(values[1])
             << ", " << FormatDouble(values[2]) << "]";
+}
+
+void WriteDoubleVector(const std::vector<double>& values) {
+  std::cout << "[";
+  for (std::size_t index = 0; index < values.size(); ++index) {
+    if (index > 0) {
+      std::cout << ", ";
+    }
+    std::cout << FormatDouble(values[index]);
+  }
+  std::cout << "]";
+}
+
+void WriteIntVector(const std::vector<int>& values) {
+  std::cout << "[";
+  for (std::size_t index = 0; index < values.size(); ++index) {
+    if (index > 0) {
+      std::cout << ", ";
+    }
+    std::cout << values[index];
+  }
+  std::cout << "]";
 }
 
 bool IsJsonWhitespace(char character) {
@@ -576,7 +618,7 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
     result.issue_code = "worker.backend.occt_operation_not_implemented";
     result.issue_message =
         "The native OCCT worker currently implements only preview_mesh "
-        "metrics for the first enclosure body.";
+        "generation for the first enclosure body.";
     return result;
   }
 
@@ -688,13 +730,12 @@ TopoDS_Shape BuildRoundedEnclosureShape(const EnclosureRequest& enclosure,
   return fillet.Shape();
 }
 
-ShapeMetrics ComputeShapeMetrics(const EnclosureRequest& enclosure) {
+ShapeMetrics ComputeShapeMetrics(const TopoDS_Shape& shape,
+                                 bool corner_radius_applied,
+                                 int filleted_edge_count) {
   ShapeMetrics metrics;
-  const TopoDS_Shape shape = BuildRoundedEnclosureShape(
-      enclosure, &metrics.corner_radius_applied, &metrics.filleted_edge_count);
-  if (shape.IsNull()) {
-    throw std::runtime_error("OCCT generated a null enclosure shape.");
-  }
+  metrics.corner_radius_applied = corner_radius_applied;
+  metrics.filleted_edge_count = filleted_edge_count;
 
   Bnd_Box bounds;
   BRepBndLib::AddOptimal(shape, bounds, false, false);
@@ -719,6 +760,70 @@ ShapeMetrics ComputeShapeMetrics(const EnclosureRequest& enclosure) {
   return metrics;
 }
 
+PreviewMeshData BuildPreviewMesh(const TopoDS_Shape& shape) {
+  PreviewMeshData mesh;
+  BRepMesh_IncrementalMesh mesher(shape,
+                                  kPreviewLinearDeflection,
+                                  false,
+                                  kPreviewAngularDeflection,
+                                  false);
+  mesh.mesher_status = mesher.GetStatusFlags();
+
+  for (TopExp_Explorer explorer(shape, TopAbs_FACE); explorer.More();
+       explorer.Next()) {
+    ++mesh.face_count;
+    const TopoDS_Face face = TopoDS::Face(explorer.Current());
+    TopLoc_Location location;
+    const auto triangulation = BRep_Tool::Triangulation(face, location);
+    if (triangulation.IsNull() || !triangulation->HasGeometry()) {
+      ++mesh.skipped_face_count;
+      continue;
+    }
+
+    const int vertex_offset = mesh.vertex_count();
+    for (int node_index = 1; node_index <= triangulation->NbNodes();
+         ++node_index) {
+      const gp_Pnt point =
+          triangulation->Node(node_index).Transformed(location.Transformation());
+      mesh.vertices.push_back(point.X());
+      mesh.vertices.push_back(point.Y());
+      mesh.vertices.push_back(point.Z());
+    }
+
+    for (int triangle_index = 1;
+         triangle_index <= triangulation->NbTriangles();
+         ++triangle_index) {
+      int node_1 = 0;
+      int node_2 = 0;
+      int node_3 = 0;
+      triangulation->Triangle(triangle_index).Get(node_1, node_2, node_3);
+
+      if (node_1 < 1 || node_2 < 1 || node_3 < 1 ||
+          node_1 > triangulation->NbNodes() ||
+          node_2 > triangulation->NbNodes() ||
+          node_3 > triangulation->NbNodes()) {
+        throw std::runtime_error("OCCT generated an invalid triangle index.");
+      }
+
+      if (face.Orientation() == TopAbs_REVERSED) {
+        mesh.triangles.push_back(vertex_offset + node_1 - 1);
+        mesh.triangles.push_back(vertex_offset + node_3 - 1);
+        mesh.triangles.push_back(vertex_offset + node_2 - 1);
+      } else {
+        mesh.triangles.push_back(vertex_offset + node_1 - 1);
+        mesh.triangles.push_back(vertex_offset + node_2 - 1);
+        mesh.triangles.push_back(vertex_offset + node_3 - 1);
+      }
+    }
+  }
+
+  if (mesh.triangles.empty()) {
+    throw std::runtime_error("OCCT preview meshing produced no triangles.");
+  }
+
+  return mesh;
+}
+
 TopoDS_Shape BuildNativeHealthShape() {
   return BRepPrimAPI_MakeBox(10.0, 20.0, 30.0).Shape();
 }
@@ -741,7 +846,7 @@ void WriteCapabilities() {
       << "  \"backends\": [\n"
       << "    {\n"
       << "      \"id\": \"native\",\n"
-      << "      \"status\": \"metrics_smoke\",\n"
+      << "      \"status\": \"preview_mesh_smoke\",\n"
       << "      \"supportedOperations\": [\n"
       << "        \"preview_mesh\"\n"
       << "      ],\n"
@@ -766,7 +871,7 @@ void WriteCapabilities() {
       << "      ],\n"
       << "      \"notes\": [\n"
       << "        \"OCCT-linked native target is available.\",\n"
-      << "        \"preview_mesh currently returns deterministic rounded enclosure metrics without preview mesh vertices.\"\n"
+      << "        \"preview_mesh returns a disposable triangulated preview mesh plus deterministic rounded enclosure metrics.\"\n"
       << "      ]\n"
       << "    }\n"
       << "  ],\n"
@@ -820,9 +925,38 @@ void WriteIssueResponse(const std::string& request_id,
             << "}\n";
 }
 
-void WriteRoundedEnclosureMetricsResponse(const NativeRequestEnvelope& request,
+void WritePreviewMesh(const PreviewMeshData& mesh,
+                      const ShapeMetrics& metrics) {
+  std::cout << "  \"previewMesh\": {\n"
+            << "    \"units\": \"mm\",\n"
+            << "    \"vertices\": ";
+  WriteDoubleVector(mesh.vertices);
+  std::cout << ",\n"
+            << "    \"triangles\": ";
+  WriteIntVector(mesh.triangles);
+  std::cout << ",\n"
+            << "    \"bounds\": {\n"
+            << "      \"min\": ";
+  WriteDoubleArray(metrics.bounds_min);
+  std::cout << ",\n"
+            << "      \"max\": ";
+  WriteDoubleArray(metrics.bounds_max);
+  std::cout << "\n"
+            << "    },\n"
+            << "    \"surfaces\": [],\n"
+            << "    \"source\": \"occt_brep\",\n"
+            << "    \"surfaceMapping\": \"pending_semantic_face_mapping\",\n"
+            << "    \"linearDeflection\": "
+            << FormatDouble(kPreviewLinearDeflection) << ",\n"
+            << "    \"angularDeflection\": "
+            << FormatDouble(kPreviewAngularDeflection) << "\n"
+            << "  }";
+}
+
+void WriteRoundedEnclosurePreviewResponse(const NativeRequestEnvelope& request,
                                           const EnclosureRequest& enclosure,
-                                          const ShapeMetrics& metrics) {
+                                          const ShapeMetrics& metrics,
+                                          const PreviewMeshData& mesh) {
   std::cout << "{\n"
             << "  \"schema\": \"" << kResponseSchema << "\",\n"
             << "  \"version\": 1,\n"
@@ -838,7 +972,7 @@ void WriteRoundedEnclosureMetricsResponse(const NativeRequestEnvelope& request,
             << EscapeJsonString(request.operation) << "\",\n"
             << "    \"occtVersion\": \""
             << EscapeJsonString(OCC_VERSION_COMPLETE) << "\",\n"
-            << "    \"generator\": \"occt.rounded_enclosure.metrics.v1\",\n"
+            << "    \"generator\": \"occt.rounded_enclosure.preview_mesh.v1\",\n"
             << "    \"bodyId\": \"" << EscapeJsonString(enclosure.id)
             << "\",\n"
             << "    \"shape\": \"" << EscapeJsonString(enclosure.shape)
@@ -868,9 +1002,22 @@ void WriteRoundedEnclosureMetricsResponse(const NativeRequestEnvelope& request,
             << "    \"surfaceArea\": " << FormatDouble(metrics.surface_area)
             << ",\n"
             << "    \"volume\": " << FormatDouble(metrics.volume) << ",\n"
-            << "    \"previewMeshEmitted\": false,\n"
+            << "    \"previewMeshEmitted\": true,\n"
+            << "    \"previewVertexCount\": " << mesh.vertex_count() << ",\n"
+            << "    \"previewTriangleCount\": " << mesh.triangle_count()
+            << ",\n"
+            << "    \"previewFaceCount\": " << mesh.face_count << ",\n"
+            << "    \"previewSkippedFaceCount\": " << mesh.skipped_face_count
+            << ",\n"
+            << "    \"mesherStatus\": " << mesh.mesher_status << ",\n"
+            << "    \"linearDeflection\": "
+            << FormatDouble(kPreviewLinearDeflection) << ",\n"
+            << "    \"angularDeflection\": "
+            << FormatDouble(kPreviewAngularDeflection) << ",\n"
             << "    \"editableGeneratedGeometry\": false\n"
-            << "  }\n"
+            << "  },\n";
+  WritePreviewMesh(mesh, metrics);
+  std::cout << "\n"
             << "}\n";
 }
 
@@ -917,9 +1064,21 @@ int main(int argc, char* argv[]) {
   }
 
   try {
-    const ShapeMetrics metrics = ComputeShapeMetrics(parsed_request.enclosure);
-    WriteRoundedEnclosureMetricsResponse(
-        parsed_request.request, parsed_request.enclosure, metrics);
+    bool corner_radius_applied = false;
+    int filleted_edge_count = 0;
+    const TopoDS_Shape shape =
+        BuildRoundedEnclosureShape(parsed_request.enclosure,
+                                   &corner_radius_applied,
+                                   &filleted_edge_count);
+    if (shape.IsNull()) {
+      throw std::runtime_error("OCCT generated a null enclosure shape.");
+    }
+
+    const ShapeMetrics metrics =
+        ComputeShapeMetrics(shape, corner_radius_applied, filleted_edge_count);
+    const PreviewMeshData mesh = BuildPreviewMesh(shape);
+    WriteRoundedEnclosurePreviewResponse(
+        parsed_request.request, parsed_request.enclosure, metrics, mesh);
     return 0;
   } catch (const std::exception& error) {
     WriteIssueResponse(parsed_request.request.request_id,
