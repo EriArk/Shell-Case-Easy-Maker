@@ -45,6 +45,10 @@ This is still semantic project state only. It does not store generated mesh,
 B-Rep, DXF contours, or OCCT topology. Later geometry/export work should consume
 this feature and produce B-Rep, preview mesh, STL/STEP, and DXF outputs.
 
+The mock viewport derives a schematic selectable recess marker from the same
+semantic `glass_recess` parameters. Clicking the marker selects the semantic
+feature; it does not select a generated face or mesh primitive.
+
 ### From feature
 
 Select screen/window/button group and create panel around it.

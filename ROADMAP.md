@@ -728,3 +728,45 @@ viewport through the same feature-group marker path as mounts.
 - Confirm the new button markers appear on the mock lid area.
 - Select `main_enclosure`, then click one of the new button markers.
 - Confirm the inspector switches back to `Группа кнопок` / `button_group_1`.
+
+---
+
+## M19 — Surface Feature Viewport Markers
+
+### Goal
+Make created surface features visible and selectable in the mock viewport before
+real generated geometry exists.
+
+### Tasks
+- [x] Add typed mock feature previews for `usb_c_cutout` and `glass_recess`.
+- [x] Derive feature preview dimensions from semantic feature parameters.
+- [x] Draw USB-C markers on the mock front-wall area.
+- [x] Draw glass recess markers on the mock lid area.
+- [x] Hit-test feature markers before generic surfaces so clicks select the
+      semantic `SemanticFeature`.
+- [x] Highlight selected semantic feature markers.
+- [x] Add unit/widget tests for USB-C/glass marker layout and shell selection
+      from viewport clicks.
+
+### Done Criteria
+- Creating `usb_c_cutout_2` shows a selectable USB-C marker.
+- Creating `glass_recess_1` shows a selectable glass/recess marker.
+- Clicking either marker selects the corresponding semantic feature and shows
+  its inspector details.
+- No mesh IDs, triangle IDs, or OCCT IDs are used for selection.
+
+### Tests
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Select `Front wall`, click `Порты`, set width to `12`, and click `Добавить`.
+- Select `main_enclosure`, then click the new USB-C marker.
+- Confirm the inspector switches back to `USB-C` / `usb_c_cutout_2`.
+- Select `Top lid`, click `Стекло`, set width to `50`, and click `Создать`.
+- Select `main_enclosure`, then click the glass marker.
+- Confirm the inspector switches back to `Посадка под стекло` /
+  `glass_recess_1`.

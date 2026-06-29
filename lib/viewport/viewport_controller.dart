@@ -11,6 +11,8 @@ enum ViewportHitKind {
 
 enum GhostPreviewKind { usbC, buttonGroup }
 
+enum MockViewportFeatureKind { usbC, glassRecess }
+
 enum MockViewportFeatureGroupKind { buttonGroup, standoffMounts }
 
 class ViewportController {
@@ -161,6 +163,59 @@ class ViewportHitResult {
   final String? parentId;
 }
 
+class MockViewportFeaturePreview {
+  const MockViewportFeaturePreview({
+    required this.semanticId,
+    required this.kind,
+    required this.targetSurfaceId,
+    required this.width,
+    required this.height,
+    this.cornerRadius = 0,
+    this.referenceWidth = 120,
+    this.referenceHeight = 70,
+    this.slotIndex = 0,
+  });
+
+  final String semanticId;
+  final MockViewportFeatureKind kind;
+  final String targetSurfaceId;
+  final double width;
+  final double height;
+  final double cornerRadius;
+  final double referenceWidth;
+  final double referenceHeight;
+  final int slotIndex;
+
+  @override
+  bool operator ==(Object other) {
+    return other is MockViewportFeaturePreview &&
+        other.semanticId == semanticId &&
+        other.kind == kind &&
+        other.targetSurfaceId == targetSurfaceId &&
+        other.width == width &&
+        other.height == height &&
+        other.cornerRadius == cornerRadius &&
+        other.referenceWidth == referenceWidth &&
+        other.referenceHeight == referenceHeight &&
+        other.slotIndex == slotIndex;
+  }
+
+  @override
+  int get hashCode {
+    return Object.hash(
+      semanticId,
+      kind,
+      targetSurfaceId,
+      width,
+      height,
+      cornerRadius,
+      referenceWidth,
+      referenceHeight,
+      slotIndex,
+    );
+  }
+}
+
 class MockViewportFeatureGroupPreview {
   const MockViewportFeatureGroupPreview({
     required this.semanticId,
@@ -241,6 +296,7 @@ class MockViewportLayout {
     required this.boardRadius,
     required this.buttonRadius,
     required this.portRadius,
+    required this.zoom,
   });
 
   final Rect bodyRect;
@@ -254,6 +310,7 @@ class MockViewportLayout {
   final double boardRadius;
   final double buttonRadius;
   final double portRadius;
+  final double zoom;
 
   List<Offset> featureGroupCenters(MockViewportFeatureGroupPreview group) {
     return [
@@ -296,6 +353,52 @@ class MockViewportLayout {
       MockViewportFeatureGroupKind.buttonGroup => lidRect,
       MockViewportFeatureGroupKind.standoffMounts => boardRect,
     };
+  }
+
+  Rect featureRect(MockViewportFeaturePreview feature) {
+    return switch (feature.kind) {
+      MockViewportFeatureKind.usbC => _usbCFeatureRect(feature),
+      MockViewportFeatureKind.glassRecess => _glassRecessFeatureRect(feature),
+    };
+  }
+
+  double featureCornerRadius(MockViewportFeaturePreview feature) {
+    return switch (feature.kind) {
+      MockViewportFeatureKind.usbC =>
+        (portRadius * (feature.cornerRadius / 1.0).clamp(0.4, 1.8)).toDouble(),
+      MockViewportFeatureKind.glassRecess =>
+        (feature.cornerRadius / feature.referenceWidth.clamp(1, 1000)) *
+            lidRect.width,
+    };
+  }
+
+  Rect _usbCFeatureRect(MockViewportFeaturePreview feature) {
+    final widthScale = (feature.width / 10.5).clamp(0.55, 2.2).toDouble();
+    final heightScale = (feature.height / 4.2).clamp(0.55, 2.2).toDouble();
+    return Rect.fromCenter(
+      center: portRect.center.translate(0, -feature.slotIndex * 18 * zoom),
+      width: portRect.width * widthScale,
+      height: portRect.height * heightScale,
+    );
+  }
+
+  Rect _glassRecessFeatureRect(MockViewportFeaturePreview feature) {
+    final safeWidth = feature.referenceWidth.clamp(1, 1000).toDouble();
+    final safeHeight = feature.referenceHeight.clamp(1, 1000).toDouble();
+    final width = (feature.width / safeWidth * lidRect.width)
+        .clamp(24 * zoom, lidRect.width * 0.88)
+        .toDouble();
+    final height = (feature.height / safeHeight * lidRect.height)
+        .clamp(18 * zoom, lidRect.height * 0.82)
+        .toDouble();
+    return Rect.fromCenter(
+      center: lidRect.center.translate(
+        feature.slotIndex * 10 * zoom,
+        -feature.slotIndex * 8 * zoom,
+      ),
+      width: width,
+      height: height,
+    );
   }
 
   static MockViewportLayout fromSize(
@@ -365,6 +468,7 @@ class MockViewportLayout {
       boardRadius: 8 * zoom,
       buttonRadius: 9 * zoom,
       portRadius: 6 * zoom,
+      zoom: zoom,
     );
   }
 }
@@ -378,6 +482,7 @@ class MockViewportHitTester {
     required ViewportState state,
     MockViewportBodyDimensions bodyDimensions =
         const MockViewportBodyDimensions(),
+    List<MockViewportFeaturePreview> features = const [],
     List<MockViewportFeatureGroupPreview> featureGroups = const [],
   }) {
     final layout = MockViewportLayout.fromSize(
@@ -385,6 +490,18 @@ class MockViewportHitTester {
       state,
       bodyDimensions: bodyDimensions,
     );
+
+    for (final feature in features.reversed) {
+      if (layout
+          .featureRect(feature)
+          .inflate(6 * state.zoom)
+          .contains(position)) {
+        return ViewportHitResult(
+          kind: ViewportHitKind.feature,
+          semanticId: feature.semanticId,
+        );
+      }
+    }
 
     for (final group in featureGroups.reversed) {
       final hitRadius = layout.featureGroupRadius(group) + 8 * state.zoom;

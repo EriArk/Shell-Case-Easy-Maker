@@ -293,6 +293,33 @@ void main() {
     expect(find.text('12.0'), findsOneWidget);
     expect(tester.widget<IconButton>(undoButton).onPressed, isNotNull);
 
+    await tester.tap(find.text('main_enclosure').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('width'), findsNothing);
+
+    final canvasFinder = find.byKey(const ValueKey('mock-viewport-canvas'));
+    final canvasTopLeft = tester.getTopLeft(canvasFinder);
+    final canvasSize = tester.getSize(canvasFinder);
+    final layout = MockViewportLayout.fromSize(
+      canvasSize,
+      const ViewportState(),
+    );
+    const createdUsbC = MockViewportFeaturePreview(
+      semanticId: 'usb_c_cutout_2',
+      kind: MockViewportFeatureKind.usbC,
+      targetSurfaceId: 'main_enclosure.front_wall.outer',
+      width: 12,
+      height: 4.2,
+      cornerRadius: 1,
+      slotIndex: 1,
+    );
+
+    await tester.tapAt(canvasTopLeft + layout.featureRect(createdUsbC).center);
+    await tester.pumpAndSettle();
+
+    expect(find.text('width'), findsOneWidget);
+
     await tester.tap(undoButton);
     await _pumpAsyncUi(tester);
 
@@ -450,6 +477,32 @@ void main() {
     expect(find.text('glass_recess_1'), findsWidgets);
     expect(find.text('50.0'), findsOneWidget);
     expect(tester.widget<IconButton>(undoButton).onPressed, isNotNull);
+
+    await tester.tap(find.text('main_enclosure').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('ledgeWidth'), findsNothing);
+
+    final canvasFinder = find.byKey(const ValueKey('mock-viewport-canvas'));
+    final canvasTopLeft = tester.getTopLeft(canvasFinder);
+    final canvasSize = tester.getSize(canvasFinder);
+    final layout = MockViewportLayout.fromSize(
+      canvasSize,
+      const ViewportState(),
+    );
+    const createdGlass = MockViewportFeaturePreview(
+      semanticId: 'glass_recess_1',
+      kind: MockViewportFeatureKind.glassRecess,
+      targetSurfaceId: 'main_enclosure.top_lid.outer',
+      width: 50,
+      height: 24,
+      cornerRadius: 2,
+    );
+
+    await tester.tapAt(canvasTopLeft + layout.featureRect(createdGlass).center);
+    await tester.pumpAndSettle();
+
+    expect(find.text('ledgeWidth'), findsOneWidget);
 
     await tester.tap(undoButton);
     await _pumpAsyncUi(tester);

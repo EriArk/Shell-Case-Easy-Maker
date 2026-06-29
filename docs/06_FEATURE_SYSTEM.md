@@ -39,6 +39,16 @@ exportable — produces manufacturing profile or part
 6. Validate geometry.
 7. Commit undo transaction.
 
+## Current viewport markers
+
+The mock viewport derives transient markers from semantic features:
+- `usb_c_cutout`,
+- `glass_recess`.
+
+These markers are selectable affordances only. They return semantic feature IDs
+to the selection model and are not saved geometry, mesh IDs, triangle IDs, or
+OCCT topology IDs.
+
 ## Feature groups
 
 Repeated elements must be grouped:

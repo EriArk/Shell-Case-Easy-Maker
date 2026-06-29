@@ -106,7 +106,9 @@ to the workspace so the inspector does not point at a stale ID.
 Clicking `Порты` is enabled only after selecting a semantic surface such as
 `Front wall`. The command opens a compact USB-C dialog, appends a semantic
 `usb_c_cutout` feature targeted at the selected surface, selects the new
-feature, refreshes the mock preview, and creates one undo history entry.
+feature, refreshes the mock preview, and creates one undo history entry. The
+mock viewport draws a schematic USB-C marker; clicking it selects the semantic
+feature.
 
 Clicking `Кнопки` is enabled only after selecting a semantic surface such as
 `Top lid`. The command opens a compact button group dialog and appends a
@@ -118,7 +120,8 @@ clicking one marker selects the whole button group.
 Clicking `Стекло` is enabled only after selecting a semantic surface. The
 command opens a compact glass recess dialog and appends a semantic
 `glass_recess` feature with window size, recess depth, ledge width, radius,
-insert thickness, and clearance profile data.
+insert thickness, and clearance profile data. The mock viewport draws a
+schematic recess marker; clicking it selects the semantic feature.
 
 Clicking `Крепёж` is enabled only after selecting a component placement whose
 template has mounting holes. The command opens a compact mount dialog and
@@ -141,11 +144,13 @@ disabled until their semantic command behavior is implemented and tested.
 - Component placement still uses typed dialog values rather than viewport
   picking or snapping.
 - USB-C placement still uses dialog values and target surface selection rather
-  than face-local picking/snapping.
+  than face-local picking/snapping. The visible marker is a mock viewport
+  affordance.
 - Button group placement still uses centered dialog defaults rather than
   face-local picking/snapping or generated item previews.
 - Glass recess placement still uses selected surface and dialog dimensions
-  rather than face-local picking/snapping.
+  rather than face-local picking/snapping. The visible marker is a mock
+  viewport affordance.
 - Mount generation currently creates semantic standoff group data only; real
   B-Rep/mesh stand-off geometry is still future geometry-service work. The
   visible markers are mock viewport affordances.

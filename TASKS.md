@@ -70,6 +70,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Implement ghost preview.
 - [x] Implement semantic feature group viewport markers.
 - [x] Implement semantic button group viewport markers.
+- [x] Implement semantic surface feature viewport markers.
 - [ ] Implement local workplane overlay.
 - [x] Implement grid overlay.
 - [ ] Implement basic snapping visual hints.
@@ -102,6 +103,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [ ] Add generic circular cutout.
 - [ ] Add generic rectangular rounded cutout.
 - [x] First-pass USB-C cutout command.
+- [x] First-pass USB-C viewport marker.
 - [ ] USB-C placement polish with face-local picking/snapping.
 - [ ] Export STL/STEP.
 - [ ] Validate wall thickness and cutout placement.
@@ -180,6 +182,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 ## Phase 11 — Glass, inserts, panel recesses
 
 - [x] First-pass manual glass recess command.
+- [x] First-pass glass recess viewport marker.
 - [ ] Recess from screen/window feature.
 - [ ] Free recessed panel.
 - [ ] Insert/glass definition.

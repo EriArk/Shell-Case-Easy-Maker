@@ -1541,6 +1541,7 @@ class _ViewportAreaState extends State<_ViewportArea> {
           size: viewportSize,
           state: widget.viewportState,
           bodyDimensions: _mockViewportBodyDimensions(widget.project),
+          features: _mockFeaturePreviews(widget.project),
           featureGroups: _mockFeatureGroupPreviews(widget.project),
         ),
       );
@@ -1591,6 +1592,7 @@ class _ViewportAreaState extends State<_ViewportArea> {
                         bodyDimensions: _mockViewportBodyDimensions(
                           widget.project,
                         ),
+                        featurePreviews: _mockFeaturePreviews(widget.project),
                         featureGroupPreviews: _mockFeatureGroupPreviews(
                           widget.project,
                         ),
@@ -3175,6 +3177,7 @@ class _ViewportPainter extends CustomPainter {
   const _ViewportPainter({
     required this.colorScheme,
     required this.bodyDimensions,
+    required this.featurePreviews,
     required this.featureGroupPreviews,
     required this.selection,
     required this.viewportState,
@@ -3182,6 +3185,7 @@ class _ViewportPainter extends CustomPainter {
 
   final ColorScheme colorScheme;
   final MockViewportBodyDimensions bodyDimensions;
+  final List<MockViewportFeaturePreview> featurePreviews;
   final List<MockViewportFeatureGroupPreview> featureGroupPreviews;
   final SelectionModel selection;
   final ViewportState viewportState;
@@ -3262,6 +3266,7 @@ class _ViewportPainter extends CustomPainter {
       portPaint,
     );
 
+    _paintFeatures(canvas, layout);
     _paintFeatureGroups(canvas, layout);
     _paintGhostPreview(canvas, layout);
 
@@ -3335,6 +3340,22 @@ class _ViewportPainter extends CustomPainter {
       );
     }
 
+    if (selection.kind == SelectionKind.feature) {
+      final feature = featurePreviews
+          .where((feature) => feature.semanticId == selection.id)
+          .firstOrNull;
+      if (feature != null) {
+        final rect = layout.featureRect(feature).inflate(6);
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            rect,
+            Radius.circular(layout.featureCornerRadius(feature) + 4),
+          ),
+          secondaryHighlightPaint,
+        );
+      }
+    }
+
     if (selection.kind == SelectionKind.feature &&
         selection.id == 'abxy_buttons') {
       for (final center in layout.buttonCenters) {
@@ -3355,6 +3376,47 @@ class _ViewportPainter extends CustomPainter {
         for (final center in layout.featureGroupCenters(group)) {
           canvas.drawCircle(center, radius + 5, secondaryHighlightPaint);
         }
+      }
+    }
+  }
+
+  void _paintFeatures(Canvas canvas, MockViewportLayout layout) {
+    final usbFill = Paint()
+      ..color = colorScheme.secondary
+      ..style = PaintingStyle.fill;
+    final glassFill = Paint()
+      ..color = const Color(0xFF92C9D8).withValues(alpha: 0.24)
+      ..style = PaintingStyle.fill;
+    final glassStroke = Paint()
+      ..color = const Color(0xFF92C9D8).withValues(alpha: 0.86)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    final darkInset = Paint()
+      ..color = Colors.black.withValues(alpha: 0.25)
+      ..style = PaintingStyle.fill;
+
+    for (final feature in featurePreviews) {
+      final rect = layout.featureRect(feature);
+      final radius = Radius.circular(layout.featureCornerRadius(feature));
+      final rrect = RRect.fromRectAndRadius(rect, radius);
+
+      switch (feature.kind) {
+        case MockViewportFeatureKind.usbC:
+          canvas.drawRRect(rrect, usbFill);
+          canvas.drawRRect(
+            RRect.fromRectAndRadius(rect.deflate(3), radius),
+            darkInset,
+          );
+        case MockViewportFeatureKind.glassRecess:
+          canvas.drawRRect(rrect, glassFill);
+          canvas.drawRRect(rrect, glassStroke);
+          canvas.drawRRect(
+            RRect.fromRectAndRadius(rect.deflate(6), radius),
+            Paint()
+              ..color = Colors.black.withValues(alpha: 0.12)
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 1,
+          );
       }
     }
   }
@@ -3446,6 +3508,7 @@ class _ViewportPainter extends CustomPainter {
   bool shouldRepaint(covariant _ViewportPainter oldDelegate) {
     return oldDelegate.colorScheme != colorScheme ||
         oldDelegate.bodyDimensions != bodyDimensions ||
+        oldDelegate.featurePreviews != featurePreviews ||
         oldDelegate.featureGroupPreviews != featureGroupPreviews ||
         oldDelegate.selection != selection ||
         oldDelegate.viewportState != viewportState;
@@ -3464,6 +3527,59 @@ MockViewportBodyDimensions _mockViewportBodyDimensions(ProjectModel project) {
     height: _sizeAt(enclosure, 2, 28),
     cornerRadius: enclosure.cornerRadius,
   );
+}
+
+List<MockViewportFeaturePreview> _mockFeaturePreviews(ProjectModel project) {
+  final previews = <MockViewportFeaturePreview>[];
+  final slotsBySurface = <String, int>{};
+
+  for (final feature in project.features) {
+    final slotKey = '${feature.type}:${feature.targetSurface}';
+    final slotIndex = slotsBySurface[slotKey] ?? 0;
+    final preview = _mockFeaturePreview(project, feature, slotIndex);
+    if (preview != null) {
+      previews.add(preview);
+      slotsBySurface[slotKey] = slotIndex + 1;
+    }
+  }
+
+  return previews;
+}
+
+MockViewportFeaturePreview? _mockFeaturePreview(
+  ProjectModel project,
+  SemanticFeature feature,
+  int slotIndex,
+) {
+  final enclosure = project.bodies.firstOrNull;
+  final referenceWidth = enclosure == null ? 120.0 : _sizeAt(enclosure, 0, 120);
+  final referenceHeight = enclosure == null ? 70.0 : _sizeAt(enclosure, 1, 70);
+
+  return switch (feature.type) {
+    'usb_c_cutout' => MockViewportFeaturePreview(
+      semanticId: feature.id,
+      kind: MockViewportFeatureKind.usbC,
+      targetSurfaceId: feature.targetSurface,
+      width: _featureDouble(feature.parameters, 'width', 10.5),
+      height: _featureDouble(feature.parameters, 'height', 4.2),
+      cornerRadius: _featureDouble(feature.parameters, 'cornerRadius', 1.0),
+      referenceWidth: referenceWidth,
+      referenceHeight: referenceHeight,
+      slotIndex: slotIndex,
+    ),
+    'glass_recess' => MockViewportFeaturePreview(
+      semanticId: feature.id,
+      kind: MockViewportFeatureKind.glassRecess,
+      targetSurfaceId: feature.targetSurface,
+      width: _featureDouble(feature.parameters, 'width', 42),
+      height: _featureDouble(feature.parameters, 'height', 24),
+      cornerRadius: _featureDouble(feature.parameters, 'cornerRadius', 2),
+      referenceWidth: referenceWidth,
+      referenceHeight: referenceHeight,
+      slotIndex: slotIndex,
+    ),
+    _ => null,
+  };
 }
 
 List<MockViewportFeatureGroupPreview> _mockFeatureGroupPreviews(

@@ -89,6 +89,54 @@ void main() {
     expect(portHit?.semanticId, 'front_usb_c');
   });
 
+  test('mock hit tester returns semantic feature marker ids', () {
+    const state = ViewportState();
+    const size = Size(900, 600);
+    final layout = MockViewportLayout.fromSize(size, state);
+    const usbC = MockViewportFeaturePreview(
+      semanticId: 'usb_c_cutout_2',
+      kind: MockViewportFeatureKind.usbC,
+      targetSurfaceId: 'main_enclosure.front_wall.outer',
+      width: 12,
+      height: 4.2,
+      cornerRadius: 1,
+      slotIndex: 1,
+    );
+    const glass = MockViewportFeaturePreview(
+      semanticId: 'glass_recess_1',
+      kind: MockViewportFeatureKind.glassRecess,
+      targetSurfaceId: 'main_enclosure.top_lid.outer',
+      width: 50,
+      height: 24,
+      cornerRadius: 2,
+    );
+    const hitTester = MockViewportHitTester();
+
+    expect(
+      layout.featureRect(usbC).center.dy,
+      lessThan(layout.portRect.center.dy),
+    );
+    expect(layout.lidRect.contains(layout.featureRect(glass).center), isTrue);
+
+    final usbHit = hitTester.hitTest(
+      position: layout.featureRect(usbC).center,
+      size: size,
+      state: state,
+      features: const [usbC, glass],
+    );
+    expect(usbHit?.kind, ViewportHitKind.feature);
+    expect(usbHit?.semanticId, 'usb_c_cutout_2');
+
+    final glassHit = hitTester.hitTest(
+      position: layout.featureRect(glass).center,
+      size: size,
+      state: state,
+      features: const [usbC, glass],
+    );
+    expect(glassHit?.kind, ViewportHitKind.feature);
+    expect(glassHit?.semanticId, 'glass_recess_1');
+  });
+
   test('mock hit tester returns semantic feature group ids', () {
     const state = ViewportState();
     const size = Size(900, 600);

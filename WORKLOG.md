@@ -1643,3 +1643,83 @@ Run full validation, refresh latest Windows bundle, commit, and push M18.
 Button groups must stay editable semantic `FeatureGroup` objects. Viewport
 markers are transient affordances and must not become saved per-button project
 items unless the user explicitly detaches the pattern.
+
+---
+
+## 2026-06-28 — M19 Surface Feature Viewport Markers
+
+### Goal
+Make created surface features visible and selectable in the mock viewport
+before real generated geometry exists.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `docs/06_FEATURE_SYSTEM.md`,
+`docs/13_PANEL_RECESS_INSERT_GLASS_SYSTEM.md`, `docs/32_USABLE_SHELL.md`,
+`docs/33_VIEWPORT_MVP.md`, viewport controller, workspace shell, and
+widget/viewport tests.
+
+### Changes made
+- `lib/viewport/viewport_controller.dart`:
+  - Added typed `MockViewportFeaturePreview` data for semantic feature markers.
+  - Added `MockViewportFeatureKind.usbC` and `glassRecess`.
+  - Added deterministic mock rectangles for USB-C and glass recess markers.
+  - Hit-tests feature markers before generic surfaces and returns semantic
+    feature IDs.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Builds mock feature previews from `usb_c_cutout` and `glass_recess`
+    `SemanticFeature` parameters.
+  - Draws USB-C and glass/recess markers in the mock viewport.
+  - Highlights selected feature markers.
+- `test/viewport_controller_test.dart` and `test/widget_test.dart`:
+  - Added coverage for feature marker layout, semantic hit results, and full
+    shell marker-click selection after creating USB-C and glass recess features.
+- `ROADMAP.md`, `TASKS.md`, `docs/06_FEATURE_SYSTEM.md`,
+  `docs/13_PANEL_RECESS_INSERT_GLASS_SYSTEM.md`, `docs/32_USABLE_SHELL.md`,
+  and `docs/33_VIEWPORT_MVP.md`:
+  - Documented M19 and the boundary between schematic markers and generated
+    geometry.
+
+### Tests run
+- `flutter test test\viewport_controller_test.dart test\widget_test.dart`:
+  - Passed, 31 targeted tests.
+- `flutter pub get`:
+  - Passed; 4 packages still have newer incompatible versions.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 78 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed `releases/latest/windows/shell_case_easy_maker.exe`.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Markers are derived from semantic feature parameters only; no generated
+    B-Rep or mesh is created yet.
+- Serialization checked?
+  - No schema change; generated marker rectangles are not saved.
+- UI checked?
+  - Widget tests create USB-C/glass features, deselect them, click their
+    viewport markers, and verify the feature inspectors return.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Feature markers are schematic rectangles, not true generated cuts or
+  recesses.
+  - Severity: Expected for this slice.
+  - Next action: feed `usb_c_cutout` and `glass_recess` into geometry service
+    once real preview geometry starts.
+- Issue: Multiple features on the same surface are offset schematically.
+  - Severity: Expected.
+  - Next action: replace slot offsets with face-local placement/snapping data.
+
+### Next step
+Run full validation, refresh latest Windows bundle, commit, and push M19.
+
+### Notes for future Codex sessions
+Surface feature marker clicks must keep returning semantic feature IDs. Do not
+introduce mesh, triangle, or OCCT topology IDs into default selection state.

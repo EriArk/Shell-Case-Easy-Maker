@@ -33,6 +33,16 @@ centers from `ViewportState`.
 
 It does not return mesh IDs, triangle IDs, OCCT face IDs, or generated topology.
 
+## Feature Markers
+
+The mock viewport draws selectable markers for semantic features:
+- `usb_c_cutout`,
+- `glass_recess`.
+
+The marker data is derived from semantic feature parameters such as width,
+height, and corner radius. The markers are only viewport affordances; clicking
+one selects the semantic feature ID.
+
 ## Feature Group Markers
 
 The mock viewport can now draw semantic feature-group markers for:
@@ -86,6 +96,8 @@ license, and packaging complexity.
 
 - The viewport is still a stylized 2.5D mock drawing, not generated geometry.
 - Hit zones are deterministic mock zones, not mesh picking.
+- Surface feature markers are schematic rectangles, not generated cut/recess
+  B-Rep.
 - Button-group marker expansion supports first-pass diamond, row, and grid
   layouts only.
 - Standoff markers are schematic circles, not generated B-Rep bosses.
