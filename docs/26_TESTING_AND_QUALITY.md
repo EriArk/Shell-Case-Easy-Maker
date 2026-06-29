@@ -53,6 +53,8 @@ Use deterministic test fixtures.
   state into the project.
 - Clicked snap hints seed component placement dialogs without blocking visible
   semantic object selection.
+- Active snap inspector actions open the same seeded placement flow and can
+  clear transient snap state.
 - Validation status/details show warning and error messages.
 - Context popovers show correct actions.
 - Parameter knob updates model.

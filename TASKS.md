@@ -56,6 +56,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Unsaved changes prompt before opening another project.
 - [x] First-pass validation details sheet.
 - [x] Validation issue rows select semantic targets.
+- [x] Active snap target inspector action.
 - [x] First executable left rail generator command.
 - [x] First executable component placement command.
 - [x] First-pass component placement inspector editing.
@@ -137,6 +138,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] First-pass component placement rotation and lock behavior.
 - [x] First-pass component placement visibility behavior.
 - [x] First-pass snap-seeded component placement from viewport picking.
+- [x] First-pass active snap target placement action.
 - [ ] Guided component placement workflow with viewport picking.
 - [ ] Project switch centers and connector anchors to enclosure surfaces.
 

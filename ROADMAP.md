@@ -50,6 +50,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M29 — Component Placement Visibility
 - [x] M30 — Local Workplane Overlay + Snap Hints
 - [x] M31 — Snap Picking Seeds Component Placement
+- [x] M32 — Active Snap Inspector Action
 
 ---
 
@@ -1289,3 +1290,44 @@ starting point for semantic component placement.
 - Confirm `Разместить` creates the new component at that seeded position.
 - Click an existing visible board area and confirm the component inspector still
   wins over an overlapping surface snap hint.
+
+---
+
+## M32 — Active Snap Inspector Action
+
+### Goal
+Make the selected snap point obvious and actionable from the contextual
+inspector, not only from the left tool rail.
+
+### Tasks
+- [x] Add a compact active snap section to the inspector.
+- [x] Show snap label, seeded project position, and human mounting side.
+- [x] Add a direct `Разместить компонент` inspector action.
+- [x] Add a clear action that removes only transient snap UI state.
+- [x] Keep component placement confirmation inside the existing semantic dialog.
+- [x] Add widget coverage for inspector action and clearing behavior.
+
+### Done Criteria
+- Clicking a snap hint shows an inspector section for that snap target.
+- The inspector action opens the same snap-seeded component placement dialog as
+  the rail command.
+- Clearing the snap target removes highlight/inspector state without changing
+  `ProjectModel`.
+- No mesh, B-Rep, triangle ID, or OCCT topology becomes editable state.
+
+### Tests
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Select `Top lid`.
+- Click a snap dot away from the center.
+- Confirm the right inspector shows `Точка привязки`, position, and mounting
+  side.
+- Click `Разместить компонент` in the inspector and confirm the placement dialog
+  opens with the same snap hint.
+- Cancel, click the clear icon in the inspector, and confirm the snap section
+  disappears.

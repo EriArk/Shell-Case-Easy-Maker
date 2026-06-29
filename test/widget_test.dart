@@ -194,6 +194,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(
+      find.byKey(const ValueKey('active-snap-target-panel')),
+      findsOneWidget,
+    );
+
     await tester.tap(
       find.byKey(const ValueKey('rail-command-${CommandIds.placeComponent}')),
     );
@@ -224,6 +229,65 @@ void main() {
           )
           .initialValue,
       '0',
+    );
+  });
+
+  testWidgets('active snap target inspector action opens placement dialog', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const CaseMakerApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Top lid').first);
+    await tester.pumpAndSettle();
+    await _tapTopLidSnap(tester, const Offset(30, 0));
+
+    final placeFromSnap = find.byKey(
+      const ValueKey('active-snap-place-component'),
+    );
+    expect(placeFromSnap, findsOneWidget);
+
+    await tester.tap(placeFromSnap);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('place-component-snap-hint')),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<TextFormField>(
+            find.descendant(
+              of: find.byKey(const ValueKey('place-component-x')),
+              matching: find.byType(TextFormField),
+            ),
+          )
+          .initialValue,
+      '30',
+    );
+  });
+
+  testWidgets('active snap target can be cleared from inspector', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const CaseMakerApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Top lid').first);
+    await tester.pumpAndSettle();
+    await _tapTopLidSnap(tester, const Offset(30, 0));
+
+    expect(
+      find.byKey(const ValueKey('active-snap-target-panel')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('active-snap-clear')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('active-snap-target-panel')),
+      findsNothing,
     );
   });
 
@@ -1561,6 +1625,31 @@ Future<void> _pumpAsyncUi(WidgetTester tester) async {
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 50));
   await tester.pump();
+}
+
+Future<void> _tapTopLidSnap(WidgetTester tester, Offset localPosition) async {
+  final canvasFinder = find.byKey(const ValueKey('mock-viewport-canvas'));
+  final canvasTopLeft = tester.getTopLeft(canvasFinder);
+  final canvasSize = tester.getSize(canvasFinder);
+  final layout = MockViewportLayout.fromSize(canvasSize, const ViewportState());
+  const workplane = MockViewportWorkplaneOverlay(
+    semanticId: 'main_enclosure.top_lid.outer',
+    kind: MockViewportWorkplaneKind.topLid,
+    width: 120,
+    height: 70,
+    snapPoints: [
+      Offset.zero,
+      Offset(30, 0),
+      Offset(-30, 0),
+      Offset(0, 17.5),
+      Offset(0, -17.5),
+    ],
+  );
+
+  await tester.tapAt(
+    canvasTopLeft + layout.workplaneLocalToCanvas(workplane, localPosition),
+  );
+  await tester.pumpAndSettle();
 }
 
 class _FakeProjectFileDialogService implements ProjectFileDialogService {

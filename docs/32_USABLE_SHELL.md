@@ -116,6 +116,12 @@ target in shell state, highlights the dot, and updates the status hint. Starting
 seeded X/Y/Z plus mounting side. Normal selection, undo, redo, and project edits
 clear the transient snap target so stale UI state is not saved or replayed.
 
+When an active snap target exists, the inspector shows a compact `Точка
+привязки` section with the snap label, seeded project position, mounting side,
+a direct `Разместить компонент` action, and a clear action. The action still
+opens the normal semantic placement dialog; confirming that dialog creates a
+regular `ComponentPlacement`, not a saved snap reference.
+
 ## Project JSON file service
 
 `ProjectFileService` provides basic JSON encode/decode and disk read/write.
@@ -212,7 +218,8 @@ disabled until their semantic command behavior is implemented and tested.
   supported selections.
 - Component placement supports first-pass snap-seeded dialog defaults, but it
   does not yet have drag placement, live collision feedback, or a full
-  viewport-confirm workflow.
+  viewport-confirm workflow. The active snap inspector action is a shortcut into
+  the same dialog-based flow.
 - USB-C placement still uses dialog values and target surface selection rather
   than face-local picking/snapping. The visible marker is a mock viewport
   affordance.

@@ -2751,3 +2751,83 @@ or component anchor/connector mapping.
 Snap target state belongs to the shell only. Keep the saved project semantic:
 component placements store normal position/rotation/mounting side data, not
 snap indices or viewport hit IDs.
+
+---
+
+## 2026-06-29 - M32 Active Snap Inspector Action
+
+### Goal
+Make the currently selected snap hint visible and actionable from the contextual
+inspector, while keeping snap selection as transient UI state.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `docs/31_COMMANDS_AND_UNDO.md`,
+`docs/32_USABLE_SHELL.md`, `docs/33_VIEWPORT_MVP.md`,
+`lib/ui/shell/workspace_shell.dart`, and snap/widget tests from M31.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added an active snap target inspector section.
+  - Shows snap label, seeded project position, and human mounting side.
+  - Adds a direct `Разместить компонент` action that opens the existing
+    snap-seeded placement dialog.
+  - Adds a clear action that removes only transient snap UI state.
+- `test/widget_test.dart`:
+  - Added coverage for opening placement from the active snap inspector action.
+  - Added coverage for clearing the active snap target from the inspector.
+  - Added a helper for deterministic top-lid snap tapping in widget tests.
+- Docs/tasks/roadmap:
+  - Recorded M32 behavior, task status, limitations, and poke checklist.
+
+### Tests run
+- `flutter test test\widget_test.dart --plain-name "surface snap point seeds component placement dialog"`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "active snap target inspector action opens placement dialog"`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "active snap target can be cleared from inspector"`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 113 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Mock viewport interaction only; no generated B-Rep or mesh is created.
+- Serialization checked?
+  - Not applicable; active snap target state is transient and not saved.
+- UI checked?
+  - Widget tests confirm the inspector action opens the seeded placement dialog
+    and clear removes the snap section.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: The inspector action still enters a dialog-based placement flow, not a
+  direct viewport confirm/cancel workflow.
+  - Severity: Expected.
+  - Next action: add live preview/confirm placement as a later guided-placement
+    slice.
+- Issue: Active snap positions are still mock workplane positions.
+  - Severity: Expected.
+  - Next action: move to geometry-service face-local picking when real preview
+    geometry exists.
+
+### Next step
+Commit and push M32, then continue toward guided viewport placement or semantic
+component anchors.
+
+### Notes for future Codex sessions
+The active snap inspector should remain a context affordance, not saved model
+state. Confirmed placements should continue to store normal
+`ComponentPlacement` values.

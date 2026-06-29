@@ -115,6 +115,17 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     });
   }
 
+  void _clearActiveSnapTarget() {
+    if (_activeSnapTarget == null) {
+      return;
+    }
+
+    setState(() {
+      _activeSnapTarget = null;
+      _fileStatusMessage = null;
+    });
+  }
+
   void _selectViewportHit(ViewportHitResult? hit) {
     if (hit?.kind == ViewportHitKind.snapPoint) {
       final snapTarget = _snapTargetFromViewportHit(_project, hit!);
@@ -827,6 +838,15 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                         details: details,
                         project: _project,
                         selection: _selection,
+                        activeSnapTarget: _activeSnapTarget,
+                        onPlaceComponentFromSnap:
+                            _activeSnapTarget != null &&
+                                _project.componentTemplates.isNotEmpty
+                            ? () {
+                                _runPlaceComponentCommand();
+                              }
+                            : null,
+                        onClearSnapTarget: _clearActiveSnapTarget,
                         onEnclosureParameterChanged: _updateEnclosureParameter,
                         onComponentPlacementParameterChanged:
                             _updateComponentPlacementParameter,
@@ -1047,6 +1067,15 @@ Offset _rotateLocalOffset(Offset point, double degrees) {
 
 String _formatSnapPoint(Offset point) {
   return '${_formatNumber(point.dx)} x ${_formatNumber(point.dy)} mm';
+}
+
+String _mountingSideLabel(String mountingSide) {
+  return switch (mountingSide) {
+    'bottom_inside' => 'Внутри на дне',
+    'top_lid_inside' => 'На крышке внутри',
+    'free' => 'Свободно',
+    _ => mountingSide,
+  };
 }
 
 SelectionModel? _selectionForValidationTarget(
@@ -2271,6 +2300,9 @@ class _Inspector extends StatelessWidget {
     required this.details,
     required this.project,
     required this.selection,
+    required this.activeSnapTarget,
+    required this.onPlaceComponentFromSnap,
+    required this.onClearSnapTarget,
     required this.onEnclosureParameterChanged,
     required this.onComponentPlacementParameterChanged,
     required this.onFeatureParameterChanged,
@@ -2280,6 +2312,9 @@ class _Inspector extends StatelessWidget {
   final ProjectSelectionDetails details;
   final ProjectModel project;
   final SelectionModel selection;
+  final _ActiveSnapTarget? activeSnapTarget;
+  final VoidCallback? onPlaceComponentFromSnap;
+  final VoidCallback onClearSnapTarget;
   final void Function(String enclosureId, String parameterId, Object? value)
   onEnclosureParameterChanged;
   final void Function(String placementId, String parameterId, Object? value)
@@ -2353,6 +2388,14 @@ class _Inspector extends StatelessWidget {
           const SizedBox(height: 16),
           for (final property in details.properties)
             _InspectorValue(label: property.label, value: property.value),
+          if (activeSnapTarget != null) ...[
+            const SizedBox(height: 14),
+            _ActiveSnapTargetPanel(
+              target: activeSnapTarget!,
+              onPlaceComponent: onPlaceComponentFromSnap,
+              onClear: onClearSnapTarget,
+            ),
+          ],
           if (selectedEnclosure != null) ...[
             const SizedBox(height: 14),
             _EnclosureParameterEditor(
@@ -2410,6 +2453,83 @@ class _Inspector extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+class _ActiveSnapTargetPanel extends StatelessWidget {
+  const _ActiveSnapTargetPanel({
+    required this.target,
+    required this.onPlaceComponent,
+    required this.onClear,
+  });
+
+  final _ActiveSnapTarget target;
+  final VoidCallback? onPlaceComponent;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      key: const ValueKey('active-snap-target-panel'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Divider(color: theme.dividerColor.withValues(alpha: 0.18)),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Icon(
+              Icons.add_location_alt_rounded,
+              size: 18,
+              color: theme.colorScheme.secondary,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Точка привязки',
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            Tooltip(
+              message: 'Сбросить точку',
+              child: IconButton(
+                key: const ValueKey('active-snap-clear'),
+                icon: const Icon(Icons.close_rounded),
+                iconSize: 18,
+                onPressed: onClear,
+                visualDensity: VisualDensity.compact,
+              ),
+            ),
+          ],
+        ),
+        _InspectorValue(label: 'Точка', value: target.label),
+        _InspectorValue(
+          label: 'Позиция',
+          value:
+              '${_formatNumber(target.projectPosition.dx)} x '
+              '${_formatNumber(target.projectPosition.dy)} x '
+              '${_formatNumber(target.z)} mm',
+        ),
+        _InspectorValue(
+          label: 'Посадка',
+          value: _mountingSideLabel(target.mountingSide),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+            key: const ValueKey('active-snap-place-component'),
+            onPressed: onPlaceComponent,
+            icon: const Icon(Icons.memory_rounded, size: 18),
+            label: const Text('Разместить компонент'),
+          ),
+        ),
+      ],
     );
   }
 }

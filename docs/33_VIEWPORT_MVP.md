@@ -104,6 +104,7 @@ whole feature group, not an individual mesh primitive or flattened hole.
 - Mouse wheel: zoom.
 - Click viewport mock objects: select semantic object.
 - Click a visible snap hint: select/highlight that transient snap target.
+- Use the inspector snap action: open the snap-seeded component placement dialog.
 - Click the view cube: fit view.
 - Select a supported surface or visible component placement: show the local
   workplane overlay and snap hints.
