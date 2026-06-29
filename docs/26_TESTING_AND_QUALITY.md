@@ -15,6 +15,7 @@ If it changes geometry, serialization, validation, or UI state, test it.
 - Rotation-aware placement bounds validation.
 - Component placement visibility serialization and mock viewport hit-test
   behavior.
+- Mock local workplane and snap-hint layout behavior.
 - Pattern positions.
 - Clearance profile calculations.
 - Command system.
@@ -47,6 +48,8 @@ Use deterministic test fixtures.
 - Inspector changes with selection.
 - Inspector visibility toggles update semantic state and viewport selection
   affordances.
+- Surface/component selection wires local workplane overlays without saving UI
+  state into the project.
 - Validation status/details show warning and error messages.
 - Context popovers show correct actions.
 - Parameter knob updates model.

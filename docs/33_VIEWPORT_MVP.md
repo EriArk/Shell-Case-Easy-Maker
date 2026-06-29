@@ -39,6 +39,19 @@ Component placement hit zones are now supplied as
 mock viewer omits placements whose semantic `visible` flag is false, while the
 project browser and inspector can still select and restore those placements.
 
+`MockViewportWorkplaneOverlay` describes the currently active local workplane
+for the mock viewer. It is derived from the current semantic selection and is
+not saved into `ProjectModel`. The first overlays support:
+- top-lid surfaces,
+- front-wall surfaces,
+- visible component placements.
+
+The overlay draws a subtle local grid plus snap hints. Surface snap hints use
+deterministic center/quarter points. Component placement snap hints use the
+selected component template's mounting holes plus the board center. These are
+visual interaction affordances only; they do not create sketch constraints,
+change placement data, or expose generated topology.
+
 ## Feature Markers
 
 The mock viewport draws selectable markers for semantic features:
@@ -84,6 +97,8 @@ whole feature group, not an individual mesh primitive or flattened hole.
 - Mouse wheel: zoom.
 - Click viewport mock objects: select semantic object.
 - Click the view cube: fit view.
+- Select a supported surface or visible component placement: show the local
+  workplane overlay and snap hints.
 
 These controls are deliberately simple and can be refined after manual testing.
 
@@ -112,6 +127,8 @@ license, and packaging complexity.
 - Hit zones are deterministic mock zones, not mesh picking.
 - Component placement previews are semantic mock rectangles, not generated
   board meshes or OCCT bodies.
+- Workplane overlays and snap hints are mock interaction affordances, not a
+  saved sketch/workplane subsystem yet.
 - Surface feature markers are schematic rectangles, not generated cut/recess
   B-Rep.
 - Button-group marker expansion supports first-pass diamond, row, and grid

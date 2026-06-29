@@ -1905,6 +1905,10 @@ class _ViewportAreaState extends State<_ViewportArea> {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final viewportSize = constraints.biggest;
+          final workplaneOverlay = _mockWorkplaneOverlay(
+            widget.project,
+            widget.selection,
+          );
 
           return Listener(
             behavior: HitTestBehavior.opaque,
@@ -1927,6 +1931,7 @@ class _ViewportAreaState extends State<_ViewportArea> {
                         ),
                         componentPlacementPreviews:
                             _mockComponentPlacementPreviews(widget.project),
+                        workplaneOverlay: workplaneOverlay,
                         featurePreviews: _mockFeaturePreviews(widget.project),
                         featureGroupPreviews: _mockFeatureGroupPreviews(
                           widget.project,
@@ -1936,6 +1941,14 @@ class _ViewportAreaState extends State<_ViewportArea> {
                       ),
                     ),
                   ),
+                  if (workplaneOverlay != null)
+                    const Positioned(
+                      left: 0,
+                      top: 0,
+                      child: SizedBox(
+                        key: ValueKey('mock-workplane-overlay-active'),
+                      ),
+                    ),
                   Positioned(
                     left: 18,
                     top: 16,
@@ -4419,6 +4432,7 @@ class _ViewportPainter extends CustomPainter {
     required this.colorScheme,
     required this.bodyDimensions,
     required this.componentPlacementPreviews,
+    required this.workplaneOverlay,
     required this.featurePreviews,
     required this.featureGroupPreviews,
     required this.selection,
@@ -4428,6 +4442,7 @@ class _ViewportPainter extends CustomPainter {
   final ColorScheme colorScheme;
   final MockViewportBodyDimensions bodyDimensions;
   final List<MockViewportComponentPlacementPreview> componentPlacementPreviews;
+  final MockViewportWorkplaneOverlay? workplaneOverlay;
   final List<MockViewportFeaturePreview> featurePreviews;
   final List<MockViewportFeatureGroupPreview> featureGroupPreviews;
   final SelectionModel selection;
@@ -4505,6 +4520,7 @@ class _ViewportPainter extends CustomPainter {
 
     _paintFeatures(canvas, layout);
     _paintFeatureGroups(canvas, layout);
+    _paintWorkplaneOverlay(canvas, layout);
     _paintGhostPreview(canvas, layout);
 
     final highlightPaint = Paint()
@@ -4628,6 +4644,66 @@ class _ViewportPainter extends CustomPainter {
           canvas.drawCircle(center, radius + 5, secondaryHighlightPaint);
         }
       }
+    }
+  }
+
+  void _paintWorkplaneOverlay(Canvas canvas, MockViewportLayout layout) {
+    final workplane = workplaneOverlay;
+    if (workplane == null) {
+      return;
+    }
+
+    final rect = layout.workplaneRect(workplane);
+    final rotation =
+        workplane.kind == MockViewportWorkplaneKind.componentPlacement
+        ? workplane.rotationZDegrees
+        : 0.0;
+    final radius = Radius.circular(
+      workplane.kind == MockViewportWorkplaneKind.componentPlacement
+          ? layout.boardRadius + 2
+          : 8 * layout.zoom,
+    );
+    final fill = Paint()
+      ..color = colorScheme.primary.withValues(alpha: 0.08)
+      ..style = PaintingStyle.fill;
+    final outline = Paint()
+      ..color = colorScheme.primary.withValues(alpha: 0.62)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    final gridPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.16)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    final snapFill = Paint()
+      ..color = colorScheme.primary
+      ..style = PaintingStyle.fill;
+    final snapStroke = Paint()
+      ..color = const Color(0xFF151719).withValues(alpha: 0.72)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+
+    canvas.save();
+    canvas.translate(rect.center.dx, rect.center.dy);
+    canvas.rotate(rotation * math.pi / 180);
+    canvas.translate(-rect.center.dx, -rect.center.dy);
+
+    final rrect = RRect.fromRectAndRadius(rect, radius);
+    canvas.drawRRect(rrect, fill);
+    canvas.save();
+    canvas.clipRRect(rrect);
+    for (var index = 1; index < 4; index++) {
+      final dx = rect.left + rect.width * index / 4;
+      final dy = rect.top + rect.height * index / 4;
+      canvas.drawLine(Offset(dx, rect.top), Offset(dx, rect.bottom), gridPaint);
+      canvas.drawLine(Offset(rect.left, dy), Offset(rect.right, dy), gridPaint);
+    }
+    canvas.restore();
+    canvas.drawRRect(rrect, outline);
+    canvas.restore();
+
+    for (final point in layout.workplaneSnapPoints(workplane)) {
+      canvas.drawCircle(point, 4.5 * layout.zoom, snapFill);
+      canvas.drawCircle(point, 4.5 * layout.zoom, snapStroke);
     }
   }
 
@@ -4789,6 +4865,7 @@ class _ViewportPainter extends CustomPainter {
     return oldDelegate.colorScheme != colorScheme ||
         oldDelegate.bodyDimensions != bodyDimensions ||
         oldDelegate.componentPlacementPreviews != componentPlacementPreviews ||
+        oldDelegate.workplaneOverlay != workplaneOverlay ||
         oldDelegate.featurePreviews != featurePreviews ||
         oldDelegate.featureGroupPreviews != featureGroupPreviews ||
         oldDelegate.selection != selection ||
@@ -4867,6 +4944,88 @@ ComponentTemplate? _componentTemplateForProjectPlacement(
   return project.componentTemplates
       .where((template) => template.id == placement.templateId)
       .firstOrNull;
+}
+
+MockViewportWorkplaneOverlay? _mockWorkplaneOverlay(
+  ProjectModel project,
+  SelectionModel selection,
+) {
+  final enclosure = project.bodies.firstOrNull;
+  final referenceWidth = enclosure == null ? 120.0 : _sizeAt(enclosure, 0, 120);
+  final referenceDepth = enclosure == null ? 70.0 : _sizeAt(enclosure, 1, 70);
+  final referenceHeight = enclosure == null ? 28.0 : _sizeAt(enclosure, 2, 28);
+
+  if (selection.kind == SelectionKind.surface) {
+    final surfaceId = selection.id ?? '';
+    if (surfaceId.contains('top_lid')) {
+      return MockViewportWorkplaneOverlay(
+        semanticId: surfaceId,
+        kind: MockViewportWorkplaneKind.topLid,
+        width: referenceWidth,
+        height: referenceDepth,
+        referenceWidth: referenceWidth,
+        referenceHeight: referenceDepth,
+        snapPoints: _mockSurfaceSnapPoints(referenceWidth, referenceDepth),
+      );
+    }
+    if (surfaceId.contains('front_wall')) {
+      return MockViewportWorkplaneOverlay(
+        semanticId: surfaceId,
+        kind: MockViewportWorkplaneKind.frontWall,
+        width: referenceWidth,
+        height: referenceHeight,
+        referenceWidth: referenceWidth,
+        referenceHeight: referenceHeight,
+        snapPoints: _mockSurfaceSnapPoints(referenceWidth, referenceHeight),
+      );
+    }
+  }
+
+  if (selection.kind == SelectionKind.componentPlacement) {
+    final placement = project.componentPlacements
+        .where((placement) => placement.id == selection.id)
+        .firstOrNull;
+    if (placement == null || !placement.visible) {
+      return null;
+    }
+
+    final template = _componentTemplateForProjectPlacement(project, placement);
+    final outline = template?.board.outline;
+    final boardWidth = outline?.width ?? 40.0;
+    final boardHeight = outline?.height ?? 30.0;
+    final mountingPoints = [
+      Offset.zero,
+      for (final hole in template?.mountingHoles ?? const [])
+        Offset(_positionAt(hole.position, 0), _positionAt(hole.position, 1)),
+    ];
+
+    return MockViewportWorkplaneOverlay(
+      semanticId: placement.id,
+      kind: MockViewportWorkplaneKind.componentPlacement,
+      width: boardWidth,
+      height: boardHeight,
+      referenceWidth: referenceWidth,
+      referenceHeight: referenceDepth,
+      position: Offset(
+        _positionAt(placement.position, 0),
+        _positionAt(placement.position, 1),
+      ),
+      rotationZDegrees: _positionAt(placement.rotation, 2),
+      snapPoints: mountingPoints,
+    );
+  }
+
+  return null;
+}
+
+List<Offset> _mockSurfaceSnapPoints(double width, double height) {
+  return [
+    Offset.zero,
+    Offset(width / 4, 0),
+    Offset(-width / 4, 0),
+    Offset(0, height / 4),
+    Offset(0, -height / 4),
+  ];
 }
 
 List<MockViewportFeaturePreview> _mockFeaturePreviews(ProjectModel project) {

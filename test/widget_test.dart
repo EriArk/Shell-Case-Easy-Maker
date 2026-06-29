@@ -138,6 +138,26 @@ void main() {
     expect(find.text('glass_recess_1'), findsWidgets);
   });
 
+  testWidgets('surface and placement selections expose workplane overlay', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const CaseMakerApp());
+    await tester.pumpAndSettle();
+
+    const overlayKey = ValueKey('mock-workplane-overlay-active');
+    expect(find.byKey(overlayKey), findsNothing);
+
+    await tester.tap(find.text('Top lid').first);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(overlayKey), findsOneWidget);
+
+    await tester.tap(find.text('button_board_placement').first);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(overlayKey), findsOneWidget);
+  });
+
   testWidgets('selecting a feature updates contextual inspector', (
     tester,
   ) async {
@@ -784,6 +804,10 @@ void main() {
 
       expect(tester.widget<CheckboxListTile>(visibleField).value, isFalse);
       expect(tester.widget<IconButton>(undoButton).onPressed, isNotNull);
+      expect(
+        find.byKey(const ValueKey('mock-workplane-overlay-active')),
+        findsNothing,
+      );
 
       await tester.tap(find.text('main_enclosure').first);
       await tester.pumpAndSettle();

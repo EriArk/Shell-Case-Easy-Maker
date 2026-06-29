@@ -15,6 +15,8 @@ enum MockViewportFeatureKind { usbC, glassRecess }
 
 enum MockViewportFeatureGroupKind { buttonGroup, standoffMounts }
 
+enum MockViewportWorkplaneKind { topLid, frontWall, componentPlacement }
+
 class ViewportController {
   ViewportController({ViewportState initialState = const ViewportState()})
     : _state = initialState;
@@ -302,6 +304,73 @@ class MockViewportComponentPlacementPreview {
   }
 }
 
+class MockViewportWorkplaneOverlay {
+  const MockViewportWorkplaneOverlay({
+    required this.semanticId,
+    required this.kind,
+    required this.width,
+    required this.height,
+    this.referenceWidth = 120,
+    this.referenceHeight = 70,
+    this.position = Offset.zero,
+    this.rotationZDegrees = 0,
+    this.snapPoints = const [],
+  });
+
+  final String semanticId;
+  final MockViewportWorkplaneKind kind;
+  final double width;
+  final double height;
+  final double referenceWidth;
+  final double referenceHeight;
+  final Offset position;
+  final double rotationZDegrees;
+  final List<Offset> snapPoints;
+
+  List<Offset> get effectiveSnapPoints {
+    if (snapPoints.isNotEmpty) {
+      return snapPoints;
+    }
+
+    return [
+      Offset.zero,
+      Offset(width / 4, 0),
+      Offset(-width / 4, 0),
+      Offset(0, height / 4),
+      Offset(0, -height / 4),
+    ];
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is MockViewportWorkplaneOverlay &&
+        other.semanticId == semanticId &&
+        other.kind == kind &&
+        other.width == width &&
+        other.height == height &&
+        other.referenceWidth == referenceWidth &&
+        other.referenceHeight == referenceHeight &&
+        other.position == position &&
+        other.rotationZDegrees == rotationZDegrees &&
+        _offsetListsEqual(other.snapPoints, snapPoints);
+  }
+
+  @override
+  int get hashCode {
+    return Object.hash(
+      semanticId,
+      kind,
+      width,
+      height,
+      referenceWidth,
+      referenceHeight,
+      position,
+      rotationZDegrees,
+      Object.hashAll(snapPoints),
+    );
+  }
+}
+
 class MockViewportBodyDimensions {
   const MockViewportBodyDimensions({
     this.width = 120,
@@ -335,6 +404,7 @@ class MockViewportLayout {
     required this.lidRect,
     required this.boardRect,
     required this.portRect,
+    required this.frontWallRect,
     required this.buttonCenters,
     required this.bodyRadius,
     required this.lidRadius,
@@ -349,6 +419,7 @@ class MockViewportLayout {
   final Rect lidRect;
   final Rect boardRect;
   final Rect portRect;
+  final Rect frontWallRect;
   final List<Offset> buttonCenters;
   final double bodyRadius;
   final double lidRadius;
@@ -415,6 +486,54 @@ class MockViewportLayout {
         .toDouble();
 
     return Rect.fromCenter(center: center, width: width, height: depth);
+  }
+
+  Rect workplaneRect(MockViewportWorkplaneOverlay workplane) {
+    return switch (workplane.kind) {
+      MockViewportWorkplaneKind.topLid => lidRect,
+      MockViewportWorkplaneKind.frontWall => frontWallRect,
+      MockViewportWorkplaneKind.componentPlacement => componentPlacementRect(
+        MockViewportComponentPlacementPreview(
+          semanticId: workplane.semanticId,
+          width: workplane.width,
+          depth: workplane.height,
+          referenceWidth: workplane.referenceWidth,
+          referenceDepth: workplane.referenceHeight,
+          position: workplane.position,
+          rotationZDegrees: workplane.rotationZDegrees,
+        ),
+      ),
+    };
+  }
+
+  List<Offset> workplaneSnapPoints(MockViewportWorkplaneOverlay workplane) {
+    return [
+      for (final point in workplane.effectiveSnapPoints)
+        workplaneLocalToCanvas(workplane, point),
+    ];
+  }
+
+  Offset workplaneLocalToCanvas(
+    MockViewportWorkplaneOverlay workplane,
+    Offset point,
+  ) {
+    final rect = workplaneRect(workplane);
+    final safeWidth = workplane.width.clamp(1, 1000).toDouble();
+    final safeHeight = workplane.height.clamp(1, 1000).toDouble();
+    final canvasPoint = Offset(
+      rect.center.dx + (point.dx / safeWidth) * rect.width,
+      rect.center.dy - (point.dy / safeHeight) * rect.height,
+    );
+
+    if (workplane.kind != MockViewportWorkplaneKind.componentPlacement) {
+      return canvasPoint;
+    }
+
+    return _rotateOffset(
+      point: canvasPoint,
+      center: rect.center,
+      degrees: workplane.rotationZDegrees,
+    );
   }
 
   bool containsComponentPlacement(
@@ -536,6 +655,12 @@ class MockViewportLayout {
       width: 54 * zoom,
       height: 12 * zoom,
     );
+    final frontWallRect = Rect.fromLTWH(
+      bodyRect.left + bodyRect.width * 0.22,
+      bodyRect.bottom - 30 * zoom,
+      bodyRect.width * 0.56,
+      30 * zoom,
+    );
 
     return MockViewportLayout(
       bodyRect: bodyRect,
@@ -543,6 +668,7 @@ class MockViewportLayout {
       lidRect: lidRect,
       boardRect: boardRect,
       portRect: portRect,
+      frontWallRect: frontWallRect,
       buttonCenters: buttonCenters,
       bodyRadius: (bodyRect.shortestSide * (safeCorner / safeDepth))
           .clamp(8 * zoom, 32 * zoom)
@@ -649,13 +775,7 @@ class MockViewportHitTester {
       );
     }
 
-    final frontWallRect = Rect.fromLTWH(
-      layout.bodyRect.left + layout.bodyRect.width * 0.22,
-      layout.bodyRect.bottom - 30 * state.zoom,
-      layout.bodyRect.width * 0.56,
-      30 * state.zoom,
-    );
-    if (frontWallRect.contains(position)) {
+    if (layout.frontWallRect.contains(position)) {
       return const ViewportHitResult(
         kind: ViewportHitKind.surface,
         semanticId: 'main_enclosure.front_wall.outer',
@@ -685,6 +805,21 @@ double _wrapDegrees(double value) {
     wrapped += 360;
   }
   return wrapped;
+}
+
+Offset _rotateOffset({
+  required Offset point,
+  required Offset center,
+  required double degrees,
+}) {
+  final radians = degrees * math.pi / 180;
+  final cos = math.cos(radians);
+  final sin = math.sin(radians);
+  final offset = point - center;
+  return Offset(
+    center.dx + offset.dx * cos - offset.dy * sin,
+    center.dy + offset.dx * sin + offset.dy * cos,
+  );
 }
 
 bool _offsetListsEqual(List<Offset> left, List<Offset> right) {

@@ -120,6 +120,64 @@ void main() {
     expect(visibleHit?.semanticId, 'second_board_placement');
   });
 
+  test('mock workplane overlay maps surface snap hints to active surface', () {
+    const state = ViewportState();
+    const size = Size(900, 600);
+    final layout = MockViewportLayout.fromSize(size, state);
+    const workplane = MockViewportWorkplaneOverlay(
+      semanticId: 'main_enclosure.top_lid.outer',
+      kind: MockViewportWorkplaneKind.topLid,
+      width: 120,
+      height: 70,
+      snapPoints: [Offset.zero, Offset(30, 0), Offset(0, 17.5)],
+    );
+
+    final rect = layout.workplaneRect(workplane);
+    final points = layout.workplaneSnapPoints(workplane);
+
+    expect(rect, layout.lidRect);
+    expect(points, hasLength(3));
+    expect(points[0], layout.lidRect.center);
+    expect(points[1].dx, greaterThan(points[0].dx));
+    expect(points[1].dy, closeTo(points[0].dy, 0.001));
+    expect(points[2].dx, closeTo(points[0].dx, 0.001));
+    expect(points[2].dy, lessThan(points[0].dy));
+  });
+
+  test('mock workplane overlay rotates component placement snap hints', () {
+    const state = ViewportState();
+    const size = Size(900, 600);
+    final layout = MockViewportLayout.fromSize(size, state);
+    const workplane = MockViewportWorkplaneOverlay(
+      semanticId: 'button_board_placement',
+      kind: MockViewportWorkplaneKind.componentPlacement,
+      width: 48,
+      height: 32,
+      referenceWidth: 120,
+      referenceHeight: 70,
+      rotationZDegrees: 90,
+      snapPoints: [Offset.zero, Offset(20, 0)],
+    );
+
+    final rect = layout.workplaneRect(workplane);
+    final points = layout.workplaneSnapPoints(workplane);
+    final placementRect = layout.componentPlacementRect(
+      const MockViewportComponentPlacementPreview(
+        semanticId: 'button_board_placement',
+        width: 48,
+        depth: 32,
+        referenceWidth: 120,
+        referenceDepth: 70,
+        rotationZDegrees: 90,
+      ),
+    );
+
+    expect(rect.center, placementRect.center);
+    expect(points[0], rect.center);
+    expect(points[1].dx, closeTo(points[0].dx, 0.001));
+    expect(points[1].dy, greaterThan(points[0].dy));
+  });
+
   test('mock hit tester returns semantic feature marker ids', () {
     const state = ViewportState();
     const size = Size(900, 600);

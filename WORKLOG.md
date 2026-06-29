@@ -2104,6 +2104,10 @@ workspace shell status bar, project semantic models, and geometry/widget tests.
   - Passed.
 - `git diff --check`:
   - Passed.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed.
 
 ### Validation
 - Geometry checked?
@@ -2567,3 +2571,87 @@ workflow slice.
 ### Notes for future Codex sessions
 Keep `ComponentPlacement.visible` as semantic display state. Do not infer hidden
 or visible placement state from preview mesh presence.
+
+---
+
+## 2026-06-29 - M30 Local Workplane Overlay + Snap Hints
+
+### Goal
+Add a transient local workplane overlay and first snap hints for selected
+surfaces/component placements, preparing the mock viewport for later
+viewport-driven placement edits.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `ViewportController`,
+`workspace_shell.dart` viewport painter/wiring, and viewport/widget tests.
+
+### Changes made
+- `lib/viewport/viewport_controller.dart`:
+  - Added `MockViewportWorkplaneKind` and `MockViewportWorkplaneOverlay`.
+  - Added deterministic workplane rectangle and snap-point mapping helpers.
+  - Extracted `frontWallRect` into `MockViewportLayout` so hit-testing and
+    overlays share the same mock layout source.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Builds active workplane overlays from the current semantic selection.
+  - Shows surface overlays for `Top lid` and `Front wall`.
+  - Shows component-placement overlays for visible placements.
+  - Uses component template mounting holes plus board center as first snap
+    hints.
+  - Draws a subtle workplane grid and snap dots without changing
+    `ProjectModel`.
+  - Removes the placement overlay when the placement is hidden.
+- Tests:
+  - Added viewport layout coverage for surface snap mapping.
+  - Added viewport layout coverage for rotated component placement snap hints.
+  - Added widget coverage for surface/placement selection overlay wiring and
+    hidden placement overlay removal.
+- Docs/tasks/roadmap:
+  - Documented M30, workplane overlay behavior, snap hints, and test
+    expectations.
+
+### Tests run
+- `flutter test test\viewport_controller_test.dart test\widget_test.dart`:
+  - Failed once due to a stale test expectation that compared the new semantic
+    placement workplane center with the old hard-coded mock board rect.
+  - Passed after correcting the expectation, 45 targeted tests.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 108 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+
+### Validation
+- Geometry checked?
+  - Mock viewport layout only; no generated B-Rep or mesh is created.
+- Serialization checked?
+  - Not applicable; overlay state is transient UI state and is not saved.
+- UI checked?
+  - Widget tests confirm overlay wiring for surface/placement selection and
+    removal when a placement is hidden.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Snap hints are visual only and do not yet drive placement edits.
+  - Severity: Expected.
+  - Next action: use these snap points when adding viewport-driven placement
+    workflows.
+- Issue: Workplanes are still mock 2.5D rectangles, not OCCT face-local planes.
+  - Severity: Expected.
+  - Next action: map generated geometry faces back to semantic surfaces through
+    `GeometryService` later.
+
+### Next step
+Commit and push M30, then continue toward viewport-driven placement or snapping
+workflow edits.
+
+### Notes for future Codex sessions
+Keep workplane overlays transient. They may guide semantic edits later, but
+should not become saved sketch geometry or generated topology references.

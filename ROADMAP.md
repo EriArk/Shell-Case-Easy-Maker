@@ -48,6 +48,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M27 — Component Placement Inspector Editing
 - [x] M28 — Component Placement Rotation + Lock Guard
 - [x] M29 — Component Placement Visibility
+- [x] M30 — Local Workplane Overlay + Snap Hints
 
 ---
 
@@ -1193,3 +1194,48 @@ editable semantic project objects.
 - Select `button_board_placement` from the browser and turn `Показывать` back
   on.
 - Click the board area again and confirm the placement inspector opens.
+
+---
+
+## M30 — Local Workplane Overlay + Snap Hints
+
+### Goal
+Show the active local workplane and first snap hints for selected surfaces and
+component placements before adding viewport-driven placement edits.
+
+### Tasks
+- [x] Add a `MockViewportWorkplaneOverlay` preview value for active workplanes.
+- [x] Add deterministic layout helpers for workplane rectangles and snap point
+      mapping.
+- [x] Extract the mock front-wall rect into `MockViewportLayout` so hit testing
+      and overlays share one layout source.
+- [x] Draw a compact translucent workplane grid in the mock viewport.
+- [x] Draw snap hints on selected top-lid/front-wall surfaces.
+- [x] Draw component placement snap hints from the selected template mounting
+      holes.
+- [x] Keep the overlay transient UI state only; do not save it into
+      `ProjectModel`.
+- [x] Add viewport layout and widget wiring coverage.
+
+### Done Criteria
+- Selecting `Top lid` shows a local workplane overlay and snap hints on the lid.
+- Selecting `Front wall` shows a local workplane overlay and snap hints on the
+  front wall.
+- Selecting visible `button_board_placement` shows board-local snap hints.
+- Hiding the placement removes its workplane overlay.
+- No generated mesh, B-Rep, triangle ID, or OCCT topology becomes editable
+  state.
+
+### Tests
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Select `Top lid` and confirm a subtle grid/snap overlay appears on the lid.
+- Select `Front wall` and confirm the overlay moves to the front wall.
+- Select `button_board_placement` and confirm snap dots appear on the board.
+- Turn off `Показывать` for the placement and confirm the board overlay
+  disappears.

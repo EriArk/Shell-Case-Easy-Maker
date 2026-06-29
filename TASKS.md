@@ -79,9 +79,9 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Implement semantic button group viewport markers.
 - [x] Implement semantic surface feature viewport markers.
 - [x] Implement semantic component placement viewport previews.
-- [ ] Implement local workplane overlay.
+- [x] Implement local workplane overlay.
 - [x] Implement grid overlay.
-- [ ] Implement basic snapping visual hints.
+- [x] Implement basic snapping visual hints.
 - [x] Implement focus/fit view.
 
 ## Phase 4 — OCCT worker MVP

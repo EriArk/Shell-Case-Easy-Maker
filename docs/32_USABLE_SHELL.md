@@ -98,6 +98,18 @@ highlight.
 Hidden component placements stay visible in the browser with a muted visibility
 icon so they can be selected and shown again from the inspector.
 
+## Local Workplane Overlay
+
+The mock viewport now shows a transient local workplane overlay for selected
+top-lid/front-wall surfaces and visible component placements. The overlay is a
+subtle grid with snap hints. For surfaces, hints are deterministic center and
+quarter points. For component placements, hints come from the selected
+component template mounting holes plus the board center.
+
+This is not saved project data and not an advanced sketch plane. It is a mock
+interaction affordance that prepares the UI for later viewport picking and
+snapping while keeping the editable project semantic.
+
 ## Project JSON file service
 
 `ProjectFileService` provides basic JSON encode/decode and disk read/write.
@@ -187,7 +199,8 @@ disabled until their semantic command behavior is implemented and tested.
   cutout command, and first button group/glass recess/mount commands edit
   project state.
 - Viewport selection is still mocked and schematic, though direct hit testing
-  already returns semantic IDs.
+  already returns semantic IDs and local workplane overlays are available for
+  supported selections.
 - Component placement still uses typed dialog values rather than viewport
   picking or snapping, though selected placements can now be adjusted and
   hidden/shown from the inspector.
