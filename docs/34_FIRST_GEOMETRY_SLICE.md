@@ -67,6 +67,10 @@ This emits `shell_case.geometry.worker.capabilities` JSON. Current capability
 metadata marks mock geometry as available for `preview_mesh` and native OCCT as
 a stub with planned preview/export/validate operations.
 
+`GeometryWorkerProcessClient.queryCapabilities()` can request the same metadata
+through the configured worker process and return typed capability data or typed
+issues for timeouts, launch failures, invalid JSON, and non-zero exits.
+
 `GeometryWorkerProcessClient` can also exercise the same harness across a real
 process boundary:
 
@@ -75,7 +79,8 @@ dart run tool\mock_geometry_worker_client_smoke.dart
 ```
 
 The process client captures stdout/stderr, preserves worker error responses,
-and normalizes process failures into `GeometryResponse` issues.
+normalizes geometry process failures into `GeometryResponse` issues, and
+normalizes capability query failures into a capability result with issues.
 
 `WorkerGeometryService` wraps the process client behind the app-facing
 `GeometryService` interface. It can be smoke-tested against the mock worker:

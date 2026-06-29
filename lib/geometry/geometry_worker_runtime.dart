@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'geometry_service.dart';
+import 'geometry_service.dart'
+    hide GeometryWorkerBackendCapability, GeometryWorkerCapabilities;
+import 'geometry_worker_capabilities.dart';
 
 enum GeometryWorkerRuntimeBackend {
   mock('mock'),
@@ -74,113 +76,6 @@ class GeometryWorkerRuntimeSettings {
   final bool emitCapabilities;
 }
 
-class GeometryWorkerCapabilities {
-  const GeometryWorkerCapabilities({
-    required this.entrypoint,
-    required this.activeBackend,
-    required this.backends,
-  });
-
-  static const schema = 'shell_case.geometry.worker.capabilities';
-  static const currentVersion = 1;
-
-  factory GeometryWorkerCapabilities.forSettings(
-    GeometryWorkerRuntimeSettings settings,
-  ) {
-    return GeometryWorkerCapabilities(
-      entrypoint: 'occt_worker/bin/occt_worker.dart',
-      activeBackend: settings.backend.wireName,
-      backends: const [
-        GeometryWorkerBackendCapability(
-          id: 'mock',
-          status: 'available',
-          supportedOperations: [GeometryOperation.previewMesh],
-          notes: [
-            'Uses Dart MockGeometryService.',
-            'Produces deterministic preview mesh only.',
-            'Does not generate B-Rep, STEP, STL, or OCCT topology.',
-          ],
-        ),
-        GeometryWorkerBackendCapability(
-          id: 'native',
-          status: 'stub',
-          plannedOperations: [
-            GeometryOperation.previewMesh,
-            GeometryOperation.exportStep,
-            GeometryOperation.exportStl,
-            GeometryOperation.validate,
-          ],
-          issueCodes: ['worker.backend.native_not_implemented'],
-          notes: [
-            'Reserved for the future OCCT implementation.',
-            'Currently returns a structured not-implemented response.',
-          ],
-        ),
-      ],
-    );
-  }
-
-  final String entrypoint;
-  final String activeBackend;
-  final List<GeometryWorkerBackendCapability> backends;
-
-  String get prettyJson {
-    return const JsonEncoder.withIndent('  ').convert(toJson());
-  }
-
-  Map<String, Object?> toJson() {
-    return {
-      'schema': schema,
-      'version': currentVersion,
-      'entrypoint': entrypoint,
-      'defaultBackend': GeometryWorkerRuntimeBackend.mock.wireName,
-      'activeBackend': activeBackend,
-      'protocol': {
-        'requestSchema': GeometryProtocol.requestSchema,
-        'responseSchema': GeometryProtocol.responseSchema,
-        'version': GeometryProtocol.currentVersion,
-      },
-      'sourceOfTruth': 'semantic_project',
-      'editableGeneratedGeometry': false,
-      'backends': [for (final backend in backends) backend.toJson()],
-    };
-  }
-}
-
-class GeometryWorkerBackendCapability {
-  const GeometryWorkerBackendCapability({
-    required this.id,
-    required this.status,
-    this.supportedOperations = const [],
-    this.plannedOperations = const [],
-    this.issueCodes = const [],
-    this.notes = const [],
-  });
-
-  final String id;
-  final String status;
-  final List<GeometryOperation> supportedOperations;
-  final List<GeometryOperation> plannedOperations;
-  final List<String> issueCodes;
-  final List<String> notes;
-
-  Map<String, Object?> toJson() {
-    return {
-      'id': id,
-      'status': status,
-      'supportedOperations': [
-        for (final operation in supportedOperations) operation.wireName,
-      ],
-      if (plannedOperations.isNotEmpty)
-        'plannedOperations': [
-          for (final operation in plannedOperations) operation.wireName,
-        ],
-      if (issueCodes.isNotEmpty) 'issueCodes': issueCodes,
-      if (notes.isNotEmpty) 'notes': notes,
-    };
-  }
-}
-
 class GeometryWorkerRunResult {
   const GeometryWorkerRunResult({
     required this.response,
@@ -228,7 +123,7 @@ class GeometryWorkerRuntime {
   final GeometryWorkerRuntimeSettings settings;
 
   GeometryWorkerCapabilities capabilities() {
-    return GeometryWorkerCapabilities.forSettings(settings);
+    return GeometryWorkerCapabilities.forBackend(settings.backend.wireName);
   }
 
   Future<GeometryWorkerRunResult> handlePayload(String payload) async {
@@ -279,7 +174,11 @@ Future<void> runGeometryWorkerStdio(List<String> args) async {
   }
 
   if (runtime.settings.emitCapabilities) {
-    stdout.writeln(runtime.capabilities().prettyJson);
+    stdout.writeln(
+      const JsonEncoder.withIndent(
+        '  ',
+      ).convert(runtime.capabilities().toJson()),
+    );
     exitCode = 0;
     return;
   }

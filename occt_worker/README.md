@@ -56,6 +56,8 @@ dart run occt_worker\bin\occt_worker.dart --capabilities
 This emits `shell_case.geometry.worker.capabilities` JSON. Today it reports the
 mock backend as `available` for `preview_mesh` and the native backend as
 `stub`. Capability JSON is metadata only; it is not editable project geometry.
+Dart callers can query the same metadata through
+`GeometryWorkerProcessClient.queryCapabilities()`.
 
 Process-client smoke command:
 

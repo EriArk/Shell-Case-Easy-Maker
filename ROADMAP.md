@@ -72,6 +72,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M51 - Generated Geometry Protocol Fixtures
 - [x] M52 - Local occt_worker CLI
 - [x] M53 - Worker Capability Contract
+- [x] M54 - Worker Capability Process Client
 
 ---
 
@@ -2260,5 +2261,51 @@ without requiring a geometry request payload.
 - Optional developer poke: run
   `dart run occt_worker\bin\occt_worker.dart --capabilities` and confirm
   `mock` is `available`, `native` is `stub`.
+- Launch latest Windows app normally and confirm the default project still opens
+  with the mock preview and clean validation status.
+
+---
+
+## M54 - Worker Capability Process Client
+
+### Goal
+Let Dart callers query worker capability metadata through the same process
+adapter used for geometry requests, with typed parsing and normalized failures.
+
+### Tasks
+- [x] Move worker capability data types into
+      `geometry_worker_capabilities.dart`.
+- [x] Add JSON parsing for `GeometryWorkerCapabilities`.
+- [x] Add JSON parsing for `GeometryWorkerBackendCapability`.
+- [x] Export capability types from the geometry service boundary.
+- [x] Add `GeometryWorkerProcessClient.queryCapabilities()`.
+- [x] Append `--capabilities` to the configured command without duplicating it.
+- [x] Normalize capability launch failures, timeouts, invalid JSON, and non-zero
+      exits into typed issues.
+- [x] Add process-client tests for success and failure modes.
+
+### Done Criteria
+- A configured `GeometryWorkerProcessClient` can fetch typed capability
+  metadata from a worker command.
+- Capability query failures do not crash the caller.
+- Geometry request/response behavior remains unchanged.
+- Capability metadata remains process/runtime metadata, not editable project
+  data.
+
+### Tests
+- `flutter test test\geometry_worker_process_client_test.dart`
+- `flutter test test\geometry_worker_runtime_test.dart`
+- `dart run occt_worker\bin\occt_worker.dart --capabilities`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- No meaningful manual UI poke for this chunk; it is a process-client metadata
+  change.
+- Optional developer poke: run
+  `dart run occt_worker\bin\occt_worker.dart --capabilities`.
 - Launch latest Windows app normally and confirm the default project still opens
   with the mock preview and clean validation status.

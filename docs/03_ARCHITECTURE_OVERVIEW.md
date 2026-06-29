@@ -193,18 +193,25 @@ metadata marks `mock` as available for `preview_mesh` and `native` as a stub for
 planned OCCT-backed preview/export/validate operations. This metadata is not
 project state and does not expose OCCT topology.
 
+`GeometryWorkerProcessClient.queryCapabilities()` can request and parse the
+same metadata through the configured worker command. Capability launch failures,
+timeouts, invalid JSON, and non-zero exits are normalized into typed issues so
+callers can inspect worker readiness without crashing or reading native process
+details directly.
+
 ## Worker Process Client
 
 `GeometryWorkerProcessClient` is the first external-process adapter. It sends a
 `GeometryRequest` JSON payload to a configured worker command through stdin,
-captures stdout/stderr, parses a `GeometryResponse`, and converts process-level
-failures into normal geometry response issues.
+captures stdout/stderr, parses a `GeometryResponse`, can query worker
+capabilities, and converts process-level failures into normal typed issues.
 
 Current normalized failures:
 - worker launch/process failure,
 - timeout,
 - invalid response JSON,
-- non-zero exit code without a worker error response.
+- non-zero exit code without a worker error response,
+- invalid capability JSON.
 
 The client is reachable through `WorkerGeometryService` and the developer
 backend selection switch. Normal app builds still use `MockGeometryService` for

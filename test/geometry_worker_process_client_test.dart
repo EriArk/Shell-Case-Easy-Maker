@@ -176,4 +176,123 @@ void main() {
     expect(response.issues.single.code, 'worker.process.timeout');
     expect(response.metrics['timeoutMs'], 1);
   });
+
+  test('process client queries worker capabilities', () async {
+    late GeometryWorkerProcessCommand capturedCommand;
+    late String capturedPayload;
+    final client = GeometryWorkerProcessClient(
+      command: const GeometryWorkerProcessCommand(
+        executable: 'worker',
+        arguments: ['--stdio'],
+      ),
+      runProcess: (command, stdinPayload) async {
+        capturedCommand = command;
+        capturedPayload = stdinPayload;
+        return GeometryWorkerProcessResult(
+          exitCode: 0,
+          stdout: jsonEncode(
+            GeometryWorkerCapabilities.forBackend('mock').toJson(),
+          ),
+          stderr: '',
+        );
+      },
+    );
+
+    final result = await client.queryCapabilities();
+
+    expect(capturedCommand.arguments, ['--stdio', '--capabilities']);
+    expect(capturedPayload, isEmpty);
+    expect(result.hasErrors, isFalse);
+    expect(result.capabilities?.schema, GeometryWorkerCapabilities.schemaName);
+    expect(result.capabilities?.activeBackend, 'mock');
+    expect(
+      result.capabilities?.backends
+          .singleWhere((backend) => backend.id == 'mock')
+          .supportedOperations,
+      contains(GeometryOperation.previewMesh),
+    );
+  });
+
+  test('process client does not duplicate capabilities argument', () async {
+    late GeometryWorkerProcessCommand capturedCommand;
+    final client = GeometryWorkerProcessClient(
+      command: const GeometryWorkerProcessCommand(
+        executable: 'worker',
+        arguments: ['--capabilities'],
+      ),
+      runProcess: (command, stdinPayload) async {
+        capturedCommand = command;
+        return GeometryWorkerProcessResult(
+          exitCode: 0,
+          stdout: jsonEncode(
+            GeometryWorkerCapabilities.forBackend('native').toJson(),
+          ),
+          stderr: '',
+        );
+      },
+    );
+
+    final result = await client.queryCapabilities();
+
+    expect(capturedCommand.arguments, ['--capabilities']);
+    expect(result.capabilities?.activeBackend, 'native');
+  });
+
+  test('process client reports invalid capabilities JSON', () async {
+    final client = GeometryWorkerProcessClient(
+      command: const GeometryWorkerProcessCommand(executable: 'worker'),
+      runProcess: (command, stdinPayload) async {
+        return const GeometryWorkerProcessResult(
+          exitCode: 0,
+          stdout: '{"schema":"wrong"}',
+          stderr: 'debug details',
+        );
+      },
+    );
+
+    final result = await client.queryCapabilities();
+
+    expect(result.hasErrors, isTrue);
+    expect(result.capabilities, isNull);
+    expect(result.issues.single.code, 'worker.capabilities.invalid_json');
+    expect(result.metrics['stderrSample'], 'debug details');
+  });
+
+  test('process client reports non-zero capabilities exit', () async {
+    final client = GeometryWorkerProcessClient(
+      command: const GeometryWorkerProcessCommand(executable: 'worker'),
+      runProcess: (command, stdinPayload) async {
+        return GeometryWorkerProcessResult(
+          exitCode: 9,
+          stdout: jsonEncode(
+            GeometryWorkerCapabilities.forBackend('native').toJson(),
+          ),
+          stderr: 'capability failure',
+        );
+      },
+    );
+
+    final result = await client.queryCapabilities();
+
+    expect(result.hasErrors, isTrue);
+    expect(result.issues.single.code, 'worker.capabilities.exit');
+    expect(result.metrics['exitCode'], 9);
+    expect(result.metrics['activeBackend'], 'native');
+  });
+
+  test('process client reports capability timeouts', () async {
+    final client = GeometryWorkerProcessClient(
+      command: const GeometryWorkerProcessCommand(executable: 'worker'),
+      timeout: const Duration(milliseconds: 1),
+      runProcess: (command, stdinPayload) {
+        return Completer<GeometryWorkerProcessResult>().future;
+      },
+    );
+
+    final result = await client.queryCapabilities();
+
+    expect(result.hasErrors, isTrue);
+    expect(result.issues.single.code, 'worker.capabilities.timeout');
+    expect(result.metrics['timeoutMs'], 1);
+  });
 }

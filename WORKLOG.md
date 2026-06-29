@@ -42,6 +42,101 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-29 - M54 Worker capability process client
+
+### Goal
+Let Dart callers query worker capability metadata through the same process
+adapter used for geometry requests, with typed parsing and normalized failures.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`,
+`lib/geometry/geometry_worker_runtime.dart`,
+`lib/geometry/geometry_worker_process_client.dart`,
+`test/geometry_worker_runtime_test.dart`,
+`test/geometry_worker_process_client_test.dart`,
+`docs/03_ARCHITECTURE_OVERVIEW.md`, `docs/04_GEOMETRY_ENGINE_OCCT.md`,
+`docs/34_FIRST_GEOMETRY_SLICE.md`, and `occt_worker/README.md`.
+
+### Changes made
+- `lib/geometry/geometry_worker_capabilities.dart`:
+  - Added standalone capability model/parsers.
+  - Moved capability JSON shape out of worker runtime.
+  - Added typed backend capability parsing for supported/planned operations.
+- `lib/geometry/geometry_worker_runtime.dart`:
+  - Uses the shared capability model.
+- `lib/geometry/geometry_worker_process_client.dart`:
+  - Added `GeometryWorkerProcessCommand.copyWith`.
+  - Added `GeometryWorkerCapabilitiesResult`.
+  - Added `queryCapabilities()`.
+  - Appends `--capabilities` without duplicating it.
+  - Normalizes launch failures, timeouts, invalid capability JSON, and non-zero
+    capability exits into typed issues.
+- `lib/geometry/geometry_service.dart`:
+  - Exports worker capability types through the geometry boundary.
+- `test/geometry_worker_process_client_test.dart`:
+  - Added capability query success and failure coverage.
+- Docs/tasks/roadmap:
+  - Recorded M54 and documented process-client capability querying.
+
+### Tests run
+- `flutter test test\geometry_worker_process_client_test.dart`:
+  - Passed, 10 tests.
+- `flutter test test\geometry_worker_runtime_test.dart`:
+  - Passed, 8 tests.
+- `dart run occt_worker\bin\occt_worker.dart --capabilities`:
+  - Passed; emitted `shell_case.geometry.worker.capabilities`,
+    `activeBackend=mock`, `mockStatus=available`, `nativeStatus=stub`.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 164 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed; Git reported markdown line-ending normalization warnings only.
+
+### Validation
+- Geometry checked?
+  - Process metadata only; no generated B-Rep, STL, editable mesh, or OCCT
+    topology was introduced.
+- Serialization checked?
+  - Yes. Capability JSON parses into typed Dart models and process-client tests
+    cover malformed responses.
+- UI checked?
+  - Full widget suite passes; latest Windows bundle rebuilt.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Capability querying is not yet used by `GeometryBackendSettings` or
+  the UI.
+  - Severity: Low.
+  - Next action: use it when native backend launch policy or user-visible
+    backend diagnostics are added.
+- Issue: Native backend is still a stub.
+  - Severity: Expected.
+  - Next action: continue toward the first native worker scaffold or rounded
+    enclosure B-Rep slice.
+
+### Next step
+Commit and push M54, then continue toward native worker scaffold/build or first
+OCCT-backed enclosure generation.
+
+### Notes for future Codex sessions
+Use `GeometryWorkerProcessClient.queryCapabilities()` before assuming a worker
+command can handle native geometry. The query result is runtime metadata only
+and must not become editable project data.
+
+---
+
 ## 2026-06-29 - M53 Worker capability contract
 
 ### Goal

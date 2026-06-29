@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shell_case_easy_maker/geometry/geometry_service.dart';
-import 'package:shell_case_easy_maker/geometry/geometry_worker_runtime.dart';
 import 'package:shell_case_easy_maker/project/project_model.dart';
 
 void main() {
@@ -65,7 +64,7 @@ void main() {
       (backend) => backend['id'] == 'native',
     );
 
-    expect(capabilities['schema'], GeometryWorkerCapabilities.schema);
+    expect(capabilities['schema'], GeometryWorkerCapabilities.schemaName);
     expect(capabilities['activeBackend'], 'native');
     expect(capabilities['sourceOfTruth'], 'semantic_project');
     expect(capabilities['editableGeneratedGeometry'], isFalse);
@@ -172,7 +171,7 @@ void main() {
       expect(decoded, isA<Map<String, Object?>>());
       expect(
         (decoded as Map<String, Object?>)['schema'],
-        GeometryWorkerCapabilities.schema,
+        GeometryWorkerCapabilities.schemaName,
       );
       expect(decoded['activeBackend'], 'mock');
     },

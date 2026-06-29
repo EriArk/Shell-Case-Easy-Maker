@@ -4,6 +4,7 @@ import 'dart:io';
 
 import '../project/json_helpers.dart';
 import 'geometry_protocol.dart';
+import 'geometry_worker_capabilities.dart';
 
 typedef GeometryWorkerProcessRunner =
     Future<GeometryWorkerProcessResult> Function(
@@ -27,6 +28,25 @@ class GeometryWorkerProcessCommand {
   final Map<String, String> environment;
   final bool includeParentEnvironment;
   final bool runInShell;
+
+  GeometryWorkerProcessCommand copyWith({
+    String? executable,
+    List<String>? arguments,
+    String? workingDirectory,
+    Map<String, String>? environment,
+    bool? includeParentEnvironment,
+    bool? runInShell,
+  }) {
+    return GeometryWorkerProcessCommand(
+      executable: executable ?? this.executable,
+      arguments: arguments ?? this.arguments,
+      workingDirectory: workingDirectory ?? this.workingDirectory,
+      environment: environment ?? this.environment,
+      includeParentEnvironment:
+          includeParentEnvironment ?? this.includeParentEnvironment,
+      runInShell: runInShell ?? this.runInShell,
+    );
+  }
 
   Map<String, Object?> toJson() {
     return {
@@ -52,6 +72,22 @@ class GeometryWorkerProcessResult {
   final String stderr;
 }
 
+class GeometryWorkerCapabilitiesResult {
+  const GeometryWorkerCapabilitiesResult({
+    this.capabilities,
+    this.issues = const [],
+    this.metrics = const {},
+  });
+
+  final GeometryWorkerCapabilities? capabilities;
+  final List<GeometryIssue> issues;
+  final Map<String, Object?> metrics;
+
+  bool get hasErrors =>
+      capabilities == null ||
+      issues.any((issue) => issue.severity == GeometryIssueSeverity.error);
+}
+
 class GeometryWorkerProcessClient {
   const GeometryWorkerProcessClient({
     required this.command,
@@ -62,6 +98,68 @@ class GeometryWorkerProcessClient {
   final GeometryWorkerProcessCommand command;
   final Duration? timeout;
   final GeometryWorkerProcessRunner runProcess;
+
+  Future<GeometryWorkerCapabilitiesResult> queryCapabilities() async {
+    final capabilityCommand = _capabilityCommand();
+    final GeometryWorkerProcessResult result;
+
+    try {
+      final processFuture = runProcess(capabilityCommand, '');
+      result = timeout == null
+          ? await processFuture
+          : await processFuture.timeout(timeout!);
+    } on TimeoutException {
+      return _capabilityError(
+        code: 'worker.capabilities.timeout',
+        message:
+            'Geometry worker did not report capabilities before the timeout.',
+        metrics: {
+          'command': capabilityCommand.toJson(),
+          'timeoutMs': timeoutMillis,
+        },
+      );
+    } on Object catch (error) {
+      return _capabilityError(
+        code: 'worker.capabilities.failed',
+        message: 'Geometry worker failed before reporting capabilities.',
+        metrics: {
+          'command': capabilityCommand.toJson(),
+          'error': error.toString(),
+        },
+      );
+    }
+
+    final capabilities = _decodeCapabilities(result);
+    if (capabilities == null) {
+      return _capabilityError(
+        code: 'worker.capabilities.invalid_json',
+        message:
+            'Geometry worker capabilities output is not valid capability JSON.',
+        metrics: {
+          'command': capabilityCommand.toJson(),
+          'exitCode': result.exitCode,
+          if (result.stdout.isNotEmpty) 'stdoutSample': _sample(result.stdout),
+          if (result.stderr.isNotEmpty) 'stderrSample': _sample(result.stderr),
+        },
+      );
+    }
+
+    if (result.exitCode != 0) {
+      return _capabilityError(
+        code: 'worker.capabilities.exit',
+        message:
+            'Geometry worker exited with code ${result.exitCode} while reporting capabilities.',
+        metrics: {
+          'command': capabilityCommand.toJson(),
+          'exitCode': result.exitCode,
+          'activeBackend': capabilities.activeBackend,
+          if (result.stderr.isNotEmpty) 'stderrSample': _sample(result.stderr),
+        },
+      );
+    }
+
+    return GeometryWorkerCapabilitiesResult(capabilities: capabilities);
+  }
 
   Future<GeometryResponse> buildGeometry(GeometryRequest request) async {
     final payload = const JsonEncoder.withIndent(
@@ -125,6 +223,41 @@ class GeometryWorkerProcessClient {
 
   int? get timeoutMillis => timeout?.inMilliseconds;
 
+  GeometryWorkerProcessCommand _capabilityCommand() {
+    final hasCapabilityArg = command.arguments.contains('--capabilities');
+    return command.copyWith(
+      arguments: hasCapabilityArg
+          ? command.arguments
+          : [...command.arguments, '--capabilities'],
+    );
+  }
+
+  GeometryWorkerCapabilities? _decodeCapabilities(
+    GeometryWorkerProcessResult result,
+  ) {
+    Object? decoded;
+    try {
+      decoded = jsonDecode(result.stdout);
+    } on FormatException {
+      return null;
+    }
+
+    if (decoded is! Map<Object?, Object?>) {
+      return null;
+    }
+
+    final json = readJsonMap(decoded);
+    if (json['schema'] != GeometryWorkerCapabilities.schemaName) {
+      return null;
+    }
+
+    try {
+      return GeometryWorkerCapabilities.fromJson(json);
+    } on Object {
+      return null;
+    }
+  }
+
   GeometryResponse? _decodeResponse(GeometryWorkerProcessResult result) {
     Object? decoded;
     try {
@@ -154,6 +287,23 @@ class GeometryWorkerProcessClient {
       requestId: request.requestId,
       status: GeometryResponseStatus.error,
       backend: 'worker_process',
+      issues: [
+        GeometryIssue(
+          severity: GeometryIssueSeverity.error,
+          code: code,
+          message: message,
+        ),
+      ],
+      metrics: metrics,
+    );
+  }
+
+  GeometryWorkerCapabilitiesResult _capabilityError({
+    required String code,
+    required String message,
+    Map<String, Object?> metrics = const {},
+  }) {
+    return GeometryWorkerCapabilitiesResult(
       issues: [
         GeometryIssue(
           severity: GeometryIssueSeverity.error,

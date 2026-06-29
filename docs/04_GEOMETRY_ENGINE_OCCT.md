@@ -150,6 +150,8 @@ The capability response marks the Dart mock backend as available for
 `preview_mesh` and the future OCCT backend as a `native` stub. The planned native
 operations are preview mesh, STEP export, STL export, and validation. Capability
 JSON is metadata; it must not contain raw OCCT topology IDs or generated B-Rep.
+`GeometryWorkerProcessClient.queryCapabilities()` consumes this JSON through the
+same configured process command that will later launch the native worker.
 
 ## Worker process client
 

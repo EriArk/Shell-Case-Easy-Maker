@@ -7,8 +7,10 @@ import 'geometry_worker_process_client.dart';
 
 export 'geometry_operation_plan.dart';
 export 'geometry_protocol.dart';
+export 'geometry_worker_capabilities.dart';
 export 'geometry_worker_process_client.dart';
 export 'geometry_worker_protocol.dart';
+export 'geometry_worker_runtime.dart';
 
 abstract interface class GeometryService {
   Future<GeometryPreview> generatePreview(ProjectModel project);
