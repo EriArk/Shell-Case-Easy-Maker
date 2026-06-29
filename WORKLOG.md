@@ -42,6 +42,108 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-29 - M70 Native USB-C cutout slice
+
+### Goal
+Consume the first native `usb_c_cutout` feature intent and subtract a rounded
+front-wall USB-C opening from the generated OCCT shell.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`docs/33_COMPONENT_FEATURE_PROJECTION.md`,
+`docs/34_FIRST_GEOMETRY_SLICE.md`, `occt_worker/README.md`,
+`occt_worker/protocol/preview_request.example.json`,
+`lib/geometry/geometry_protocol.dart`,
+`lib/geometry/geometry_operation_plan.dart`,
+`lib/validation/project_semantic_validator.dart`,
+`occt_worker/native/src/occt_main.cpp`, and
+`tool/native_occt_worker_metrics_smoke.dart`.
+
+### Changes made
+- `occt_worker/native/src/occt_main.cpp`:
+  - Parses top-level `featureIntents` and supports first-pass negative
+    `usb_c_cutout` intents on `main_enclosure.front_wall.outer`.
+  - Reads width, height, corner radius, and optional
+    `placement.surfacePosition`.
+  - Builds a rounded rectangular cut tool and subtracts it from the generated
+    shell using `BRepAlgoAPI_Cut`.
+  - Validates the cut result with `BRepCheck_Analyzer`.
+  - Emits feature-cut metrics for total intents, applied native cuts, ignored
+    unsupported intents, USB-C cuts, and USB-C cut-tool filleted edges.
+- `tool/native_occt_worker_metrics_smoke.dart`:
+  - Updated deterministic sample expectations to 1418 vertices, 1754
+    triangles, 3 surface mappings, 538 mapped triangles, surface area
+    `34732.966792`, and volume `33664.517631`.
+  - Verifies `featureIntentCount=2`, `nativeFeatureCutCount=1`,
+    `nativeIgnoredFeatureIntentCount=1`, `nativeUsbCCutoutCount=1`, and
+    `nativeUsbCCutoutFilletedEdgeCount=8`.
+- `test/occt_native_target_scaffold_test.dart`:
+  - Added source-contract checks for USB-C intent parsing, cut generation, and
+    native feature-cut metrics.
+- Docs/tasks/roadmap:
+  - Marked side-wall port cutouts as implemented for the first USB-C slice.
+  - Added M70 roadmap details and poke checklist.
+  - Updated architecture/geometry/worker docs so USB-C is no longer described
+    as future-only planning data.
+
+### Tests run
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`:
+  - Passed after fixing an MSVC `/WX` shadowing warning.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`:
+  - Passed, 5 tests.
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`:
+  - Passed; sample reports one native USB-C cut and one ignored button intent.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with constraints.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed, 184 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+
+### Validation
+- Geometry checked?
+  - Yes. Native smoke verifies the USB-C cut, deterministic mesh counts,
+    feature-cut metrics, bounds, surface area, and volume.
+- Serialization checked?
+  - Yes. Full test suite passed; feature intents remain request-scoped and are
+    not editable project state.
+- UI checked?
+  - Automated widget coverage passed; latest native OCCT bundle was rebuilt for
+    manual launch.
+- Export checked?
+  - No. STEP/STL export remains planned.
+
+### Known issues
+- Issue:
+  - Only front-wall USB-C cutouts are generated natively. Button groups, glass
+    recesses, standoffs, and other feature intents are still ignored by native
+    geometry.
+  - Severity: Medium for MVP geometry.
+  - Next action: Implement the next native feature slice, likely button-group
+    top/lid cutouts or standoff/mount geometry.
+- Issue:
+  - Manual `front_usb_c` features without `surfacePosition` use a first-pass
+    default front-wall position near the board/port area.
+  - Severity: Low; semantic placement polish remains a later UI task.
+  - Next action: Add face-local placement/picking so manual USB-C features store
+    explicit surface coordinates.
+
+### Next step
+Continue native feature generation with either button-group top cutouts or real
+standoff geometry from component mounting-hole intents.
+
+### Notes for future Codex sessions
+Do not expose the USB-C cut tool or Boolean operation as default UX. It is a
+generator-owned implementation detail behind `GeometryService`. Keep generated
+B-Rep, OCCT topology IDs, and preview triangle IDs out of project JSON.
+
+---
+
 ## 2026-06-29 - M69 Native shell/cavity slice
 
 ### Goal

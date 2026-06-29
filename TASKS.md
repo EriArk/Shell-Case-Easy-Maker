@@ -191,7 +191,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] First-pass standoff marker preview from board mounting holes.
 - [x] Reusable standoff source-anchor layout helper.
 - [ ] Generate real standoff geometry from board mounting holes.
-- [ ] Generate side wall cutouts from ports.
+- [x] Generate side wall cutouts from ports.
 - [x] First-pass semantic USB-C cutout from component connector metadata.
 - [x] First-pass projected component feature anchors.
 - [x] First-pass projected component feature anchor validation.

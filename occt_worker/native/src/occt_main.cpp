@@ -63,9 +63,21 @@ struct EnclosureRequest {
   double corner_radius = 0.0;
 };
 
+struct UsbCCutoutRequest {
+  std::string id;
+  std::string target_surface;
+  double width = 10.5;
+  double height = 4.2;
+  double corner_radius = 1.0;
+  bool has_surface_position = false;
+  std::array<double, 2> surface_position = {0.0, 0.0};
+};
+
 struct NativeRequestParseResult {
   NativeRequestEnvelope request;
   EnclosureRequest enclosure;
+  std::vector<UsbCCutoutRequest> usb_c_cutouts;
+  int feature_intent_count = 0;
   std::string issue_code;
   std::string issue_message;
 
@@ -83,6 +95,11 @@ struct ShapeMetrics {
   bool shell_cavity_applied = false;
   bool shell_cavity_valid = false;
   int shell_cavity_tool_count = 0;
+  int feature_intent_count = 0;
+  int native_feature_cut_count = 0;
+  int native_ignored_feature_intent_count = 0;
+  int native_usb_c_cutout_count = 0;
+  int native_usb_c_cutout_filleted_edge_count = 0;
 };
 
 struct ShellBuildResult {
@@ -90,6 +107,14 @@ struct ShellBuildResult {
   bool cavity_applied = false;
   bool cavity_valid = false;
   int cavity_tool_count = 0;
+};
+
+struct NativeFeatureCutResult {
+  TopoDS_Shape shape;
+  int applied_cut_count = 0;
+  int ignored_intent_count = 0;
+  int usb_c_cutout_count = 0;
+  int usb_c_filleted_edge_count = 0;
 };
 
 struct PreviewTriangleRangeData {
@@ -584,6 +609,39 @@ std::optional<std::array<double, 3>> ExtractTopLevelNumberArray3Field(
   return values;
 }
 
+std::optional<std::array<double, 2>> ExtractTopLevelNumberArray2Field(
+    const std::string& json,
+    std::string_view field_name) {
+  const std::optional<std::size_t> value_index =
+      FindTopLevelFieldValueIndex(json, field_name);
+  if (!value_index.has_value() || *value_index >= json.size() ||
+      json[*value_index] != '[') {
+    return std::nullopt;
+  }
+
+  std::array<double, 2> values = {0.0, 0.0};
+  std::size_t index = SkipWhitespace(json, *value_index + 1);
+  for (std::size_t item_index = 0; item_index < values.size(); ++item_index) {
+    std::size_t next_index = 0;
+    if (!ParseJsonNumberAt(json, index, &values[item_index], &next_index)) {
+      return std::nullopt;
+    }
+    index = SkipWhitespace(json, next_index);
+
+    if (item_index + 1 < values.size()) {
+      if (index >= json.size() || json[index] != ',') {
+        return std::nullopt;
+      }
+      index = SkipWhitespace(json, index + 1);
+    }
+  }
+
+  if (index >= json.size() || json[index] != ']') {
+    return std::nullopt;
+  }
+  return values;
+}
+
 std::vector<std::string> ExtractTopLevelObjectArrayField(
     const std::string& json,
     std::string_view field_name) {
@@ -694,6 +752,7 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
 
   const std::vector<std::string> bodies =
       ExtractTopLevelObjectArrayField(*project, "bodies");
+  bool found_enclosure = false;
   for (const std::string& body : bodies) {
     const std::optional<std::string> type =
         ExtractTopLevelStringField(body, "type");
@@ -749,17 +808,92 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
         result.enclosure.corner_radius >= min_size / 2.0) {
       result.issue_code = "worker.geometry.invalid_enclosure_dimensions";
       result.issue_message =
-          "Native OCCT worker enclosure dimensions, wall thickness, and corner "
+        "Native OCCT worker enclosure dimensions, wall thickness, and corner "
           "radius must be positive and physically valid.";
       return result;
     }
 
+    found_enclosure = true;
+    break;
+  }
+
+  if (!found_enclosure) {
+    result.issue_code = "worker.request.enclosure_missing";
+    result.issue_message =
+        "Native OCCT worker request project must contain an enclosure body.";
     return result;
   }
 
-  result.issue_code = "worker.request.enclosure_missing";
-  result.issue_message =
-      "Native OCCT worker request project must contain an enclosure body.";
+  const std::vector<std::string> feature_intents =
+      ExtractTopLevelObjectArrayField(payload, "featureIntents");
+  result.feature_intent_count =
+      static_cast<int>(feature_intents.size());
+  const std::string supported_front_surface =
+      result.enclosure.id + ".front_wall.outer";
+  for (const std::string& intent : feature_intents) {
+    const std::string kind =
+        ExtractTopLevelStringField(intent, "kind").value_or("");
+    if (kind != "usb_c_cutout") {
+      continue;
+    }
+
+    const std::string intent_operation =
+        ExtractTopLevelStringField(intent, "operation").value_or("");
+    if (intent_operation != "negative") {
+      continue;
+    }
+
+    UsbCCutoutRequest cutout;
+    cutout.id =
+        ExtractTopLevelStringField(intent, "id").value_or("usb_c_cutout");
+    cutout.target_surface =
+        ExtractTopLevelStringField(intent, "targetSurface").value_or("");
+    const std::optional<std::string> parameters =
+        ExtractTopLevelObjectField(intent, "parameters");
+    if (parameters.has_value()) {
+      cutout.width =
+          ExtractTopLevelNumberField(*parameters, "width").value_or(10.5);
+      cutout.height =
+          ExtractTopLevelNumberField(*parameters, "height").value_or(4.2);
+      cutout.corner_radius =
+          ExtractTopLevelNumberField(*parameters, "cornerRadius").value_or(1.0);
+    }
+
+    const std::optional<std::string> placement =
+        ExtractTopLevelObjectField(intent, "placement");
+    if (placement.has_value()) {
+      const std::optional<std::array<double, 2>> surface_position =
+          ExtractTopLevelNumberArray2Field(*placement, "surfacePosition");
+      if (surface_position.has_value()) {
+        cutout.surface_position = *surface_position;
+        cutout.has_surface_position = true;
+      }
+    }
+
+    if (cutout.target_surface != supported_front_surface) {
+      continue;
+    }
+
+    const double available_width =
+        result.enclosure.size[0] - result.enclosure.wall_thickness * 2.0;
+    const double available_height =
+        result.enclosure.size[2] - result.enclosure.wall_thickness * 2.0;
+    if (!IsPositiveDimension(cutout.width) ||
+        !IsPositiveDimension(cutout.height) ||
+        !std::isfinite(cutout.corner_radius) ||
+        cutout.corner_radius < 0.0 ||
+        cutout.corner_radius * 2.0 > std::min(cutout.width, cutout.height) ||
+        cutout.width > available_width ||
+        cutout.height > available_height) {
+      result.issue_code = "worker.geometry.invalid_usb_c_cutout";
+      result.issue_message =
+          "Native OCCT worker USB-C cutout dimensions must fit the front wall.";
+      return result;
+    }
+
+    result.usb_c_cutouts.push_back(cutout);
+  }
+
   return result;
 }
 
@@ -832,13 +966,22 @@ ShapeMetrics ComputeShapeMetrics(const TopoDS_Shape& shape,
                                  int filleted_edge_count,
                                  bool shell_cavity_applied,
                                  bool shell_cavity_valid,
-                                 int shell_cavity_tool_count) {
+                                 int shell_cavity_tool_count,
+                                 int feature_intent_count,
+                                 const NativeFeatureCutResult& feature_cuts) {
   ShapeMetrics metrics;
   metrics.corner_radius_applied = corner_radius_applied;
   metrics.filleted_edge_count = filleted_edge_count;
   metrics.shell_cavity_applied = shell_cavity_applied;
   metrics.shell_cavity_valid = shell_cavity_valid;
   metrics.shell_cavity_tool_count = shell_cavity_tool_count;
+  metrics.feature_intent_count = feature_intent_count;
+  metrics.native_feature_cut_count = feature_cuts.applied_cut_count;
+  metrics.native_ignored_feature_intent_count =
+      feature_cuts.ignored_intent_count;
+  metrics.native_usb_c_cutout_count = feature_cuts.usb_c_cutout_count;
+  metrics.native_usb_c_cutout_filleted_edge_count =
+      feature_cuts.usb_c_filleted_edge_count;
 
   const FaceBounds bounds = ComputeTopoBounds(shape);
   metrics.bounds_min = bounds.min;
@@ -894,6 +1037,128 @@ ShellBuildResult BuildTopOpenEnclosureShell(const TopoDS_Shape& outer_shape,
 
   result.cavity_applied = true;
   result.cavity_tool_count = 1;
+  return result;
+}
+
+std::array<double, 2> UsbCCutoutCenter(const EnclosureRequest& enclosure,
+                                       const UsbCCutoutRequest& cutout) {
+  if (cutout.has_surface_position) {
+    return cutout.surface_position;
+  }
+
+  const double default_z =
+      std::max(4.0, cutout.height / 2.0 + enclosure.wall_thickness);
+  return {0.0, default_z};
+}
+
+bool UsbCCutoutFitsFrontSurface(const EnclosureRequest& enclosure,
+                                const UsbCCutoutRequest& cutout,
+                                const std::array<double, 2>& center) {
+  const double inner_width =
+      enclosure.size[0] - enclosure.wall_thickness * 2.0;
+  const double inner_height =
+      enclosure.size[2] - enclosure.wall_thickness * 2.0;
+  const double tolerance = 0.000001;
+  return center[0] - cutout.width / 2.0 >= -inner_width / 2.0 - tolerance &&
+         center[0] + cutout.width / 2.0 <= inner_width / 2.0 + tolerance &&
+         center[1] - cutout.height / 2.0 >= -tolerance &&
+         center[1] + cutout.height / 2.0 <= inner_height + tolerance;
+}
+
+TopoDS_Shape BuildUsbCCutoutTool(const EnclosureRequest& enclosure,
+                                 const UsbCCutoutRequest& cutout,
+                                 int* filleted_edge_count) {
+  const std::array<double, 2> center =
+      UsbCCutoutCenter(enclosure, cutout);
+  const double overcut = 2.0;
+  const std::array<double, 3> tool_size = {
+      cutout.width,
+      enclosure.wall_thickness + overcut * 2.0,
+      cutout.height};
+  const gp_Pnt tool_origin(center[0] - cutout.width / 2.0,
+                           -enclosure.size[1] / 2.0 - overcut,
+                           center[1] - cutout.height / 2.0);
+  const TopoDS_Shape box =
+      BRepPrimAPI_MakeBox(tool_origin,
+                          tool_size[0],
+                          tool_size[1],
+                          tool_size[2])
+          .Shape();
+
+  *filleted_edge_count = 0;
+  const double safe_radius =
+      std::min(cutout.corner_radius,
+               std::min(cutout.width, cutout.height) / 2.0 - 0.001);
+  if (safe_radius <= 0.0) {
+    return box;
+  }
+
+  BRepFilletAPI_MakeFillet fillet(box);
+  for (TopExp_Explorer explorer(box, TopAbs_EDGE); explorer.More();
+       explorer.Next()) {
+    const TopoDS_Edge edge = TopoDS::Edge(explorer.Current());
+    const std::array<double, 3> edge_dimensions =
+        DimensionsFromBounds(ComputeTopoBounds(edge));
+    if (edge_dimensions[0] <= 0.001 && edge_dimensions[2] <= 0.001 &&
+        edge_dimensions[1] > 0.001) {
+      fillet.Add(safe_radius, edge);
+      ++(*filleted_edge_count);
+    }
+  }
+
+  fillet.Build();
+  if (!fillet.IsDone()) {
+    throw std::runtime_error("OCCT USB-C cutout fillet did not complete.");
+  }
+
+  return fillet.Shape();
+}
+
+NativeFeatureCutResult ApplyNativeFeatureCutouts(
+    const TopoDS_Shape& base_shape,
+    const EnclosureRequest& enclosure,
+    const std::vector<UsbCCutoutRequest>& usb_c_cutouts,
+    int feature_intent_count) {
+  NativeFeatureCutResult result;
+  result.shape = base_shape;
+
+  for (const UsbCCutoutRequest& cutout : usb_c_cutouts) {
+    const std::array<double, 2> center =
+        UsbCCutoutCenter(enclosure, cutout);
+    if (!UsbCCutoutFitsFrontSurface(enclosure, cutout, center)) {
+      continue;
+    }
+
+    int tool_filleted_edge_count = 0;
+    const TopoDS_Shape tool =
+        BuildUsbCCutoutTool(enclosure, cutout, &tool_filleted_edge_count);
+    if (tool.IsNull()) {
+      throw std::runtime_error("OCCT generated a null USB-C cutout tool.");
+    }
+
+    BRepAlgoAPI_Cut cut(result.shape, tool);
+    cut.SimplifyResult(true, true);
+    if (!cut.IsDone() || cut.HasErrors()) {
+      throw std::runtime_error("OCCT USB-C cutout did not complete.");
+    }
+
+    result.shape = cut.Shape();
+    if (result.shape.IsNull()) {
+      throw std::runtime_error("OCCT generated a null USB-C cutout shape.");
+    }
+
+    BRepCheck_Analyzer analyzer(result.shape, false);
+    if (!analyzer.IsValid()) {
+      throw std::runtime_error("OCCT generated an invalid USB-C cutout shape.");
+    }
+
+    ++result.applied_cut_count;
+    ++result.usb_c_cutout_count;
+    result.usb_c_filleted_edge_count += tool_filleted_edge_count;
+  }
+
+  result.ignored_intent_count =
+      std::max(0, feature_intent_count - result.applied_cut_count);
   return result;
 }
 
@@ -1279,6 +1544,16 @@ void WriteRoundedEnclosurePreviewResponse(const NativeRequestEnvelope& request,
             << "    \"shellCavityToolCount\": "
             << metrics.shell_cavity_tool_count << ",\n"
             << "    \"shellOpening\": \"top\",\n"
+            << "    \"featureIntentCount\": "
+            << metrics.feature_intent_count << ",\n"
+            << "    \"nativeFeatureCutCount\": "
+            << metrics.native_feature_cut_count << ",\n"
+            << "    \"nativeIgnoredFeatureIntentCount\": "
+            << metrics.native_ignored_feature_intent_count << ",\n"
+            << "    \"nativeUsbCCutoutCount\": "
+            << metrics.native_usb_c_cutout_count << ",\n"
+            << "    \"nativeUsbCCutoutFilletedEdgeCount\": "
+            << metrics.native_usb_c_cutout_filleted_edge_count << ",\n"
             << "    \"bounds\": {\n"
             << "      \"min\": ";
   WriteDoubleArray(metrics.bounds_min);
@@ -1375,15 +1650,27 @@ int main(int argc, char* argv[]) {
       throw std::runtime_error("OCCT generated a null shell/cavity shape.");
     }
 
+    const NativeFeatureCutResult feature_cuts =
+        ApplyNativeFeatureCutouts(shell.shape,
+                                  parsed_request.enclosure,
+                                  parsed_request.usb_c_cutouts,
+                                  parsed_request.feature_intent_count);
+    if (feature_cuts.shape.IsNull()) {
+      throw std::runtime_error("OCCT generated a null feature-cut shape.");
+    }
+
     const ShapeMetrics metrics =
-        ComputeShapeMetrics(shell.shape,
+        ComputeShapeMetrics(feature_cuts.shape,
                             corner_radius_applied,
                             filleted_edge_count,
                             shell.cavity_applied,
                             shell.cavity_valid,
-                            shell.cavity_tool_count);
+                            shell.cavity_tool_count,
+                            parsed_request.feature_intent_count,
+                            feature_cuts);
     const PreviewMeshData mesh =
-        BuildPreviewMesh(shell.shape, metrics, parsed_request.enclosure.id);
+        BuildPreviewMesh(
+            feature_cuts.shape, metrics, parsed_request.enclosure.id);
     WriteRoundedEnclosurePreviewResponse(
         parsed_request.request, parsed_request.enclosure, metrics, mesh);
     return 0;

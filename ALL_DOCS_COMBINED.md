@@ -255,7 +255,7 @@ This is the living task backlog. Keep it updated.
 ## Phase 7 — Component-driven enclosure generation
 
 - [ ] Generate standoffs from board mounting holes.
-- [ ] Generate side wall cutouts from ports.
+- [x] Generate side wall cutouts from ports.
 - [ ] Generate top/lid cutouts from switches/buttons.
 - [ ] Generate keepout warnings.
 - [ ] Generate support ribs from drawn line.

@@ -382,3 +382,11 @@ slice:
 - Add feature-intent cuts for USB-C/glass/buttons against the generated shell.
 - Add STEP/STL export only after native B-Rep validation and license notices are
   ready.
+
+## Update - first feature-intent cut
+
+M70 reuses the generator-owned `BRepAlgoAPI_Cut` path for the first native
+USB-C feature intent. The worker builds a rounded rectangular cut tool from
+semantic USB-C dimensions and optional `placement.surfacePosition`, cuts only
+the supported front-wall surface slice, and reports unsupported button/glass
+intents as ignored metrics instead of exposing Boolean tools in the default UI.

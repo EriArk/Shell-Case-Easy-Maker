@@ -46,6 +46,9 @@ void main() {
       expect(source, contains('BuildRoundedEnclosureShape'));
       expect(source, contains('BuildCavityCutTool'));
       expect(source, contains('BuildTopOpenEnclosureShell'));
+      expect(source, contains('UsbCCutoutRequest'));
+      expect(source, contains('BuildUsbCCutoutTool'));
+      expect(source, contains('ApplyNativeFeatureCutouts'));
       expect(source, contains('BuildPreviewMesh'));
       expect(source, contains('ClassifyPreviewSurface'));
       expect(source, contains('PreviewSurfaceMappingData'));
@@ -60,6 +63,11 @@ void main() {
       expect(source, contains('shellCavityValid'));
       expect(source, contains('shellCavityToolCount'));
       expect(source, contains('shellOpening'));
+      expect(source, contains('featureIntentCount'));
+      expect(source, contains('nativeFeatureCutCount'));
+      expect(source, contains('nativeIgnoredFeatureIntentCount'));
+      expect(source, contains('nativeUsbCCutoutCount'));
+      expect(source, contains('nativeUsbCCutoutFilletedEdgeCount'));
       expect(source, contains('bounds'));
       expect(source, contains('surfaceArea'));
       expect(source, contains('volume'));
@@ -144,6 +152,11 @@ void main() {
       expect(tool, contains('shellCavityValid'));
       expect(tool, contains('shellCavityToolCount'));
       expect(tool, contains('shellOpening'));
+      expect(tool, contains('featureIntentCount'));
+      expect(tool, contains('nativeFeatureCutCount'));
+      expect(tool, contains('nativeIgnoredFeatureIntentCount'));
+      expect(tool, contains('nativeUsbCCutoutCount'));
+      expect(tool, contains('nativeUsbCCutoutFilletedEdgeCount'));
       expect(tool, contains('semantic_face_ranges_v1'));
       expect(tool, contains('previewSurfaceMappingCount'));
       expect(tool, contains('previewMappedTriangleCount'));

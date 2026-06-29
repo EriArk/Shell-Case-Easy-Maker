@@ -98,6 +98,21 @@ Update from M69:
   mappings, 494 mapped triangles, bounds `[-60, -35, 0]` to
   `[60, 35, 27.464102]`, surface area `34761.268581`, and volume
   `33756.044084`.
+
+Update from M70:
+
+- The native worker now consumes the first USB-C `featureIntent` targeting
+  `main_enclosure.front_wall.outer`.
+- It builds a rounded rectangular cut tool from semantic width, height, corner
+  radius, and optional `placement.surfacePosition`, then subtracts it from the
+  shell.
+- The Dart native smoke reports `featureIntentCount=2`,
+  `nativeFeatureCutCount=1`, `nativeIgnoredFeatureIntentCount=1`,
+  `nativeUsbCCutoutCount=1`, and
+  `nativeUsbCCutoutFilletedEdgeCount=8`.
+- The sample preview emits 1418 vertices, 1754 triangles, 3 surface mappings,
+  538 mapped triangles, surface area `34732.966792`, and volume
+  `33664.517631`.
 - Preview mesh output and triangle ranges remain disposable and not editable
   project state.
 

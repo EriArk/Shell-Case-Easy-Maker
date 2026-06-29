@@ -101,8 +101,11 @@ operations before real B-Rep generation exists:
 - `standoff_mounts` items -> `mount.standoff`.
 
 The mock backend exposes this plan in response metrics for testing and worker
-development. The plan is disposable backend input. It must not be saved as the
-editable project model and must not contain OCCT topology IDs.
+development. The native OCCT worker now consumes the first front-wall
+`usb_c_cutout` intent as real generated B-Rep, while glass/button/standoff
+operations remain next slices. The plan is disposable backend input. It must
+not be saved as the editable project model and must not contain OCCT topology
+IDs.
 
 ## Generated protocol fixtures
 
@@ -115,9 +118,9 @@ dart run tool\generate_geometry_protocol_fixtures.dart
 
 The request example contains semantic feature intents and expanded repeated
 items. The response example is produced by `MockGeometryService`, including the
-mock preview mesh and operation plan metrics. These fixtures let the future
-native worker develop against realistic payloads without making mock mesh,
-B-Rep, STL, or OCCT topology editable project state.
+mock preview mesh and operation plan metrics. These fixtures let the native
+worker develop against realistic payloads without making mock mesh, B-Rep, STL,
+or OCCT topology editable project state.
 
 ## Local worker CLI
 
@@ -147,11 +150,12 @@ dart run occt_worker\bin\occt_worker.dart --capabilities
 ```
 
 The capability response marks the Dart mock backend as available for
-`preview_mesh` and the future OCCT backend as a `native` stub. The planned native
-operations are preview mesh, STEP export, STL export, and validation. Capability
-JSON is metadata; it must not contain raw OCCT topology IDs or generated B-Rep.
+`preview_mesh` and the native OCCT worker as an opt-in backend. Native preview
+mesh is implemented; STEP export, STL export, and validation remain planned.
+Capability JSON is metadata; it must not contain raw OCCT topology IDs or
+generated B-Rep.
 `GeometryWorkerProcessClient.queryCapabilities()` consumes this JSON through the
-same configured process command that will later launch the native worker.
+same configured process command used to launch the native worker.
 
 ## Native worker scaffold
 

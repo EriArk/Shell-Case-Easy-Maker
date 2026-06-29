@@ -98,12 +98,12 @@ Future<void> main(List<String> args) async {
       failures,
     );
     _expect(
-      previewMesh.vertexCount == 1198,
+      previewMesh.vertexCount == 1418,
       'previewMesh must contain the deterministic sample vertex count',
       failures,
     );
     _expect(
-      previewMesh.triangleCount == 1550,
+      previewMesh.triangleCount == 1754,
       'previewMesh must contain the deterministic sample triangle count',
       failures,
     );
@@ -232,6 +232,31 @@ Future<void> main(List<String> args) async {
     failures,
   );
   _expect(
+    metrics['featureIntentCount'] == 2,
+    'featureIntentCount must match the sample request',
+    failures,
+  );
+  _expect(
+    metrics['nativeFeatureCutCount'] == 1,
+    'nativeFeatureCutCount must include the sample USB-C cutout',
+    failures,
+  );
+  _expect(
+    metrics['nativeIgnoredFeatureIntentCount'] == 1,
+    'nativeIgnoredFeatureIntentCount must track unsupported first-pass intents',
+    failures,
+  );
+  _expect(
+    metrics['nativeUsbCCutoutCount'] == 1,
+    'nativeUsbCCutoutCount must include the sample USB-C cutout',
+    failures,
+  );
+  _expect(
+    metrics['nativeUsbCCutoutFilletedEdgeCount'] == 8,
+    'nativeUsbCCutoutFilletedEdgeCount must be deterministic',
+    failures,
+  );
+  _expect(
     metrics['previewMeshEmitted'] == true,
     'previewMeshEmitted must be true',
     failures,
@@ -328,14 +353,14 @@ Future<void> main(List<String> args) async {
   );
   _expectClose(
     _readNumber(metrics['surfaceArea']),
-    34761.268581,
+    34732.966792,
     0.001,
     'surfaceArea',
     failures,
   );
   _expectClose(
     _readNumber(metrics['volume']),
-    33756.044084,
+    33664.517631,
     0.001,
     'volume',
     failures,
@@ -370,6 +395,13 @@ Future<void> main(List<String> args) async {
       'shellCavityValid': metrics['shellCavityValid'],
       'shellCavityToolCount': metrics['shellCavityToolCount'],
       'shellOpening': metrics['shellOpening'],
+      'featureIntentCount': metrics['featureIntentCount'],
+      'nativeFeatureCutCount': metrics['nativeFeatureCutCount'],
+      'nativeIgnoredFeatureIntentCount':
+          metrics['nativeIgnoredFeatureIntentCount'],
+      'nativeUsbCCutoutCount': metrics['nativeUsbCCutoutCount'],
+      'nativeUsbCCutoutFilletedEdgeCount':
+          metrics['nativeUsbCCutoutFilletedEdgeCount'],
       'bounds': metrics['bounds'],
       'dimensions': metrics['dimensions'],
       'surfaceArea': metrics['surfaceArea'],

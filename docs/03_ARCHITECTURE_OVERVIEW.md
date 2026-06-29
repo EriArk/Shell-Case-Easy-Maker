@@ -141,8 +141,9 @@ store generated mesh, B-Rep, or topology IDs.
 `GeometryOperationPlanner` can now convert these request intents into a
 deterministic backend operation plan. The plan uses semantic IDs, target
 surfaces, operation categories, placement/source metadata, and expanded group
-items to describe future cut/add/recess tasks for the worker. It is still
-request/response-scoped backend input, not saved editable project state.
+items to describe cut/add/recess tasks for the worker. The native OCCT worker
+now consumes the first USB-C cutout intent; the rest remain request/response
+scoped backend input, not saved editable project state.
 
 ## Generated Geometry Protocol Fixtures
 

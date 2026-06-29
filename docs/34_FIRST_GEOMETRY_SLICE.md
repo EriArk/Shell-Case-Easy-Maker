@@ -5,8 +5,8 @@
 M5 establishes the boundary for real generated geometry without making Flutter
 depend on OCCT internals.
 
-The app still uses the mock viewport, but geometry requests and responses now
-have typed JSON models that can be shared with a future native worker.
+The app can still use the mock viewport, but geometry requests and responses now
+have typed JSON models shared with the native worker.
 
 ## Boundary
 
@@ -14,8 +14,8 @@ Flutter talks to `GeometryService`.
 
 `GeometryService` can build a `GeometryRequest` and receive a `GeometryResponse`.
 
-The future `occt_worker` consumes the same JSON protocol. It owns generated
-B-Rep and OCCT topology internally, then returns disposable preview/export data.
+`occt_worker` consumes the same JSON protocol. It owns generated B-Rep and OCCT
+topology internally, then returns disposable preview/export data.
 
 ## Request
 
@@ -132,9 +132,10 @@ dart run tool\native_occt_worker_metrics_smoke.dart --skip-build
 The current native response returns deterministic bounds, dimensions, surface
 area, volume, disposable preview mesh data, and first-pass semantic surface
 ranges for the first semantic enclosure. For the sample enclosure it emits a
-top-open rounded shell/cavity with 1198 vertices, 1550 triangles, 3 surface
-mappings, and 494 mapped triangles. It still does not return STL, B-Rep, OCCT
-topology IDs, or triangle IDs as stable editable references.
+top-open rounded shell/cavity with one native USB-C front-wall cutout, 1418
+vertices, 1754 triangles, 3 surface mappings, and 538 mapped triangles. It still
+does not return STL, B-Rep, OCCT topology IDs, or triangle IDs as stable editable
+references.
 
 The scaffold smoke command wraps build, capability query, and request smoke:
 
@@ -258,25 +259,31 @@ The first native OCCT slices now:
 5. Build one rounded internal cavity tool from semantic wall thickness.
 6. Cut a top-open shell/cavity from the rounded outer B-Rep.
 7. Check the resulting shell/cavity shape with `BRepCheck_Analyzer`.
-8. Return deterministic bounds, dimensions, surface area, and volume.
-9. Mesh the generated B-Rep with explicit linear/angular deflection settings.
-10. Return disposable preview mesh vertices and triangle indices.
-11. Return first-pass semantic preview surface ranges for top rim, front, and
+8. Read first-pass USB-C `featureIntents` targeting the front wall.
+9. Build a rounded rectangular USB-C cut tool and subtract it from the shell.
+10. Return deterministic bounds, dimensions, surface area, and volume.
+11. Mesh the generated B-Rep with explicit linear/angular deflection settings.
+12. Return disposable preview mesh vertices and triangle indices.
+13. Return first-pass semantic preview surface ranges for top rim, front, and
     bottom face blocks.
 
 The next native geometry slices should:
 
-1. Consume feature intents for cutouts and mounts.
-2. Add screw-boss/lid-body split geometry.
-3. Expand semantic face mapping beyond the first top/front/bottom ranges.
+1. Consume button-group and glass-recess feature intents.
+2. Generate real standoff/mount geometry.
+3. Add screw-boss/lid-body split geometry.
+4. Expand semantic face mapping beyond the first top/front/bottom ranges.
 
 Expected sample dimensions:
 - size: `120 x 70 x 28 mm`,
 - wall thickness: `2 mm`,
 - corner radius: `4 mm`,
-- shell preview bounds: `[-60, -35, 0]` to `[60, 35, 27.464102]`,
-- shell preview volume: `33756.044084 mm^3`,
-- shell preview surface area: `34761.268581 mm^2`.
+- native preview bounds: `[-60, -35, 0]` to `[60, 35, 27.464102]`,
+- native preview volume after USB-C cutout: `33664.517631 mm^3`,
+- native preview surface area after USB-C cutout: `34732.966792 mm^2`,
+- native feature metrics: `featureIntentCount=2`,
+  `nativeFeatureCutCount=1`, `nativeIgnoredFeatureIntentCount=1`,
+  `nativeUsbCCutoutCount=1`.
 
 ## Current Limitations
 
@@ -309,8 +316,8 @@ Expected sample dimensions:
   placement/keepout bounds account for Z rotation using conservative envelopes.
   This is still pre-geometry validation, not OCCT body validation.
 - Rounded edges, first top-open native shell/cavity generation, first native
-  preview mesh emission, and first-pass semantic surface ranges are
-  implemented; feature cutouts, screw/lid geometry, and richer face mapping are
-  still planned.
+  USB-C front-wall cutout, first native preview mesh emission, and first-pass
+  semantic surface ranges are implemented; button/glass feature cuts,
+  screw/lid geometry, and richer face mapping are still planned.
 - STEP/STL export operations intentionally return unsupported in the mock
   backend.

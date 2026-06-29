@@ -88,6 +88,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M67 - Native Preview Surface Ranges
 - [x] M68 - Preview Surface Range Highlight
 - [x] M69 - Native Shell/Cavity Slice
+- [x] M70 - Native USB-C Cutout Slice
 
 ---
 
@@ -3020,3 +3021,54 @@ validated top-open shell/cavity generated from semantic wall thickness.
 - Select `Top lid` and confirm the cyan highlight follows the visible top rim.
 - Orbit and zoom; the shell should stay faceted but stable, with no old flat
   schematic body replacing it.
+
+---
+
+## M70 - Native USB-C Cutout Slice
+
+### Goal
+Consume the first `usb_c_cutout` feature intent in the native OCCT worker and
+subtract a rounded front-wall port opening from the generated shell.
+
+### Tasks
+- [x] Parse `featureIntents` in the native worker without changing editable
+      project JSON.
+- [x] Support first-pass `usb_c_cutout` intents targeting
+      `main_enclosure.front_wall.outer`.
+- [x] Read width, height, corner radius, and optional
+      `placement.surfacePosition`.
+- [x] Build a rounded rectangular cut tool and subtract it from the shell.
+- [x] Report native feature-cut metrics and ignored unsupported intent count.
+- [x] Update native smoke expectations, docs, roadmap, tasks, and worklog.
+
+### Done Criteria
+- Native smoke reports `featureIntentCount: 2`, `nativeFeatureCutCount: 1`,
+  `nativeIgnoredFeatureIntentCount: 1`, and `nativeUsbCCutoutCount: 1`.
+- Sample preview reports 1418 vertices, 1754 triangles, 3 surface mappings, and
+  538 mapped triangles.
+- Sample volume drops to `33664.517631`, proving the USB-C cutout removed body
+  material.
+- Unsupported button intent remains ignored for this slice rather than being
+  flattened or partially generated.
+- Generated B-Rep, topology IDs, and preview triangle IDs stay out of editable
+  project JSON.
+
+### Tests
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open
+  `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- Confirm the viewport label still shows `occt_worker_native_occt`.
+- Orbit to the front wall and confirm a small USB-C opening is visible.
+- Select `USB-C` / `front_usb_c` and confirm the inspector still edits the
+  semantic feature; this chunk does not add mesh picking.
+- Select `Top lid` and confirm the top-rim highlight still works.

@@ -146,7 +146,7 @@ dart run tool\mock_geometry_worker_client_smoke.dart
 ```
 
 This starts the mock harness as a child process and verifies the stdin/stdout
-adapter path that the future native worker will use.
+adapter path used by the native worker.
 
 Worker-service smoke command:
 
@@ -212,9 +212,12 @@ project:
 5. Return preview mesh, bounds, issues, and metrics. Done for the native
    preview mesh slice.
 6. Preserve first-pass semantic surface mapping for top lid, front wall, and
-   bottom inside. Done for central planar face ranges.
-7. Read `featureIntents` and their derived operation plan to prepare
-   deterministic future cutout/mount operations.
+   bottom inside. Done for disposable preview ranges.
+7. Generate a top-open shell/cavity from semantic wall thickness. Done for the
+   native shell slice.
+8. Read first-pass `featureIntents` and cut the front-wall USB-C opening from
+   semantic dimensions. Done for the native USB-C slice.
+9. Continue with button/glass cutouts, mounts, STEP, and STL.
 
-The worker implementation should be added only after the OCCT build/distribution
-choice is finalized for Windows development.
+The worker remains replaceable and must keep generated B-Rep, OCCT topology IDs,
+and preview triangle IDs out of editable project state.
