@@ -51,6 +51,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M30 — Local Workplane Overlay + Snap Hints
 - [x] M31 — Snap Picking Seeds Component Placement
 - [x] M32 — Active Snap Inspector Action
+- [x] M33 — Snap Placement Footprint Preview
 
 ---
 
@@ -1331,3 +1332,44 @@ inspector, not only from the left tool rail.
   opens with the same snap hint.
 - Cancel, click the clear icon in the inspector, and confirm the snap section
   disappears.
+
+---
+
+## M33 — Snap Placement Footprint Preview
+
+### Goal
+Show a transient component footprint in the viewport after selecting a snap
+point, before the user confirms placement.
+
+### Tasks
+- [x] Derive a mock placement preview from the active snap target and first
+      component template.
+- [x] Draw the preview as a translucent footprint in the viewport.
+- [x] Keep the preview transient and omit it from viewport hit targets.
+- [x] Remove the preview when the active snap target is cleared or selection
+      changes.
+- [x] Add widget coverage for preview presence and clearing behavior.
+
+### Done Criteria
+- Clicking a snap hint shows both the active snap inspector section and a
+  component footprint preview.
+- Clearing the snap target removes the footprint preview.
+- The footprint does not create or save a `ComponentPlacement`.
+- Existing visible semantic placements remain the only component placement hit
+  targets.
+- No mesh, B-Rep, triangle ID, or OCCT topology becomes editable state.
+
+### Tests
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Select `Top lid`.
+- Click a snap dot away from the center.
+- Confirm a translucent component footprint appears around that snap position.
+- Click the clear icon in the inspector and confirm the footprint disappears.
+- Click the same snap dot, use `Разместить компонент`, confirm the dialog, and
+  check the committed component becomes the normal solid board marker.

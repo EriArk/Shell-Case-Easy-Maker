@@ -198,6 +198,10 @@ void main() {
       find.byKey(const ValueKey('active-snap-target-panel')),
       findsOneWidget,
     );
+    expect(
+      find.byKey(const ValueKey('mock-active-snap-placement-preview')),
+      findsOneWidget,
+    );
 
     await tester.tap(
       find.byKey(const ValueKey('rail-command-${CommandIds.placeComponent}')),
@@ -287,6 +291,10 @@ void main() {
 
     expect(
       find.byKey(const ValueKey('active-snap-target-panel')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('mock-active-snap-placement-preview')),
       findsNothing,
     );
   });

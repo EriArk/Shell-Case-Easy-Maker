@@ -2114,6 +2114,10 @@ class _ViewportAreaState extends State<_ViewportArea> {
             widget.project,
             widget.selection,
           );
+          final activeSnapPlacementPreview = _mockActiveSnapPlacementPreview(
+            widget.project,
+            widget.activeSnapTarget,
+          );
 
           return Listener(
             behavior: HitTestBehavior.opaque,
@@ -2136,6 +2140,7 @@ class _ViewportAreaState extends State<_ViewportArea> {
                         ),
                         componentPlacementPreviews:
                             _mockComponentPlacementPreviews(widget.project),
+                        activeSnapPlacementPreview: activeSnapPlacementPreview,
                         workplaneOverlay: workplaneOverlay,
                         activeSnapTarget: widget.activeSnapTarget,
                         featurePreviews: _mockFeaturePreviews(widget.project),
@@ -2153,6 +2158,14 @@ class _ViewportAreaState extends State<_ViewportArea> {
                       top: 0,
                       child: SizedBox(
                         key: ValueKey('mock-workplane-overlay-active'),
+                      ),
+                    ),
+                  if (activeSnapPlacementPreview != null)
+                    const Positioned(
+                      left: 0,
+                      top: 0,
+                      child: SizedBox(
+                        key: ValueKey('mock-active-snap-placement-preview'),
                       ),
                     ),
                   Positioned(
@@ -4745,6 +4758,7 @@ class _ViewportPainter extends CustomPainter {
     required this.colorScheme,
     required this.bodyDimensions,
     required this.componentPlacementPreviews,
+    required this.activeSnapPlacementPreview,
     required this.workplaneOverlay,
     required this.activeSnapTarget,
     required this.featurePreviews,
@@ -4756,6 +4770,7 @@ class _ViewportPainter extends CustomPainter {
   final ColorScheme colorScheme;
   final MockViewportBodyDimensions bodyDimensions;
   final List<MockViewportComponentPlacementPreview> componentPlacementPreviews;
+  final MockViewportComponentPlacementPreview? activeSnapPlacementPreview;
   final MockViewportWorkplaneOverlay? workplaneOverlay;
   final _ActiveSnapTarget? activeSnapTarget;
   final List<MockViewportFeaturePreview> featurePreviews;
@@ -4815,6 +4830,7 @@ class _ViewportPainter extends CustomPainter {
     );
 
     _paintComponentPlacements(canvas, layout);
+    _paintActiveSnapPlacementPreview(canvas, layout);
 
     for (final center in layout.buttonCenters) {
       canvas.drawCircle(center, layout.buttonRadius, accentPaint);
@@ -5066,6 +5082,35 @@ class _ViewportPainter extends CustomPainter {
     }
   }
 
+  void _paintActiveSnapPlacementPreview(
+    Canvas canvas,
+    MockViewportLayout layout,
+  ) {
+    final placement = activeSnapPlacementPreview;
+    if (placement == null) {
+      return;
+    }
+
+    final fill = Paint()
+      ..color = colorScheme.secondary.withValues(alpha: 0.13)
+      ..style = PaintingStyle.fill;
+    final stroke = Paint()
+      ..color = colorScheme.secondary.withValues(alpha: 0.78)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    final rect = layout.componentPlacementRect(placement);
+    final radius = Radius.circular(layout.boardRadius + 2);
+
+    _drawRotatedRRect(canvas, rect, placement.rotationZDegrees, radius, fill);
+    _drawRotatedRRect(
+      canvas,
+      rect.inflate(2),
+      placement.rotationZDegrees,
+      radius,
+      stroke,
+    );
+  }
+
   void _paintFeatures(Canvas canvas, MockViewportLayout layout) {
     final usbFill = Paint()
       ..color = colorScheme.secondary
@@ -5195,6 +5240,7 @@ class _ViewportPainter extends CustomPainter {
     return oldDelegate.colorScheme != colorScheme ||
         oldDelegate.bodyDimensions != bodyDimensions ||
         oldDelegate.componentPlacementPreviews != componentPlacementPreviews ||
+        oldDelegate.activeSnapPlacementPreview != activeSnapPlacementPreview ||
         oldDelegate.workplaneOverlay != workplaneOverlay ||
         oldDelegate.activeSnapTarget != activeSnapTarget ||
         oldDelegate.featurePreviews != featurePreviews ||
@@ -5266,6 +5312,33 @@ List<MockViewportComponentPlacementPreview> _mockComponentPlacementPreviews(
           rotationZDegrees: _positionAt(placement.rotation, 2),
         ),
   ];
+}
+
+MockViewportComponentPlacementPreview? _mockActiveSnapPlacementPreview(
+  ProjectModel project,
+  _ActiveSnapTarget? snapTarget,
+) {
+  if (snapTarget == null) {
+    return null;
+  }
+
+  final template = project.componentTemplates.firstOrNull;
+  if (template == null) {
+    return null;
+  }
+
+  final enclosure = project.bodies.firstOrNull;
+  final referenceWidth = enclosure == null ? 120.0 : _sizeAt(enclosure, 0, 120);
+  final referenceDepth = enclosure == null ? 70.0 : _sizeAt(enclosure, 1, 70);
+
+  return MockViewportComponentPlacementPreview(
+    semanticId: 'active_snap_component_preview',
+    width: template.board.outline.width,
+    depth: template.board.outline.height,
+    referenceWidth: referenceWidth,
+    referenceDepth: referenceDepth,
+    position: snapTarget.projectPosition,
+  );
 }
 
 ComponentTemplate? _componentTemplateForProjectPlacement(

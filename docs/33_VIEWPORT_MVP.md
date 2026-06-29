@@ -59,6 +59,12 @@ Hit-test priority keeps visible semantic objects above overlapping snap hints,
 then places snap hints above bare surface selection. This lets a visible board
 remain selectable even when a surface workplane has a center snap point.
 
+When a snap hint is active and the project has a component template, the mock
+viewport also draws a translucent component footprint at the snap-seeded
+position. This footprint is preview-only: it is not included in hit testing and
+does not become a saved `ComponentPlacement` unless the user confirms the
+placement dialog.
+
 ## Feature Markers
 
 The mock viewport draws selectable markers for semantic features:
@@ -105,6 +111,7 @@ whole feature group, not an individual mesh primitive or flattened hole.
 - Click viewport mock objects: select semantic object.
 - Click a visible snap hint: select/highlight that transient snap target.
 - Use the inspector snap action: open the snap-seeded component placement dialog.
+- Active snap target: show a transient component footprint preview.
 - Click the view cube: fit view.
 - Select a supported surface or visible component placement: show the local
   workplane overlay and snap hints.
@@ -139,6 +146,9 @@ license, and packaging complexity.
 - Workplane overlays and snap hints are mock interaction affordances. They can
   seed the component placement dialog, but they are not a saved sketch/workplane
   subsystem yet.
+- Snap placement footprints are schematic rectangles derived from component
+  template board outlines, not generated board meshes or collision-aware
+  previews.
 - Surface feature markers are schematic rectangles, not generated cut/recess
   B-Rep.
 - Button-group marker expansion supports first-pass diamond, row, and grid

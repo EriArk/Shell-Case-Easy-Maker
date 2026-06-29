@@ -2831,3 +2831,80 @@ component anchors.
 The active snap inspector should remain a context affordance, not saved model
 state. Confirmed placements should continue to store normal
 `ComponentPlacement` values.
+
+---
+
+## 2026-06-29 - M33 Snap Placement Footprint Preview
+
+### Goal
+Show a transient viewport footprint for the component that would be placed from
+the active snap target.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `docs/31_COMMANDS_AND_UNDO.md`,
+`docs/32_USABLE_SHELL.md`, `docs/33_VIEWPORT_MVP.md`,
+`lib/ui/shell/workspace_shell.dart`, and snap/widget tests from M31-M32.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Builds a mock active snap placement preview from the first component
+    template and active snap target.
+  - Draws a translucent component footprint at the snap-seeded position.
+  - Keeps the footprint out of hit testing and out of `ProjectModel`.
+  - Removes the footprint when the active snap target is cleared.
+- `test/widget_test.dart`:
+  - Extended snap widget coverage to assert the footprint preview appears after
+    snap selection and disappears after clearing.
+- Docs/tasks/roadmap:
+  - Recorded M33 behavior, done criteria, limitations, and poke checklist.
+
+### Tests run
+- `flutter test test\widget_test.dart --plain-name "surface snap point seeds component placement dialog"`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "active snap target inspector action opens placement dialog"`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "active snap target can be cleared from inspector"`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 113 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Mock viewport drawing only; no generated B-Rep or mesh is created.
+- Serialization checked?
+  - Not applicable; footprint preview is transient and not saved.
+- UI checked?
+  - Widget tests confirm preview presence and clearing behavior.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: The footprint is a schematic rectangle from the component template
+  board outline, not generated board geometry.
+  - Severity: Expected.
+  - Next action: replace with geometry-service preview once real board/component
+    preview data exists.
+- Issue: The footprint does not yet show collision or clearance feedback.
+  - Severity: Expected.
+  - Next action: add validation-aware placement preview in a later guided
+    placement slice.
+
+### Next step
+Commit and push M33, then continue toward full guided component placement or
+semantic component anchors.
+
+### Notes for future Codex sessions
+Keep active snap footprint previews transient. They should guide the next
+semantic action but never become editable saved placement data by themselves.

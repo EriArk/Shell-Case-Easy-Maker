@@ -55,6 +55,7 @@ Use deterministic test fixtures.
   semantic object selection.
 - Active snap inspector actions open the same seeded placement flow and can
   clear transient snap state.
+- Active snap footprint previews appear and clear with transient snap state.
 - Validation status/details show warning and error messages.
 - Context popovers show correct actions.
 - Parameter knob updates model.

@@ -122,6 +122,10 @@ a direct `Разместить компонент` action, and a clear action. T
 opens the normal semantic placement dialog; confirming that dialog creates a
 regular `ComponentPlacement`, not a saved snap reference.
 
+The viewport mirrors the same transient state with a translucent component
+footprint preview. It uses the first component template's board outline and the
+snap-seeded project position, but it is not selectable and is not saved.
+
 ## Project JSON file service
 
 `ProjectFileService` provides basic JSON encode/decode and disk read/write.
@@ -219,7 +223,7 @@ disabled until their semantic command behavior is implemented and tested.
 - Component placement supports first-pass snap-seeded dialog defaults, but it
   does not yet have drag placement, live collision feedback, or a full
   viewport-confirm workflow. The active snap inspector action is a shortcut into
-  the same dialog-based flow.
+  the same dialog-based flow, and the footprint preview is schematic only.
 - USB-C placement still uses dialog values and target surface selection rather
   than face-local picking/snapping. The visible marker is a mock viewport
   affordance.
