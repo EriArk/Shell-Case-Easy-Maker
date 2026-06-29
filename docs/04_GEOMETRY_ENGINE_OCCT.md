@@ -119,15 +119,26 @@ mock preview mesh and operation plan metrics. These fixtures let the future
 native worker develop against realistic payloads without making mock mesh,
 B-Rep, STL, or OCCT topology editable project state.
 
-## Mock worker protocol harness
+## Local worker CLI
 
-Before the native OCCT executable exists, `tool/mock_geometry_worker.dart`
-provides a stdin/stdout JSON harness over the same request/response protocol.
-It is backed by `MockGeometryService` and exits with a non-zero code when the
-response contains errors.
+Before the native OCCT backend exists, `occt_worker/bin/occt_worker.dart`
+provides the canonical stdin/stdout JSON command over the same request/response
+protocol. It is backed by `GeometryWorkerRuntime`, defaults to
+`MockGeometryService`, and exits with a non-zero code when the response contains
+errors.
 
-This harness is only a protocol and integration aid. It does not generate
-OpenCascade B-Rep, and it must not become the editable geometry source.
+Smoke command:
+
+```powershell
+Get-Content occt_worker\protocol\preview_request.example.json -Raw | dart run occt_worker\bin\occt_worker.dart
+```
+
+`tool/mock_geometry_worker.dart` remains as a compatibility alias. Passing
+`--backend=native` intentionally returns `worker.backend.native_not_implemented`
+until the real OCCT implementation is available.
+
+This CLI is only a protocol and integration aid. It does not generate
+OpenCascade B-Rep yet, and it must not become the editable geometry source.
 
 ## Worker process client
 

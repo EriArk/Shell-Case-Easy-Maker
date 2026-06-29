@@ -70,6 +70,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M49 - Worker GeometryService Adapter
 - [x] M50 - Geometry Backend Selection
 - [x] M51 - Generated Geometry Protocol Fixtures
+- [x] M52 - Local occt_worker CLI
 
 ---
 
@@ -2115,7 +2116,7 @@ making the worker the default.
 - Launch latest Windows app normally and confirm the default project still opens
   with the mock preview and clean validation status.
 - Optional developer poke later:
-  `flutter run -d windows --dart-define=SHELL_CASE_GEOMETRY_BACKEND=worker --dart-define=SHELL_CASE_GEOMETRY_WORKER_EXECUTABLE=dart "--dart-define=SHELL_CASE_GEOMETRY_WORKER_ARGUMENTS=run|tool/mock_geometry_worker.dart"`
+  `flutter run -d windows --dart-define=SHELL_CASE_GEOMETRY_BACKEND=worker --dart-define=SHELL_CASE_GEOMETRY_WORKER_EXECUTABLE=dart "--dart-define=SHELL_CASE_GEOMETRY_WORKER_ARGUMENTS=run|occt_worker/bin/occt_worker.dart"`
 
 ---
 
@@ -2151,7 +2152,7 @@ fixtures.
 ### Tests
 - `dart run tool\generate_geometry_protocol_fixtures.dart`
 - `flutter test test\geometry_protocol_fixture_test.dart`
-- `Get-Content occt_worker\protocol\preview_request.example.json -Raw | dart run tool\mock_geometry_worker.dart`
+- `Get-Content occt_worker\protocol\preview_request.example.json -Raw | dart run occt_worker\bin\occt_worker.dart`
 - `flutter pub get`
 - `dart format --output=none --set-exit-if-changed lib test tool`
 - `flutter analyze`
@@ -2163,5 +2164,54 @@ fixtures.
   protocol reproducibility change.
 - Optional developer poke: regenerate the fixtures and run the mock worker
   smoke command above.
+- Launch latest Windows app normally and confirm the default project still opens
+  with the mock preview and clean validation status.
+
+---
+
+## M52 - Local occt_worker CLI
+
+### Goal
+Create the canonical local worker command under `occt_worker/` so worker
+process tests and developer runs target the future worker boundary instead of a
+temporary tool script.
+
+### Tasks
+- [x] Add `GeometryWorkerRuntime` for stdin/stdout worker execution.
+- [x] Add backend mode parsing with `mock` default and explicit `native` stub.
+- [x] Add `occt_worker/bin/occt_worker.dart` as the canonical local CLI.
+- [x] Keep `tool/mock_geometry_worker.dart` as a compatibility alias.
+- [x] Update worker process smoke scripts to call the canonical CLI.
+- [x] Add tests for runtime parsing, mock responses, invalid payloads, native
+      not-implemented responses, CLI argument errors, and real process-client
+      execution.
+
+### Done Criteria
+- `dart run occt_worker\bin\occt_worker.dart` reads a geometry request from
+  stdin and emits `shell_case.geometry.response` JSON.
+- The default CLI backend uses the mock geometry service until native OCCT is
+  implemented.
+- `--backend=native` returns a structured not-implemented response instead of a
+  fake success.
+- The worker process client can run the canonical CLI successfully.
+- No editable mesh, STL, B-Rep, OCCT topology IDs, or native process details
+  enter the project model.
+
+### Tests
+- `flutter test test\geometry_worker_runtime_test.dart`
+- `Get-Content occt_worker\protocol\preview_request.example.json -Raw | dart run occt_worker\bin\occt_worker.dart`
+- `dart run tool\mock_geometry_worker_client_smoke.dart`
+- `dart run tool\mock_worker_geometry_service_smoke.dart`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- No meaningful manual UI poke for this chunk; it is a worker CLI/process
+  boundary change.
+- Optional developer poke: pipe the generated fixture into
+  `dart run occt_worker\bin\occt_worker.dart` and confirm `backend` is `mock`.
 - Launch latest Windows app normally and confirm the default project still opens
   with the mock preview and clean validation status.

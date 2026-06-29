@@ -42,6 +42,106 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-29 - M52 Local occt_worker CLI
+
+### Goal
+Create the canonical local worker command under `occt_worker/` so process
+tests, smoke commands, and future worker integration target the real boundary
+path instead of a temporary tool script.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`,
+`lib/geometry/geometry_worker_protocol.dart`,
+`lib/geometry/geometry_worker_process_client.dart`,
+`lib/geometry/geometry_service.dart`, `tool/mock_geometry_worker.dart`,
+`docs/03_ARCHITECTURE_OVERVIEW.md`, `docs/04_GEOMETRY_ENGINE_OCCT.md`,
+`docs/34_FIRST_GEOMETRY_SLICE.md`, and `occt_worker/README.md`.
+
+### Changes made
+- `lib/geometry/geometry_worker_runtime.dart`:
+  - Added `GeometryWorkerRuntime`.
+  - Added backend mode parsing with `mock` default and explicit `native` stub.
+  - Added stdin/stdout runner shared by worker entrypoints.
+  - Returns structured JSON and exit code `2` for protocol/config/backend
+    errors.
+- `occt_worker/bin/occt_worker.dart`:
+  - Added the canonical local worker CLI.
+  - Reads geometry request JSON from stdin and emits geometry response JSON.
+- `tool/mock_geometry_worker.dart`:
+  - Kept as a compatibility alias over the shared local worker runtime.
+- `tool/mock_geometry_worker_client_smoke.dart` and
+  `tool/mock_worker_geometry_service_smoke.dart`:
+  - Updated process commands to use `occt_worker/bin/occt_worker.dart`.
+- `test/geometry_worker_runtime_test.dart`:
+  - Added coverage for default mock runtime behavior, backend argument parsing,
+    invalid payload responses, native not-implemented responses, invalid CLI
+    argument JSON, and real process-client execution of the canonical CLI.
+- Docs/tasks/roadmap:
+  - Recorded M52, canonical worker commands, native stub behavior, and current
+    limitations.
+
+### Tests run
+- `flutter test test\geometry_worker_runtime_test.dart`:
+  - Passed, 6 tests.
+- `Get-Content occt_worker\protocol\preview_request.example.json -Raw | dart run occt_worker\bin\occt_worker.dart`:
+  - Passed; returned `status=ok`, `backend=mock`, `featureIntents=4`, and
+    `operationCount=10`.
+- `Get-Content occt_worker\protocol\preview_request.example.json -Raw | dart run occt_worker\bin\occt_worker.dart --backend=native`:
+  - Returned expected exit code `2`, `backend=occt_worker_stub`, and
+    `worker.backend.native_not_implemented`.
+- `dart run tool\mock_geometry_worker_client_smoke.dart`:
+  - Passed through the canonical CLI.
+- `dart run tool\mock_worker_geometry_service_smoke.dart`:
+  - Passed through the canonical CLI with `responseStatus=ok`.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 157 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed; Git reported markdown line-ending normalization warnings only.
+
+### Validation
+- Geometry checked?
+  - Worker CLI/protocol boundary only. The default backend is still mock
+    geometry; native mode explicitly reports not implemented.
+- Serialization checked?
+  - Yes. CLI and process-client tests round-trip request/response JSON.
+- UI checked?
+  - Full widget suite passes; latest Windows bundle rebuilt.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: `--backend=native` is a stub and does not call OCCT yet.
+  - Severity: Expected.
+  - Next action: add the first native worker build/scaffold or OCCT-backed
+    geometry slice after checking build/distribution details.
+- Issue: Local worker CLI is Dart-only.
+  - Severity: Acceptable bridge.
+  - Next action: keep this protocol path stable while replacing the backend
+    implementation behind it.
+
+### Next step
+Commit and push M52, then continue toward the first native worker scaffold or
+rounded enclosure generation slice.
+
+### Notes for future Codex sessions
+Use `dart run occt_worker\bin\occt_worker.dart` as the canonical worker smoke.
+Keep `tool/mock_geometry_worker.dart` only for compatibility unless old docs or
+scripts still depend on it.
+
+---
+
 ## 2026-06-29 - M51 Generated geometry protocol fixtures
 
 ### Goal

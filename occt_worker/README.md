@@ -13,8 +13,9 @@ M5 adds the protocol skeleton, M47 adds a Dart-only mock protocol harness, M48
 adds the Dart-side process client, and M49 adds the worker-backed
 `GeometryService` adapter. M50 adds an explicit backend selection switch for
 development runs. M51 keeps the checked-in protocol examples generated from a
-typed Dart fixture project and the mock backend. No native executable is built
-yet.
+typed Dart fixture project and the mock backend. M52 adds
+`occt_worker/bin/occt_worker.dart` as the canonical local worker CLI. No native
+OCCT executable is built yet.
 
 Regenerate protocol fixtures:
 
@@ -29,11 +30,21 @@ fixtures, not editable project geometry and not native OCCT output.
 Smoke command:
 
 ```powershell
-Get-Content occt_worker\protocol\preview_request.example.json -Raw | dart run tool\mock_geometry_worker.dart
+Get-Content occt_worker\protocol\preview_request.example.json -Raw | dart run occt_worker\bin\occt_worker.dart
 ```
 
-The smoke harness is backed by `MockGeometryService`; it exercises request and
-response JSON only.
+The local CLI is backed by `MockGeometryService` by default; it exercises
+request and response JSON only. `tool/mock_geometry_worker.dart` remains as a
+compatibility alias.
+
+Native backend stub command:
+
+```powershell
+Get-Content occt_worker\protocol\preview_request.example.json -Raw | dart run occt_worker\bin\occt_worker.dart --backend=native
+```
+
+This currently returns a structured `worker.backend.native_not_implemented`
+error response.
 
 Process-client smoke command:
 
@@ -56,7 +67,7 @@ worker process.
 Developer app backend switch:
 
 ```powershell
-flutter run -d windows --dart-define=SHELL_CASE_GEOMETRY_BACKEND=worker --dart-define=SHELL_CASE_GEOMETRY_WORKER_EXECUTABLE=dart "--dart-define=SHELL_CASE_GEOMETRY_WORKER_ARGUMENTS=run|tool/mock_geometry_worker.dart"
+flutter run -d windows --dart-define=SHELL_CASE_GEOMETRY_BACKEND=worker --dart-define=SHELL_CASE_GEOMETRY_WORKER_EXECUTABLE=dart "--dart-define=SHELL_CASE_GEOMETRY_WORKER_ARGUMENTS=run|occt_worker/bin/occt_worker.dart"
 ```
 
 Normal app builds still default to mock geometry. The worker backend is selected

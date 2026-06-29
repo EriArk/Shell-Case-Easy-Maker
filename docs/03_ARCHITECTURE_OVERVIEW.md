@@ -159,22 +159,27 @@ mock backend output with operation-plan metrics. These files are test fixtures
 for protocol development; they are not editable project state and they are not
 native OCCT B-Rep output.
 
-## Mock Worker Protocol Harness
+## Local Worker CLI
 
-`GeometryWorkerProtocolHandler` is the first stdin/stdout-style boundary for
-worker requests. It receives request JSON, validates the top-level worker
-payload, decodes a `GeometryRequest`, calls a supplied `buildGeometry`
-function, and returns response JSON.
+`GeometryWorkerProtocolHandler` is the stdin/stdout-style boundary for worker
+requests. It receives request JSON, validates the top-level worker payload,
+decodes a `GeometryRequest`, calls a supplied `buildGeometry` function, and
+returns response JSON.
 
-The current CLI harness is Dart-only:
+The canonical local worker command is Dart-only until native OCCT is wired:
 
 ```powershell
-Get-Content occt_worker\protocol\preview_request.example.json -Raw | dart run tool\mock_geometry_worker.dart
+Get-Content occt_worker\protocol\preview_request.example.json -Raw | dart run occt_worker\bin\occt_worker.dart
 ```
 
-It uses `MockGeometryService` so protocol tests and smoke checks can exercise
-the worker boundary before the native OCCT executable exists. It does not make
-generated mesh, B-Rep, STL, or topology IDs editable project state.
+It uses `GeometryWorkerRuntime`, defaults to the mock backend, and keeps
+`tool/mock_geometry_worker.dart` as a compatibility alias. Passing
+`--backend=native` returns a structured not-implemented response until the
+native OCCT backend exists.
+
+The local CLI lets protocol tests and smoke checks exercise the worker boundary
+before native OCCT is available. It does not make generated mesh, B-Rep, STL,
+or topology IDs editable project state.
 
 ## Worker Process Client
 
@@ -189,9 +194,9 @@ Current normalized failures:
 - invalid response JSON,
 - non-zero exit code without a worker error response.
 
-The client is not wired into the default app shell yet. The app still uses
-`MockGeometryService` for interactive preview until a real worker executable
-exists and the runtime switch is deliberate.
+The client is reachable through `WorkerGeometryService` and the developer
+backend selection switch. Normal app builds still use `MockGeometryService` for
+interactive preview unless the worker backend is explicitly configured.
 
 Smoke command:
 
@@ -232,7 +237,7 @@ Normal builds still resolve to `MockGeometryService`.
 Compile-time developer switch:
 
 ```powershell
-flutter run -d windows --dart-define=SHELL_CASE_GEOMETRY_BACKEND=worker --dart-define=SHELL_CASE_GEOMETRY_WORKER_EXECUTABLE=dart "--dart-define=SHELL_CASE_GEOMETRY_WORKER_ARGUMENTS=run|tool/mock_geometry_worker.dart"
+flutter run -d windows --dart-define=SHELL_CASE_GEOMETRY_BACKEND=worker --dart-define=SHELL_CASE_GEOMETRY_WORKER_EXECUTABLE=dart "--dart-define=SHELL_CASE_GEOMETRY_WORKER_ARGUMENTS=run|occt_worker/bin/occt_worker.dart"
 ```
 
 Supported values:

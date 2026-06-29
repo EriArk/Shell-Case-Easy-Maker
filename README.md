@@ -51,6 +51,12 @@ Run the desktop app locally with:
 flutter run -d windows
 ```
 
+Run the local worker protocol smoke with:
+
+```powershell
+Get-Content occt_worker\protocol\preview_request.example.json -Raw | dart run occt_worker\bin\occt_worker.dart
+```
+
 Build the latest manual Windows bundle with:
 
 ```powershell

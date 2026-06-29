@@ -8,7 +8,7 @@ Future<void> main(List<String> args) async {
   final client = GeometryWorkerProcessClient(
     command: GeometryWorkerProcessCommand(
       executable: Platform.resolvedExecutable,
-      arguments: const ['run', 'tool/mock_geometry_worker.dart'],
+      arguments: const ['run', 'occt_worker/bin/occt_worker.dart'],
       workingDirectory: Directory.current.path,
     ),
   );

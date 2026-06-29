@@ -35,19 +35,27 @@ Planned operations:
 - `export_stl`,
 - `validate`.
 
-## Mock Worker Harness
+## Local Worker CLI
 
-The current Dart harness can exercise the JSON worker boundary without native
-OCCT:
+The current Dart worker CLI can exercise the JSON worker boundary without
+native OCCT:
 
 ```powershell
-Get-Content occt_worker\protocol\preview_request.example.json -Raw | dart run tool\mock_geometry_worker.dart
+Get-Content occt_worker\protocol\preview_request.example.json -Raw | dart run occt_worker\bin\occt_worker.dart
 ```
 
 `GeometryWorkerProtocolHandler` validates the top-level payload, decodes the
 request, calls a supplied build function, and emits response JSON. The harness
 uses `MockGeometryService`, so it is useful for protocol smoke tests but not a
 replacement for real B-Rep generation.
+
+`tool/mock_geometry_worker.dart` remains as a compatibility alias, but new
+worker-process tests and developer runs should target
+`occt_worker/bin/occt_worker.dart`.
+
+The CLI defaults to `--backend=mock`. Passing `--backend=native` returns a
+structured `worker.backend.native_not_implemented` response until the real OCCT
+backend exists.
 
 `GeometryWorkerProcessClient` can also exercise the same harness across a real
 process boundary:
@@ -71,7 +79,7 @@ Normal builds use mock geometry. A developer can opt into a worker command with
 `--dart-define` values, for example:
 
 ```powershell
-flutter run -d windows --dart-define=SHELL_CASE_GEOMETRY_BACKEND=worker --dart-define=SHELL_CASE_GEOMETRY_WORKER_EXECUTABLE=dart "--dart-define=SHELL_CASE_GEOMETRY_WORKER_ARGUMENTS=run|tool/mock_geometry_worker.dart"
+flutter run -d windows --dart-define=SHELL_CASE_GEOMETRY_BACKEND=worker --dart-define=SHELL_CASE_GEOMETRY_WORKER_EXECUTABLE=dart "--dart-define=SHELL_CASE_GEOMETRY_WORKER_ARGUMENTS=run|occt_worker/bin/occt_worker.dart"
 ```
 
 ## Generated Protocol Fixtures
@@ -151,10 +159,14 @@ Expected sample dimensions:
 ## Current Limitations
 
 - No native OCCT executable is built yet.
-- `tool/mock_geometry_worker.dart` is a Dart-only protocol harness backed by
-  mock geometry.
-- `tool/mock_geometry_worker_client_smoke.dart` runs that mock harness through
-  the process client, not through native OCCT.
+- `occt_worker/bin/occt_worker.dart` is a Dart-only local worker CLI backed by
+  mock geometry by default.
+- `tool/mock_geometry_worker.dart` is only a compatibility alias for the local
+  worker runtime.
+- `--backend=native` currently returns a structured not-implemented response,
+  not native OCCT output.
+- `tool/mock_geometry_worker_client_smoke.dart` runs the local worker CLI
+  through the process client, not through native OCCT.
 - `tool/mock_worker_geometry_service_smoke.dart` runs the worker-backed
   `GeometryService` adapter through the same mock worker process.
 - The normal app backend selector defaults to mock unless worker backend and
