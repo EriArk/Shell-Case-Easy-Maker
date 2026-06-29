@@ -3071,3 +3071,83 @@ component anchor mapping.
 ### Notes for future Codex sessions
 Keep validation feedback transient until the user confirms a semantic placement.
 Temporary candidate objects are fine for validation, but should not be persisted.
+
+---
+
+## 2026-06-29 - M36 Placement Dialog Viewport Candidate
+
+### Goal
+Mirror the component placement dialog candidate into the viewport while the
+dialog is open, then clear that transient preview on cancel or confirm.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `docs/31_COMMANDS_AND_UNDO.md`,
+`docs/32_USABLE_SHELL.md`, `docs/33_VIEWPORT_MVP.md`,
+`lib/ui/shell/workspace_shell.dart`, and placement widget tests.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added shell-level transient `ComponentPlacement?` candidate state for the
+    placement dialog.
+  - Seeds the candidate before the dialog opens.
+  - Updates the candidate when dialog template/X/Y/Z/side/lock values change.
+  - Reuses the existing candidate footprint painter path for dialog previews.
+  - Clears candidate state on cancel and confirm before any semantic commit.
+- `test/widget_test.dart`:
+  - Added coverage that candidate footprint appears while the dialog is open.
+  - Added coverage that the footprint clears on confirm.
+  - Added coverage that the footprint clears on cancel without committing a
+    component.
+- Docs/tasks/roadmap:
+  - Recorded M36 behavior, transient-state rules, and poke checklist.
+
+### Tests run
+- `flutter test test\widget_test.dart --plain-name "place component rail command commits through undo history"`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "place component rail command can be cancelled"`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "place component dialog validates current candidate placement"`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 115 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Mock viewport drawing only; no generated B-Rep or mesh is created.
+- Serialization checked?
+  - Not applicable; dialog candidate state is transient and not saved.
+- UI checked?
+  - Widget tests confirm candidate preview appears and clears on cancel/confirm.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: The modal dialog can visually cover part of the viewport footprint.
+  - Severity: Expected.
+  - Next action: move toward a non-modal guided placement flow when the
+    viewport interaction model is ready.
+- Issue: The candidate preview remains schematic and not collision-aware beyond
+  semantic fit checks.
+  - Severity: Expected.
+  - Next action: connect to geometry-service clearance/collision checks later.
+
+### Next step
+Commit and push M36, then continue toward guided component placement or
+component anchor mapping.
+
+### Notes for future Codex sessions
+`_placementDialogCandidate` is UI-only state. Do not serialize it, include it in
+undo history, or let it become a real placement unless the dialog returns a
+confirmed `ComponentPlacement`.

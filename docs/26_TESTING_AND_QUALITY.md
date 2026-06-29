@@ -59,6 +59,8 @@ Use deterministic test fixtures.
 - Snap placement fit feedback uses semantic validation and reports oversized
   previews before commit.
 - Component placement dialogs validate current candidate values before commit.
+- Component placement dialog viewport candidates appear while dialogs are open
+  and clear on cancel/confirm.
 - Validation status/details show warning and error messages.
 - Context popovers show correct actions.
 - Parameter knob updates model.

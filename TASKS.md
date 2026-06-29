@@ -60,6 +60,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] First executable left rail generator command.
 - [x] First executable component placement command.
 - [x] Component placement dialog live semantic fit check.
+- [x] Component placement dialog transient viewport candidate.
 - [x] First-pass component placement inspector editing.
 - [x] First-pass component placement rotation editing.
 - [x] First-pass component placement lock guard.
@@ -145,6 +146,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] First-pass transient component footprint preview from snap target.
 - [x] First-pass snap placement fit feedback.
 - [x] First-pass placement dialog fit feedback.
+- [x] First-pass placement dialog viewport candidate preview.
 - [ ] Guided component placement workflow with viewport picking.
 - [ ] Project switch centers and connector anchors to enclosure surfaces.
 

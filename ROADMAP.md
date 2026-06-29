@@ -54,6 +54,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M33 — Snap Placement Footprint Preview
 - [x] M34 — Snap Placement Fit Feedback
 - [x] M35 — Placement Dialog Live Fit Check
+- [x] M36 — Placement Dialog Viewport Candidate
 
 ---
 
@@ -1455,3 +1456,43 @@ edits template/position fields.
 - Confirm the dialog reports that the component leaves the enclosure before you
   press `Разместить`.
 - Cancel and confirm no new component was created.
+
+---
+
+## M36 — Placement Dialog Viewport Candidate
+
+### Goal
+Keep a transient viewport footprint in sync with the component placement dialog
+candidate while the dialog is open.
+
+### Tasks
+- [x] Add shell-level transient candidate placement state for the placement
+      dialog.
+- [x] Seed the candidate before opening the dialog.
+- [x] Update the candidate when dialog template/X/Y/Z/side/lock values change.
+- [x] Draw the dialog candidate footprint in the viewport.
+- [x] Clear the candidate on dialog cancel and confirm.
+- [x] Add widget coverage for confirm and cancel cleanup.
+
+### Done Criteria
+- Opening `Компоненты` shows a transient candidate footprint in the viewport.
+- Editing dialog values updates the candidate state used by the viewport.
+- Canceling the dialog removes the footprint and does not commit a component.
+- Confirming the dialog removes the transient footprint and commits a normal
+  semantic `ComponentPlacement`.
+- No preview candidate state enters undo/redo history or project JSON.
+
+### Tests
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Click `Компоненты`.
+- Confirm a translucent candidate footprint appears behind the dialog.
+- Change X/Y and confirm the dialog validation updates.
+- Click `Отмена` and confirm the footprint disappears.
+- Repeat, click `Разместить`, and confirm the transient footprint becomes a
+  normal solid component marker.

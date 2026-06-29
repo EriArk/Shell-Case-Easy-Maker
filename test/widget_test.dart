@@ -821,6 +821,10 @@ void main() {
       find.byKey(const ValueKey('place-component-confirm')),
       findsOneWidget,
     );
+    expect(
+      find.byKey(const ValueKey('mock-placement-candidate-preview')),
+      findsOneWidget,
+    );
 
     await tester.enterText(
       find.byKey(const ValueKey('place-component-x')),
@@ -832,6 +836,10 @@ void main() {
 
     expect(find.text('custom_button_board_v1_placement_2'), findsWidgets);
     expect(find.text('24 x 0 x 4 mm'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('mock-placement-candidate-preview')),
+      findsNothing,
+    );
     expect(tester.widget<IconButton>(undoButton).onPressed, isNotNull);
 
     await tester.tap(undoButton);
@@ -879,10 +887,18 @@ void main() {
 
     await tester.tap(placeButton);
     await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('mock-placement-candidate-preview')),
+      findsOneWidget,
+    );
     await tester.tap(find.byKey(const ValueKey('place-component-cancel')));
     await _pumpAsyncUi(tester);
 
     expect(find.text('custom_button_board_v1_placement_2'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('mock-placement-candidate-preview')),
+      findsNothing,
+    );
     expect(tester.widget<IconButton>(undoButton).onPressed, isNull);
   });
 

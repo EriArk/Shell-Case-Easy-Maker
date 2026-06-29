@@ -111,6 +111,8 @@ after rendering.
 The placement dialog uses the same temporary-placement validation while the user
 edits X/Y/Z/template values. Dialog validation is feedback only; undo history
 starts only when the user confirms and the semantic placement is committed.
+The shell also mirrors the dialog candidate into a transient viewport footprint;
+that candidate is cleared on cancel/confirm and does not enter undo history.
 
 The first surface-based rail command is `port.add_usb_c`. It is available only
 when the active selection is a semantic surface. The command creates a

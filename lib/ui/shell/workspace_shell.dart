@@ -47,6 +47,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
   late Future<ValidationReport> _validationFuture;
   SelectionModel _selection = const SelectionModel.workspace();
   _ActiveSnapTarget? _activeSnapTarget;
+  ComponentPlacement? _placementDialogCandidate;
   File? _currentProjectFile;
   String? _fileStatusMessage;
   late String _lastPersistedProjectFingerprint;
@@ -85,6 +86,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     setState(() {
       _selection = selection;
       _activeSnapTarget = null;
+      _placementDialogCandidate = null;
       _viewportController.setSelectedSemanticId(selection.id);
       _viewportController.setGhostPreview(_ghostPreviewFor(selection));
     });
@@ -123,7 +125,18 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
 
     setState(() {
       _activeSnapTarget = null;
+      _placementDialogCandidate = null;
       _fileStatusMessage = null;
+    });
+  }
+
+  void _setPlacementDialogCandidate(ComponentPlacement placement) {
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _placementDialogCandidate = placement;
     });
   }
 
@@ -320,6 +333,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
         _selection = selection;
       }
       _activeSnapTarget = null;
+      _placementDialogCandidate = null;
       _fileStatusMessage = null;
       _loadGeometry();
       _viewportController.setSelectedSemanticId(_selection.id);
@@ -402,21 +416,36 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
 
     final template = _project.componentTemplates.first;
     final snapTarget = _activeSnapTarget;
+    final initialPlacement = _defaultComponentPlacement(
+      id: _nextComponentPlacementId(_project, template.id),
+      templateId: template.id,
+      index: _project.componentPlacements.length,
+      snapTarget: snapTarget,
+    );
+
+    setState(() {
+      _placementDialogCandidate = initialPlacement;
+    });
+
     final placement = await showDialog<ComponentPlacement>(
       context: context,
       builder: (context) => _PlaceComponentDialog(
         project: _project,
         templates: _project.componentTemplates,
-        initialPlacement: _defaultComponentPlacement(
-          id: _nextComponentPlacementId(_project, template.id),
-          templateId: template.id,
-          index: _project.componentPlacements.length,
-          snapTarget: snapTarget,
-        ),
+        initialPlacement: initialPlacement,
+        onCandidateChanged: _setPlacementDialogCandidate,
         snapHint: snapTarget?.label,
       ),
     );
-    if (!mounted || placement == null) {
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _placementDialogCandidate = null;
+    });
+
+    if (placement == null) {
       return;
     }
 
@@ -587,6 +616,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       _undoHistory.undo();
       _selection = _validSelectionFor(_project, _selection);
       _activeSnapTarget = null;
+      _placementDialogCandidate = null;
       _fileStatusMessage = null;
       _loadGeometry();
       _viewportController.setSelectedSemanticId(_selection.id);
@@ -603,6 +633,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       _undoHistory.redo();
       _selection = _validSelectionFor(_project, _selection);
       _activeSnapTarget = null;
+      _placementDialogCandidate = null;
       _fileStatusMessage = null;
       _loadGeometry();
       _viewportController.setSelectedSemanticId(_selection.id);
@@ -794,10 +825,16 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
               surfaceLabels: surfaceLabels,
             ).describe(_selection);
             final commandContext = _selection.toCommandContext();
-            final activeSnapPlacementIssue = _activeSnapPlacementIssue(
-              _project,
-              _activeSnapTarget,
-            );
+            final activeSnapPlacementIssue = _placementDialogCandidate == null
+                ? _activeSnapPlacementIssue(_project, _activeSnapTarget)
+                : null;
+            final placementDialogCandidateIssue =
+                _placementDialogCandidate == null
+                ? null
+                : _prospectivePlacementIssue(
+                    _project,
+                    _placementDialogCandidate!,
+                  );
 
             return Column(
               children: [
@@ -833,6 +870,9 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                           selectionDetails: details,
                           activeSnapTarget: _activeSnapTarget,
                           activeSnapPlacementIssue: activeSnapPlacementIssue,
+                          placementDialogCandidate: _placementDialogCandidate,
+                          placementDialogCandidateIssue:
+                              placementDialogCandidateIssue,
                           viewportState: _viewportController.state,
                           onOrbit: _orbitViewport,
                           onPan: _panViewport,
@@ -2064,6 +2104,8 @@ class _ViewportArea extends StatefulWidget {
     required this.selectionDetails,
     required this.activeSnapTarget,
     required this.activeSnapPlacementIssue,
+    required this.placementDialogCandidate,
+    required this.placementDialogCandidateIssue,
     required this.viewportState,
     required this.onOrbit,
     required this.onPan,
@@ -2078,6 +2120,8 @@ class _ViewportArea extends StatefulWidget {
   final ProjectSelectionDetails selectionDetails;
   final _ActiveSnapTarget? activeSnapTarget;
   final ValidationMessage? activeSnapPlacementIssue;
+  final ComponentPlacement? placementDialogCandidate;
+  final ValidationMessage? placementDialogCandidateIssue;
   final ViewportState viewportState;
   final ValueChanged<Offset> onOrbit;
   final ValueChanged<Offset> onPan;
@@ -2180,6 +2224,15 @@ class _ViewportAreaState extends State<_ViewportArea> {
             widget.project,
             widget.activeSnapTarget,
           );
+          final placementDialogPreview = _mockPlacementCandidatePreview(
+            widget.project,
+            widget.placementDialogCandidate,
+          );
+          final placementCandidatePreview =
+              placementDialogPreview ?? activeSnapPlacementPreview;
+          final placementCandidateIssue =
+              widget.placementDialogCandidateIssue ??
+              widget.activeSnapPlacementIssue;
 
           return Listener(
             behavior: HitTestBehavior.opaque,
@@ -2202,9 +2255,8 @@ class _ViewportAreaState extends State<_ViewportArea> {
                         ),
                         componentPlacementPreviews:
                             _mockComponentPlacementPreviews(widget.project),
-                        activeSnapPlacementPreview: activeSnapPlacementPreview,
-                        activeSnapPlacementIssue:
-                            widget.activeSnapPlacementIssue,
+                        activeSnapPlacementPreview: placementCandidatePreview,
+                        activeSnapPlacementIssue: placementCandidateIssue,
                         workplaneOverlay: workplaneOverlay,
                         activeSnapTarget: widget.activeSnapTarget,
                         featurePreviews: _mockFeaturePreviews(widget.project),
@@ -2224,7 +2276,16 @@ class _ViewportAreaState extends State<_ViewportArea> {
                         key: ValueKey('mock-workplane-overlay-active'),
                       ),
                     ),
-                  if (activeSnapPlacementPreview != null)
+                  if (placementCandidatePreview != null)
+                    const Positioned(
+                      left: 0,
+                      top: 0,
+                      child: SizedBox(
+                        key: ValueKey('mock-placement-candidate-preview'),
+                      ),
+                    ),
+                  if (activeSnapPlacementPreview != null &&
+                      placementDialogPreview == null)
                     const Positioned(
                       left: 0,
                       top: 0,
@@ -3392,12 +3453,14 @@ class _PlaceComponentDialog extends StatefulWidget {
     required this.project,
     required this.templates,
     required this.initialPlacement,
+    required this.onCandidateChanged,
     this.snapHint,
   });
 
   final ProjectModel project;
   final List<ComponentTemplate> templates;
   final ComponentPlacement initialPlacement;
+  final ValueChanged<ComponentPlacement> onCandidateChanged;
   final String? snapHint;
 
   @override
@@ -3428,6 +3491,14 @@ class _PlaceComponentDialogState extends State<_PlaceComponentDialog> {
     _z = _positionAt(initial.position, 2);
     _mountingSide = initial.mountingSide;
     _locked = initial.locked;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.onCandidateChanged(_candidatePlacement);
+    });
+  }
+
+  void _updateCandidate(VoidCallback update) {
+    setState(update);
+    widget.onCandidateChanged(_candidatePlacement);
   }
 
   @override
@@ -3472,7 +3543,7 @@ class _PlaceComponentDialogState extends State<_PlaceComponentDialog> {
                 ],
                 onChanged: (value) {
                   if (value != null) {
-                    setState(() {
+                    _updateCandidate(() {
                       _templateId = value;
                     });
                   }
@@ -3497,7 +3568,7 @@ class _PlaceComponentDialogState extends State<_PlaceComponentDialog> {
                       key: const ValueKey('place-component-x'),
                       label: 'X',
                       value: _x,
-                      onChanged: (value) => setState(() => _x = value),
+                      onChanged: (value) => _updateCandidate(() => _x = value),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -3506,7 +3577,7 @@ class _PlaceComponentDialogState extends State<_PlaceComponentDialog> {
                       key: const ValueKey('place-component-y'),
                       label: 'Y',
                       value: _y,
-                      onChanged: (value) => setState(() => _y = value),
+                      onChanged: (value) => _updateCandidate(() => _y = value),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -3515,7 +3586,7 @@ class _PlaceComponentDialogState extends State<_PlaceComponentDialog> {
                       key: const ValueKey('place-component-z'),
                       label: 'Z',
                       value: _z,
-                      onChanged: (value) => setState(() => _z = value),
+                      onChanged: (value) => _updateCandidate(() => _z = value),
                     ),
                   ),
                 ],
@@ -3531,7 +3602,7 @@ class _PlaceComponentDialogState extends State<_PlaceComponentDialog> {
                 ],
                 onChanged: (value) {
                   if (value != null) {
-                    setState(() {
+                    _updateCandidate(() {
                       _mountingSide = value;
                     });
                   }
@@ -3552,7 +3623,8 @@ class _PlaceComponentDialogState extends State<_PlaceComponentDialog> {
               CheckboxListTile(
                 key: const ValueKey('place-component-locked'),
                 value: _locked,
-                onChanged: (value) => setState(() => _locked = value ?? false),
+                onChanged: (value) =>
+                    _updateCandidate(() => _locked = value ?? false),
                 dense: true,
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Зафиксировать'),
@@ -5480,6 +5552,13 @@ MockViewportComponentPlacementPreview? _mockActiveSnapPlacementPreview(
   _ActiveSnapTarget? snapTarget,
 ) {
   final placement = _activeSnapProspectivePlacement(project, snapTarget);
+  return _mockPlacementCandidatePreview(project, placement);
+}
+
+MockViewportComponentPlacementPreview? _mockPlacementCandidatePreview(
+  ProjectModel project,
+  ComponentPlacement? placement,
+) {
   if (placement == null) {
     return null;
   }

@@ -113,6 +113,8 @@ whole feature group, not an individual mesh primitive or flattened hole.
 - Click a visible snap hint: select/highlight that transient snap target.
 - Use the inspector snap action: open the snap-seeded component placement dialog.
 - Active snap target: show a transient component footprint preview.
+- Open placement dialog: show a transient candidate footprint until cancel or
+  confirm.
 - Click the view cube: fit view.
 - Select a supported surface or visible component placement: show the local
   workplane overlay and snap hints.
@@ -151,6 +153,8 @@ license, and packaging complexity.
   template board outlines, not generated board meshes or collision-aware
   previews. Current feedback checks the same coarse semantic placement bounds as
   committed components.
+- Dialog candidate footprints are also transient and are not included in
+  viewport hit-testing.
 - Surface feature markers are schematic rectangles, not generated cut/recess
   B-Rep.
 - Button-group marker expansion supports first-pass diamond, row, and grid
