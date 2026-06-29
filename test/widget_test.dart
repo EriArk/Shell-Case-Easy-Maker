@@ -320,6 +320,71 @@ void main() {
     expect(tester.widget<IconButton>(undoButton).onPressed, isNull);
   });
 
+  testWidgets('button group rail command commits through undo history', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const CaseMakerApp());
+    await tester.pumpAndSettle();
+
+    final buttonGroupButton = find.byKey(
+      const ValueKey('rail-command-${CommandIds.createButtonGroup}'),
+    );
+    final undoButton = find.byKey(
+      const ValueKey('toolbar-command-${CommandIds.undo}'),
+    );
+
+    expect(tester.widget<IconButton>(buttonGroupButton).onPressed, isNull);
+
+    await tester.tap(find.text('Top lid').first);
+    await tester.pumpAndSettle();
+
+    expect(tester.widget<IconButton>(buttonGroupButton).onPressed, isNotNull);
+
+    await tester.tap(buttonGroupButton);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('button-group-confirm')), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('button-group-count')),
+      '6',
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('button-group-confirm')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('button_group_1'), findsWidgets);
+    expect(find.text('6'), findsOneWidget);
+    expect(tester.widget<IconButton>(undoButton).onPressed, isNotNull);
+
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('button_group_1'), findsNothing);
+  });
+
+  testWidgets('button group rail command can be cancelled', (tester) async {
+    await tester.pumpWidget(const CaseMakerApp());
+    await tester.pumpAndSettle();
+
+    final buttonGroupButton = find.byKey(
+      const ValueKey('rail-command-${CommandIds.createButtonGroup}'),
+    );
+    final undoButton = find.byKey(
+      const ValueKey('toolbar-command-${CommandIds.undo}'),
+    );
+
+    await tester.tap(find.text('Top lid').first);
+    await tester.pumpAndSettle();
+    await tester.tap(buttonGroupButton);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('button-group-cancel')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('button_group_1'), findsNothing);
+    expect(tester.widget<IconButton>(undoButton).onPressed, isNull);
+  });
+
   testWidgets('unimplemented rail commands are visible but disabled', (
     tester,
   ) async {

@@ -73,21 +73,39 @@ The pattern system creates editable feature groups.
 
 ```json
 {
+  "id": "button_group_1",
   "type": "button_group",
+  "targetSurface": "main_enclosure.top_lid.outer",
   "pattern": {
-    "type": "diamond",
+    "layout": "diamond",
     "count": 4,
-    "spacingX": 14,
-    "spacingY": 14,
-    "itemRotation": "fixed"
+    "spacing": 14
+  },
+  "itemPrototype": {
+    "type": "button",
+    "shape": "circle",
+    "diameter": 8,
+    "mode": "plunger"
   },
   "placement": {
-    "mode": "centered",
-    "targetSurface": "top_lid",
-    "rotation": 0
+    "anchor": "center"
   }
 }
 ```
+
+## Current implementation
+
+The first wired pattern command is `button.create_group`.
+
+When a semantic surface is selected, the `Кнопки` rail button opens a compact
+dialog and creates a `FeatureGroup` with:
+- `type: button_group`,
+- editable `pattern` data for layout, count, and spacing,
+- editable `itemPrototype` data for circular button diameter and mode,
+- centered placement metadata.
+
+The group is committed as one undoable semantic object. It is not flattened
+into independent button holes.
 
 ## Per-item overrides
 

@@ -137,6 +137,24 @@ class ProjectModel {
     return copyWith(features: replaced ? nextFeatures : [...features, feature]);
   }
 
+  ProjectModel replaceFeatureGroup(FeatureGroup group) {
+    var replaced = false;
+    final nextGroups = <FeatureGroup>[];
+
+    for (final existing in featureGroups) {
+      if (existing.id == group.id) {
+        nextGroups.add(group);
+        replaced = true;
+      } else {
+        nextGroups.add(existing);
+      }
+    }
+
+    return copyWith(
+      featureGroups: replaced ? nextGroups : [...featureGroups, group],
+    );
+  }
+
   factory ProjectModel.initial() {
     return ProjectModel(
       projectName: 'Sample Button Board Case',

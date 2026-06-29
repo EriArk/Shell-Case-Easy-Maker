@@ -80,6 +80,12 @@ when the active selection is a semantic surface. The command creates a
 `usb_c_cutout` `SemanticFeature` targeted at that surface and commits it as one
 undoable project snapshot.
 
+The next surface-based rail command is `button.create_group`. It is also
+available only when a semantic surface is selected. The command creates a
+`button_group` `FeatureGroup` with editable pattern data and commits it as one
+undoable project snapshot. Repeated buttons are not flattened into independent
+features.
+
 Undo/redo now validates the active selection against the restored project. If
 the selected semantic object no longer exists after undo, the shell falls back
 to workspace selection instead of keeping a stale object ID.
@@ -99,6 +105,6 @@ visible and disabled, instead of running empty callbacks.
 - There is still no central command dispatcher; the shell has a small explicit
   action map for the first generator commands.
 - Undo history is wired for first enclosure parameter edits and first enclosure
-  creation/component placement/USB-C cutout only.
+  creation/component placement/USB-C cutout/button group only.
 - Selection and active surface context are available from the shell selection
   model, but most editing commands are not wired yet.

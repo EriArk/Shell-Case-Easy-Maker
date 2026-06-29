@@ -89,7 +89,8 @@ The top toolbar now wires project open/save commands:
 ## First Generator Command
 
 The left tool rail now executes the first semantic generator commands:
-`enclosure.create`, `component.place`, and `port.add_usb_c`.
+`enclosure.create`, `component.place`, `port.add_usb_c`, and
+`button.create_group`.
 
 Clicking `Корпус` opens a compact create-enclosure dialog using the same rounded
 enclosure parameter schema as the inspector. Confirming the dialog updates the
@@ -107,19 +108,28 @@ Clicking `Порты` is enabled only after selecting a semantic surface such as
 `usb_c_cutout` feature targeted at the selected surface, selects the new
 feature, refreshes the mock preview, and creates one undo history entry.
 
+Clicking `Кнопки` is enabled only after selecting a semantic surface such as
+`Top lid`. The command opens a compact button group dialog and appends a
+semantic `FeatureGroup` with editable layout/count/diameter/spacing data. The
+group remains one semantic object rather than becoming several unrelated
+button holes.
+
 Future rail tools remain visible to show the intended workflow, but they are
 disabled until their semantic command behavior is implemented and tested.
 
 ## Current limitations
 
 - Only the first enclosure parameter bank, first create-enclosure command,
-  first component placement command, and first USB-C cutout command edit
-  project state.
+  first component placement command, first USB-C cutout command, and first
+  button group command edit project state.
 - Viewport selection is still mocked and schematic, though direct hit testing
   already returns semantic IDs.
 - Component placement still uses typed dialog values rather than viewport
   picking or snapping.
 - USB-C placement still uses dialog values and target surface selection rather
   than face-local picking/snapping.
+- Button group placement still uses centered dialog defaults rather than
+  face-local picking/snapping or generated item previews.
 - Undo history is connected only to enclosure parameter edits, first enclosure
-  creation, first component placement, and first USB-C cutout.
+  creation, first component placement, first USB-C cutout, and first button
+  group.

@@ -48,4 +48,25 @@ void main() {
       contains('width'),
     );
   });
+
+  test('describes feature group pattern details', () {
+    final project = ProjectModel.initial().replaceFeatureGroup(
+      const FeatureGroup(
+        id: 'button_group_1',
+        type: 'button_group',
+        targetSurface: 'main_enclosure.top_lid.outer',
+        pattern: {'layout': 'diamond', 'count': 4, 'spacing': 14.0},
+        itemPrototype: {'diameter': 8.0, 'mode': 'plunger'},
+      ),
+    );
+    final details = ProjectSelectionResolver(
+      project,
+    ).describe(const SelectionModel.featureGroup('button_group_1'));
+
+    expect(details.title, 'Группа кнопок');
+    expect(
+      details.properties.map((property) => property.label),
+      containsAll(['Раскладка', 'Кол-во', 'Диаметр']),
+    );
+  });
 }

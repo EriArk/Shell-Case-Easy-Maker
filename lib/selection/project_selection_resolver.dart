@@ -223,10 +223,7 @@ class ProjectSelectionResolver {
       properties: [
         ProjectSelectionProperty(label: 'Тип', value: group.type),
         ProjectSelectionProperty(label: 'Грань', value: group.targetSurface),
-        ProjectSelectionProperty(
-          label: 'Паттерн',
-          value: '${group.pattern.length} params',
-        ),
+        ..._featureGroupProperties(group),
       ],
     );
   }
@@ -288,6 +285,36 @@ List<ProjectSelectionProperty> _parameterProperties(
       ProjectSelectionProperty(
         label: entry.key,
         value: _formatValue(entry.value),
+      ),
+  ];
+}
+
+List<ProjectSelectionProperty> _featureGroupProperties(FeatureGroup group) {
+  return [
+    if (group.pattern.containsKey('layout'))
+      ProjectSelectionProperty(
+        label: 'Раскладка',
+        value: _formatValue(group.pattern['layout']),
+      ),
+    if (group.pattern.containsKey('count'))
+      ProjectSelectionProperty(
+        label: 'Кол-во',
+        value: _formatValue(group.pattern['count']),
+      ),
+    if (group.pattern.containsKey('spacing'))
+      ProjectSelectionProperty(
+        label: 'Шаг',
+        value: _formatValue(group.pattern['spacing']),
+      ),
+    if (group.itemPrototype.containsKey('diameter'))
+      ProjectSelectionProperty(
+        label: 'Диаметр',
+        value: _formatValue(group.itemPrototype['diameter']),
+      ),
+    if (group.itemPrototype.containsKey('mode'))
+      ProjectSelectionProperty(
+        label: 'Тип кнопки',
+        value: _formatValue(group.itemPrototype['mode']),
       ),
   ];
 }

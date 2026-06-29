@@ -57,6 +57,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] First executable left rail generator command.
 - [x] First executable component placement command.
 - [x] First executable surface-based USB-C command.
+- [x] First executable surface-based button group command.
 
 ## Phase 3 — Viewport MVP
 
@@ -127,10 +128,11 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 
 ## Phase 8 — Pattern/layout system
 
-- [ ] Implement `PatternFeature`.
+- [x] First-pass editable `FeatureGroup` command.
+- [ ] Implement generated pattern item preview/positions.
 - [ ] Line pattern.
 - [ ] Grid pattern.
-- [ ] Diamond/rhombus button pattern.
+- [x] First-pass diamond/rhombus button pattern data.
 - [ ] Square pattern.
 - [ ] Circle/arc pattern.
 - [ ] Path/curve pattern.
@@ -186,6 +188,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [ ] Guide walls.
 - [ ] Travel stop.
 - [ ] Button cap texture.
+- [x] First-pass manual button group generator.
 - [ ] Pattern generation from switch groups.
 
 ## Phase 13 — Shape and aesthetics

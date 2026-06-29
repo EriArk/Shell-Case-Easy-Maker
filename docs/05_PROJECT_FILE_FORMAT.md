@@ -113,6 +113,8 @@ Current behavior:
   entries from existing component templates,
 - the `Порты` rail command can append semantic `usb_c_cutout` features targeted
   at a selected semantic surface,
+- the `Кнопки` rail command can append semantic `button_group` feature groups
+  with editable pattern and item prototype data,
 - generated previews are refreshed from the loaded semantic model.
 
 Current limitations:

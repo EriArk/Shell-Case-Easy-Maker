@@ -1229,3 +1229,84 @@ Run full validation, refresh latest Windows bundle, commit, and push M13.
 ### Notes for future Codex sessions
 Surface commands should continue to use semantic surface IDs from selection.
 Do not couple feature creation to raw triangle IDs or OCCT topology names.
+
+---
+
+## 2026-06-28 — M14 Button Group Command
+
+### Goal
+Make the next surface-based rail command create an editable semantic button
+pattern group instead of flattening repeated buttons into independent holes.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `docs/09_PATTERN_AND_LAYOUT_SYSTEM.md`,
+`docs/31_COMMANDS_AND_UNDO.md`, `docs/32_USABLE_SHELL.md`,
+`lib/project/feature_group.dart`, `lib/project/project_model.dart`,
+`ProjectSelectionResolver`, and current widget/model tests.
+
+### Changes made
+- `lib/project/project_model.dart`:
+  - Added `replaceFeatureGroup()` for stable-ID append/replace behavior.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Wired `button.create_group` from the left rail only when a semantic surface
+    is selected.
+  - Added a compact button group dialog for layout, count, diameter, spacing,
+    and mode.
+  - Creates a semantic `FeatureGroup` with editable pattern and item prototype
+    data.
+  - Commits the new group through semantic undo history and selects it.
+- `lib/selection/project_selection_resolver.dart`:
+  - Improved feature group inspector details for layout/count/spacing/diameter.
+- `test/project_model_test.dart`, `test/project_selection_resolver_test.dart`,
+  and `test/widget_test.dart`:
+  - Added coverage for feature group append/replace, inspector details,
+    disabled-without-surface, create, cancel, and undo behavior.
+- `ROADMAP.md`, `TASKS.md`, `docs/05_PROJECT_FILE_FORMAT.md`,
+  `docs/09_PATTERN_AND_LAYOUT_SYSTEM.md`, `docs/31_COMMANDS_AND_UNDO.md`, and
+  `docs/32_USABLE_SHELL.md`:
+  - Documented M14 and the first editable pattern group command.
+
+### Tests run
+- `flutter test test\project_model_test.dart test\project_selection_resolver_test.dart test\widget_test.dart`:
+  - Passed, 33 targeted tests.
+- `flutter pub get`:
+  - Passed; 4 packages still have newer incompatible versions.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 69 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed `releases/latest/windows/shell_case_easy_maker.exe`.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Mock preview refreshes after the group edit; generated geometry is still a
+    future output.
+- Serialization checked?
+  - Feature group append/replace is covered at model level.
+- UI checked?
+  - Widget tests cover selected surface enablement, create, cancel, and undo.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Button group placement is centered metadata only, without face-local
+  picking/snapping.
+  - Severity: Expected for this slice.
+  - Next action: add face-local placement controls after viewport picking is
+    ready.
+- Issue: Pattern item positions are not generated or previewed yet.
+  - Severity: Expected.
+  - Next action: add deterministic pattern expansion tests before geometry
+    generation consumes groups.
+
+### Next step
+Run full validation, refresh latest Windows bundle, commit, and push M14.
+
+### Notes for future Codex sessions
+Button groups must remain editable feature groups. Do not flatten them into
+unrelated `SemanticFeature` holes unless the user explicitly detaches a pattern.

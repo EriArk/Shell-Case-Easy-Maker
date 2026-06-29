@@ -32,6 +32,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M11 — First Generator Command
 - [x] M12 — Place Component Command
 - [x] M13 — USB-C Cutout Command
+- [x] M14 — Button Group Command
 
 ---
 
@@ -512,3 +513,48 @@ the selected enclosure face.
 - Change width to `12` and click `Добавить`.
 - Confirm `usb_c_cutout_2` appears in the feature list/inspector.
 - Click undo and confirm the new USB-C feature disappears.
+
+---
+
+## M14 — Button Group Command
+
+### Goal
+Make the second surface-based generator command create an editable button
+pattern group instead of flattening repeated buttons into independent holes.
+
+### Tasks
+- [x] Add a semantic project helper for replacing/appending feature groups by
+      stable ID.
+- [x] Wire `button.create_group` from the left rail only when a surface is
+      selected.
+- [x] Add a compact button group dialog for layout, count, diameter, spacing,
+      and button mode.
+- [x] Store the result as a `FeatureGroup` with pattern and item prototype
+      data.
+- [x] Commit the new group through semantic undo history.
+- [x] Improve feature group inspector details.
+- [x] Add unit/widget tests for append/replace, inspector details, disabled
+      state, create, cancel, and undo behavior.
+
+### Done Criteria
+- `Кнопки` stays disabled without an active surface.
+- Selecting `Top lid` enables `Кнопки`.
+- Confirming the dialog appends a semantic `FeatureGroup` with
+  `type: button_group`.
+- The group stores layout/count/spacing as editable pattern data.
+- Canceling the dialog makes no project change and creates no undo entry.
+- Undo removes the new group and leaves selection valid.
+
+### Tests
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Select `Top lid` in the project browser.
+- Click `Кнопки` in the left rail.
+- Change count to `6` and click `Создать`.
+- Confirm `button_group_1` appears in the feature list/inspector.
+- Click undo and confirm the new button group disappears.

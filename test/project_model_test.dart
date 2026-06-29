@@ -149,6 +149,34 @@ void main() {
     expect(replaced.features.last.parameters['width'], 14.0);
   });
 
+  test('project replaces or appends feature groups by stable id', () {
+    final project = ProjectModel.initial();
+    const added = FeatureGroup(
+      id: 'button_group_1',
+      type: 'button_group',
+      targetSurface: 'main_enclosure.top_lid.outer',
+      pattern: {'layout': 'diamond', 'count': 4},
+      itemPrototype: {'diameter': 8.0},
+    );
+
+    final withAdded = project.replaceFeatureGroup(added);
+    final replaced = withAdded.replaceFeatureGroup(
+      const FeatureGroup(
+        id: 'button_group_1',
+        type: 'button_group',
+        targetSurface: 'main_enclosure.top_lid.outer',
+        pattern: {'layout': 'row', 'count': 6},
+        itemPrototype: {'diameter': 9.0},
+      ),
+    );
+
+    expect(withAdded.featureGroups, hasLength(1));
+    expect(replaced.featureGroups, hasLength(1));
+    expect(replaced.featureGroups.single.pattern['layout'], 'row');
+    expect(replaced.featureGroups.single.pattern['count'], 6);
+    expect(replaced.featureGroups.single.itemPrototype['diameter'], 9.0);
+  });
+
   test('newer project versions fail explicitly', () {
     expect(
       () => ProjectModel.fromJson(const {

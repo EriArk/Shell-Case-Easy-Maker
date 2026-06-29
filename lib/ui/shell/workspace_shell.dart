@@ -182,6 +182,12 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                 _runAddUsbCCommand(_selection);
               }
             : null,
+      CommandIds.createButtonGroup =>
+        _selection.kind == SelectionKind.surface
+            ? () {
+                _runCreateButtonGroupCommand(_selection);
+              }
+            : null,
       _ => null,
     };
   }
@@ -263,6 +269,36 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       label: 'Добавить USB-C',
       nextState: _project.replaceFeature(feature),
       selection: SelectionModel.feature(feature.id),
+    );
+  }
+
+  Future<void> _runCreateButtonGroupCommand(
+    SelectionModel surfaceSelection,
+  ) async {
+    final targetSurfaceId = surfaceSelection.id;
+    if (surfaceSelection.kind != SelectionKind.surface ||
+        targetSurfaceId == null) {
+      return;
+    }
+
+    final group = await showDialog<FeatureGroup>(
+      context: context,
+      builder: (context) => _ButtonGroupDialog(
+        initialGroup: _defaultButtonGroup(
+          id: _nextFeatureGroupId(_project, 'button_group'),
+          targetSurfaceId: targetSurfaceId,
+        ),
+      ),
+    );
+    if (!mounted || group == null) {
+      return;
+    }
+
+    _commitProjectEdit(
+      id: CommandIds.createButtonGroup,
+      label: 'Создать группу кнопок',
+      nextState: _project.replaceFeatureGroup(group),
+      selection: SelectionModel.featureGroup(group.id),
     );
   }
 
@@ -663,6 +699,39 @@ String _nextFeatureId(ProjectModel project, String type) {
   while (true) {
     final candidate = '${safeType}_$index';
     final exists = project.features.any((feature) => feature.id == candidate);
+    if (!exists) {
+      return candidate;
+    }
+    index += 1;
+  }
+}
+
+FeatureGroup _defaultButtonGroup({
+  required String id,
+  required String targetSurfaceId,
+}) {
+  return FeatureGroup(
+    id: id,
+    type: 'button_group',
+    targetSurface: targetSurfaceId,
+    pattern: const {'layout': 'diamond', 'count': 4, 'spacing': 14.0},
+    itemPrototype: const {
+      'type': 'button',
+      'shape': 'circle',
+      'diameter': 8.0,
+      'mode': 'plunger',
+    },
+    placement: const {'anchor': 'center'},
+  );
+}
+
+String _nextFeatureGroupId(ProjectModel project, String type) {
+  final safeType = _safeIdPart(type);
+  var index =
+      project.featureGroups.where((group) => group.type == type).length + 1;
+  while (true) {
+    final candidate = '${safeType}_$index';
+    final exists = project.featureGroups.any((group) => group.id == candidate);
     if (!exists) {
       return candidate;
     }
@@ -2034,6 +2103,194 @@ class _UsbCCutoutDialogState extends State<_UsbCCutoutDialog> {
   }
 }
 
+class _ButtonGroupDialog extends StatefulWidget {
+  const _ButtonGroupDialog({required this.initialGroup});
+
+  final FeatureGroup initialGroup;
+
+  @override
+  State<_ButtonGroupDialog> createState() => _ButtonGroupDialogState();
+}
+
+class _ButtonGroupDialogState extends State<_ButtonGroupDialog> {
+  late String _layout;
+  late double _count;
+  late double _diameter;
+  late double _spacing;
+  late String _mode;
+
+  static const _layouts = [
+    _ButtonLayoutOption('diamond', 'Ромб'),
+    _ButtonLayoutOption('row', 'Ряд'),
+    _ButtonLayoutOption('grid', 'Сетка'),
+  ];
+
+  static const _modes = [
+    _ButtonModeOption('plunger', 'Плунжеры'),
+    _ButtonModeOption('cutout', 'Только отверстия'),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    final group = widget.initialGroup;
+    _layout = _featureString(group.pattern, 'layout', 'diamond');
+    _count = _featureDouble(group.pattern, 'count', 4);
+    _spacing = _featureDouble(group.pattern, 'spacing', 14);
+    _diameter = _featureDouble(group.itemPrototype, 'diameter', 8);
+    _mode = _featureString(group.itemPrototype, 'mode', 'plunger');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Группа кнопок'),
+      content: SizedBox(
+        width: 340,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<String>(
+                key: const ValueKey('button-group-layout'),
+                initialValue: _layout,
+                isExpanded: true,
+                items: [
+                  for (final layout in _layouts)
+                    DropdownMenuItem(
+                      value: layout.id,
+                      child: Text(layout.label),
+                    ),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _layout = value;
+                    });
+                  }
+                },
+                decoration: InputDecoration(
+                  labelText: 'Раскладка',
+                  isDense: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 9,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: _DialogNumberField(
+                      key: const ValueKey('button-group-count'),
+                      label: 'Кол-во',
+                      value: _count,
+                      suffixText: null,
+                      onChanged: (value) => setState(() => _count = value),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _DialogNumberField(
+                      key: const ValueKey('button-group-diameter'),
+                      label: 'Диаметр',
+                      value: _diameter,
+                      onChanged: (value) => setState(() => _diameter = value),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              _DialogNumberField(
+                key: const ValueKey('button-group-spacing'),
+                label: 'Шаг',
+                value: _spacing,
+                onChanged: (value) => setState(() => _spacing = value),
+              ),
+              const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                key: const ValueKey('button-group-mode'),
+                initialValue: _mode,
+                isExpanded: true,
+                items: [
+                  for (final mode in _modes)
+                    DropdownMenuItem(value: mode.id, child: Text(mode.label)),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _mode = value;
+                    });
+                  }
+                },
+                decoration: InputDecoration(
+                  labelText: 'Тип',
+                  isDense: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 9,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          key: const ValueKey('button-group-cancel'),
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Отмена'),
+        ),
+        FilledButton(
+          key: const ValueKey('button-group-confirm'),
+          onPressed: () => Navigator.of(context).pop(
+            FeatureGroup(
+              id: widget.initialGroup.id,
+              type: widget.initialGroup.type,
+              targetSurface: widget.initialGroup.targetSurface,
+              pattern: {
+                'layout': _layout,
+                'count': _clampDouble(_count, 1, 16).round(),
+                'spacing': _clampDouble(_spacing, 4, 60),
+              },
+              itemPrototype: {
+                'type': 'button',
+                'shape': 'circle',
+                'diameter': _clampDouble(_diameter, 2, 30),
+                'mode': _mode,
+              },
+              placement: widget.initialGroup.placement,
+            ),
+          ),
+          child: const Text('Создать'),
+        ),
+      ],
+    );
+  }
+}
+
+class _ButtonLayoutOption {
+  const _ButtonLayoutOption(this.id, this.label);
+
+  final String id;
+  final String label;
+}
+
+class _ButtonModeOption {
+  const _ButtonModeOption(this.id, this.label);
+
+  final String id;
+  final String label;
+}
+
 class _ClearanceProfileOption {
   const _ClearanceProfileOption(this.id, this.label);
 
@@ -2054,11 +2311,13 @@ class _DialogNumberField extends StatelessWidget {
     required this.label,
     required this.value,
     required this.onChanged,
+    this.suffixText = 'mm',
   });
 
   final String label;
   final double value;
   final ValueChanged<double> onChanged;
+  final String? suffixText;
 
   @override
   Widget build(BuildContext context) {
@@ -2074,7 +2333,7 @@ class _DialogNumberField extends StatelessWidget {
       },
       decoration: InputDecoration(
         labelText: label,
-        suffixText: 'mm',
+        suffixText: suffixText,
         isDense: true,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
         contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
