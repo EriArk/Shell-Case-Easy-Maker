@@ -153,7 +153,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/build_latest_windows.p
 
 That form copies the native worker bundle to
 `releases/latest/windows/occt_worker/native` and builds the app with
-`SHELL_CASE_GEOMETRY_BACKEND=native_occt`.
+`SHELL_CASE_GEOMETRY_BACKEND=native_occt`. In that build, the viewport consumes
+the worker's disposable preview mesh for the center body while keeping editing
+and selection semantic.
 
 Open the latest local build at:
 

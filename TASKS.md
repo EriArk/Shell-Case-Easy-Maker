@@ -95,6 +95,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Implement transient snap placement footprint preview.
 - [x] Implement semantic fit feedback for snap placement previews.
 - [x] Implement focus/fit view.
+- [x] Render disposable geometry preview mesh when a backend provides one.
 
 ## Phase 4 — OCCT worker MVP
 
@@ -131,6 +132,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Add native OCCT preview mesh smoke for known rounded-box dimensions.
 - [x] Add native OCCT app backend preset.
 - [x] Bundle native OCCT worker into explicit latest Windows builds.
+- [x] Feed native worker preview mesh into the Flutter viewport.
 - [x] First-pass semantic validation warnings/errors.
 - [x] First-pass component placement and keepout semantic validation.
 - [x] Rotation-aware component placement bounds validation.

@@ -2,11 +2,13 @@
 
 ## Purpose
 
-The viewport MVP adds interaction state before real OCCT preview rendering.
+The viewport MVP adds interaction state and the first generated preview mesh
+rendering path without making generated geometry editable project state.
 
-It is still a mock preview, but orbit, pan, zoom, fit, semantic hit testing, and
-ghost previews now live in a small viewport subsystem rather than inside the
-project model or geometry backend.
+Orbit, pan, zoom, fit, semantic hit testing, and ghost previews live in a small
+viewport subsystem rather than inside the project model or geometry backend.
+When `GeometryService` provides a disposable `PreviewMesh`, the shell can draw
+that faceted body preview. Selection and editing still use semantic IDs.
 
 ## Architecture
 
@@ -33,6 +35,12 @@ centers from `ViewportState`.
 - snap point hit data for the active local workplane.
 
 It does not return mesh IDs, triangle IDs, OCCT face IDs, or generated topology.
+
+`GeometryPreview.previewMesh` is an optional display-only mesh. The viewport
+painter projects its vertices with the current `ViewportState`, draws sorted
+triangles as a faceted body layer, and keeps component, feature, workplane,
+snap, ghost, and selection overlays above it. The mesh is never hit-tested as
+the editable source of truth.
 
 Component placement hit zones are now supplied as
 `MockViewportComponentPlacementPreview` values derived from semantic
@@ -135,14 +143,16 @@ feature.
 M4 intentionally keeps `CustomPaint` for the mock viewer and does not add a 3D
 package yet.
 
-The real renderer decision should wait until the preview mesh protocol is
-defined. At that point the app can compare renderer candidates against actual
-requirements: mesh throughput, semantic face mapping, desktop stability,
-license, and packaging complexity.
+The first native preview mesh slice is still rendered through `CustomPaint`.
+This is acceptable for the current deterministic rounded-enclosure sample
+(`800` vertices / `1060` triangles) and keeps packaging simple. A later renderer
+decision can compare candidates against larger mesh throughput, semantic face
+mapping, desktop stability, license, and packaging complexity.
 
 ## Current Limitations
 
-- The viewport is still a stylized 2.5D mock drawing, not generated geometry.
+- The viewport can draw a generated preview mesh body when a backend provides
+  one, but semantic overlays are still first-pass schematic affordances.
 - Hit zones are deterministic mock zones, not mesh picking.
 - Component placement previews are semantic mock rectangles, not generated
   board meshes or OCCT bodies.

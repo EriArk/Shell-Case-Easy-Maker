@@ -257,6 +257,12 @@ dart run tool\mock_geometry_worker_client_smoke.dart
 contract as the in-process mock service, but routes preview/build requests
 through `GeometryWorkerProcessClient`.
 
+`GeometryPreview` may include a disposable `PreviewMesh` returned by the worker.
+The Flutter viewport can render that mesh for visual feedback, but selection,
+commands, inspector state, undo/redo, and saved project JSON remain semantic.
+Generated preview vertices, triangle indices, B-Rep, and OCCT topology IDs are
+not editable source-of-truth data.
+
 Current split:
 - `buildGeometry(request)` goes to the worker process client.
 - `generatePreview(project)` builds a preview-mesh request and reports response

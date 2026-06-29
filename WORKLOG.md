@@ -42,6 +42,97 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-29 - M66 Native preview mesh viewport
+
+### Goal
+Render the disposable `PreviewMesh` returned by the active geometry backend in
+the Flutter viewport while keeping editing and picking semantic-first.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/geometry/geometry_service.dart`, `lib/geometry/geometry_protocol.dart`,
+`lib/ui/shell/workspace_shell.dart`, `lib/viewport/viewport_controller.dart`,
+`test/geometry_worker_service_test.dart`, `test/widget_test.dart`,
+`docs/03_ARCHITECTURE_OVERVIEW.md`, `docs/32_USABLE_SHELL.md`,
+`docs/33_VIEWPORT_MVP.md`, `docs/34_FIRST_GEOMETRY_SLICE.md`, and
+`README.md`.
+
+### Changes made
+- `lib/geometry/geometry_service.dart`:
+  - Added optional `GeometryPreview.previewMesh`.
+  - Passed worker/mock `GeometryResponse.previewMesh` through the app-facing
+    preview DTO.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Passed `previewMesh` into the viewport painter.
+  - Added a faceted preview mesh painter path with bounds fallback, simple
+    camera projection, depth sorting, and triangle shading.
+  - Kept semantic overlays and hit testing separate from generated triangles.
+  - Added a widget-test marker for active geometry preview mesh rendering.
+- Tests:
+  - Added worker service assertions that `preview.previewMesh` is preserved.
+  - Added widget coverage proving a service-provided preview mesh activates the
+    viewport mesh path.
+- Docs/tasks/roadmap:
+  - Recorded M66 and clarified that preview mesh rendering is display-only, not
+    editable project state.
+
+### Tests run
+- `flutter test test\geometry_worker_service_test.dart test\widget_test.dart --reporter compact`:
+  - Passed.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed, 183 tests.
+- `git diff --check`:
+  - Passed; Git repeated existing CRLF normalization warnings for touched docs.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed; rebuilt latest Windows app with native OCCT backend.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `Test-Path releases\latest\windows\occt_worker\native\occt_worker_native_occt.exe`:
+  - Passed.
+- `releases\latest\windows\occt_worker\native\occt_worker_native_occt.exe --capabilities`:
+  - Passed; copied worker reports `status=preview_mesh_smoke` and OCCT
+    `8.0.0`.
+
+### Validation
+- Geometry checked?
+  - The release-bundled worker can report native preview mesh capability.
+- Serialization checked?
+  - Existing protocol tests still pass, and worker service tests now prove the
+    preview mesh survives the service adapter.
+- UI checked?
+  - Widget coverage confirms the viewport consumes a service-provided preview
+    mesh. Manual poke is meaningful in the latest native build.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Viewport picking still uses deterministic semantic mock zones rather
+  than generated triangle picking.
+  - Severity: Expected for this slice.
+  - Next action: Add stable semantic face mapping before any mesh/surface
+    picking work.
+- Issue: The mesh renderer is a CPU `CustomPaint` path.
+  - Severity: Acceptable for the current 800-vertex / 1060-triangle native
+    sample.
+  - Next action: Revisit renderer options once larger generated meshes exist.
+
+### Next step
+Manual poke the latest native build, then continue toward either semantic face
+mapping or the next real geometry generation slice.
+
+### Notes for future Codex sessions
+The viewport can now draw `GeometryPreview.previewMesh`, but generated vertices
+and triangle indices remain display-only and must not become editable state.
+
+---
+
 ## 2026-06-29 - M65 Native OCCT app backend wiring
 
 ### Goal

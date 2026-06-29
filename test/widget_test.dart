@@ -159,6 +159,21 @@ void main() {
     expect(find.byKey(overlayKey), findsOneWidget);
   });
 
+  testWidgets('viewport exposes geometry preview mesh from service', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const CaseMakerApp(geometryService: _PreviewMeshGeometryService()),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('geometry-preview-mesh-active')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('fake_worker_preview'), findsOneWidget);
+  });
+
   testWidgets('surface snap point seeds component placement dialog', (
     tester,
   ) async {
@@ -2136,5 +2151,30 @@ class _MemoryProjectFileService extends ProjectFileService {
     }
 
     return decode(source);
+  }
+}
+
+class _PreviewMeshGeometryService extends MockGeometryService {
+  const _PreviewMeshGeometryService();
+
+  @override
+  Future<GeometryPreview> generatePreview(ProjectModel project) async {
+    return GeometryPreview(
+      backendLabel: 'fake_worker_preview',
+      projectName: project.projectName,
+      surfaces: await getSelectableSurfaces(project),
+      previewMesh: const PreviewMesh(
+        units: 'mm',
+        vertices: [-10, -10, 0, 10, -10, 0, 0, 10, 0, 0, 0, 12],
+        triangles: [0, 1, 2, 0, 3, 1, 1, 3, 2, 2, 3, 0],
+        bounds: GeometryBounds(min: [-10, -10, 0], max: [10, 10, 12]),
+        surfaces: [],
+      ),
+      stats: const {
+        'source': 'fake_worker_preview',
+        'previewVertices': 4,
+        'previewTriangles': 4,
+      },
+    );
   }
 }

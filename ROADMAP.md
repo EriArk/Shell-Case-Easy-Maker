@@ -84,6 +84,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M63 - First Native Rounded Enclosure Metrics
 - [x] M64 - First Native Preview Mesh
 - [x] M65 - Native OCCT App Backend Wiring
+- [x] M66 - Native Preview Mesh Viewport
 
 ---
 
@@ -2830,3 +2831,48 @@ developer backend without hard-coding project-local absolute paths.
 - Confirm the viewport label shows `occt_worker_native_occt` instead of `mock`.
 - The drawn center model is still the existing schematic viewport until the next
   rendering slice consumes native mesh vertices.
+
+---
+
+## M66 - Native Preview Mesh Viewport
+
+### Goal
+Render the disposable `PreviewMesh` returned by `GeometryService` in the Flutter
+viewport while keeping selection and editing tied to semantic project objects.
+
+### Tasks
+- [x] Carry `PreviewMesh` through `GeometryPreview`.
+- [x] Feed preview mesh data from both mock and worker-backed geometry services.
+- [x] Add a viewport painter path for faceted preview mesh rendering.
+- [x] Keep semantic hit testing on existing stable semantic IDs, not triangle
+      IDs or OCCT topology.
+- [x] Add worker service and widget coverage for the mesh handoff.
+- [x] Update docs, roadmap, tasks, and worklog.
+
+### Done Criteria
+- Worker-backed previews expose `preview.previewMesh` to the shell.
+- The viewport draws a mesh body when preview vertices and triangles are
+  present.
+- Existing component, feature, feature-group, workplane, snap, and selection
+  overlays still render above the body preview.
+- The app does not expose generated mesh, B-Rep, triangle IDs, or OCCT topology
+  as editable state.
+
+### Tests
+- `flutter test test\geometry_worker_service_test.dart test\widget_test.dart --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open
+  `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- Confirm the viewport label shows `occt_worker_native_occt`.
+- Confirm the center body is now a faceted/rounded native preview mesh rather
+  than only the old flat schematic mock body.
+- Orbit, pan, and zoom the viewport.
+- Click semantic items/surfaces and confirm the inspector still changes as
+  before; this chunk does not add triangle picking.

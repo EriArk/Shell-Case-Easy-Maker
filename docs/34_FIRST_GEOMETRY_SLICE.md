@@ -179,6 +179,12 @@ app with that backend and bundles the native worker under
 relative to the app executable and falls back to mock if the bundled worker is
 missing.
 
+The shell now carries `GeometryResponse.previewMesh` through
+`GeometryPreview.previewMesh` and draws it as a disposable faceted viewport body
+layer. Semantic component, feature, workplane, snap, ghost, and selection
+overlays remain separate, and viewport picking still resolves semantic IDs
+rather than generated triangle IDs or OCCT topology.
+
 ## Generated Protocol Fixtures
 
 The example worker payloads are generated from typed Dart models instead of

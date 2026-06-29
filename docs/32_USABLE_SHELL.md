@@ -4,9 +4,9 @@
 
 The usable shell connects the semantic project model to compact UI context.
 
-The shell is still a mock geometry experience, but selection, inspector text,
-command availability, and project browsing are now driven by semantic IDs rather
-than widget-only state or generated mesh data.
+The shell can now display a backend-provided disposable preview mesh, but
+selection, inspector text, command availability, and project browsing are still
+driven by semantic IDs rather than widget-only state or generated mesh data.
 
 ## Selection model
 
@@ -46,9 +46,9 @@ enclosure parameter bank:
 - lid type.
 
 These controls update the semantic `ProjectModel` through
-`EnclosureParameterAdapter`. The mock viewport and mock geometry protocol then
-refresh from the updated project. The editable source remains semantic
-enclosure data, not generated mesh or preview triangles.
+`EnclosureParameterAdapter`. The viewport and geometry protocol then refresh
+from the updated project. The editable source remains semantic enclosure data,
+not generated mesh or preview triangles.
 
 Effective parameter edits are committed to `UndoHistory<ProjectModel>`. The top
 toolbar enables undo/redo when semantic snapshots are available, then refreshes

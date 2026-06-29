@@ -82,6 +82,8 @@ void main() {
       expect(preview.backendLabel, 'fake_worker');
       expect(preview.stats['source'], 'worker_process');
       expect(preview.stats['responseStatus'], 'ok');
+      expect(preview.previewMesh?.vertexCount, 3);
+      expect(preview.previewMesh?.triangleCount, 1);
       expect(preview.stats['previewVertices'], 3);
       expect(preview.stats['previewTriangles'], 1);
       expect(preview.stats['featureIntents'], 2);

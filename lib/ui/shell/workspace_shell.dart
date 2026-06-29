@@ -2592,6 +2592,7 @@ class _ViewportAreaState extends State<_ViewportArea> {
                       key: const ValueKey('mock-viewport-canvas'),
                       painter: _ViewportPainter(
                         colorScheme: theme.colorScheme,
+                        previewMesh: widget.preview?.previewMesh,
                         bodyDimensions: _mockViewportBodyDimensions(
                           widget.project,
                         ),
@@ -2610,6 +2611,14 @@ class _ViewportAreaState extends State<_ViewportArea> {
                       ),
                     ),
                   ),
+                  if (_hasPreviewMesh(widget.preview?.previewMesh))
+                    const Positioned(
+                      left: 0,
+                      top: 0,
+                      child: SizedBox(
+                        key: ValueKey('geometry-preview-mesh-active'),
+                      ),
+                    ),
                   if (workplaneOverlay != null)
                     const Positioned(
                       left: 0,
@@ -5817,6 +5826,7 @@ IconData _validationSeverityIcon(ValidationSeverity severity) {
 class _ViewportPainter extends CustomPainter {
   const _ViewportPainter({
     required this.colorScheme,
+    required this.previewMesh,
     required this.bodyDimensions,
     required this.componentPlacementPreviews,
     required this.activeSnapPlacementPreview,
@@ -5830,6 +5840,7 @@ class _ViewportPainter extends CustomPainter {
   });
 
   final ColorScheme colorScheme;
+  final PreviewMesh? previewMesh;
   final MockViewportBodyDimensions bodyDimensions;
   final List<MockViewportComponentPlacementPreview> componentPlacementPreviews;
   final MockViewportComponentPlacementPreview? activeSnapPlacementPreview;
@@ -5868,6 +5879,7 @@ class _ViewportPainter extends CustomPainter {
     final topPaint = Paint()..color = const Color(0xFF657179);
     final accentPaint = Paint()..color = colorScheme.primary;
     final portPaint = Paint()..color = colorScheme.secondary;
+    final previewMeshRendered = _paintPreviewMesh(canvas, layout);
 
     canvas.drawRRect(
       RRect.fromRectAndRadius(
@@ -5876,41 +5888,46 @@ class _ViewportPainter extends CustomPainter {
       ),
       Paint()..color = Colors.black.withValues(alpha: 0.24),
     );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        layout.bodyRect,
-        Radius.circular(layout.bodyRadius),
-      ),
-      bodyPaint,
-    );
 
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        layout.lidRect,
-        Radius.circular(layout.lidRadius),
-      ),
-      topPaint,
-    );
+    if (!previewMeshRendered) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          layout.bodyRect,
+          Radius.circular(layout.bodyRadius),
+        ),
+        bodyPaint,
+      );
+
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          layout.lidRect,
+          Radius.circular(layout.lidRadius),
+        ),
+        topPaint,
+      );
+    }
 
     _paintComponentPlacements(canvas, layout);
     _paintActiveSnapPlacementPreview(canvas, layout);
 
-    for (final center in layout.buttonCenters) {
-      canvas.drawCircle(center, layout.buttonRadius, accentPaint);
-      canvas.drawCircle(
-        center,
-        layout.buttonRadius * 0.44,
-        Paint()..color = Colors.black26,
+    if (!previewMeshRendered) {
+      for (final center in layout.buttonCenters) {
+        canvas.drawCircle(center, layout.buttonRadius, accentPaint);
+        canvas.drawCircle(
+          center,
+          layout.buttonRadius * 0.44,
+          Paint()..color = Colors.black26,
+        );
+      }
+
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          layout.portRect,
+          Radius.circular(layout.portRadius),
+        ),
+        portPaint,
       );
     }
-
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        layout.portRect,
-        Radius.circular(layout.portRadius),
-      ),
-      portPaint,
-    );
 
     _paintFeatures(canvas, layout);
     _paintFeatureGroups(canvas, layout);
@@ -6039,6 +6056,124 @@ class _ViewportPainter extends CustomPainter {
         }
       }
     }
+  }
+
+  bool _paintPreviewMesh(Canvas canvas, MockViewportLayout layout) {
+    final mesh = previewMesh;
+    if (!_hasPreviewMesh(mesh)) {
+      return false;
+    }
+
+    final bounds = _PreviewMeshBounds.fromMesh(mesh!);
+    if (!bounds.isUsable) {
+      return false;
+    }
+
+    final rawVertices = <_PreviewMeshVertex>[];
+    var minX = double.infinity;
+    var minY = double.infinity;
+    var maxX = -double.infinity;
+    var maxY = -double.infinity;
+
+    final yaw = viewportState.yawDegrees * math.pi / 180;
+    final pitch = viewportState.pitchDegrees * math.pi / 180;
+    final cosYaw = math.cos(yaw);
+    final sinYaw = math.sin(yaw);
+    final cosPitch = math.cos(pitch);
+    final sinPitch = math.sin(pitch);
+
+    for (var index = 0; index < mesh.vertexCount; index++) {
+      final base = index * 3;
+      final x = mesh.vertices[base] - bounds.centerX;
+      final y = mesh.vertices[base + 1] - bounds.centerY;
+      final z = mesh.vertices[base + 2] - bounds.centerZ;
+      final yawX = x * cosYaw - y * sinYaw;
+      final yawY = x * sinYaw + y * cosYaw;
+      final pitchY = yawY * cosPitch - z * sinPitch;
+      final depth = yawY * sinPitch + z * cosPitch;
+      final point = Offset(yawX, -pitchY);
+
+      minX = math.min(minX, point.dx);
+      minY = math.min(minY, point.dy);
+      maxX = math.max(maxX, point.dx);
+      maxY = math.max(maxY, point.dy);
+      rawVertices.add(_PreviewMeshVertex(point: point, depth: depth));
+    }
+
+    final projectedWidth = maxX - minX;
+    final projectedHeight = maxY - minY;
+    if (projectedWidth <= 0 || projectedHeight <= 0) {
+      return false;
+    }
+
+    final targetRect = layout.bodyRect.inflate(18 * layout.zoom);
+    final scale = math.min(
+      targetRect.width / projectedWidth,
+      targetRect.height / projectedHeight,
+    );
+    if (!scale.isFinite || scale <= 0) {
+      return false;
+    }
+
+    final rawCenter = Offset((minX + maxX) / 2, (minY + maxY) / 2);
+    final vertices = [
+      for (final vertex in rawVertices)
+        _PreviewMeshVertex(
+          point: targetRect.center + (vertex.point - rawCenter) * scale,
+          depth: vertex.depth,
+        ),
+    ];
+
+    final triangles = <_PreviewMeshTriangle>[];
+    for (var index = 0; index < mesh.triangleCount; index++) {
+      final base = index * 3;
+      final a = mesh.triangles[base];
+      final b = mesh.triangles[base + 1];
+      final c = mesh.triangles[base + 2];
+      if (!_validPreviewMeshIndex(a, mesh.vertexCount) ||
+          !_validPreviewMeshIndex(b, mesh.vertexCount) ||
+          !_validPreviewMeshIndex(c, mesh.vertexCount)) {
+        continue;
+      }
+
+      triangles.add(
+        _PreviewMeshTriangle(
+          a: a,
+          b: b,
+          c: c,
+          depth:
+              (vertices[a].depth + vertices[b].depth + vertices[c].depth) / 3,
+          shade: _previewTriangleShade(mesh, a, b, c),
+        ),
+      );
+    }
+
+    if (triangles.isEmpty) {
+      return false;
+    }
+
+    triangles.sort((left, right) => left.depth.compareTo(right.depth));
+
+    final fillPaint = Paint()..style = PaintingStyle.fill;
+    final strokePaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.08)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8;
+    const shadowColor = Color(0xFF334047);
+    const litColor = Color(0xFF74838A);
+
+    for (final triangle in triangles) {
+      final path = Path()
+        ..moveTo(vertices[triangle.a].point.dx, vertices[triangle.a].point.dy)
+        ..lineTo(vertices[triangle.b].point.dx, vertices[triangle.b].point.dy)
+        ..lineTo(vertices[triangle.c].point.dx, vertices[triangle.c].point.dy)
+        ..close();
+      fillPaint.color = Color.lerp(shadowColor, litColor, triangle.shade)!;
+      canvas.drawPath(path, fillPaint);
+      canvas.drawPath(path, strokePaint);
+    }
+
+    return true;
   }
 
   void _paintWorkplaneOverlay(Canvas canvas, MockViewportLayout layout) {
@@ -6306,6 +6441,7 @@ class _ViewportPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _ViewportPainter oldDelegate) {
     return oldDelegate.colorScheme != colorScheme ||
+        oldDelegate.previewMesh != previewMesh ||
         oldDelegate.bodyDimensions != bodyDimensions ||
         oldDelegate.componentPlacementPreviews != componentPlacementPreviews ||
         oldDelegate.activeSnapPlacementPreview != activeSnapPlacementPreview ||
@@ -6317,6 +6453,151 @@ class _ViewportPainter extends CustomPainter {
         oldDelegate.selection != selection ||
         oldDelegate.viewportState != viewportState;
   }
+}
+
+class _PreviewMeshBounds {
+  const _PreviewMeshBounds({
+    required this.minX,
+    required this.minY,
+    required this.minZ,
+    required this.maxX,
+    required this.maxY,
+    required this.maxZ,
+  });
+
+  factory _PreviewMeshBounds.fromMesh(PreviewMesh mesh) {
+    if (_validBoundsList(mesh.bounds.min) &&
+        _validBoundsList(mesh.bounds.max)) {
+      final declaredBounds = _PreviewMeshBounds(
+        minX: mesh.bounds.min[0],
+        minY: mesh.bounds.min[1],
+        minZ: mesh.bounds.min[2],
+        maxX: mesh.bounds.max[0],
+        maxY: mesh.bounds.max[1],
+        maxZ: mesh.bounds.max[2],
+      );
+      if (declaredBounds.isUsable) {
+        return declaredBounds;
+      }
+    }
+
+    var minX = double.infinity;
+    var minY = double.infinity;
+    var minZ = double.infinity;
+    var maxX = -double.infinity;
+    var maxY = -double.infinity;
+    var maxZ = -double.infinity;
+    for (var index = 0; index < mesh.vertexCount; index++) {
+      final base = index * 3;
+      final x = mesh.vertices[base];
+      final y = mesh.vertices[base + 1];
+      final z = mesh.vertices[base + 2];
+      minX = math.min(minX, x);
+      minY = math.min(minY, y);
+      minZ = math.min(minZ, z);
+      maxX = math.max(maxX, x);
+      maxY = math.max(maxY, y);
+      maxZ = math.max(maxZ, z);
+    }
+
+    return _PreviewMeshBounds(
+      minX: minX,
+      minY: minY,
+      minZ: minZ,
+      maxX: maxX,
+      maxY: maxY,
+      maxZ: maxZ,
+    );
+  }
+
+  final double minX;
+  final double minY;
+  final double minZ;
+  final double maxX;
+  final double maxY;
+  final double maxZ;
+
+  double get centerX => (minX + maxX) / 2;
+  double get centerY => (minY + maxY) / 2;
+  double get centerZ => (minZ + maxZ) / 2;
+
+  bool get isUsable {
+    final values = [minX, minY, minZ, maxX, maxY, maxZ];
+    return values.every((value) => value.isFinite) &&
+        maxX > minX &&
+        maxY > minY &&
+        maxZ >= minZ;
+  }
+}
+
+class _PreviewMeshVertex {
+  const _PreviewMeshVertex({required this.point, required this.depth});
+
+  final Offset point;
+  final double depth;
+}
+
+class _PreviewMeshTriangle {
+  const _PreviewMeshTriangle({
+    required this.a,
+    required this.b,
+    required this.c,
+    required this.depth,
+    required this.shade,
+  });
+
+  final int a;
+  final int b;
+  final int c;
+  final double depth;
+  final double shade;
+}
+
+bool _hasPreviewMesh(PreviewMesh? mesh) {
+  return mesh != null && mesh.vertexCount > 0 && mesh.triangleCount > 0;
+}
+
+bool _validPreviewMeshIndex(int index, int vertexCount) {
+  return index >= 0 && index < vertexCount;
+}
+
+bool _validBoundsList(List<double> values) {
+  return values.length >= 3 && values.take(3).every((value) => value.isFinite);
+}
+
+double _previewTriangleShade(PreviewMesh mesh, int a, int b, int c) {
+  final ax = _previewMeshX(mesh, a);
+  final ay = _previewMeshY(mesh, a);
+  final az = _previewMeshZ(mesh, a);
+  final ux = _previewMeshX(mesh, b) - ax;
+  final uy = _previewMeshY(mesh, b) - ay;
+  final uz = _previewMeshZ(mesh, b) - az;
+  final vx = _previewMeshX(mesh, c) - ax;
+  final vy = _previewMeshY(mesh, c) - ay;
+  final vz = _previewMeshZ(mesh, c) - az;
+  final nx = uy * vz - uz * vy;
+  final ny = uz * vx - ux * vz;
+  final nz = ux * vy - uy * vx;
+  final normalLength = math.sqrt(nx * nx + ny * ny + nz * nz);
+  if (normalLength <= 0 || !normalLength.isFinite) {
+    return 0.52;
+  }
+
+  const lightX = -0.35;
+  const lightY = -0.48;
+  const lightZ = 0.80;
+  final dot = (nx * lightX + ny * lightY + nz * lightZ) / normalLength;
+  return (0.48 + dot.abs() * 0.34).clamp(0.34, 0.86).toDouble();
+}
+
+double _previewMeshX(PreviewMesh mesh, int index) => mesh.vertices[index * 3];
+
+double _previewMeshY(PreviewMesh mesh, int index) {
+  return mesh.vertices[index * 3 + 1];
+}
+
+double _previewMeshZ(PreviewMesh mesh, int index) {
+  return mesh.vertices[index * 3 + 2];
 }
 
 void _drawRotatedRRect(

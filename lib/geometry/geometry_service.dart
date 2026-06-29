@@ -28,12 +28,14 @@ class GeometryPreview {
     required this.projectName,
     required this.surfaces,
     required this.stats,
+    this.previewMesh,
   });
 
   final String backendLabel;
   final String projectName;
   final List<SelectableSurface> surfaces;
   final Map<String, Object?> stats;
+  final PreviewMesh? previewMesh;
 }
 
 class SelectableSurface {
@@ -110,6 +112,7 @@ class MockGeometryService implements GeometryService {
       backendLabel: 'mock',
       projectName: project.projectName,
       surfaces: surfaces,
+      previewMesh: response.previewMesh,
       stats: {
         'bodies': project.bodies.length,
         'features': project.features.length,
@@ -255,6 +258,7 @@ class WorkerGeometryService implements GeometryService {
       backendLabel: response.backend,
       projectName: project.projectName,
       surfaces: surfaces,
+      previewMesh: response.previewMesh,
       stats: {
         'bodies': project.bodies.length,
         'features': project.features.length,
