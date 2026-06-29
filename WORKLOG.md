@@ -1723,3 +1723,81 @@ Run full validation, refresh latest Windows bundle, commit, and push M19.
 ### Notes for future Codex sessions
 Surface feature marker clicks must keep returning semantic feature IDs. Do not
 introduce mesh, triangle, or OCCT topology IDs into default selection state.
+
+---
+
+## 2026-06-28 - M20 Feature Parameter Inspector Editing
+
+### Goal
+Let selected semantic USB-C and glass recess features expose editable numeric
+parameter banks in the contextual inspector, using semantic project updates and
+existing undo history.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `docs/06_FEATURE_SYSTEM.md`,
+`docs/13_PANEL_RECESS_INSERT_GLASS_SYSTEM.md`, `docs/31_COMMANDS_AND_UNDO.md`,
+`docs/32_USABLE_SHELL.md`, workspace shell, and widget tests.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added feature parameter update handling for selected `SemanticFeature`
+    objects.
+  - Added first-pass inspector parameter schemas for `usb_c_cutout` and
+    `glass_recess`.
+  - Wired feature parameter submissions into semantic undo snapshots.
+  - Kept mock viewport refresh derived from semantic project data.
+- `test/widget_test.dart`:
+  - Added USB-C feature parameter edit + undo coverage.
+  - Added glass recess feature parameter edit + undo coverage.
+- `ROADMAP.md`, `TASKS.md`, `docs/06_FEATURE_SYSTEM.md`,
+  `docs/13_PANEL_RECESS_INSERT_GLASS_SYSTEM.md`,
+  `docs/31_COMMANDS_AND_UNDO.md`, and `docs/32_USABLE_SHELL.md`:
+  - Documented M20 and the semantic boundary for feature parameter edits.
+
+### Tests run
+- `flutter test test\widget_test.dart`:
+  - Passed, 25 targeted widget tests.
+- `flutter pub get`:
+  - Passed; 4 packages still have newer incompatible versions.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 80 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed `releases/latest/windows/shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Feature edits only update semantic parameters; mock markers are rebuilt
+    from the project. No generated B-Rep or mesh is created yet.
+- Serialization checked?
+  - No schema change; existing `SemanticFeature.parameters` storage is reused.
+- UI checked?
+  - Widget tests select USB-C/glass features, submit inspector values, and undo
+    the changes.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Feature inspector editing is numeric-only for now.
+  - Severity: Expected for this slice.
+  - Next action: add compact choice controls for clearance/profile parameters
+    when those controls are promoted into shared inspector widgets.
+- Issue: Feature placement is still centered/schematic.
+  - Severity: Expected.
+  - Next action: add face-local placement/snapping before real geometry consumes
+    these features.
+
+### Next step
+Commit and push M20, then continue with the next safe semantic editing chunk.
+
+### Notes for future Codex sessions
+Feature inspector edits must keep replacing semantic `SemanticFeature` data.
+Do not make generated viewport rectangles, mesh faces, or OCCT topology IDs the
+editable source of truth.

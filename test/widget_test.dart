@@ -45,6 +45,113 @@ void main() {
     expect(find.text('front_usb_c'), findsWidgets);
   });
 
+  testWidgets(
+    'selected USB-C feature inspector edits parameters through undo',
+    (tester) async {
+      await tester.pumpWidget(const CaseMakerApp());
+      await tester.pumpAndSettle();
+
+      final undoButton = find.byKey(
+        const ValueKey('toolbar-command-${CommandIds.undo}'),
+      );
+
+      await tester.scrollUntilVisible(
+        find.text('USB-C'),
+        80,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('USB-C').first);
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const ValueKey('feature-param-front_usb_c-width')),
+        '14',
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      expect(find.text('14.0'), findsOneWidget);
+      expect(tester.widget<IconButton>(undoButton).onPressed, isNotNull);
+
+      await tester.tap(undoButton);
+      await _pumpAsyncUi(tester);
+
+      expect(find.text('10.5'), findsWidgets);
+    },
+  );
+
+  testWidgets(
+    'selected glass recess feature inspector edits parameters through undo',
+    (tester) async {
+      final project = ProjectModel.initial().replaceFeature(
+        const SemanticFeature(
+          id: 'glass_recess_1',
+          type: 'glass_recess',
+          targetSurface: 'main_enclosure.top_lid.outer',
+          operation: 'recess',
+          parameters: {
+            'width': 42.0,
+            'height': 24.0,
+            'recessDepth': 1.2,
+            'ledgeWidth': 1.5,
+            'cornerRadius': 2.0,
+            'insertThickness': 1.0,
+          },
+        ),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: WorkspaceShell(
+            project: project,
+            geometryService: const MockGeometryService(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final undoButton = find.byKey(
+        const ValueKey('toolbar-command-${CommandIds.undo}'),
+      );
+
+      final canvasFinder = find.byKey(const ValueKey('mock-viewport-canvas'));
+      final canvasTopLeft = tester.getTopLeft(canvasFinder);
+      final canvasSize = tester.getSize(canvasFinder);
+      final layout = MockViewportLayout.fromSize(
+        canvasSize,
+        const ViewportState(),
+      );
+      const glassFeature = MockViewportFeaturePreview(
+        semanticId: 'glass_recess_1',
+        kind: MockViewportFeatureKind.glassRecess,
+        targetSurfaceId: 'main_enclosure.top_lid.outer',
+        width: 42,
+        height: 24,
+        cornerRadius: 2,
+      );
+
+      await tester.tapAt(
+        canvasTopLeft + layout.featureRect(glassFeature).center,
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const ValueKey('feature-param-glass_recess_1-width')),
+        '60',
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      expect(find.text('60.0'), findsOneWidget);
+      expect(tester.widget<IconButton>(undoButton).onPressed, isNotNull);
+
+      await tester.tap(undoButton);
+      await _pumpAsyncUi(tester);
+
+      expect(find.text('42.0'), findsWidgets);
+    },
+  );
+
   testWidgets('editing enclosure width updates semantic inspector', (
     tester,
   ) async {

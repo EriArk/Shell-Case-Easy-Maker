@@ -61,6 +61,16 @@ Each effective parameter submission commits a semantic project snapshot.
 Undo/redo restores the project snapshot and refreshes mock preview/validation.
 Generated preview data is not stored in the undo stack.
 
+Feature inspector edits use the same semantic snapshot path. The first supported
+feature parameter edits are:
+- `usb_c_cutout`: width, height, corner radius,
+- `glass_recess`: width, height, recess depth, ledge width, corner radius,
+  insert thickness.
+
+Submitting a changed value replaces the selected `SemanticFeature` in
+`ProjectModel.features`; submitting an unchanged value is ignored by the shared
+JSON equality guard.
+
 Project open/save commands are also wired from the toolbar. They use
 `UndoBehavior.none`: saving should not change semantic state, and opening a file
 replaces the current project with a fresh undo history for that file.
@@ -116,8 +126,8 @@ visible and disabled, instead of running empty callbacks.
 
 - There is still no central command dispatcher; the shell has a small explicit
   action map for the first generator commands.
-- Undo history is wired for first enclosure parameter edits and first enclosure
-  creation/component placement/USB-C cutout/button group/glass recess/mount
-  group only.
+- Undo history is wired for first enclosure parameter edits, first USB-C/glass
+  feature parameter edits, and first enclosure creation/component
+  placement/USB-C cutout/button group/glass recess/mount group only.
 - Selection and active surface context are available from the shell selection
   model, but most editing commands are not wired yet.

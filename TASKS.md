@@ -60,6 +60,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] First executable surface-based button group command.
 - [x] First executable surface-based glass recess command.
 - [x] First executable component-driven mount command.
+- [x] First-pass semantic feature parameter inspector editing.
 
 ## Phase 3 — Viewport MVP
 
@@ -104,6 +105,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [ ] Add generic rectangular rounded cutout.
 - [x] First-pass USB-C cutout command.
 - [x] First-pass USB-C viewport marker.
+- [x] First-pass USB-C inspector parameter editing.
 - [ ] USB-C placement polish with face-local picking/snapping.
 - [ ] Export STL/STEP.
 - [ ] Validate wall thickness and cutout placement.
@@ -183,6 +185,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 
 - [x] First-pass manual glass recess command.
 - [x] First-pass glass recess viewport marker.
+- [x] First-pass glass recess inspector parameter editing.
 - [ ] Recess from screen/window feature.
 - [ ] Free recessed panel.
 - [ ] Insert/glass definition.

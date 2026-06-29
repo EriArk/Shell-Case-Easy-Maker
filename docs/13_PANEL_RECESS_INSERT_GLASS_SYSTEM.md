@@ -49,6 +49,12 @@ The mock viewport derives a schematic selectable recess marker from the same
 semantic `glass_recess` parameters. Clicking the marker selects the semantic
 feature; it does not select a generated face or mesh primitive.
 
+When a `glass_recess` feature is selected, the contextual inspector currently
+supports numeric editing for width, height, recess depth, ledge width, corner
+radius, and insert thickness. Each submitted change updates
+`SemanticFeature.parameters` and is undoable. Clearance profile editing remains
+future inspector polish.
+
 ### From feature
 
 Select screen/window/button group and create panel around it.

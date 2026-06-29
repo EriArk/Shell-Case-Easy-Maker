@@ -143,6 +143,45 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     );
   }
 
+  void _updateFeatureParameter(
+    String featureId,
+    String parameterId,
+    Object? value,
+  ) {
+    final feature = _project.features
+        .where((feature) => feature.id == featureId)
+        .firstOrNull;
+    if (feature == null) {
+      return;
+    }
+
+    final parameter = _featureParameterSchema(
+      feature.type,
+    )?.parameters.where((parameter) => parameter.id == parameterId).firstOrNull;
+    if (parameter == null) {
+      return;
+    }
+
+    final updatedFeature = SemanticFeature(
+      id: feature.id,
+      type: feature.type,
+      targetSurface: feature.targetSurface,
+      operation: feature.operation,
+      parameters: {
+        ...feature.parameters,
+        parameterId: parameter.normalize(value),
+      },
+      source: feature.source,
+      placement: feature.placement,
+      metadata: feature.metadata,
+    );
+    _commitProjectEdit(
+      id: 'feature.parameter.$parameterId',
+      label: 'Изменить фичу',
+      nextState: _project.replaceFeature(updatedFeature),
+    );
+  }
+
   void _commitProjectEdit({
     required String id,
     required String label,
@@ -652,6 +691,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                         project: _project,
                         selection: _selection,
                         onEnclosureParameterChanged: _updateEnclosureParameter,
+                        onFeatureParameterChanged: _updateFeatureParameter,
                       ),
                     ],
                   ),
@@ -1747,6 +1787,7 @@ class _Inspector extends StatelessWidget {
     required this.project,
     required this.selection,
     required this.onEnclosureParameterChanged,
+    required this.onFeatureParameterChanged,
   });
 
   final ProjectSelectionDetails details;
@@ -1754,12 +1795,19 @@ class _Inspector extends StatelessWidget {
   final SelectionModel selection;
   final void Function(String enclosureId, String parameterId, Object? value)
   onEnclosureParameterChanged;
+  final void Function(String featureId, String parameterId, Object? value)
+  onFeatureParameterChanged;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final selectedEnclosure = selection.kind == SelectionKind.enclosure
         ? project.bodies.where((body) => body.id == selection.id).firstOrNull
+        : null;
+    final selectedFeature = selection.kind == SelectionKind.feature
+        ? project.features
+              .where((feature) => feature.id == selection.id)
+              .firstOrNull
         : null;
 
     return Container(
@@ -1816,6 +1864,20 @@ class _Inspector extends StatelessWidget {
               },
             ),
           ],
+          if (selectedFeature != null &&
+              _featureParameterSchema(selectedFeature.type) != null) ...[
+            const SizedBox(height: 14),
+            _FeatureParameterEditor(
+              feature: selectedFeature,
+              onChanged: (parameterId, value) {
+                onFeatureParameterChanged(
+                  selectedFeature.id,
+                  parameterId,
+                  value,
+                );
+              },
+            ),
+          ],
         ],
       ),
     );
@@ -1851,10 +1913,13 @@ class _EnclosureParameterEditor extends StatelessWidget {
               color: theme.colorScheme.primary,
             ),
             const SizedBox(width: 8),
-            Text(
-              schema.label,
-              style: theme.textTheme.labelLarge?.copyWith(
-                fontWeight: FontWeight.w700,
+            Expanded(
+              child: Text(
+                schema.label,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ],
@@ -1889,6 +1954,169 @@ class _EnclosureParameterEditor extends StatelessWidget {
     );
   }
 }
+
+class _FeatureParameterEditor extends StatelessWidget {
+  const _FeatureParameterEditor({
+    required this.feature,
+    required this.onChanged,
+  });
+
+  final SemanticFeature feature;
+  final void Function(String parameterId, Object? value) onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final schema = _featureParameterSchema(feature.type);
+    if (schema == null) {
+      return const SizedBox.shrink();
+    }
+
+    final values = schema.applyDefaults(feature.parameters);
+    final issues = schema.validate(values);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Divider(color: theme.dividerColor.withValues(alpha: 0.18)),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Icon(
+              Icons.tune_rounded,
+              size: 18,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                schema.label,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        for (final parameter in schema.parameters) ...[
+          _ParameterNumberField(
+            keyPrefix: 'feature-param-${feature.id}',
+            parameter: parameter,
+            value: values[parameter.id],
+            onSubmitted: (value) => onChanged(parameter.id, value),
+          ),
+          const SizedBox(height: 10),
+        ],
+        for (final issue in issues)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Text(
+              issue.message,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.error,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+ParameterSchema? _featureParameterSchema(String type) {
+  return switch (type) {
+    'usb_c_cutout' => _usbCParameterSchema,
+    'glass_recess' => _glassRecessParameterSchema,
+    _ => null,
+  };
+}
+
+const _usbCParameterSchema = ParameterSchema(
+  id: 'feature.usb_c_cutout',
+  label: 'USB-C',
+  parameters: [
+    ParameterDefinition(
+      id: 'width',
+      label: 'Ширина',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 10.5,
+      range: ParameterRange(min: 4, max: 30, step: 0.1),
+    ),
+    ParameterDefinition(
+      id: 'height',
+      label: 'Высота',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 4.2,
+      range: ParameterRange(min: 1, max: 14, step: 0.1),
+    ),
+    ParameterDefinition(
+      id: 'cornerRadius',
+      label: 'Радиус',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 1.0,
+      range: ParameterRange(min: 0, max: 6, step: 0.1),
+    ),
+  ],
+);
+
+const _glassRecessParameterSchema = ParameterSchema(
+  id: 'feature.glass_recess',
+  label: 'Посадка под стекло',
+  parameters: [
+    ParameterDefinition(
+      id: 'width',
+      label: 'Ширина',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 42.0,
+      range: ParameterRange(min: 8, max: 180, step: 0.1),
+    ),
+    ParameterDefinition(
+      id: 'height',
+      label: 'Высота',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 24.0,
+      range: ParameterRange(min: 8, max: 140, step: 0.1),
+    ),
+    ParameterDefinition(
+      id: 'recessDepth',
+      label: 'Глубина',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 1.2,
+      range: ParameterRange(min: 0.2, max: 8, step: 0.1),
+    ),
+    ParameterDefinition(
+      id: 'ledgeWidth',
+      label: 'Полка',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 1.5,
+      range: ParameterRange(min: 0.2, max: 12, step: 0.1),
+    ),
+    ParameterDefinition(
+      id: 'cornerRadius',
+      label: 'Радиус',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 2.0,
+      range: ParameterRange(min: 0, max: 24, step: 0.1),
+    ),
+    ParameterDefinition(
+      id: 'insertThickness',
+      label: 'Стекло',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 1.0,
+      range: ParameterRange(min: 0.2, max: 8, step: 0.1),
+    ),
+  ],
+);
 
 class _CreateEnclosureDialog extends StatefulWidget {
   const _CreateEnclosureDialog({required this.initialEnclosure});

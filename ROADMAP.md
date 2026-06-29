@@ -34,6 +34,11 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M13 — USB-C Cutout Command
 - [x] M14 — Button Group Command
 - [x] M15 — Glass Recess Command
+- [x] M16 — Mount Generation Command
+- [x] M17 — Feature Group Viewport Markers
+- [x] M18 — Button Group Viewport Markers
+- [x] M19 — Surface Feature Viewport Markers
+- [x] M20 — Feature Parameter Inspector Editing
 
 ---
 
@@ -770,3 +775,49 @@ real generated geometry exists.
 - Select `main_enclosure`, then click the glass marker.
 - Confirm the inspector switches back to `Посадка под стекло` /
   `glass_recess_1`.
+
+---
+
+## M20 — Feature Parameter Inspector Editing
+
+### Goal
+Let selected semantic surface features expose their first editable parameter
+bank in the contextual inspector, using semantic project updates and the
+existing undo history.
+
+### Tasks
+- [x] Add a feature parameter schema resolver for supported
+      `SemanticFeature` types.
+- [x] Add inspector number fields for `usb_c_cutout` width, height, and corner
+      radius.
+- [x] Add inspector number fields for `glass_recess` width, height, recess
+      depth, ledge width, corner radius, and insert thickness.
+- [x] Commit feature parameter edits through `UndoHistory<ProjectModel>`.
+- [x] Keep feature edits semantic only; no generated mesh, B-Rep, or topology
+      IDs enter project state.
+- [x] Add widget tests for USB-C and glass recess inspector edits plus undo.
+
+### Done Criteria
+- Selecting an existing USB-C feature shows numeric parameter controls in the
+  inspector.
+- Selecting an existing glass recess feature shows numeric parameter controls
+  in the inspector.
+- Submitting a changed value updates the semantic feature parameters and
+  refreshes the mock marker proportions.
+- Undo restores the previous parameter value.
+- Re-submitting an unchanged value does not create a semantic edit.
+
+### Tests
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Select the sample `USB-C` / `front_usb_c` feature.
+- Change its width in the inspector, press Enter, and confirm the marker width
+  changes slightly.
+- Click undo and confirm the width returns to the previous value.
+- Create or select a `glass_recess`, change width/depth in the inspector, then
+  undo and confirm the old values return.

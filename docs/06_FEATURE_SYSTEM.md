@@ -49,6 +49,17 @@ These markers are selectable affordances only. They return semantic feature IDs
 to the selection model and are not saved geometry, mesh IDs, triangle IDs, or
 OCCT topology IDs.
 
+## Current feature parameter editing
+
+The contextual inspector can edit the first numeric parameter banks for:
+- `usb_c_cutout`: width, height, corner radius,
+- `glass_recess`: width, height, recess depth, ledge width, corner radius,
+  insert thickness.
+
+These edits update the selected `SemanticFeature.parameters` map and commit a
+semantic undo snapshot. They do not edit generated geometry directly. The mock
+viewport marker is rebuilt from semantic parameters after the project changes.
+
 ## Feature groups
 
 Repeated elements must be grouped:

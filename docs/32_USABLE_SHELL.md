@@ -54,6 +54,13 @@ Effective parameter edits are committed to `UndoHistory<ProjectModel>`. The top
 toolbar enables undo/redo when semantic snapshots are available, then refreshes
 the inspector and mock preview after restoring a snapshot.
 
+When a supported semantic feature is selected, the inspector also renders a
+feature-specific numeric parameter bank. The first supported feature editors
+are `usb_c_cutout` and `glass_recess`. Submitting a value replaces the selected
+`SemanticFeature` in the semantic project model and commits the edit through the
+same undo history. The mock viewport marker is refreshed from semantic
+parameters; no generated mesh, B-Rep, or topology ID becomes editable state.
+
 ## Project browser
 
 The shell includes a compact semantic browser next to the icon rail.
@@ -136,9 +143,10 @@ disabled until their semantic command behavior is implemented and tested.
 
 ## Current limitations
 
-- Only the first enclosure parameter bank, first create-enclosure command,
-  first component placement command, first USB-C cutout command, and first
-  button group/glass recess/mount commands edit project state.
+- Only the first enclosure parameter bank, first USB-C/glass feature parameter
+  banks, first create-enclosure command, first component placement command,
+  first USB-C cutout command, and first button group/glass recess/mount
+  commands edit project state.
 - Viewport selection is still mocked and schematic, though direct hit testing
   already returns semantic IDs.
 - Component placement still uses typed dialog values rather than viewport
@@ -154,6 +162,7 @@ disabled until their semantic command behavior is implemented and tested.
 - Mount generation currently creates semantic standoff group data only; real
   B-Rep/mesh stand-off geometry is still future geometry-service work. The
   visible markers are mock viewport affordances.
-- Undo history is connected only to enclosure parameter edits, first enclosure
-  creation, first component placement, first USB-C cutout, and first button
-  group/glass recess/mount commands.
+- Undo history is connected only to enclosure parameter edits, first
+  USB-C/glass feature parameter edits, first enclosure creation, first
+  component placement, first USB-C cutout, and first button group/glass
+  recess/mount commands.
