@@ -91,9 +91,12 @@ values to the semantic `Enclosure`, and commits the result as one undoable
 project snapshot. Canceling the dialog does not create a history entry.
 
 The second wired rail command is `component.place`. It is available from
-workspace and enclosure context when at least one component template exists.
-The command opens a placement dialog, creates a semantic `ComponentPlacement`,
-and commits it as one undoable project snapshot.
+workspace, enclosure, surface, and component context when at least one component
+template exists. The command opens a placement dialog, creates a semantic
+`ComponentPlacement`, and commits it as one undoable project snapshot. When the
+shell has a transient active snap target from a clicked workplane hint, the
+dialog is seeded from that target's coordinates and mounting side; the snap
+target itself is not committed to undo history or saved project JSON.
 
 The first surface-based rail command is `port.add_usb_c`. It is available only
 when the active selection is a semantic surface. The command creates a

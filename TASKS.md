@@ -82,6 +82,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Implement local workplane overlay.
 - [x] Implement grid overlay.
 - [x] Implement basic snapping visual hints.
+- [x] Implement first-pass clickable snap hints.
 - [x] Implement focus/fit view.
 
 ## Phase 4 — OCCT worker MVP
@@ -135,6 +136,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] First-pass edit component placement from inspector.
 - [x] First-pass component placement rotation and lock behavior.
 - [x] First-pass component placement visibility behavior.
+- [x] First-pass snap-seeded component placement from viewport picking.
 - [ ] Guided component placement workflow with viewport picking.
 - [ ] Project switch centers and connector anchors to enclosure surfaces.
 

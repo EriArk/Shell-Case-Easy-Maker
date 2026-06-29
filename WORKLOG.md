@@ -2655,3 +2655,99 @@ workflow edits.
 ### Notes for future Codex sessions
 Keep workplane overlays transient. They may guide semantic edits later, but
 should not become saved sketch geometry or generated topology references.
+
+---
+
+## 2026-06-29 - M31 Snap Picking Seeds Component Placement
+
+### Goal
+Turn mock viewport snap hints into selectable transient placement seeds without
+saving snap UI state into the semantic project model.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `docs/31_COMMANDS_AND_UNDO.md`,
+`docs/32_USABLE_SHELL.md`, `docs/33_VIEWPORT_MVP.md`,
+`lib/viewport/viewport_controller.dart`, `lib/ui/shell/workspace_shell.dart`,
+and existing command/viewport/widget tests.
+
+### Changes made
+- `lib/viewport/viewport_controller.dart`:
+  - Added `ViewportHitKind.snapPoint` and snap hit metadata.
+  - Added active workplane hit-testing.
+  - Kept visible semantic objects above overlapping snap hints, while snap
+    hints still win over bare surface hits.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added transient active snap target state.
+  - Selects and highlights clicked snap hints.
+  - Seeds the component placement dialog from active snap target X/Y/Z and
+    mounting side.
+  - Shows a snap label in the placement dialog.
+  - Clears stale snap targets on normal selection, semantic edits, undo, and
+    redo.
+- `lib/commands/command_registry.dart`:
+  - Allows `component.place` from surface context for snap-driven placement
+    flow.
+- Tests:
+  - Added command availability coverage for surface-context component
+    placement.
+  - Added viewport coverage for snap-point hits and snap/object hit priority.
+  - Added widget coverage for selecting a surface snap point and opening a
+    seeded placement dialog.
+- Docs/tasks/roadmap:
+  - Recorded M31 behavior, test expectations, and the manual poke checklist.
+
+### Tests run
+- `flutter test test\command_registry_test.dart test\viewport_controller_test.dart test\widget_test.dart`:
+  - Failed once while tightening the widget test and revealed that overlapping
+    center snap hints could block selecting a restored visible placement.
+  - Passed after adjusting hit-test priority.
+- `flutter test test\widget_test.dart --plain-name "surface snap point seeds component placement dialog"`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "component placement visibility toggle hides viewport hit target"`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 111 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Mock viewport hit-testing only; no generated B-Rep or mesh is created.
+- Serialization checked?
+  - Not applicable; active snap target state is transient and not saved.
+- UI checked?
+  - Widget tests confirm snap picking seeds the placement dialog and visible
+    component placement remains selectable over overlapping snap hints.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Snap-seeded placement still opens a dialog rather than supporting
+  drag-to-place or click-to-confirm directly in the viewport.
+  - Severity: Expected.
+  - Next action: add the next guided placement slice with live preview and
+    confirm/cancel controls.
+- Issue: Snap points are still mock local workplane points, not OCCT face-local
+  coordinates.
+  - Severity: Expected.
+  - Next action: replace mock mapping through `GeometryService` when generated
+    geometry picking exists.
+
+### Next step
+Commit and push M31, then continue toward guided component placement workflow
+or component anchor/connector mapping.
+
+### Notes for future Codex sessions
+Snap target state belongs to the shell only. Keep the saved project semantic:
+component placements store normal position/rotation/mounting side data, not
+snap indices or viewport hit IDs.

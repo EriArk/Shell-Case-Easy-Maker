@@ -83,6 +83,7 @@ class CoreCommands {
       scopes: {
         CommandScope.workspace,
         CommandScope.enclosure,
+        CommandScope.surface,
         CommandScope.component,
       },
       undoBehavior: UndoBehavior.singleTransaction,

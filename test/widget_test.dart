@@ -158,6 +158,75 @@ void main() {
     expect(find.byKey(overlayKey), findsOneWidget);
   });
 
+  testWidgets('surface snap point seeds component placement dialog', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const CaseMakerApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Top lid').first);
+    await tester.pumpAndSettle();
+
+    final canvasFinder = find.byKey(const ValueKey('mock-viewport-canvas'));
+    final canvasTopLeft = tester.getTopLeft(canvasFinder);
+    final canvasSize = tester.getSize(canvasFinder);
+    final layout = MockViewportLayout.fromSize(
+      canvasSize,
+      const ViewportState(),
+    );
+    const workplane = MockViewportWorkplaneOverlay(
+      semanticId: 'main_enclosure.top_lid.outer',
+      kind: MockViewportWorkplaneKind.topLid,
+      width: 120,
+      height: 70,
+      snapPoints: [
+        Offset.zero,
+        Offset(30, 0),
+        Offset(-30, 0),
+        Offset(0, 17.5),
+        Offset(0, -17.5),
+      ],
+    );
+
+    await tester.tapAt(
+      canvasTopLeft +
+          layout.workplaneLocalToCanvas(workplane, const Offset(30, 0)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('rail-command-${CommandIds.placeComponent}')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('place-component-snap-hint')),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<TextFormField>(
+            find.descendant(
+              of: find.byKey(const ValueKey('place-component-x')),
+              matching: find.byType(TextFormField),
+            ),
+          )
+          .initialValue,
+      '30',
+    );
+    expect(
+      tester
+          .widget<TextFormField>(
+            find.descendant(
+              of: find.byKey(const ValueKey('place-component-y')),
+              matching: find.byType(TextFormField),
+            ),
+          )
+          .initialValue,
+      '0',
+    );
+  });
+
   testWidgets('selecting a feature updates contextual inspector', (
     tester,
   ) async {

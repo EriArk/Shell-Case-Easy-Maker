@@ -16,6 +16,7 @@ If it changes geometry, serialization, validation, or UI state, test it.
 - Component placement visibility serialization and mock viewport hit-test
   behavior.
 - Mock local workplane and snap-hint layout behavior.
+- Snap-point hit-test priority and snap-seeded component placement defaults.
 - Pattern positions.
 - Clearance profile calculations.
 - Command system.
@@ -50,6 +51,8 @@ Use deterministic test fixtures.
   affordances.
 - Surface/component selection wires local workplane overlays without saving UI
   state into the project.
+- Clicked snap hints seed component placement dialogs without blocking visible
+  semantic object selection.
 - Validation status/details show warning and error messages.
 - Context popovers show correct actions.
 - Parameter knob updates model.

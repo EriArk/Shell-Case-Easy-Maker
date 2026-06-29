@@ -110,6 +110,12 @@ This is not saved project data and not an advanced sketch plane. It is a mock
 interaction affordance that prepares the UI for later viewport picking and
 snapping while keeping the editable project semantic.
 
+Snap hints are now selectable. Clicking one stores a transient active snap
+target in shell state, highlights the dot, and updates the status hint. Starting
+`Компоненты` from that state opens the placement dialog with a snap label and
+seeded X/Y/Z plus mounting side. Normal selection, undo, redo, and project edits
+clear the transient snap target so stale UI state is not saved or replayed.
+
 ## Project JSON file service
 
 `ProjectFileService` provides basic JSON encode/decode and disk read/write.
@@ -155,10 +161,13 @@ semantic `ProjectModel`, selects the enclosure, refreshes the mock preview, and
 creates one undo history entry.
 
 Clicking `Компоненты` opens a compact placement dialog when the project has at
-least one `ComponentTemplate`. Confirming the dialog appends a semantic
-`ComponentPlacement`, selects it, refreshes the mock preview, and creates one
-undo history entry. If undo removes the selected placement, selection falls back
-to the workspace so the inspector does not point at a stale ID.
+least one `ComponentTemplate`. The command is available from workspace,
+enclosure, surface, and component contexts. If a snap hint was clicked first,
+the dialog shows that snap label and starts from the snap target's coordinates.
+Confirming the dialog appends a semantic `ComponentPlacement`, selects it,
+refreshes the mock preview, and creates one undo history entry. If undo removes
+the selected placement, selection falls back to the workspace so the inspector
+does not point at a stale ID.
 
 Clicking `Порты` is enabled only after selecting a semantic surface such as
 `Front wall`. The command opens a compact USB-C dialog, appends a semantic
@@ -201,9 +210,9 @@ disabled until their semantic command behavior is implemented and tested.
 - Viewport selection is still mocked and schematic, though direct hit testing
   already returns semantic IDs and local workplane overlays are available for
   supported selections.
-- Component placement still uses typed dialog values rather than viewport
-  picking or snapping, though selected placements can now be adjusted and
-  hidden/shown from the inspector.
+- Component placement supports first-pass snap-seeded dialog defaults, but it
+  does not yet have drag placement, live collision feedback, or a full
+  viewport-confirm workflow.
 - USB-C placement still uses dialog values and target surface selection rather
   than face-local picking/snapping. The visible marker is a mock viewport
   affordance.

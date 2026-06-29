@@ -45,6 +45,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
   late Future<GeometryPreview> _previewFuture;
   late Future<ValidationReport> _validationFuture;
   SelectionModel _selection = const SelectionModel.workspace();
+  _ActiveSnapTarget? _activeSnapTarget;
   File? _currentProjectFile;
   String? _fileStatusMessage;
   late String _lastPersistedProjectFingerprint;
@@ -82,6 +83,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
   void _select(SelectionModel selection) {
     setState(() {
       _selection = selection;
+      _activeSnapTarget = null;
       _viewportController.setSelectedSemanticId(selection.id);
       _viewportController.setGhostPreview(_ghostPreviewFor(selection));
     });
@@ -114,6 +116,21 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
   }
 
   void _selectViewportHit(ViewportHitResult? hit) {
+    if (hit?.kind == ViewportHitKind.snapPoint) {
+      final snapTarget = _snapTargetFromViewportHit(_project, hit!);
+      final selection = _selectionFromViewportHit(hit);
+      if (snapTarget != null && selection != null) {
+        setState(() {
+          _selection = selection;
+          _activeSnapTarget = snapTarget;
+          _fileStatusMessage = 'Точка привязки: ${snapTarget.label}';
+          _viewportController.setSelectedSemanticId(selection.id);
+          _viewportController.setGhostPreview(_ghostPreviewFor(selection));
+        });
+      }
+      return;
+    }
+
     final selection = _selectionFromViewportHit(hit);
     if (selection != null) {
       _select(selection);
@@ -290,6 +307,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       if (selection != null) {
         _selection = selection;
       }
+      _activeSnapTarget = null;
       _fileStatusMessage = null;
       _loadGeometry();
       _viewportController.setSelectedSemanticId(_selection.id);
@@ -371,6 +389,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     }
 
     final template = _project.componentTemplates.first;
+    final snapTarget = _activeSnapTarget;
     final placement = await showDialog<ComponentPlacement>(
       context: context,
       builder: (context) => _PlaceComponentDialog(
@@ -379,7 +398,9 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
           id: _nextComponentPlacementId(_project, template.id),
           templateId: template.id,
           index: _project.componentPlacements.length,
+          snapTarget: snapTarget,
         ),
+        snapHint: snapTarget?.label,
       ),
     );
     if (!mounted || placement == null) {
@@ -552,6 +573,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     setState(() {
       _undoHistory.undo();
       _selection = _validSelectionFor(_project, _selection);
+      _activeSnapTarget = null;
       _fileStatusMessage = null;
       _loadGeometry();
       _viewportController.setSelectedSemanticId(_selection.id);
@@ -567,6 +589,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     setState(() {
       _undoHistory.redo();
       _selection = _validSelectionFor(_project, _selection);
+      _activeSnapTarget = null;
       _fileStatusMessage = null;
       _loadGeometry();
       _viewportController.setSelectedSemanticId(_selection.id);
@@ -791,6 +814,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                           preview: preview,
                           selection: _selection,
                           selectionDetails: details,
+                          activeSnapTarget: _activeSnapTarget,
                           viewportState: _viewportController.state,
                           onOrbit: _orbitViewport,
                           onPan: _panViewport,
@@ -881,7 +905,148 @@ SelectionModel? _selectionFromViewportHit(ViewportHitResult? hit) {
     ),
     ViewportHitKind.feature => SelectionModel.feature(hit.semanticId),
     ViewportHitKind.featureGroup => SelectionModel.featureGroup(hit.semanticId),
+    ViewportHitKind.snapPoint => _selectionForSnapHit(hit),
   };
+}
+
+SelectionModel? _selectionForSnapHit(ViewportHitResult hit) {
+  return switch (hit.workplaneKind) {
+    MockViewportWorkplaneKind.topLid ||
+    MockViewportWorkplaneKind.frontWall => SelectionModel.surface(
+      id: hit.semanticId,
+      parentId: hit.parentId ?? 'main_enclosure',
+    ),
+    MockViewportWorkplaneKind.componentPlacement =>
+      SelectionModel.componentPlacement(hit.semanticId),
+    null => null,
+  };
+}
+
+class _ActiveSnapTarget {
+  const _ActiveSnapTarget({
+    required this.workplaneId,
+    required this.workplaneKind,
+    required this.localPosition,
+    required this.projectPosition,
+    required this.z,
+    required this.mountingSide,
+    required this.label,
+  });
+
+  final String workplaneId;
+  final MockViewportWorkplaneKind workplaneKind;
+  final Offset localPosition;
+  final Offset projectPosition;
+  final double z;
+  final String mountingSide;
+  final String label;
+
+  @override
+  bool operator ==(Object other) {
+    return other is _ActiveSnapTarget &&
+        other.workplaneId == workplaneId &&
+        other.workplaneKind == workplaneKind &&
+        other.localPosition == localPosition &&
+        other.projectPosition == projectPosition &&
+        other.z == z &&
+        other.mountingSide == mountingSide &&
+        other.label == label;
+  }
+
+  @override
+  int get hashCode {
+    return Object.hash(
+      workplaneId,
+      workplaneKind,
+      localPosition,
+      projectPosition,
+      z,
+      mountingSide,
+      label,
+    );
+  }
+}
+
+_ActiveSnapTarget? _snapTargetFromViewportHit(
+  ProjectModel project,
+  ViewportHitResult hit,
+) {
+  final kind = hit.workplaneKind;
+  final localPosition = hit.localPosition;
+  if (kind == null || localPosition == null) {
+    return null;
+  }
+
+  return switch (kind) {
+    MockViewportWorkplaneKind.topLid => _ActiveSnapTarget(
+      workplaneId: hit.semanticId,
+      workplaneKind: kind,
+      localPosition: localPosition,
+      projectPosition: localPosition,
+      z: 4,
+      mountingSide: 'top_lid_inside',
+      label: 'крышка ${_formatSnapPoint(localPosition)}',
+    ),
+    MockViewportWorkplaneKind.frontWall => _ActiveSnapTarget(
+      workplaneId: hit.semanticId,
+      workplaneKind: kind,
+      localPosition: localPosition,
+      projectPosition: localPosition,
+      z: 4,
+      mountingSide: 'free',
+      label: 'передняя стенка ${_formatSnapPoint(localPosition)}',
+    ),
+    MockViewportWorkplaneKind.componentPlacement =>
+      _componentPlacementSnapTarget(project, hit, localPosition, kind),
+  };
+}
+
+_ActiveSnapTarget? _componentPlacementSnapTarget(
+  ProjectModel project,
+  ViewportHitResult hit,
+  Offset localPosition,
+  MockViewportWorkplaneKind kind,
+) {
+  final placement = project.componentPlacements
+      .where((placement) => placement.id == hit.semanticId)
+      .firstOrNull;
+  if (placement == null) {
+    return null;
+  }
+
+  final rotated = _rotateLocalOffset(
+    localPosition,
+    _positionAt(placement.rotation, 2),
+  );
+  final base = Offset(
+    _positionAt(placement.position, 0),
+    _positionAt(placement.position, 1),
+  );
+  final projectPosition = base + rotated;
+
+  return _ActiveSnapTarget(
+    workplaneId: hit.semanticId,
+    workplaneKind: kind,
+    localPosition: localPosition,
+    projectPosition: projectPosition,
+    z: _positionAt(placement.position, 2),
+    mountingSide: placement.mountingSide,
+    label: 'плата ${_formatSnapPoint(localPosition)}',
+  );
+}
+
+Offset _rotateLocalOffset(Offset point, double degrees) {
+  final radians = degrees * math.pi / 180;
+  final cos = math.cos(radians);
+  final sin = math.sin(radians);
+  return Offset(
+    point.dx * cos - point.dy * sin,
+    point.dx * sin + point.dy * cos,
+  );
+}
+
+String _formatSnapPoint(Offset point) {
+  return '${_formatNumber(point.dx)} x ${_formatNumber(point.dy)} mm';
 }
 
 SelectionModel? _selectionForValidationTarget(
@@ -992,13 +1157,18 @@ ComponentPlacement _defaultComponentPlacement({
   required String id,
   required String templateId,
   required int index,
+  _ActiveSnapTarget? snapTarget,
 }) {
   return ComponentPlacement(
     id: id,
     templateId: templateId,
-    position: [index * 8.0, 0, 4],
+    position: [
+      snapTarget?.projectPosition.dx ?? index * 8.0,
+      snapTarget?.projectPosition.dy ?? 0,
+      snapTarget?.z ?? 4,
+    ],
     rotation: const [0, 0, 0],
-    mountingSide: 'bottom_inside',
+    mountingSide: snapTarget?.mountingSide ?? 'bottom_inside',
     locked: false,
   );
 }
@@ -1803,6 +1973,7 @@ class _ViewportArea extends StatefulWidget {
     required this.preview,
     required this.selection,
     required this.selectionDetails,
+    required this.activeSnapTarget,
     required this.viewportState,
     required this.onOrbit,
     required this.onPan,
@@ -1815,6 +1986,7 @@ class _ViewportArea extends StatefulWidget {
   final GeometryPreview? preview;
   final SelectionModel selection;
   final ProjectSelectionDetails selectionDetails;
+  final _ActiveSnapTarget? activeSnapTarget;
   final ViewportState viewportState;
   final ValueChanged<Offset> onOrbit;
   final ValueChanged<Offset> onPan;
@@ -1874,6 +2046,10 @@ class _ViewportAreaState extends State<_ViewportArea> {
           state: widget.viewportState,
           bodyDimensions: _mockViewportBodyDimensions(widget.project),
           componentPlacements: _mockComponentPlacementPreviews(widget.project),
+          workplaneOverlay: _mockWorkplaneOverlay(
+            widget.project,
+            widget.selection,
+          ),
           features: _mockFeaturePreviews(widget.project),
           featureGroups: _mockFeatureGroupPreviews(widget.project),
         ),
@@ -1932,6 +2108,7 @@ class _ViewportAreaState extends State<_ViewportArea> {
                         componentPlacementPreviews:
                             _mockComponentPlacementPreviews(widget.project),
                         workplaneOverlay: workplaneOverlay,
+                        activeSnapTarget: widget.activeSnapTarget,
                         featurePreviews: _mockFeaturePreviews(widget.project),
                         featureGroupPreviews: _mockFeatureGroupPreviews(
                           widget.project,
@@ -2975,10 +3152,12 @@ class _PlaceComponentDialog extends StatefulWidget {
   const _PlaceComponentDialog({
     required this.templates,
     required this.initialPlacement,
+    this.snapHint,
   });
 
   final List<ComponentTemplate> templates;
   final ComponentPlacement initialPlacement;
+  final String? snapHint;
 
   @override
   State<_PlaceComponentDialog> createState() => _PlaceComponentDialogState();
@@ -3020,6 +3199,19 @@ class _PlaceComponentDialogState extends State<_PlaceComponentDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (widget.snapHint != null) ...[
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Точка: ${widget.snapHint}',
+                    key: const ValueKey('place-component-snap-hint'),
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ],
               DropdownButtonFormField<String>(
                 key: const ValueKey('place-component-template'),
                 initialValue: _templateId,
@@ -3139,6 +3331,7 @@ class _PlaceComponentDialogState extends State<_PlaceComponentDialog> {
               rotation: widget.initialPlacement.rotation,
               mountingSide: _mountingSide,
               locked: _locked,
+              visible: widget.initialPlacement.visible,
             ),
           ),
           child: const Text('Разместить'),
@@ -4433,6 +4626,7 @@ class _ViewportPainter extends CustomPainter {
     required this.bodyDimensions,
     required this.componentPlacementPreviews,
     required this.workplaneOverlay,
+    required this.activeSnapTarget,
     required this.featurePreviews,
     required this.featureGroupPreviews,
     required this.selection,
@@ -4443,6 +4637,7 @@ class _ViewportPainter extends CustomPainter {
   final MockViewportBodyDimensions bodyDimensions;
   final List<MockViewportComponentPlacementPreview> componentPlacementPreviews;
   final MockViewportWorkplaneOverlay? workplaneOverlay;
+  final _ActiveSnapTarget? activeSnapTarget;
   final List<MockViewportFeaturePreview> featurePreviews;
   final List<MockViewportFeatureGroupPreview> featureGroupPreviews;
   final SelectionModel selection;
@@ -4677,6 +4872,9 @@ class _ViewportPainter extends CustomPainter {
     final snapFill = Paint()
       ..color = colorScheme.primary
       ..style = PaintingStyle.fill;
+    final activeSnapFill = Paint()
+      ..color = colorScheme.secondary
+      ..style = PaintingStyle.fill;
     final snapStroke = Paint()
       ..color = const Color(0xFF151719).withValues(alpha: 0.72)
       ..style = PaintingStyle.stroke
@@ -4701,9 +4899,21 @@ class _ViewportPainter extends CustomPainter {
     canvas.drawRRect(rrect, outline);
     canvas.restore();
 
-    for (final point in layout.workplaneSnapPoints(workplane)) {
-      canvas.drawCircle(point, 4.5 * layout.zoom, snapFill);
-      canvas.drawCircle(point, 4.5 * layout.zoom, snapStroke);
+    final snapPoints = layout.workplaneSnapPoints(workplane);
+    final localPoints = workplane.effectiveSnapPoints;
+    for (var index = 0; index < snapPoints.length; index++) {
+      final active = _snapTargetMatches(
+        activeSnapTarget,
+        workplane,
+        localPoints[index],
+      );
+      final radius = (active ? 7.0 : 4.5) * layout.zoom;
+      canvas.drawCircle(
+        snapPoints[index],
+        radius,
+        active ? activeSnapFill : snapFill,
+      );
+      canvas.drawCircle(snapPoints[index], radius, snapStroke);
     }
   }
 
@@ -4866,6 +5076,7 @@ class _ViewportPainter extends CustomPainter {
         oldDelegate.bodyDimensions != bodyDimensions ||
         oldDelegate.componentPlacementPreviews != componentPlacementPreviews ||
         oldDelegate.workplaneOverlay != workplaneOverlay ||
+        oldDelegate.activeSnapTarget != activeSnapTarget ||
         oldDelegate.featurePreviews != featurePreviews ||
         oldDelegate.featureGroupPreviews != featureGroupPreviews ||
         oldDelegate.selection != selection ||
@@ -5026,6 +5237,18 @@ List<Offset> _mockSurfaceSnapPoints(double width, double height) {
     Offset(0, height / 4),
     Offset(0, -height / 4),
   ];
+}
+
+bool _snapTargetMatches(
+  _ActiveSnapTarget? target,
+  MockViewportWorkplaneOverlay workplane,
+  Offset localPoint,
+) {
+  if (target == null || target.workplaneId != workplane.semanticId) {
+    return false;
+  }
+
+  return (target.localPosition - localPoint).distance < 0.001;
 }
 
 List<MockViewportFeaturePreview> _mockFeaturePreviews(ProjectModel project) {

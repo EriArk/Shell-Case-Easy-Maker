@@ -49,6 +49,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M28 — Component Placement Rotation + Lock Guard
 - [x] M29 — Component Placement Visibility
 - [x] M30 — Local Workplane Overlay + Snap Hints
+- [x] M31 — Snap Picking Seeds Component Placement
 
 ---
 
@@ -1239,3 +1240,52 @@ component placements before adding viewport-driven placement edits.
 - Select `button_board_placement` and confirm snap dots appear on the board.
 - Turn off `Показывать` for the placement and confirm the board overlay
   disappears.
+
+---
+
+## M31 — Snap Picking Seeds Component Placement
+
+### Goal
+Make viewport snap hints selectable and use the selected snap point as the
+starting point for semantic component placement.
+
+### Tasks
+- [x] Add `snapPoint` hit results with workplane kind, snap index, and local
+      position.
+- [x] Pass the active local workplane overlay into mock viewport hit testing.
+- [x] Store the clicked snap target as transient shell UI state, not project
+      data.
+- [x] Highlight the active snap hint in the viewport.
+- [x] Seed the `component.place` dialog from the active snap target's X/Y/Z and
+      mounting side.
+- [x] Enable `component.place` from surface context so surface snap picking can
+      flow directly into placement.
+- [x] Keep visible semantic objects above overlapping snap hints in hit-test
+      priority.
+- [x] Add command, viewport, and widget coverage.
+
+### Done Criteria
+- Clicking a snap hint selects/highlights that hint without saving snap UI state
+  into `ProjectModel`.
+- Opening `Компоненты` after picking a top-lid snap hint shows the snap label
+  and pre-fills placement coordinates from that point.
+- A visible component placement remains selectable even when it overlaps a
+  surface snap hint.
+- Undo/redo and normal selection clear stale snap targets.
+- No mesh, B-Rep, triangle ID, or OCCT topology becomes editable state.
+
+### Tests
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Select `Top lid`.
+- Click a snap dot away from the center.
+- Click `Компоненты`.
+- Confirm the dialog shows `Точка: ...` and pre-fills X/Y from the clicked dot.
+- Confirm `Разместить` creates the new component at that seeded position.
+- Click an existing visible board area and confirm the component inspector still
+  wins over an overlapping surface snap hint.

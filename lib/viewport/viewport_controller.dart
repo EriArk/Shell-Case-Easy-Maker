@@ -7,6 +7,7 @@ enum ViewportHitKind {
   componentPlacement,
   feature,
   featureGroup,
+  snapPoint,
 }
 
 enum GhostPreviewKind { usbC, buttonGroup }
@@ -158,11 +159,17 @@ class ViewportHitResult {
     required this.kind,
     required this.semanticId,
     this.parentId,
+    this.workplaneKind,
+    this.snapIndex,
+    this.localPosition,
   });
 
   final ViewportHitKind kind;
   final String semanticId;
   final String? parentId;
+  final MockViewportWorkplaneKind? workplaneKind;
+  final int? snapIndex;
+  final Offset? localPosition;
 }
 
 class MockViewportFeaturePreview {
@@ -705,6 +712,7 @@ class MockViewportHitTester {
         const MockViewportBodyDimensions(),
     List<MockViewportComponentPlacementPreview> componentPlacements =
         _defaultComponentPlacementPreviews,
+    MockViewportWorkplaneOverlay? workplaneOverlay,
     List<MockViewportFeaturePreview> features = const [],
     List<MockViewportFeatureGroupPreview> featureGroups = const [],
   }) {
@@ -764,6 +772,23 @@ class MockViewportHitTester {
           kind: ViewportHitKind.componentPlacement,
           semanticId: placement.semanticId,
         );
+      }
+    }
+
+    final workplane = workplaneOverlay;
+    if (workplane != null) {
+      final snapPoints = layout.workplaneSnapPoints(workplane);
+      final localPoints = workplane.effectiveSnapPoints;
+      for (var index = snapPoints.length - 1; index >= 0; index--) {
+        if ((position - snapPoints[index]).distance <= 10 * state.zoom) {
+          return ViewportHitResult(
+            kind: ViewportHitKind.snapPoint,
+            semanticId: workplane.semanticId,
+            workplaneKind: workplane.kind,
+            snapIndex: index,
+            localPosition: localPoints[index],
+          );
+        }
       }
     }
 

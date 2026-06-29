@@ -144,6 +144,68 @@ void main() {
     expect(points[2].dy, lessThan(points[0].dy));
   });
 
+  test('mock hit tester returns snap point hits before surface hits', () {
+    const state = ViewportState();
+    const size = Size(900, 600);
+    final layout = MockViewportLayout.fromSize(size, state);
+    const workplane = MockViewportWorkplaneOverlay(
+      semanticId: 'main_enclosure.top_lid.outer',
+      kind: MockViewportWorkplaneKind.topLid,
+      width: 120,
+      height: 70,
+      snapPoints: [Offset.zero, Offset(30, 0)],
+    );
+    const hitTester = MockViewportHitTester();
+
+    final hit = hitTester.hitTest(
+      position: layout.workplaneSnapPoints(workplane).last,
+      size: size,
+      state: state,
+      workplaneOverlay: workplane,
+    );
+
+    expect(hit?.kind, ViewportHitKind.snapPoint);
+    expect(hit?.semanticId, 'main_enclosure.top_lid.outer');
+    expect(hit?.workplaneKind, MockViewportWorkplaneKind.topLid);
+    expect(hit?.snapIndex, 1);
+    expect(hit?.localPosition, const Offset(30, 0));
+  });
+
+  test(
+    'mock hit tester keeps visible placements above overlapping snap points',
+    () {
+      const state = ViewportState();
+      const size = Size(900, 600);
+      final layout = MockViewportLayout.fromSize(size, state);
+      const workplane = MockViewportWorkplaneOverlay(
+        semanticId: 'main_enclosure.top_lid.outer',
+        kind: MockViewportWorkplaneKind.topLid,
+        width: 120,
+        height: 70,
+        snapPoints: [Offset.zero],
+      );
+      const placement = MockViewportComponentPlacementPreview(
+        semanticId: 'button_board_placement',
+        width: 48,
+        depth: 32,
+        referenceWidth: 120,
+        referenceDepth: 70,
+      );
+      const hitTester = MockViewportHitTester();
+
+      final hit = hitTester.hitTest(
+        position: layout.workplaneSnapPoints(workplane).single,
+        size: size,
+        state: state,
+        componentPlacements: const [placement],
+        workplaneOverlay: workplane,
+      );
+
+      expect(hit?.kind, ViewportHitKind.componentPlacement);
+      expect(hit?.semanticId, 'button_board_placement');
+    },
+  );
+
   test('mock workplane overlay rotates component placement snap hints', () {
     const state = ViewportState();
     const size = Size(900, 600);

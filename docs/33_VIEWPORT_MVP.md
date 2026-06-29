@@ -29,7 +29,8 @@ centers from `ViewportState`.
 - surface ID with parent object ID,
 - component placement ID,
 - feature ID,
-- feature group ID.
+- feature group ID,
+- snap point hit data for the active local workplane.
 
 It does not return mesh IDs, triangle IDs, OCCT face IDs, or generated topology.
 
@@ -48,9 +49,15 @@ not saved into `ProjectModel`. The first overlays support:
 
 The overlay draws a subtle local grid plus snap hints. Surface snap hints use
 deterministic center/quarter points. Component placement snap hints use the
-selected component template's mounting holes plus the board center. These are
-visual interaction affordances only; they do not create sketch constraints,
-change placement data, or expose generated topology.
+selected component template's mounting holes plus the board center. Snap hints
+can be clicked; the hit result carries the workplane kind, snap index, and
+local point so shell commands can seed semantic actions. Snap hints are
+transient interaction affordances only; they do not create sketch constraints,
+change placement data by themselves, or expose generated topology.
+
+Hit-test priority keeps visible semantic objects above overlapping snap hints,
+then places snap hints above bare surface selection. This lets a visible board
+remain selectable even when a surface workplane has a center snap point.
 
 ## Feature Markers
 
@@ -96,6 +103,7 @@ whole feature group, not an individual mesh primitive or flattened hole.
 - Secondary or middle drag: pan.
 - Mouse wheel: zoom.
 - Click viewport mock objects: select semantic object.
+- Click a visible snap hint: select/highlight that transient snap target.
 - Click the view cube: fit view.
 - Select a supported surface or visible component placement: show the local
   workplane overlay and snap hints.
@@ -127,8 +135,9 @@ license, and packaging complexity.
 - Hit zones are deterministic mock zones, not mesh picking.
 - Component placement previews are semantic mock rectangles, not generated
   board meshes or OCCT bodies.
-- Workplane overlays and snap hints are mock interaction affordances, not a
-  saved sketch/workplane subsystem yet.
+- Workplane overlays and snap hints are mock interaction affordances. They can
+  seed the component placement dialog, but they are not a saved sketch/workplane
+  subsystem yet.
 - Surface feature markers are schematic rectangles, not generated cut/recess
   B-Rep.
 - Button-group marker expansion supports first-pass diamond, row, and grid

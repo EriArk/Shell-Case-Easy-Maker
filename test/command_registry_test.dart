@@ -57,7 +57,7 @@ void main() {
   });
 
   test(
-    'place component command works from workspace and enclosure context',
+    'place component command works from workspace, enclosure, and surface context',
     () {
       final registry = CommandRegistry.core;
       final placeComponent = registry.byId(CommandIds.placeComponent);
@@ -71,6 +71,12 @@ void main() {
       expect(
         placeComponent.isAvailable(
           const CommandContext(activeScope: CommandScope.enclosure),
+        ),
+        isTrue,
+      );
+      expect(
+        placeComponent.isAvailable(
+          const CommandContext(activeScope: CommandScope.surface),
         ),
         isTrue,
       );
