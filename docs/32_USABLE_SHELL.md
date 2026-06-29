@@ -183,6 +183,8 @@ The selected component template's board width, height, and thickness are shown
 under the template selector. Quick position icons can move the dialog candidate
 to the center or near a side of the current enclosure inner space. These
 controls only update transient candidate state until placement is confirmed.
+The dialog also edits `Поворот Z` with 90 degree rotate icons, so rotation-aware
+fit feedback is visible before the semantic placement is committed.
 The dialog validates its current candidate placement as X/Y/Z/template values
 change and shows whether it fits before commit.
 While the dialog is open, the shell also keeps a transient candidate footprint

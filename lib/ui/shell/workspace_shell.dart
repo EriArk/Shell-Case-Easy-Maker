@@ -3472,6 +3472,7 @@ class _PlaceComponentDialogState extends State<_PlaceComponentDialog> {
   late double _x;
   late double _y;
   late double _z;
+  late double _rotationZ;
   late String _mountingSide;
   late bool _locked;
 
@@ -3489,6 +3490,7 @@ class _PlaceComponentDialogState extends State<_PlaceComponentDialog> {
     _x = _positionAt(initial.position, 0);
     _y = _positionAt(initial.position, 1);
     _z = _positionAt(initial.position, 2);
+    _rotationZ = _positionAt(initial.rotation, 2);
     _mountingSide = initial.mountingSide;
     _locked = initial.locked;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -3513,6 +3515,13 @@ class _PlaceComponentDialogState extends State<_PlaceComponentDialog> {
       if (y != null) {
         _y = y;
       }
+    });
+  }
+
+  void _rotateCandidate(double delta) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    _updateCandidate(() {
+      _rotationZ = _normalizeRotationZ(_rotationZ + delta);
     });
   }
 
@@ -3614,6 +3623,14 @@ class _PlaceComponentDialogState extends State<_PlaceComponentDialog> {
                 onSelected: _applyQuickPreset,
               ),
               const SizedBox(height: 10),
+              _PlacementRotationControl(
+                value: _rotationZ,
+                onChanged: (value) =>
+                    _updateCandidate(() => _rotationZ = value),
+                onRotateLeft: () => _rotateCandidate(-90),
+                onRotateRight: () => _rotateCandidate(90),
+              ),
+              const SizedBox(height: 10),
               DropdownButtonFormField<String>(
                 key: const ValueKey('place-component-side'),
                 initialValue: _mountingSide,
@@ -3677,7 +3694,11 @@ class _PlaceComponentDialogState extends State<_PlaceComponentDialog> {
       id: widget.initialPlacement.id,
       templateId: _templateId,
       position: [_x, _y, _z],
-      rotation: widget.initialPlacement.rotation,
+      rotation: [
+        _positionAt(widget.initialPlacement.rotation, 0),
+        _positionAt(widget.initialPlacement.rotation, 1),
+        _rotationZ,
+      ],
       mountingSide: _mountingSide,
       locked: _locked,
       visible: widget.initialPlacement.visible,
@@ -3862,6 +3883,55 @@ class _PlacementQuickActions extends StatelessWidget {
   }
 }
 
+class _PlacementRotationControl extends StatelessWidget {
+  const _PlacementRotationControl({
+    required this.value,
+    required this.onChanged,
+    required this.onRotateLeft,
+    required this.onRotateRight,
+  });
+
+  final double value;
+  final ValueChanged<double> onChanged;
+  final VoidCallback onRotateLeft;
+  final VoidCallback onRotateRight;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _DialogNumberField(
+            key: const ValueKey('place-component-rotation-z'),
+            label: 'Поворот Z',
+            value: value,
+            suffixText: 'deg',
+            onChanged: onChanged,
+          ),
+        ),
+        const SizedBox(width: 8),
+        IconButton.outlined(
+          key: const ValueKey('place-component-rotate-left'),
+          tooltip: 'Повернуть на 90 против часовой',
+          onPressed: onRotateLeft,
+          icon: const Icon(Icons.rotate_left_rounded, size: 18),
+          constraints: const BoxConstraints.tightFor(width: 36, height: 36),
+          padding: EdgeInsets.zero,
+        ),
+        const SizedBox(width: 6),
+        IconButton.outlined(
+          key: const ValueKey('place-component-rotate-right'),
+          tooltip: 'Повернуть на 90 по часовой',
+          onPressed: onRotateRight,
+          icon: const Icon(Icons.rotate_right_rounded, size: 18),
+          constraints: const BoxConstraints.tightFor(width: 36, height: 36),
+          padding: EdgeInsets.zero,
+        ),
+      ],
+    );
+  }
+}
+
 double _innerEnclosureSize(Enclosure enclosure, int index, double fallback) {
   final size = enclosure.size.length > index ? enclosure.size[index] : fallback;
   return math.max(0, size - enclosure.wallThickness * 2);
@@ -3871,6 +3941,16 @@ double _quickPlacementEdgeOffset(double innerSize, double footprintSize) {
   const inset = 8.0;
   final offset = (innerSize - footprintSize) / 2 - inset;
   return math.max(0, offset);
+}
+
+double _normalizeRotationZ(double value) {
+  var normalized = value % 360;
+  if (normalized > 180) {
+    normalized -= 360;
+  } else if (normalized <= -180) {
+    normalized += 360;
+  }
+  return normalized;
 }
 
 class _PlacementDialogCheck extends StatelessWidget {

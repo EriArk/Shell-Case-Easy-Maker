@@ -928,6 +928,60 @@ void main() {
     },
   );
 
+  testWidgets(
+    'place component dialog rotation updates candidate fit and commit',
+    (tester) async {
+      await tester.pumpWidget(const CaseMakerApp());
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('rail-command-${CommandIds.placeComponent}')),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const ValueKey('place-component-x')),
+        '36',
+      );
+      await tester.pump();
+
+      expect(find.textContaining('Компонент выходит'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const ValueKey('place-component-rotate-right')),
+      );
+      await tester.pump();
+
+      final rotationField = tester.widget<TextFormField>(
+        find.descendant(
+          of: find.byKey(const ValueKey('place-component-rotation-z')),
+          matching: find.byType(TextFormField),
+        ),
+      );
+      expect(rotationField.controller?.text, '90');
+      expect(find.textContaining('Компонент выходит'), findsNothing);
+      expect(
+        find.byKey(const ValueKey('mock-placement-candidate-preview')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('place-component-confirm')));
+      await _pumpAsyncUi(tester);
+
+      expect(find.text('custom_button_board_v1_placement_2'), findsWidgets);
+      expect(find.text('36 x 0 x 4 mm'), findsOneWidget);
+
+      final inspectorRotationField = tester.widget<TextFormField>(
+        find.byKey(
+          const ValueKey(
+            'component-placement-param-custom_button_board_v1_placement_2-rotationZ',
+          ),
+        ),
+      );
+      expect(inspectorRotationField.controller?.text, '90');
+    },
+  );
+
   testWidgets('place component rail command can be cancelled', (tester) async {
     await tester.pumpWidget(const CaseMakerApp());
     await tester.pumpAndSettle();

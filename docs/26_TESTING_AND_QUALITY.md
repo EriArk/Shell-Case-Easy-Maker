@@ -64,6 +64,8 @@ Use deterministic test fixtures.
 - Component placement dialogs show selected template board dimensions.
 - Component placement dialog quick presets update candidate coordinates and
   commit normal semantic placements.
+- Component placement dialog rotation updates candidate fit feedback and
+  committed inspector state.
 - Validation status/details show warning and error messages.
 - Context popovers show correct actions.
 - Parameter knob updates model.

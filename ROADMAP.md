@@ -57,6 +57,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M36 — Placement Dialog Viewport Candidate
 - [x] M37 — Placement Template Size Summary
 - [x] M38 — Placement Quick Presets
+- [x] M39 — Placement Dialog Rotation
 
 ---
 
@@ -1569,3 +1570,48 @@ presets that update the transient candidate, viewport footprint, and fit check.
 - Confirm the translucent candidate footprint moves.
 - Click `Разместить` and confirm the new placement inspector shows
   `26 x 0 x 4 mm`.
+
+---
+
+## M39 — Placement Dialog Rotation
+
+### Goal
+Let component placement rotation be chosen before commit so the dialog
+candidate, viewport footprint, and semantic fit check all reflect the final
+placement orientation.
+
+### Tasks
+- [x] Add `Поворот Z` editing to the component placement dialog.
+- [x] Add compact rotate-left/rotate-right 90 degree controls.
+- [x] Feed dialog rotation into the transient candidate placement.
+- [x] Reuse rotation-aware semantic validation for the dialog fit check.
+- [x] Commit the confirmed rotation into the normal semantic
+      `ComponentPlacement`.
+- [x] Add widget coverage for rotation changing fit feedback and committed
+      inspector state.
+
+### Done Criteria
+- Opening `Компоненты` shows a rotation control in the dialog.
+- Rotating the candidate updates the transient viewport footprint.
+- A placement that only fits after rotation reports the corrected fit state
+  before commit.
+- Confirming the dialog creates a semantic placement with the chosen
+  `rotationZ`.
+- No generated mesh, B-Rep, triangle ID, or OCCT topology becomes editable
+  state.
+
+### Tests
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Click `Компоненты`.
+- Set X to `36` and confirm the dialog reports the component leaves the
+  enclosure.
+- Click the rotate-right icon and confirm `Поворот Z` becomes `90` and the
+  warning clears.
+- Click `Разместить` and confirm the new placement inspector keeps
+  `Поворот Z = 90`.

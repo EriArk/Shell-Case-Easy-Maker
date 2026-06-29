@@ -3303,3 +3303,87 @@ viewport picking or component anchor mapping.
 Quick preset controls must stay transient UI affordances. Do not serialize
 them or create undo entries until the dialog returns a confirmed
 `ComponentPlacement`.
+
+---
+
+## 2026-06-29 - M39 Placement Dialog Rotation
+
+### Goal
+Let component placement rotation be chosen before commit so the dialog
+candidate, viewport preview, and semantic fit check match the final placement
+orientation.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `docs/32_USABLE_SHELL.md`,
+`docs/26_TESTING_AND_QUALITY.md`, `lib/ui/shell/workspace_shell.dart`,
+`lib/viewport/viewport_controller.dart`, and placement dialog widget tests.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added `Поворот Z` state to the component placement dialog.
+  - Added compact rotate-left/rotate-right 90 degree icon controls.
+  - Feeds dialog rotation into the transient `ComponentPlacement` candidate.
+  - Reuses existing rotation-aware semantic validation and mock viewport
+    preview drawing.
+  - Preserves the normal semantic commit path: rotation is saved only when the
+    dialog returns a confirmed placement.
+- `test/widget_test.dart`:
+  - Added coverage proving a placement that fails at X=36 becomes valid after
+    a 90 degree rotation and commits with `rotationZ = 90`.
+- Docs/tasks/roadmap:
+  - Recorded M39 behavior, done criteria, tests, and poke checklist.
+
+### Tests run
+- `flutter test test\widget_test.dart --plain-name "place component dialog rotation updates candidate fit and commit"`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "place component dialog quick presets update candidate position"`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "place component dialog validates current candidate placement"`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 117 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Mock viewport candidate only; no generated B-Rep or mesh is created.
+- Serialization checked?
+  - Rotation is already part of semantic `ComponentPlacement`; no schema change
+    was needed.
+- UI checked?
+  - Widget test confirms rotation changes fit feedback and committed inspector
+    state.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Rotation controls are still dialog-based, not direct viewport drag or
+  handle editing.
+  - Severity: Expected.
+  - Next action: continue toward guided viewport placement.
+- Issue: Fit feedback remains semantic envelope validation, not full collision
+  or generated geometry validation.
+  - Severity: Expected.
+  - Next action: improve geometry-service checks after worker progress.
+
+### Next step
+Commit and push M39, then continue toward guided component placement with
+viewport picking or component anchor mapping.
+
+### Notes for future Codex sessions
+Dialog rotation is transient until confirmation. Keep preview/candidate state
+out of undo history and project JSON unless the dialog commits a real
+`ComponentPlacement`.
