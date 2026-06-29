@@ -108,6 +108,11 @@ geometry exists. Blocking errors are shown as errors; non-blocking semantic
 warnings, such as very thin enclosure walls, are shown as warning status with
 the first warning message.
 
+When the report contains warnings or errors, the status bar shows a compact
+details button. It opens a bottom sheet with issue counts and every current
+warning/error message. This keeps the default shell uncluttered while still
+making multi-issue validation inspectable before real geometry generation.
+
 ## First Generator Command
 
 The left tool rail now executes the first semantic generator commands:
@@ -178,6 +183,8 @@ disabled until their semantic command behavior is implemented and tested.
 - Mount generation currently creates semantic standoff group data only; real
   B-Rep/mesh stand-off geometry is still future geometry-service work. The
   visible markers are mock viewport affordances.
+- Validation details currently show project-level semantic messages only; they
+  do not yet select or focus the affected object from the issue list.
 - Undo history is connected only to enclosure parameter edits, first
   USB-C/glass feature parameter edits, first button/mount feature-group
   parameter edits, first enclosure creation, first component placement, first

@@ -43,6 +43,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M22 — Reusable Pattern Layout Engine
 - [x] M23 — Reusable Standoff Source Layout
 - [x] M24 — First Semantic Validation Warnings
+- [x] M25 — Validation Details + Placement Bounds
 
 ---
 
@@ -982,3 +983,42 @@ exists, and surface warnings/errors in the shell status bar.
 - Confirm the bottom status bar switches to `Предупреждение` and shows the
   thin-wall message.
 - Undo and confirm the status returns to the normal ready state.
+
+---
+
+## M25 — Validation Details + Placement Bounds
+
+### Goal
+Make validation issues inspectable from the shell status bar and add the first
+semantic component placement/keepout bounds checks before real geometry exists.
+
+### Tasks
+- [x] Add reusable issue/error/warning accessors to `ValidationReport`.
+- [x] Validate missing component templates.
+- [x] Validate component board bounds against the enclosure inner volume.
+- [x] Validate first-pass component feature keepout bounds.
+- [x] Add a compact validation details sheet opened from the status bar.
+- [x] Add unit coverage for component placement and keepout validation.
+- [x] Add widget coverage for the validation details sheet.
+
+### Done Criteria
+- The default sample project still validates cleanly.
+- A component outside the enclosure reports a semantic error.
+- A missing component template reports a semantic error.
+- A component keepout outside the inner enclosure reports a semantic warning.
+- The status bar can open a list of all warning/error messages.
+- Validation still does not rely on generated mesh, B-Rep, triangle IDs, or
+  OCCT topology.
+
+### Tests
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Set `main_enclosure` wall thickness below `0.8` again.
+- Click the small checks/details icon in the bottom status bar.
+- Confirm the bottom sheet opens with `Проверка проекта` and lists the warning.
+- Close the sheet and undo the wall edit.

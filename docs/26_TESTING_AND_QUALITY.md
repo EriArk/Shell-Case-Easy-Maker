@@ -11,6 +11,7 @@ If it changes geometry, serialization, validation, or UI state, test it.
 - Project model serialization.
 - Feature parameter validation.
 - Project semantic validation warnings/errors.
+- Component placement and keepout semantic validation.
 - Pattern positions.
 - Clearance profile calculations.
 - Command system.
@@ -41,6 +42,7 @@ Use deterministic test fixtures.
 ### UI tests
 
 - Inspector changes with selection.
+- Validation status/details show warning and error messages.
 - Context popovers show correct actions.
 - Parameter knob updates model.
 - Keyboard-emulated controller commands change active parameter.

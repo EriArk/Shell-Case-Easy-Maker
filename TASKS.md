@@ -54,6 +54,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Toolbar undo/redo for inspector parameter edits.
 - [x] Toolbar open/save for project JSON files.
 - [x] Unsaved changes prompt before opening another project.
+- [x] First-pass validation details sheet.
 - [x] First executable left rail generator command.
 - [x] First executable component placement command.
 - [x] First executable surface-based USB-C command.
@@ -93,6 +94,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Define response issues/warnings model.
 - [x] Add protocol tests for known mock dimensions.
 - [x] First-pass semantic validation warnings/errors.
+- [x] First-pass component placement and keepout semantic validation.
 - [ ] Add OCCT geometry tests for known dimensions.
 
 ## Phase 5 — Enclosure-first MVP
@@ -123,6 +125,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [ ] Keepout zones.
 - [ ] Save/load component templates.
 - [x] First-pass place component inside enclosure.
+- [x] First-pass component placement bounds validation.
 - [ ] Guided component placement workflow with viewport picking.
 - [ ] Project switch centers and connector anchors to enclosure surfaces.
 
@@ -134,7 +137,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [ ] Generate real standoff geometry from board mounting holes.
 - [ ] Generate side wall cutouts from ports.
 - [ ] Generate top/lid cutouts from switches/buttons.
-- [ ] Generate keepout warnings.
+- [x] First-pass keepout warnings.
 - [ ] Generate support ribs from drawn line.
 - [ ] Generate rectangular structural rib grid.
 - [ ] Add component placement locking and visibility toggles.

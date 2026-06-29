@@ -94,4 +94,60 @@ void main() {
       contains('group.standoff_mounts.hole.too_large'),
     );
   });
+
+  test('component placement outside enclosure reports an error', () {
+    final project = ProjectModel.initial().replaceComponentPlacement(
+      const ComponentPlacement(
+        id: 'button_board_placement',
+        templateId: 'custom_button_board_v1',
+        position: [80.0, 0.0, 4.0],
+        rotation: [0.0, 0.0, 0.0],
+        mountingSide: 'bottom_inside',
+        locked: false,
+      ),
+    );
+
+    final report = ProjectSemanticValidator.validate(project);
+
+    expect(report.hasErrors, isTrue);
+    expect(
+      report.messages.map((message) => message.code),
+      contains('component.placement.outside_enclosure'),
+    );
+  });
+
+  test('missing component template reports an error', () {
+    final project = ProjectModel.initial().copyWith(
+      componentTemplates: const [],
+    );
+
+    final report = ProjectSemanticValidator.validate(project);
+
+    expect(report.hasErrors, isTrue);
+    expect(
+      report.messages.map((message) => message.code),
+      contains('component.placement.template.missing'),
+    );
+  });
+
+  test('component keepout outside enclosure reports a warning', () {
+    final project = ProjectModel.initial().replaceComponentPlacement(
+      const ComponentPlacement(
+        id: 'button_board_placement',
+        templateId: 'custom_button_board_v1',
+        position: [0.0, -12.0, 4.0],
+        rotation: [0.0, 0.0, 0.0],
+        mountingSide: 'bottom_inside',
+        locked: false,
+      ),
+    );
+
+    final report = ProjectSemanticValidator.validate(project);
+    final codes = report.messages.map((message) => message.code);
+
+    expect(report.hasErrors, isFalse);
+    expect(report.hasWarnings, isTrue);
+    expect(codes, contains('component.feature.keepout.outside_enclosure'));
+    expect(codes, isNot(contains('component.placement.outside_enclosure')));
+  });
 }

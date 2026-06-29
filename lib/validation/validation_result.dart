@@ -3,6 +3,22 @@ class ValidationReport {
 
   final List<ValidationMessage> messages;
 
+  List<ValidationMessage> get issues => messages
+      .where(
+        (message) =>
+            message.severity == ValidationSeverity.error ||
+            message.severity == ValidationSeverity.warning,
+      )
+      .toList(growable: false);
+
+  List<ValidationMessage> get errors => messages
+      .where((message) => message.severity == ValidationSeverity.error)
+      .toList(growable: false);
+
+  List<ValidationMessage> get warnings => messages
+      .where((message) => message.severity == ValidationSeverity.warning)
+      .toList(growable: false);
+
   bool get isClean => messages.every((message) => !message.isBlocking);
 
   bool get hasErrors =>
@@ -11,17 +27,15 @@ class ValidationReport {
   bool get hasWarnings =>
       messages.any((message) => message.severity == ValidationSeverity.warning);
 
+  bool get hasIssues => hasErrors || hasWarnings;
+
   ValidationMessage? get primaryIssue {
-    final error = messages
-        .where((message) => message.severity == ValidationSeverity.error)
-        .firstOrNull;
+    final error = errors.firstOrNull;
     if (error != null) {
       return error;
     }
 
-    return messages
-        .where((message) => message.severity == ValidationSeverity.warning)
-        .firstOrNull;
+    return warnings.firstOrNull;
   }
 }
 

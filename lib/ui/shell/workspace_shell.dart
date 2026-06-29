@@ -682,6 +682,18 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     }
   }
 
+  void _showValidationDetails(ValidationReport report) {
+    if (!report.hasIssues) {
+      return;
+    }
+
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => _ValidationDetailsSheet(report: report),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -755,12 +767,17 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                 FutureBuilder<ValidationReport>(
                   future: _validationFuture,
                   builder: (context, snapshot) {
+                    final report = snapshot.data;
                     return _StatusBar(
-                      report: snapshot.data,
+                      report: report,
                       selectionDetails: details,
                       fileStatusMessage: _fileStatusMessage,
                       fileBusy: _fileBusy,
                       hasUnsavedChanges: _hasUnsavedChanges,
+                      onShowValidationDetails:
+                          report != null && report.hasIssues
+                          ? () => _showValidationDetails(report)
+                          : null,
                     );
                   },
                 ),
@@ -3657,6 +3674,7 @@ class _StatusBar extends StatelessWidget {
     required this.fileStatusMessage,
     required this.fileBusy,
     required this.hasUnsavedChanges,
+    required this.onShowValidationDetails,
   });
 
   final ValidationReport? report;
@@ -3664,6 +3682,7 @@ class _StatusBar extends StatelessWidget {
   final String? fileStatusMessage;
   final bool fileBusy;
   final bool hasUnsavedChanges;
+  final VoidCallback? onShowValidationDetails;
 
   @override
   Widget build(BuildContext context) {
@@ -3708,6 +3727,20 @@ class _StatusBar extends StatelessWidget {
                 : AppStrings.previewReady,
             style: theme.textTheme.labelMedium,
           ),
+          if (onShowValidationDetails != null) ...[
+            const SizedBox(width: 6),
+            IconButton(
+              key: const ValueKey('status-validation-details'),
+              tooltip: 'Показать проверки',
+              onPressed: onShowValidationDetails,
+              icon: const Icon(Icons.fact_check_rounded),
+              iconSize: 17,
+              color: statusColor,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints.tightFor(width: 28, height: 28),
+              visualDensity: VisualDensity.compact,
+            ),
+          ],
           const Spacer(),
           Flexible(
             child: Text(
@@ -3729,6 +3762,174 @@ class _StatusBar extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ValidationDetailsSheet extends StatelessWidget {
+  const _ValidationDetailsSheet({required this.report});
+
+  final ValidationReport report;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final issues = report.issues;
+    final listHeight = math.min(issues.length * 78.0, 360.0);
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.fact_check_rounded,
+                  color: theme.colorScheme.primary,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Проверка проекта',
+                    style: theme.textTheme.titleMedium,
+                  ),
+                ),
+                IconButton(
+                  key: const ValueKey('validation-details-close'),
+                  tooltip: 'Закрыть',
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _ValidationCountBadge(
+                  label: 'Ошибки',
+                  count: report.errors.length,
+                  color: theme.colorScheme.error,
+                ),
+                _ValidationCountBadge(
+                  label: 'Предупреждения',
+                  count: report.warnings.length,
+                  color: Colors.amber,
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: listHeight,
+              child: ListView.separated(
+                itemCount: issues.length,
+                separatorBuilder: (context, index) => Divider(
+                  height: 1,
+                  color: theme.dividerColor.withValues(alpha: 0.16),
+                ),
+                itemBuilder: (context, index) {
+                  return _ValidationMessageRow(message: issues[index]);
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ValidationCountBadge extends StatelessWidget {
+  const _ValidationCountBadge({
+    required this.label,
+    required this.count,
+    required this.color,
+  });
+
+  final String label;
+  final int count;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        '$label: $count',
+        style: theme.textTheme.labelMedium?.copyWith(color: color),
+      ),
+    );
+  }
+}
+
+class _ValidationMessageRow extends StatelessWidget {
+  const _ValidationMessageRow({required this.message});
+
+  final ValidationMessage message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = _validationSeverityColor(theme, message.severity);
+    final target = message.targetId ?? message.code;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            _validationSeverityIcon(message.severity),
+            color: color,
+            size: 19,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(message.message, style: theme.textTheme.bodyMedium),
+                const SizedBox(height: 2),
+                Text(
+                  target,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+Color _validationSeverityColor(ThemeData theme, ValidationSeverity severity) {
+  return switch (severity) {
+    ValidationSeverity.error => theme.colorScheme.error,
+    ValidationSeverity.warning => Colors.amber,
+    ValidationSeverity.info => theme.colorScheme.primary,
+  };
+}
+
+IconData _validationSeverityIcon(ValidationSeverity severity) {
+  return switch (severity) {
+    ValidationSeverity.error => Icons.error_outline_rounded,
+    ValidationSeverity.warning => Icons.warning_amber_rounded,
+    ValidationSeverity.info => Icons.info_outline_rounded,
+  };
 }
 
 class _ViewportPainter extends CustomPainter {

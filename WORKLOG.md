@@ -2131,3 +2131,90 @@ preparation slice.
 Validation must remain semantic before geometry generation. Do not use preview
 triangle IDs, mesh IDs, or OCCT topology as validation targets in the default
 workflow.
+
+---
+
+## 2026-06-29 - M25 Validation Details + Placement Bounds
+
+### Goal
+Make validation issues inspectable from the shell status bar and add first-pass
+semantic component placement/keepout bounds checks before real OCCT geometry
+exists.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `ProjectSemanticValidator`,
+`ValidationReport`, component template/placement models, workspace shell status
+bar, and validator/widget tests.
+
+### Changes made
+- `lib/validation/validation_result.dart`:
+  - Added reusable `issues`, `errors`, `warnings`, and `hasIssues` accessors.
+  - Kept `primaryIssue` error-first, then warning-first.
+- `lib/validation/project_semantic_validator.dart`:
+  - Validates missing component templates.
+  - Validates placed component board outline/thickness against enclosure inner
+    volume.
+  - Validates component feature `keepout` boxes as non-blocking warnings.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added a compact status-bar details button when validation has issues.
+  - Added a bottom sheet listing issue counts and all current warning/error
+    messages.
+- Tests:
+  - Added unit coverage for placement-outside, missing-template, and keepout
+    warnings.
+  - Added widget coverage for opening the validation details sheet.
+- Docs/tasks/roadmap:
+  - Documented M25, first-pass placement/keepout validation, and the issue
+    details UI.
+
+### Tests run
+- `flutter test test\project_semantic_validator_test.dart test\widget_test.dart`:
+  - Passed, 36 targeted tests.
+- `flutter pub get`:
+  - Passed; 4 packages have newer incompatible versions.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 98 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Validation is still semantic/pre-geometry only; no generated B-Rep or mesh
+    is created.
+- Serialization checked?
+  - No schema change; validation messages remain derived state and are not
+    saved.
+- UI checked?
+  - Widget test confirms the status-bar details button opens a list of all
+    current warning/error messages.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Component bounds treat board outlines and keepouts as axis-aligned
+  rectangles; placement rotation is not considered yet.
+  - Severity: Expected for this pre-geometry slice.
+  - Next action: add face-local placement and rotated bounds when placement
+    workflow becomes viewport-driven.
+- Issue: Validation details show target IDs but do not yet focus/select the
+  affected object.
+  - Severity: Expected.
+  - Next action: wire issue rows to semantic selection after issue targets are
+    normalized.
+
+### Next step
+Commit and push M25, then continue toward the next safe geometry-service or
+viewport-prep slice.
+
+### Notes for future Codex sessions
+Keep validation issue targets semantic. Do not point issue rows at preview
+triangles, generated mesh IDs, or OCCT topology.

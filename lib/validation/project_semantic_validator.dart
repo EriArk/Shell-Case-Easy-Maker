@@ -20,6 +20,7 @@ class ProjectSemanticValidator {
       );
     } else {
       _validateEnclosure(enclosure, messages);
+      _validateComponentPlacements(project, enclosure, messages);
       _validateFeatures(project, enclosure, messages);
       _validateFeatureGroups(project, enclosure, messages);
     }
@@ -88,6 +89,118 @@ class ProjectSemanticValidator {
           targetId: enclosure.id,
         ),
       );
+    }
+  }
+
+  static void _validateComponentPlacements(
+    ProjectModel project,
+    Enclosure enclosure,
+    List<ValidationMessage> messages,
+  ) {
+    final inner = _innerSpace(enclosure);
+
+    for (final placement in project.componentPlacements) {
+      final template = _templateForPlacement(project, placement);
+      if (template == null) {
+        messages.add(
+          ValidationMessage(
+            severity: ValidationSeverity.error,
+            code: 'component.placement.template.missing',
+            message: 'Размещённый компонент ссылается на отсутствующий шаблон.',
+            targetId: placement.id,
+          ),
+        );
+        continue;
+      }
+
+      final boardWidth = template.board.outline.width;
+      final boardDepth = template.board.outline.height;
+      final boardThickness = template.board.thickness;
+      if (boardWidth <= 0 || boardDepth <= 0 || boardThickness <= 0) {
+        messages.add(
+          ValidationMessage(
+            severity: ValidationSeverity.error,
+            code: 'component.template.board.invalid',
+            message: 'Размер платы компонента должен быть больше нуля.',
+            targetId: template.id,
+          ),
+        );
+        continue;
+      }
+
+      final x = _positionAt(placement.position, 0);
+      final y = _positionAt(placement.position, 1);
+      final z = _positionAt(placement.position, 2);
+      final outsidePlan = !_fitsCenteredRect(
+        centerX: x,
+        centerY: y,
+        width: boardWidth,
+        depth: boardDepth,
+        spaceWidth: inner.width,
+        spaceDepth: inner.depth,
+      );
+      final outsideHeight = z < 0 || z + boardThickness > inner.height;
+
+      if (outsidePlan || outsideHeight) {
+        messages.add(
+          ValidationMessage(
+            severity: ValidationSeverity.error,
+            code: 'component.placement.outside_enclosure',
+            message: 'Компонент выходит за внутренний объём корпуса.',
+            targetId: placement.id,
+          ),
+        );
+      }
+
+      _validateComponentFeatureKeepouts(placement, template, inner, messages);
+    }
+  }
+
+  static void _validateComponentFeatureKeepouts(
+    ComponentPlacement placement,
+    ComponentTemplate template,
+    ({double width, double depth, double height}) inner,
+    List<ValidationMessage> messages,
+  ) {
+    final placementX = _positionAt(placement.position, 0);
+    final placementY = _positionAt(placement.position, 1);
+    final placementZ = _positionAt(placement.position, 2);
+
+    for (final feature in template.features) {
+      final keepout = readJsonMap(feature.metadata['keepout']);
+      if (keepout.isEmpty) {
+        continue;
+      }
+
+      final size = readDoubleList(keepout['size'], fallback: const []);
+      if (size.length < 3 || size[0] <= 0 || size[1] <= 0 || size[2] <= 0) {
+        continue;
+      }
+
+      final centerX = placementX + _positionAt(feature.position, 0);
+      final centerY = placementY + _positionAt(feature.position, 1);
+      final outsidePlan = !_fitsCenteredRect(
+        centerX: centerX,
+        centerY: centerY,
+        width: size[0],
+        depth: size[1],
+        spaceWidth: inner.width,
+        spaceDepth: inner.depth,
+      );
+      final outsideHeight =
+          placementZ < 0 || placementZ + size[2] > inner.height;
+
+      if (outsidePlan || outsideHeight) {
+        messages.add(
+          ValidationMessage(
+            severity: ValidationSeverity.warning,
+            code: 'component.feature.keepout.outside_enclosure',
+            message:
+                'Зона доступа компонента выходит за внутренний объём корпуса.',
+            targetId: '${placement.id}.${feature.id}',
+          ),
+        );
+      }
     }
   }
 
@@ -289,6 +402,15 @@ class ProjectSemanticValidator {
     }
   }
 
+  static ComponentTemplate? _templateForPlacement(
+    ProjectModel project,
+    ComponentPlacement placement,
+  ) {
+    return project.componentTemplates
+        .where((template) => template.id == placement.templateId)
+        .firstOrNull;
+  }
+
   static ComponentTemplate? _templateForGroup(
     ProjectModel project,
     FeatureGroup group,
@@ -326,7 +448,41 @@ class ProjectSemanticValidator {
         .firstOrNull;
   }
 
+  static ({double width, double depth, double height}) _innerSpace(
+    Enclosure enclosure,
+  ) {
+    return (
+      width: _positive(
+        _sizeAt(enclosure, 0, 120) - enclosure.wallThickness * 2,
+      ),
+      depth: _positive(_sizeAt(enclosure, 1, 70) - enclosure.wallThickness * 2),
+      height: _positive(
+        _sizeAt(enclosure, 2, 28) - enclosure.wallThickness * 2,
+      ),
+    );
+  }
+
+  static bool _fitsCenteredRect({
+    required double centerX,
+    required double centerY,
+    required double width,
+    required double depth,
+    required double spaceWidth,
+    required double spaceDepth,
+  }) {
+    return centerX.abs() + width / 2 <= spaceWidth / 2 &&
+        centerY.abs() + depth / 2 <= spaceDepth / 2;
+  }
+
+  static double _positionAt(List<double> position, int index) {
+    return position.length > index ? position[index] : 0;
+  }
+
   static double _sizeAt(Enclosure enclosure, int index, double fallback) {
     return enclosure.size.length > index ? enclosure.size[index] : fallback;
+  }
+
+  static double _positive(double value) {
+    return value < 0 ? 0 : value;
   }
 }

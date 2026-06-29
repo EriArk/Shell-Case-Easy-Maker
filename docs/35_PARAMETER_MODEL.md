@@ -101,6 +101,7 @@ dialog edits normalized schema values, then applies them to the semantic
 - Parameter values are not stored as a separate typed layer in `ProjectModel`
   yet; current semantic objects still store their existing fields/maps.
 - Cross-parameter validation, such as "corner radius must fit body dimensions",
-  belongs in generator-specific semantic validation. The first pass now lives in
-  `ProjectSemanticValidator`, not in `ParameterSchema`.
+  and cross-object validation, such as "placed board must fit inside the
+  enclosure", belong in generator-specific semantic validation. The first pass
+  now lives in `ProjectSemanticValidator`, not in `ParameterSchema`.
 - Only the rounded enclosure schema is wired into UI controls so far.
