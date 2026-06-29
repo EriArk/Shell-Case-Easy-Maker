@@ -664,6 +664,26 @@ void main() {
       final xField = find.byKey(
         const ValueKey('component-placement-param-button_board_placement-x'),
       );
+      final rotationField = find.byKey(
+        const ValueKey(
+          'component-placement-param-button_board_placement-rotationZ',
+        ),
+      );
+
+      await tester.enterText(rotationField, '90');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await _pumpAsyncUi(tester);
+
+      expect(
+        tester.widget<TextFormField>(rotationField).controller?.text,
+        '90',
+      );
+      expect(tester.widget<IconButton>(undoButton).onPressed, isNotNull);
+
+      await tester.tap(undoButton);
+      await _pumpAsyncUi(tester);
+
+      expect(tester.widget<TextFormField>(rotationField).controller?.text, '0');
 
       await tester.enterText(xField, '80');
       await tester.testTextInput.receiveAction(TextInputAction.done);
@@ -686,6 +706,53 @@ void main() {
       );
     },
   );
+
+  testWidgets('locked component placement disables placement fields', (
+    tester,
+  ) async {
+    final initial = ProjectModel.initial();
+    final project = initial.replaceComponentPlacement(
+      const ComponentPlacement(
+        id: 'button_board_placement',
+        templateId: 'custom_button_board_v1',
+        position: [0.0, 0.0, 4.0],
+        rotation: [0.0, 0.0, 0.0],
+        mountingSide: 'bottom_inside',
+        locked: true,
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkspaceShell(
+          project: project,
+          geometryService: const MockGeometryService(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('button_board_placement').first);
+    await tester.pumpAndSettle();
+
+    final xField = find.byKey(
+      const ValueKey('component-placement-param-button_board_placement-x'),
+    );
+    final lockedField = find.byKey(
+      const ValueKey('component-placement-param-button_board_placement-locked'),
+    );
+
+    expect(tester.widget<TextFormField>(xField).enabled, isFalse);
+    expect(find.text('Размещение зафиксировано.'), findsOneWidget);
+
+    await tester.ensureVisible(lockedField);
+    await tester.pump();
+    await tester.tap(lockedField);
+    await _pumpAsyncUi(tester);
+
+    expect(tester.widget<TextFormField>(xField).enabled, isTrue);
+    expect(find.text('Размещение зафиксировано.'), findsNothing);
+  });
 
   testWidgets('place component command is disabled without templates', (
     tester,

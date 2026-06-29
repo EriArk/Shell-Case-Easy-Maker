@@ -91,8 +91,9 @@ Expected sample dimensions:
 - Mock backend returns a deterministic cuboid preview mesh.
 - Mock backend validation now runs first-pass semantic checks for enclosure
   dimensions, wall thickness, USB-C/glass feature sizes, component placement
-  bounds, component feature keepouts, and standoff mount safety. This is still
-  pre-geometry validation, not OCCT body validation.
+  bounds, component feature keepouts, and standoff mount safety. Component
+  placement/keepout bounds account for Z rotation using conservative envelopes.
+  This is still pre-geometry validation, not OCCT body validation.
 - Rounded edges and shell/cavity generation are planned, not implemented.
 - STEP/STL export operations intentionally return unsupported in the mock
   backend.

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import '../patterns/pattern_layout.dart';
 import '../project/project_model.dart';
 import '../project/json_helpers.dart';
@@ -131,11 +133,16 @@ class ProjectSemanticValidator {
       final x = _positionAt(placement.position, 0);
       final y = _positionAt(placement.position, 1);
       final z = _positionAt(placement.position, 2);
+      final boardPlan = _rotatedRectExtents(
+        width: boardWidth,
+        depth: boardDepth,
+        rotationZDegrees: _positionAt(placement.rotation, 2),
+      );
       final outsidePlan = !_fitsCenteredRect(
         centerX: x,
         centerY: y,
-        width: boardWidth,
-        depth: boardDepth,
+        width: boardPlan.width,
+        depth: boardPlan.depth,
         spaceWidth: inner.width,
         spaceDepth: inner.depth,
       );
@@ -165,6 +172,7 @@ class ProjectSemanticValidator {
     final placementX = _positionAt(placement.position, 0);
     final placementY = _positionAt(placement.position, 1);
     final placementZ = _positionAt(placement.position, 2);
+    final rotationZ = _positionAt(placement.rotation, 2);
 
     for (final feature in template.features) {
       final keepout = readJsonMap(feature.metadata['keepout']);
@@ -177,13 +185,23 @@ class ProjectSemanticValidator {
         continue;
       }
 
-      final centerX = placementX + _positionAt(feature.position, 0);
-      final centerY = placementY + _positionAt(feature.position, 1);
+      final featurePosition = _rotatePoint(
+        x: _positionAt(feature.position, 0),
+        y: _positionAt(feature.position, 1),
+        rotationZDegrees: rotationZ,
+      );
+      final keepoutPlan = _rotatedRectExtents(
+        width: size[0],
+        depth: size[1],
+        rotationZDegrees: rotationZ,
+      );
+      final centerX = placementX + featurePosition.x;
+      final centerY = placementY + featurePosition.y;
       final outsidePlan = !_fitsCenteredRect(
         centerX: centerX,
         centerY: centerY,
-        width: size[0],
-        depth: size[1],
+        width: keepoutPlan.width,
+        depth: keepoutPlan.depth,
         spaceWidth: inner.width,
         spaceDepth: inner.depth,
       );
@@ -472,6 +490,28 @@ class ProjectSemanticValidator {
   }) {
     return centerX.abs() + width / 2 <= spaceWidth / 2 &&
         centerY.abs() + depth / 2 <= spaceDepth / 2;
+  }
+
+  static ({double width, double depth}) _rotatedRectExtents({
+    required double width,
+    required double depth,
+    required double rotationZDegrees,
+  }) {
+    final radians = rotationZDegrees * math.pi / 180;
+    final cos = math.cos(radians).abs();
+    final sin = math.sin(radians).abs();
+    return (width: width * cos + depth * sin, depth: width * sin + depth * cos);
+  }
+
+  static ({double x, double y}) _rotatePoint({
+    required double x,
+    required double y,
+    required double rotationZDegrees,
+  }) {
+    final radians = rotationZDegrees * math.pi / 180;
+    final cos = math.cos(radians);
+    final sin = math.sin(radians);
+    return (x: x * cos - y * sin, y: x * sin + y * cos);
   }
 
   static double _positionAt(List<double> position, int index) {

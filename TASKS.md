@@ -59,6 +59,8 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] First executable left rail generator command.
 - [x] First executable component placement command.
 - [x] First-pass component placement inspector editing.
+- [x] First-pass component placement rotation editing.
+- [x] First-pass component placement lock guard.
 - [x] First executable surface-based USB-C command.
 - [x] First executable surface-based button group command.
 - [x] First executable surface-based glass recess command.
@@ -97,6 +99,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Add protocol tests for known mock dimensions.
 - [x] First-pass semantic validation warnings/errors.
 - [x] First-pass component placement and keepout semantic validation.
+- [x] Rotation-aware component placement bounds validation.
 - [ ] Add OCCT geometry tests for known dimensions.
 
 ## Phase 5 — Enclosure-first MVP
@@ -129,6 +132,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] First-pass place component inside enclosure.
 - [x] First-pass component placement bounds validation.
 - [x] First-pass edit component placement from inspector.
+- [x] First-pass component placement rotation and lock behavior.
 - [ ] Guided component placement workflow with viewport picking.
 - [ ] Project switch centers and connector anchors to enclosure surfaces.
 
@@ -143,7 +147,8 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] First-pass keepout warnings.
 - [ ] Generate support ribs from drawn line.
 - [ ] Generate rectangular structural rib grid.
-- [ ] Add component placement locking and visibility toggles.
+- [x] First-pass component placement locking.
+- [ ] Component placement visibility toggles.
 
 ## Phase 8 — Pattern/layout system
 

@@ -2382,3 +2382,94 @@ geometry-service slice.
 ### Notes for future Codex sessions
 Component placement edits must keep semantic placement IDs stable. Do not use
 preview mesh positions or OCCT topology as editable placement state.
+
+---
+
+## 2026-06-29 - M28 Component Placement Rotation + Lock Guard
+
+### Goal
+Add Z rotation editing for component placements, make first-pass placement
+validation account for that rotation, and make the locked state block placement
+edits.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, component placement inspector/editor
+code, `ProjectSemanticValidator`, component placement model, and validator/widget
+tests.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added `Поворот Z` to the component placement inspector.
+  - Added rotation update helpers that preserve stable placement IDs and typed
+    semantic placement fields.
+  - Added disabled-state support to shared number and choice parameter
+    controls.
+  - Disabled position/rotation/side controls while a placement is locked.
+  - Kept the locked checkbox active so a locked placement can be unlocked.
+  - Ignored non-lock placement parameter edits in shell state when the placement
+    is locked.
+- `lib/validation/project_semantic_validator.dart`:
+  - Added rotation-aware board and keepout envelope checks for first-pass
+    semantic component placement validation.
+- Tests:
+  - Added unit coverage for rotation-aware component placement bounds.
+  - Extended widget coverage for Z rotation edit/undo.
+  - Added widget coverage for locked placement fields and unlock behavior.
+- Docs/tasks/roadmap:
+  - Documented M28, rotation-aware validation, and first-pass lock behavior.
+
+### Tests run
+- `flutter test test\project_semantic_validator_test.dart test\widget_test.dart`:
+  - Passed, 40 targeted tests.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 102 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Validation is still semantic/pre-geometry only; no generated B-Rep or mesh
+    is created.
+- Serialization checked?
+  - No schema change; edited rotation/lock remain standard
+    `ComponentPlacement` JSON fields.
+- UI checked?
+  - Widget tests confirm Z rotation edit/undo and locked-field behavior.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Rotation-aware validation uses conservative 2D bounding boxes, not
+  exact geometry.
+  - Severity: Expected.
+  - Next action: replace with geometry-service validation when OCCT preview
+    generation exists.
+- Issue: Only Z rotation is editable.
+  - Severity: Expected for board-like component placement.
+  - Next action: add richer orientation controls if component workflows need
+    non-planar placement.
+- Issue: Locking blocks inspector edits but there are no viewport placement
+  handles to lock yet.
+  - Severity: Expected.
+  - Next action: reuse lock state when viewport-driven placement is introduced.
+
+### Next step
+Commit and push M28, then continue toward the next safe viewport or geometry
+service slice.
+
+### Notes for future Codex sessions
+Keep placement rotation and lock semantics in the semantic `ComponentPlacement`.
+Do not infer editable placement state from preview mesh transforms or OCCT
+topology.

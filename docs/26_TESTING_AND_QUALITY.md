@@ -12,6 +12,7 @@ If it changes geometry, serialization, validation, or UI state, test it.
 - Feature parameter validation.
 - Project semantic validation warnings/errors.
 - Component placement and keepout semantic validation.
+- Rotation-aware placement bounds validation.
 - Pattern positions.
 - Clearance profile calculations.
 - Command system.

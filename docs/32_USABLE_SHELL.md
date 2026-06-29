@@ -69,10 +69,12 @@ standoff item prototype while preserving source mounting-hole pattern data.
 Repeated items stay grouped and undoable as one semantic object.
 
 When a component placement is selected, the inspector renders a compact
-placement editor for X/Y/Z position, mounting side, and locked state. Edits
-replace the selected semantic `ComponentPlacement`, refresh preview/validation,
-and commit through the same undo history. This lets placement validation issues
-be corrected directly after selecting an issue row.
+placement editor for X/Y/Z position, Z rotation, mounting side, and locked
+state. Edits replace the selected semantic `ComponentPlacement`, refresh
+preview/validation, and commit through the same undo history. This lets
+placement validation issues be corrected directly after selecting an issue row.
+When a placement is locked, position/rotation/side controls are disabled and
+the lock checkbox remains available so it can be unlocked.
 
 ## Project browser
 

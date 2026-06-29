@@ -116,6 +116,52 @@ void main() {
     );
   });
 
+  test('component placement bounds account for z rotation', () {
+    const template = ComponentTemplate(
+      id: 'wide_board',
+      name: 'Wide Board',
+      board: ComponentBoard(
+        outline: BoardOutline(type: 'rectangle', width: 64.0, height: 10.0),
+        thickness: 1.6,
+        referencePlane: 'bottom',
+      ),
+    );
+    const unrotatedPlacement = ComponentPlacement(
+      id: 'wide_board_placement',
+      templateId: 'wide_board',
+      position: [35.0, 0.0, 4.0],
+      rotation: [0.0, 0.0, 0.0],
+      mountingSide: 'bottom_inside',
+      locked: false,
+    );
+    final project = ProjectModel.initial().copyWith(
+      componentTemplates: const [template],
+      componentPlacements: const [unrotatedPlacement],
+      features: const [],
+    );
+
+    final unrotatedReport = ProjectSemanticValidator.validate(project);
+    final rotatedReport = ProjectSemanticValidator.validate(
+      project.replaceComponentPlacement(
+        const ComponentPlacement(
+          id: 'wide_board_placement',
+          templateId: 'wide_board',
+          position: [35.0, 0.0, 4.0],
+          rotation: [0.0, 0.0, 90.0],
+          mountingSide: 'bottom_inside',
+          locked: false,
+        ),
+      ),
+    );
+
+    expect(
+      unrotatedReport.messages.map((message) => message.code),
+      contains('component.placement.outside_enclosure'),
+    );
+    expect(rotatedReport.hasErrors, isFalse);
+    expect(rotatedReport.hasWarnings, isFalse);
+  });
+
   test('missing component template reports an error', () {
     final project = ProjectModel.initial().copyWith(
       componentTemplates: const [],

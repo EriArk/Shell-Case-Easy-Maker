@@ -97,8 +97,8 @@ dialog edits normalized schema values, then applies them to the semantic
 `Enclosure` before committing one undoable project snapshot.
 
 The contextual inspector also uses a small schema-backed parameter bank for
-selected component placements. It edits X/Y/Z position, mounting side, and the
-locked flag, then writes those values back to the semantic
+selected component placements. It edits X/Y/Z position, Z rotation, mounting
+side, and the locked flag, then writes those values back to the semantic
 `ComponentPlacement`. This is still UI-side schema usage; the saved project
 continues to store the typed placement fields.
 

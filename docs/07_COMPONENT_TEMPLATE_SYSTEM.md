@@ -136,7 +136,8 @@ positions. Those markers are selectable affordances for the semantic
 
 `ProjectSemanticValidator` also performs a first-pass component placement check
 against the enclosure inner volume. It treats the component board as a semantic
-outline/thickness envelope and reports an error if the placement no longer fits
-inside the enclosure. Template feature `keepout` boxes are checked as
-non-blocking warnings so access zones can be surfaced before real cutout or
-support generation exists.
+outline/thickness envelope, accounts for the placement's Z rotation with a
+conservative bounding box, and reports an error if the placement no longer fits
+inside the enclosure. Template feature `keepout` boxes are checked with the same
+rotation-aware envelope as non-blocking warnings so access zones can be surfaced
+before real cutout or support generation exists.

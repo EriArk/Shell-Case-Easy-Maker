@@ -202,6 +202,10 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       return;
     }
 
+    if (placement.locked && parameterId != 'locked') {
+      return;
+    }
+
     final normalizedValue = parameter.normalize(value);
     final updatedPlacement = _updatedComponentPlacementParameter(
       placement,
@@ -1006,6 +1010,10 @@ ComponentPlacement _updatedComponentPlacementParameter(
     'x' => _copyComponentPlacementWithPosition(placement, x: _asDouble(value)),
     'y' => _copyComponentPlacementWithPosition(placement, y: _asDouble(value)),
     'z' => _copyComponentPlacementWithPosition(placement, z: _asDouble(value)),
+    'rotationZ' => _copyComponentPlacementWithRotation(
+      placement,
+      z: _asDouble(value),
+    ),
     'mountingSide' => ComponentPlacement(
       id: placement.id,
       templateId: placement.templateId,
@@ -1043,6 +1051,27 @@ ComponentPlacement _copyComponentPlacementWithPosition(
       z ?? _positionAt(placement.position, 2),
     ],
     rotation: placement.rotation,
+    mountingSide: placement.mountingSide,
+    locked: placement.locked,
+    metadata: placement.metadata,
+  );
+}
+
+ComponentPlacement _copyComponentPlacementWithRotation(
+  ComponentPlacement placement, {
+  double? x,
+  double? y,
+  double? z,
+}) {
+  return ComponentPlacement(
+    id: placement.id,
+    templateId: placement.templateId,
+    position: placement.position,
+    rotation: [
+      x ?? _positionAt(placement.rotation, 0),
+      y ?? _positionAt(placement.rotation, 1),
+      z ?? _positionAt(placement.rotation, 2),
+    ],
     mountingSide: placement.mountingSide,
     locked: placement.locked,
     metadata: placement.metadata,
@@ -2257,6 +2286,7 @@ class _ComponentPlacementParameterEditor extends StatelessWidget {
     final theme = Theme.of(context);
     final values = _componentPlacementParameterValues(placement);
     final issues = _componentPlacementParameterSchema.validate(values);
+    final fieldsEnabled = !placement.locked;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2291,6 +2321,7 @@ class _ComponentPlacementParameterEditor extends StatelessWidget {
               parameter: parameter,
               value: values[parameter.id] as String?,
               onChanged: (value) => onChanged(parameter.id, value),
+              enabled: fieldsEnabled,
             )
           else if (parameter.kind == ParameterKind.boolean)
             _ParameterBoolField(
@@ -2305,9 +2336,20 @@ class _ComponentPlacementParameterEditor extends StatelessWidget {
               parameter: parameter,
               value: values[parameter.id],
               onSubmitted: (value) => onChanged(parameter.id, value),
+              enabled: fieldsEnabled,
             ),
           const SizedBox(height: 10),
         ],
+        if (placement.locked)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Text(
+              'Размещение зафиксировано.',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
         for (final issue in issues)
           Padding(
             padding: const EdgeInsets.only(bottom: 6),
@@ -2476,6 +2518,7 @@ Map<String, Object?> _componentPlacementParameterValues(
     'x': _positionAt(placement.position, 0),
     'y': _positionAt(placement.position, 1),
     'z': _positionAt(placement.position, 2),
+    'rotationZ': _positionAt(placement.rotation, 2),
     'mountingSide': placement.mountingSide,
     'locked': placement.locked,
   });
@@ -2508,6 +2551,14 @@ const _componentPlacementParameterSchema = ParameterSchema(
       unit: 'mm',
       defaultValue: 4.0,
       range: ParameterRange(min: -20, max: 200, step: 0.1),
+    ),
+    ParameterDefinition(
+      id: 'rotationZ',
+      label: 'Поворот Z',
+      kind: ParameterKind.angle,
+      unit: 'deg',
+      defaultValue: 0.0,
+      range: ParameterRange(min: -180, max: 180, step: 1),
     ),
     ParameterDefinition(
       id: 'mountingSide',
@@ -3820,6 +3871,7 @@ class _ParameterNumberField extends StatefulWidget {
     required this.onSubmitted,
     this.onChanged,
     this.keyPrefix = 'enclosure-param',
+    this.enabled = true,
   });
 
   final ParameterDefinition parameter;
@@ -3827,6 +3879,7 @@ class _ParameterNumberField extends StatefulWidget {
   final ValueChanged<double> onSubmitted;
   final ValueChanged<double>? onChanged;
   final String keyPrefix;
+  final bool enabled;
 
   @override
   State<_ParameterNumberField> createState() => _ParameterNumberFieldState();
@@ -3901,10 +3954,11 @@ class _ParameterNumberFieldState extends State<_ParameterNumberField> {
       key: ValueKey('${widget.keyPrefix}-${parameter.id}'),
       controller: _controller,
       focusNode: _focusNode,
+      enabled: widget.enabled,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       textInputAction: TextInputAction.done,
-      onChanged: widget.onChanged == null ? null : _change,
-      onFieldSubmitted: _submit,
+      onChanged: widget.enabled && widget.onChanged != null ? _change : null,
+      onFieldSubmitted: widget.enabled ? _submit : null,
       decoration: InputDecoration(
         labelText: parameter.label,
         helperText: helperText,
@@ -3923,12 +3977,14 @@ class _ParameterChoiceField extends StatelessWidget {
     required this.value,
     required this.onChanged,
     this.keyPrefix = 'enclosure-param',
+    this.enabled = true,
   });
 
   final ParameterDefinition parameter;
   final String? value;
   final ValueChanged<String?> onChanged;
   final String keyPrefix;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -3944,7 +4000,7 @@ class _ParameterChoiceField extends StatelessWidget {
         for (final option in parameter.options)
           DropdownMenuItem(value: option.id, child: Text(option.label)),
       ],
-      onChanged: onChanged,
+      onChanged: enabled ? onChanged : null,
       decoration: InputDecoration(
         labelText: parameter.label,
         isDense: true,

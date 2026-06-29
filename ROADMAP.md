@@ -46,6 +46,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M25 — Validation Details + Placement Bounds
 - [x] M26 — Validation Issue Target Selection
 - [x] M27 — Component Placement Inspector Editing
+- [x] M28 — Component Placement Rotation + Lock Guard
 
 ---
 
@@ -1102,3 +1103,46 @@ reopening the placement dialog.
 - Change `X` to `80` and press Enter.
 - Confirm the bottom status bar reports the component outside the enclosure.
 - Click undo and confirm `X` returns to `0` and the error disappears.
+
+---
+
+## M28 — Component Placement Rotation + Lock Guard
+
+### Goal
+Make component placement editing more consistent by adding Z rotation editing,
+using rotation-aware semantic bounds checks, and enforcing locked placement
+state in the inspector/state path.
+
+### Tasks
+- [x] Add `Поворот Z` to the component placement inspector.
+- [x] Commit rotation edits through semantic undo history.
+- [x] Disable placement position/rotation/side controls while a placement is
+      locked.
+- [x] Keep the locked checkbox editable so the user can unlock the placement.
+- [x] Ignore non-lock placement edits in shell state when a placement is locked.
+- [x] Account for Z rotation in component board bounds validation.
+- [x] Account for Z rotation in first-pass component keepout bounds validation.
+- [x] Add unit/widget coverage for rotation-aware validation and locked editor
+      behavior.
+
+### Done Criteria
+- A selected component placement can edit Z rotation from the inspector.
+- Rotating a placement changes semantic validation bounds.
+- Locked placements show disabled placement fields and a short locked hint.
+- Unlocking a placement re-enables placement fields.
+- Validation still uses semantic IDs and rough envelopes only, not generated
+  mesh, B-Rep, triangle IDs, or OCCT topology.
+
+### Tests
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Select `button_board_placement`.
+- Change `Поворот Z` to `90` and confirm undo restores it to `0`.
+- Toggle `Зафиксировать`.
+- Confirm X/Y/Z/Поворот/Посадка controls are disabled while locked, then unlock
+  and confirm they work again.
