@@ -130,10 +130,11 @@ dart run tool\native_occt_worker_metrics_smoke.dart --skip-build
 ```
 
 The current native response returns deterministic bounds, dimensions, surface
-area, volume, and disposable preview mesh data for the first semantic enclosure.
-For the sample enclosure it emits 800 vertices and 1060 triangles. It still does
-not return STL, B-Rep, OCCT topology IDs, or triangle IDs as stable editable
-references.
+area, volume, disposable preview mesh data, and first-pass semantic surface
+ranges for the first semantic enclosure. For the sample enclosure it emits 800
+vertices, 1060 triangles, 3 surface mappings, and 6 mapped central planar
+triangles. It still does not return STL, B-Rep, OCCT topology IDs, or triangle
+IDs as stable editable references.
 
 The scaffold smoke command wraps build, capability query, and request smoke:
 
@@ -252,10 +253,12 @@ The first native OCCT slices now:
 5. Return deterministic bounds, dimensions, surface area, and volume.
 6. Mesh the generated B-Rep with explicit linear/angular deflection settings.
 7. Return disposable preview mesh vertices and triangle indices.
+8. Return first-pass semantic preview surface ranges for planar top, front, and
+   bottom face blocks.
 
 The next native geometry slices should:
 
-1. Preserve named semantic surface mappings.
+1. Expand semantic face mapping beyond central planar face blocks.
 2. Generate shell/cavity geometry.
 3. Consume feature intents for cutouts and mounts.
 
@@ -273,7 +276,7 @@ Expected sample dimensions:
   backend readiness, not generated geometry.
 - `occt_worker/native` has both a no-OCCT stub and an opt-in OCCT target. The
   OCCT target can build a rounded enclosure B-Rep internally and return a
-  disposable preview mesh plus metrics.
+  disposable preview mesh plus first-pass semantic surface ranges and metrics.
 - `tool/mock_geometry_worker.dart` is only a compatibility alias for the local
   worker runtime.
 - `--backend=native` currently returns a structured not-implemented response,
@@ -283,8 +286,8 @@ Expected sample dimensions:
 - `tool/mock_worker_geometry_service_smoke.dart` runs the worker-backed
   `GeometryService` adapter through the same mock worker process.
 - `tool/native_occt_worker_metrics_smoke.dart` runs the native OCCT target
-  through the Dart process client and checks the preview mesh plus metrics
-  response.
+  through the Dart process client and checks the preview mesh, semantic surface
+  ranges, and metrics response.
 - The normal app backend selector defaults to mock unless worker backend and
   executable are both explicitly configured.
 - The protocol example files are generated fixtures backed by the typed Dart
@@ -295,7 +298,8 @@ Expected sample dimensions:
   bounds, component feature keepouts, and standoff mount safety. Component
   placement/keepout bounds account for Z rotation using conservative envelopes.
   This is still pre-geometry validation, not OCCT body validation.
-- Rounded edges and first native preview mesh emission are implemented;
-  shell/cavity generation and semantic surface mapping are still planned.
+- Rounded edges, first native preview mesh emission, and first-pass planar
+  semantic surface ranges are implemented; shell/cavity generation and richer
+  face mapping are still planned.
 - STEP/STL export operations intentionally return unsupported in the mock
   backend.

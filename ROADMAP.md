@@ -85,6 +85,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M64 - First Native Preview Mesh
 - [x] M65 - Native OCCT App Backend Wiring
 - [x] M66 - Native Preview Mesh Viewport
+- [x] M67 - Native Preview Surface Ranges
 
 ---
 
@@ -2876,3 +2877,51 @@ viewport while keeping selection and editing tied to semantic project objects.
 - Orbit, pan, and zoom the viewport.
 - Click semantic items/surfaces and confirm the inspector still changes as
   before; this chunk does not add triangle picking.
+
+---
+
+## M67 - Native Preview Surface Ranges
+
+### Goal
+Return the first semantic preview surface mappings from the native OCCT worker
+without making generated triangle indices stable editable IDs.
+
+### Tasks
+- [x] Add native preview surface mapping/range data structures.
+- [x] Classify planar top, front, and bottom face blocks from generated B-Rep
+      bounds.
+- [x] Emit `PreviewSurfaceMapping` JSON with disposable triangle ranges.
+- [x] Add metrics for mapping count and mapped triangle count.
+- [x] Update the native smoke tool to validate semantic IDs and range bounds.
+- [x] Update docs, roadmap, tasks, and worklog.
+
+### Done Criteria
+- Native `previewMesh.surfaces` includes:
+  - `main_enclosure.top_lid.outer`,
+  - `main_enclosure.front_wall.outer`,
+  - `main_enclosure.bottom_inside`.
+- Each mapping has positive `triangleRanges` within the emitted preview mesh
+  triangle count.
+- The sample smoke reports 3 surface mappings and 6 mapped triangles.
+- Curved fillet faces remain unmapped until a more expressive semantic face
+  mapping slice exists.
+- The response still does not expose OCCT topology IDs or stable editable
+  triangle IDs.
+
+### Tests
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- No new manual UI poke for this chunk; the mappings are a backend contract for
+  a later selection/highlight slice.
+- Optional developer poke: run
+  `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build` and
+  confirm `previewSurfaceMappings: 3` and `previewMappedTriangles: 6`.

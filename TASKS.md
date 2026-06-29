@@ -124,6 +124,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [ ] Generate shell/cavity for box.
 - [x] Generate mock preview mesh through protocol.
 - [x] Generate OCCT preview mesh.
+- [x] Emit first native semantic preview surface ranges.
 - [ ] Export STEP.
 - [ ] Export STL.
 - [x] Define response issues/warnings model.

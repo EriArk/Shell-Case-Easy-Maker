@@ -209,9 +209,10 @@ project:
    the native metrics slice.
 4. Mesh the generated B-Rep with explicit deflection settings. Done for the
    native preview mesh slice.
-5. Return preview mesh, bounds, issues, and metrics. First pass done with empty
-   semantic surface mapping.
-6. Preserve semantic surface mapping for top lid, front wall, and bottom inside.
+5. Return preview mesh, bounds, issues, and metrics. Done for the native
+   preview mesh slice.
+6. Preserve first-pass semantic surface mapping for top lid, front wall, and
+   bottom inside. Done for central planar face ranges.
 7. Read `featureIntents` and their derived operation plan to prepare
    deterministic future cutout/mount operations.
 

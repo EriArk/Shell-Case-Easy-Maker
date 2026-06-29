@@ -125,8 +125,40 @@ Future<void> main(List<String> args) async {
       failures,
     );
     _expect(
-      previewMesh.surfaces.isEmpty,
-      'semantic surface mapping must stay empty until face mapping is implemented',
+      previewMesh.surfaces.length == 3,
+      'previewMesh must expose three first-pass semantic surface mappings',
+      failures,
+    );
+    final surfaceIds = previewMesh.surfaces
+        .map((surface) => surface.semanticId)
+        .toSet();
+    _expect(
+      surfaceIds.contains('main_enclosure.top_lid.outer'),
+      'previewMesh surfaces must include the semantic top lid',
+      failures,
+    );
+    _expect(
+      surfaceIds.contains('main_enclosure.front_wall.outer'),
+      'previewMesh surfaces must include the semantic front wall',
+      failures,
+    );
+    _expect(
+      surfaceIds.contains('main_enclosure.bottom_inside'),
+      'previewMesh surfaces must include the semantic bottom inside surface',
+      failures,
+    );
+    _expect(
+      previewMesh.surfaces.every(
+        (surface) =>
+            surface.triangleRanges.isNotEmpty &&
+            surface.triangleRanges.every(
+              (range) =>
+                  range.start >= 0 &&
+                  range.count > 0 &&
+                  range.start + range.count <= previewMesh.triangleCount,
+            ),
+      ),
+      'previewMesh surface ranges must be positive disposable triangle ranges',
       failures,
     );
     _expect(
@@ -135,8 +167,8 @@ Future<void> main(List<String> args) async {
       failures,
     );
     _expect(
-      previewMesh.metadata['surfaceMapping'] == 'pending_semantic_face_mapping',
-      'previewMesh must not pretend semantic face mapping is implemented',
+      previewMesh.metadata['surfaceMapping'] == 'semantic_face_ranges_v1',
+      'previewMesh must identify first-pass semantic face range mapping',
       failures,
     );
     _expectDoubleList(
@@ -197,6 +229,21 @@ Future<void> main(List<String> args) async {
   _expect(
     metrics['previewTriangleCount'] == previewMesh?.triangleCount,
     'previewTriangleCount metric must match previewMesh.triangleCount',
+    failures,
+  );
+  _expect(
+    metrics['previewSurfaceMappingCount'] == previewMesh?.surfaces.length,
+    'previewSurfaceMappingCount metric must match previewMesh.surfaces.length',
+    failures,
+  );
+  final mappedTriangleCount = previewMesh == null
+      ? 0
+      : previewMesh.surfaces
+            .expand((surface) => surface.triangleRanges)
+            .fold<int>(0, (sum, range) => sum + range.count);
+  _expect(
+    metrics['previewMappedTriangleCount'] == mappedTriangleCount,
+    'previewMappedTriangleCount metric must match mapped surface ranges',
     failures,
   );
   _expectClose(
@@ -292,6 +339,8 @@ Future<void> main(List<String> args) async {
       'previewMeshEmitted': metrics['previewMeshEmitted'],
       'previewVertices': previewMesh?.vertexCount,
       'previewTriangles': previewMesh?.triangleCount,
+      'previewSurfaceMappings': previewMesh?.surfaces.length,
+      'previewMappedTriangles': metrics['previewMappedTriangleCount'],
       'bounds': metrics['bounds'],
       'dimensions': metrics['dimensions'],
       'surfaceArea': metrics['surfaceArea'],

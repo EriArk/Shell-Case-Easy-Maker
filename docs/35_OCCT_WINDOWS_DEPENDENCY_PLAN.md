@@ -80,8 +80,15 @@ Update from M64:
   `BRepMesh_IncrementalMesh`.
 - The sample smoke emits 800 preview vertices and 1060 preview triangles with
   the same deterministic bounds and metrics.
-- Semantic surface mapping is intentionally still pending; preview mesh output
-  remains disposable and not editable project state.
+
+Update from M67:
+
+- The native preview mesh now includes first-pass semantic surface ranges for
+  top lid, front wall, and bottom inside.
+- The sample smoke reports 3 surface mappings and 6 mapped central planar
+  triangles.
+- Preview mesh output and triangle ranges remain disposable and not editable
+  project state.
 
 ## License / compatibility notes
 
@@ -194,10 +201,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt
 
 The current OCCT target is a preview mesh smoke. It references OCCT box, fillet,
 meshing, triangulation, bounding-box, surface-property, and volume-property
-APIs. For the sample rounded enclosure it returns deterministic metrics and a
-disposable preview mesh while keeping generated B-Rep internal to the worker.
-STEP/STL export should stay out of this slice unless required by a later exact
-test.
+APIs. For the sample rounded enclosure it returns deterministic metrics, a
+disposable preview mesh, and first-pass semantic surface ranges while keeping
+generated B-Rep internal to the worker. STEP/STL export should stay out of this
+slice unless required by a later exact test.
 
 ## Follow-up tasks
 
@@ -206,5 +213,5 @@ test.
   setup before cloning or installing anything.
 - Use `-AllowVcpkgInstall` only when a large vcpkg manifest restore is expected.
 - Add shell/cavity generation after the metrics contract remains stable.
-- Add stable semantic surface mapping for generated preview mesh faces.
+- Expand semantic surface mapping beyond the first central planar face ranges.
 - Add third-party license notice packaging before distributing OCCT DLLs.

@@ -25,11 +25,13 @@
 #include <iomanip>
 #include <iostream>
 #include <iterator>
+#include <limits>
 #include <optional>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #ifndef OCC_VERSION_COMPLETE
@@ -78,15 +80,32 @@ struct ShapeMetrics {
   int filleted_edge_count = 0;
 };
 
+struct PreviewTriangleRangeData {
+  int start = 0;
+  int count = 0;
+};
+
+struct PreviewSurfaceMappingData {
+  std::string semantic_id;
+  std::string label;
+  std::vector<PreviewTriangleRangeData> triangle_ranges;
+};
+
 struct PreviewMeshData {
   std::vector<double> vertices;
   std::vector<int> triangles;
+  std::vector<PreviewSurfaceMappingData> surface_mappings;
   int face_count = 0;
   int skipped_face_count = 0;
   int mesher_status = 0;
 
   int vertex_count() const { return static_cast<int>(vertices.size() / 3); }
   int triangle_count() const { return static_cast<int>(triangles.size() / 3); }
+};
+
+struct FaceBounds {
+  std::array<double, 3> min = {0.0, 0.0, 0.0};
+  std::array<double, 3> max = {0.0, 0.0, 0.0};
 };
 
 std::string ReadStdin() {
@@ -760,7 +779,111 @@ ShapeMetrics ComputeShapeMetrics(const TopoDS_Shape& shape,
   return metrics;
 }
 
-PreviewMeshData BuildPreviewMesh(const TopoDS_Shape& shape) {
+double PreviewSurfaceTolerance(const ShapeMetrics& metrics) {
+  const double max_dimension =
+      std::max({metrics.dimensions[0], metrics.dimensions[1],
+                metrics.dimensions[2]});
+  return std::max(0.01, max_dimension * 0.0001) +
+         kPreviewLinearDeflection * 2.0;
+}
+
+bool FaceIsOnPlane(double face_min,
+                   double face_max,
+                   double plane,
+                   double tolerance) {
+  return std::abs(face_min - plane) <= tolerance &&
+         std::abs(face_max - plane) <= tolerance;
+}
+
+FaceBounds ComputeFaceBounds(const Handle(Poly_Triangulation)& triangulation,
+                             const TopLoc_Location& location) {
+  FaceBounds bounds;
+  bounds.min = {std::numeric_limits<double>::infinity(),
+                std::numeric_limits<double>::infinity(),
+                std::numeric_limits<double>::infinity()};
+  bounds.max = {-std::numeric_limits<double>::infinity(),
+                -std::numeric_limits<double>::infinity(),
+                -std::numeric_limits<double>::infinity()};
+
+  for (int node_index = 1; node_index <= triangulation->NbNodes();
+       ++node_index) {
+    const gp_Pnt point =
+        triangulation->Node(node_index).Transformed(location.Transformation());
+    bounds.min[0] = std::min(bounds.min[0], point.X());
+    bounds.min[1] = std::min(bounds.min[1], point.Y());
+    bounds.min[2] = std::min(bounds.min[2], point.Z());
+    bounds.max[0] = std::max(bounds.max[0], point.X());
+    bounds.max[1] = std::max(bounds.max[1], point.Y());
+    bounds.max[2] = std::max(bounds.max[2], point.Z());
+  }
+
+  return bounds;
+}
+
+std::optional<std::pair<std::string, std::string>> ClassifyPreviewSurface(
+    const FaceBounds& face_bounds,
+    const ShapeMetrics& metrics,
+    const std::string& body_id) {
+  const double tolerance = PreviewSurfaceTolerance(metrics);
+
+  if (FaceIsOnPlane(face_bounds.min[2],
+                    face_bounds.max[2],
+                    metrics.bounds_max[2],
+                    tolerance)) {
+    return std::make_pair(body_id + ".top_lid.outer", "Top lid");
+  }
+
+  if (FaceIsOnPlane(face_bounds.min[2],
+                    face_bounds.max[2],
+                    metrics.bounds_min[2],
+                    tolerance)) {
+    return std::make_pair(body_id + ".bottom_inside", "Bottom inside");
+  }
+
+  if (FaceIsOnPlane(face_bounds.min[1],
+                    face_bounds.max[1],
+                    metrics.bounds_min[1],
+                    tolerance)) {
+    return std::make_pair(body_id + ".front_wall.outer", "Front wall");
+  }
+
+  return std::nullopt;
+}
+
+void AddPreviewSurfaceRange(
+    PreviewMeshData* mesh,
+    const std::optional<std::pair<std::string, std::string>>& surface,
+    int triangle_start,
+    int triangle_count) {
+  if (!surface.has_value() || triangle_count <= 0) {
+    return;
+  }
+
+  for (PreviewSurfaceMappingData& mapping : mesh->surface_mappings) {
+    if (mapping.semantic_id == surface->first) {
+      mapping.triangle_ranges.push_back({triangle_start, triangle_count});
+      return;
+    }
+  }
+
+  mesh->surface_mappings.push_back(
+      {surface->first, surface->second, {{triangle_start, triangle_count}}});
+}
+
+int PreviewMappedTriangleCount(const PreviewMeshData& mesh) {
+  int count = 0;
+  for (const PreviewSurfaceMappingData& mapping : mesh.surface_mappings) {
+    for (const PreviewTriangleRangeData& range : mapping.triangle_ranges) {
+      count += range.count;
+    }
+  }
+
+  return count;
+}
+
+PreviewMeshData BuildPreviewMesh(const TopoDS_Shape& shape,
+                                 const ShapeMetrics& metrics,
+                                 const std::string& body_id) {
   PreviewMeshData mesh;
   BRepMesh_IncrementalMesh mesher(shape,
                                   kPreviewLinearDeflection,
@@ -780,7 +903,11 @@ PreviewMeshData BuildPreviewMesh(const TopoDS_Shape& shape) {
       continue;
     }
 
+    const FaceBounds face_bounds = ComputeFaceBounds(triangulation, location);
+    const std::optional<std::pair<std::string, std::string>> surface =
+        ClassifyPreviewSurface(face_bounds, metrics, body_id);
     const int vertex_offset = mesh.vertex_count();
+    const int triangle_start = mesh.triangle_count();
     for (int node_index = 1; node_index <= triangulation->NbNodes();
          ++node_index) {
       const gp_Pnt point =
@@ -815,6 +942,9 @@ PreviewMeshData BuildPreviewMesh(const TopoDS_Shape& shape) {
         mesh.triangles.push_back(vertex_offset + node_3 - 1);
       }
     }
+
+    AddPreviewSurfaceRange(
+        &mesh, surface, triangle_start, mesh.triangle_count() - triangle_start);
   }
 
   if (mesh.triangles.empty()) {
@@ -871,7 +1001,7 @@ void WriteCapabilities() {
       << "      ],\n"
       << "      \"notes\": [\n"
       << "        \"OCCT-linked native target is available.\",\n"
-      << "        \"preview_mesh returns a disposable triangulated preview mesh plus deterministic rounded enclosure metrics.\"\n"
+      << "        \"preview_mesh returns a disposable triangulated preview mesh, first-pass semantic surface ranges, and deterministic rounded enclosure metrics.\"\n"
       << "      ]\n"
       << "    }\n"
       << "  ],\n"
@@ -925,6 +1055,51 @@ void WriteIssueResponse(const std::string& request_id,
             << "}\n";
 }
 
+void WritePreviewSurfaceMappings(const PreviewMeshData& mesh) {
+  std::cout << "[";
+  if (!mesh.surface_mappings.empty()) {
+    std::cout << "\n";
+  }
+
+  for (std::size_t mapping_index = 0;
+       mapping_index < mesh.surface_mappings.size();
+       ++mapping_index) {
+    const PreviewSurfaceMappingData& mapping =
+        mesh.surface_mappings[mapping_index];
+    std::cout << "      {\n"
+              << "        \"semanticId\": \""
+              << EscapeJsonString(mapping.semantic_id) << "\",\n"
+              << "        \"label\": \"" << EscapeJsonString(mapping.label)
+              << "\",\n"
+              << "        \"triangleRanges\": [";
+    if (!mapping.triangle_ranges.empty()) {
+      std::cout << "\n";
+    }
+    for (std::size_t range_index = 0;
+         range_index < mapping.triangle_ranges.size();
+         ++range_index) {
+      const PreviewTriangleRangeData& range =
+          mapping.triangle_ranges[range_index];
+      std::cout << "          {\n"
+                << "            \"start\": " << range.start << ",\n"
+                << "            \"count\": " << range.count << "\n"
+                << "          }";
+      if (range_index + 1 < mapping.triangle_ranges.size()) {
+        std::cout << ",";
+      }
+      std::cout << "\n";
+    }
+    std::cout << "        ]\n"
+              << "      }";
+    if (mapping_index + 1 < mesh.surface_mappings.size()) {
+      std::cout << ",";
+    }
+    std::cout << "\n";
+  }
+
+  std::cout << "    ]";
+}
+
 void WritePreviewMesh(const PreviewMeshData& mesh,
                       const ShapeMetrics& metrics) {
   std::cout << "  \"previewMesh\": {\n"
@@ -943,9 +1118,11 @@ void WritePreviewMesh(const PreviewMeshData& mesh,
   WriteDoubleArray(metrics.bounds_max);
   std::cout << "\n"
             << "    },\n"
-            << "    \"surfaces\": [],\n"
+            << "    \"surfaces\": ";
+  WritePreviewSurfaceMappings(mesh);
+  std::cout << ",\n"
             << "    \"source\": \"occt_brep\",\n"
-            << "    \"surfaceMapping\": \"pending_semantic_face_mapping\",\n"
+            << "    \"surfaceMapping\": \"semantic_face_ranges_v1\",\n"
             << "    \"linearDeflection\": "
             << FormatDouble(kPreviewLinearDeflection) << ",\n"
             << "    \"angularDeflection\": "
@@ -1006,6 +1183,10 @@ void WriteRoundedEnclosurePreviewResponse(const NativeRequestEnvelope& request,
             << "    \"previewVertexCount\": " << mesh.vertex_count() << ",\n"
             << "    \"previewTriangleCount\": " << mesh.triangle_count()
             << ",\n"
+            << "    \"previewSurfaceMappingCount\": "
+            << mesh.surface_mappings.size() << ",\n"
+            << "    \"previewMappedTriangleCount\": "
+            << PreviewMappedTriangleCount(mesh) << ",\n"
             << "    \"previewFaceCount\": " << mesh.face_count << ",\n"
             << "    \"previewSkippedFaceCount\": " << mesh.skipped_face_count
             << ",\n"
@@ -1076,7 +1257,8 @@ int main(int argc, char* argv[]) {
 
     const ShapeMetrics metrics =
         ComputeShapeMetrics(shape, corner_radius_applied, filleted_edge_count);
-    const PreviewMeshData mesh = BuildPreviewMesh(shape);
+    const PreviewMeshData mesh =
+        BuildPreviewMesh(shape, metrics, parsed_request.enclosure.id);
     WriteRoundedEnclosurePreviewResponse(
         parsed_request.request, parsed_request.enclosure, metrics, mesh);
     return 0;

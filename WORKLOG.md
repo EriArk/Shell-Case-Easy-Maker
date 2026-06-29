@@ -42,6 +42,105 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-29 - M67 Native preview surface ranges
+
+### Goal
+Add the first native semantic preview surface mappings so generated preview mesh
+responses can identify top/front/bottom face ranges without making triangle
+indices editable project IDs.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`occt_worker/native/src/occt_main.cpp`,
+`tool/native_occt_worker_metrics_smoke.dart`,
+`test/occt_native_target_scaffold_test.dart`,
+`docs/03_ARCHITECTURE_OVERVIEW.md`, `docs/33_VIEWPORT_MVP.md`,
+`docs/34_FIRST_GEOMETRY_SLICE.md`,
+`docs/35_OCCT_WINDOWS_DEPENDENCY_PLAN.md`, `occt_worker/README.md`, and
+`README.md`.
+
+### Changes made
+- `occt_worker/native/src/occt_main.cpp`:
+  - Added preview surface mapping/range data structures.
+  - Classified central planar top, front, and bottom face blocks from generated
+    B-Rep bounds.
+  - Emitted `PreviewSurfaceMapping` JSON with disposable triangle ranges.
+  - Added mapping count and mapped triangle count metrics.
+  - Updated native capabilities notes to mention first-pass semantic surface
+    ranges.
+- `tool/native_occt_worker_metrics_smoke.dart`:
+  - Validates 3 semantic surface mappings for top lid, front wall, and bottom
+    inside.
+  - Validates positive triangle ranges within the emitted preview mesh.
+  - Checks mapping metrics against parsed preview mesh ranges.
+- Docs/tasks/roadmap:
+  - Recorded M67 and clarified that only central planar face ranges are mapped;
+    curved fillets remain unmapped.
+
+### Tests run
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`:
+  - Passed.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`:
+  - Passed; rebuilt native OCCT worker.
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`:
+  - Passed; sample reports 800 vertices, 1060 triangles, 3 surface mappings,
+    and 6 mapped triangles.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed, 183 tests.
+- `git diff --check`:
+  - Passed; Git repeated existing CRLF normalization warnings for touched docs.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed; rebuilt latest Windows app and copied the rebuilt native worker.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `Test-Path releases\latest\windows\occt_worker\native\occt_worker_native_occt.exe`:
+  - Passed.
+- `releases\latest\windows\occt_worker\native\occt_worker_native_occt.exe --capabilities`:
+  - Passed; copied worker reports `status=preview_mesh_smoke`, OCCT `8.0.0`,
+    and notes first-pass semantic surface ranges.
+
+### Validation
+- Geometry checked?
+  - Native worker smoke validates bounds, mesh counts, semantic surface IDs,
+    triangle ranges, and mapping metrics.
+- Serialization checked?
+  - `PreviewMesh` protocol parsing of surface mappings remains covered by
+    existing protocol tests; native smoke now exercises the native JSON path.
+- UI checked?
+  - Full widget suite passed. No new visible UI behavior is expected from this
+    backend-only mapping slice.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Only central planar face blocks are mapped; curved fillets and richer
+  side/back/left/right semantics are not mapped yet.
+  - Severity: Expected.
+  - Next action: Expand mapping after shell/cavity and face semantics are more
+    explicit.
+- Issue: Viewport still does not use preview surface ranges for picking or
+  highlight.
+  - Severity: Expected.
+  - Next action: Add a separate UI selection/highlight slice after the backend
+    contract is stable.
+
+### Next step
+Use the first-pass surface ranges in a later viewport highlight or semantic
+face selection slice, or continue toward shell/cavity generation.
+
+### Notes for future Codex sessions
+`previewMesh.surfaces` is preview metadata only. Triangle ranges are disposable
+and must not become saved project IDs or editable topology.
+
+---
+
 ## 2026-06-29 - M66 Native preview mesh viewport
 
 ### Goal

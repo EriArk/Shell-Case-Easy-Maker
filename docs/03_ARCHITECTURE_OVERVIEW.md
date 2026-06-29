@@ -218,9 +218,10 @@ finds a local `OpenCASCADEConfig.cmake`.
 `occt_worker_native_occt` is the separate opt-in OCCT target. It is configured
 with `SHELL_CASE_ENABLE_OCCT=ON` through `tools/build_occt_worker_occt.ps1` and
 should remain separate from `occt_worker_native_stub`. It now builds the sample
-rounded enclosure B-Rep, emits disposable preview mesh data, and still keeps
-generated B-Rep/mesh out of editable project state. Its vcpkg manifest is also
-opt-in: the build script uses `occt_worker/native/vcpkg.json` only when
+rounded enclosure B-Rep, emits disposable preview mesh data plus first-pass
+semantic surface ranges, and still keeps generated B-Rep/mesh out of editable
+project state. Its vcpkg manifest is also opt-in: the build script uses
+`occt_worker/native/vcpkg.json` only when
 `-AllowVcpkgInstall` is provided. `tools/bootstrap_vcpkg_windows.ps1` can create
 a repo-local `external/vcpkg` checkout, and the readiness checker auto-detects
 that path without requiring a global `VCPKG_ROOT`. Manifest-mode installed

@@ -40,7 +40,9 @@ It does not return mesh IDs, triangle IDs, OCCT face IDs, or generated topology.
 painter projects its vertices with the current `ViewportState`, draws sorted
 triangles as a faceted body layer, and keeps component, feature, workplane,
 snap, ghost, and selection overlays above it. The mesh is never hit-tested as
-the editable source of truth.
+the editable source of truth. Native preview meshes may include disposable
+semantic surface ranges; the current viewport does not use those ranges for
+picking yet.
 
 Component placement hit zones are now supplied as
 `MockViewportComponentPlacementPreview` values derived from semantic

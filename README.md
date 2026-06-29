@@ -128,8 +128,8 @@ dart run tool/native_occt_worker_metrics_smoke.dart --skip-build
 
 This verifies the built `occt_worker_native_occt` capabilities and the
 deterministic sample bounds, dimensions, surface area, volume, and preview mesh
-counts. The command name is kept for compatibility with the previous
-metrics-only smoke.
+counts plus first-pass semantic surface ranges. The command name is kept for
+compatibility with the previous metrics-only smoke.
 
 If CMake was previously configured before OCCT readiness became true, run the
 first linked manifest build cleanly with:

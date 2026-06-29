@@ -44,8 +44,11 @@ void main() {
       expect(source, contains('ReadNativeRequest'));
       expect(source, contains('BuildRoundedEnclosureShape'));
       expect(source, contains('BuildPreviewMesh'));
+      expect(source, contains('ClassifyPreviewSurface'));
+      expect(source, contains('PreviewSurfaceMappingData'));
       expect(source, contains('ComputeShapeMetrics'));
       expect(source, contains('WritePreviewMesh'));
+      expect(source, contains('WritePreviewSurfaceMappings'));
       expect(source, contains('worker.backend.occt_operation_not_implemented'));
       expect(source, contains('worker.geometry.invalid_enclosure_dimensions'));
       expect(source, contains('cornerRadiusApplied'));
@@ -56,7 +59,12 @@ void main() {
       expect(source, contains('previewMeshEmitted'));
       expect(source, contains('previewVertexCount'));
       expect(source, contains('previewTriangleCount'));
-      expect(source, contains('pending_semantic_face_mapping'));
+      expect(source, contains('previewSurfaceMappingCount'));
+      expect(source, contains('previewMappedTriangleCount'));
+      expect(source, contains('semantic_face_ranges_v1'));
+      expect(source, contains('.top_lid.outer'));
+      expect(source, contains('.front_wall.outer'));
+      expect(source, contains('.bottom_inside'));
       expect(source, contains('editableGeneratedGeometry'));
       expect(source, contains('semantic_project'));
       expect(source, contains('nativeHealthShapeNull'));
@@ -124,7 +132,10 @@ void main() {
       expect(tool, contains('occt.rounded_enclosure.preview_mesh.v1'));
       expect(tool, contains('previewMesh.vertexCount'));
       expect(tool, contains('previewMesh.triangleCount'));
-      expect(tool, contains('pending_semantic_face_mapping'));
+      expect(tool, contains('previewMesh.surfaces.length == 3'));
+      expect(tool, contains('semantic_face_ranges_v1'));
+      expect(tool, contains('previewSurfaceMappingCount'));
+      expect(tool, contains('previewMappedTriangleCount'));
       expect(tool, contains('surfaceArea'));
       expect(tool, contains('volume'));
       expect(tool, contains('previewMeshEmitted'));
