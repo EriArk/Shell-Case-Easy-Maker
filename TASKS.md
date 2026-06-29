@@ -78,6 +78,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Implement semantic feature group viewport markers.
 - [x] Implement semantic button group viewport markers.
 - [x] Implement semantic surface feature viewport markers.
+- [x] Implement semantic component placement viewport previews.
 - [ ] Implement local workplane overlay.
 - [x] Implement grid overlay.
 - [ ] Implement basic snapping visual hints.
@@ -133,6 +134,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] First-pass component placement bounds validation.
 - [x] First-pass edit component placement from inspector.
 - [x] First-pass component placement rotation and lock behavior.
+- [x] First-pass component placement visibility behavior.
 - [ ] Guided component placement workflow with viewport picking.
 - [ ] Project switch centers and connector anchors to enclosure surfaces.
 
@@ -148,7 +150,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [ ] Generate support ribs from drawn line.
 - [ ] Generate rectangular structural rib grid.
 - [x] First-pass component placement locking.
-- [ ] Component placement visibility toggles.
+- [x] Component placement visibility toggles.
 
 ## Phase 8 — Pattern/layout system
 

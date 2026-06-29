@@ -257,6 +257,51 @@ class MockViewportFeatureGroupPreview {
   }
 }
 
+class MockViewportComponentPlacementPreview {
+  const MockViewportComponentPlacementPreview({
+    required this.semanticId,
+    required this.width,
+    required this.depth,
+    required this.referenceWidth,
+    required this.referenceDepth,
+    this.position = Offset.zero,
+    this.rotationZDegrees = 0,
+  });
+
+  final String semanticId;
+  final double width;
+  final double depth;
+  final double referenceWidth;
+  final double referenceDepth;
+  final Offset position;
+  final double rotationZDegrees;
+
+  @override
+  bool operator ==(Object other) {
+    return other is MockViewportComponentPlacementPreview &&
+        other.semanticId == semanticId &&
+        other.width == width &&
+        other.depth == depth &&
+        other.referenceWidth == referenceWidth &&
+        other.referenceDepth == referenceDepth &&
+        other.position == position &&
+        other.rotationZDegrees == rotationZDegrees;
+  }
+
+  @override
+  int get hashCode {
+    return Object.hash(
+      semanticId,
+      width,
+      depth,
+      referenceWidth,
+      referenceDepth,
+      position,
+      rotationZDegrees,
+    );
+  }
+}
+
 class MockViewportBodyDimensions {
   const MockViewportBodyDimensions({
     this.width = 120,
@@ -353,6 +398,46 @@ class MockViewportLayout {
       MockViewportFeatureGroupKind.buttonGroup => lidRect,
       MockViewportFeatureGroupKind.standoffMounts => boardRect,
     };
+  }
+
+  Rect componentPlacementRect(MockViewportComponentPlacementPreview placement) {
+    final safeWidth = placement.referenceWidth.clamp(1, 1000).toDouble();
+    final safeDepth = placement.referenceDepth.clamp(1, 1000).toDouble();
+    final center = lidRect.center.translate(
+      (placement.position.dx / safeWidth) * lidRect.width,
+      -(placement.position.dy / safeDepth) * lidRect.height,
+    );
+    final width = (placement.width / safeWidth * lidRect.width)
+        .clamp(28 * zoom, lidRect.width * 0.78)
+        .toDouble();
+    final depth = (placement.depth / safeDepth * lidRect.height)
+        .clamp(20 * zoom, lidRect.height * 0.78)
+        .toDouble();
+
+    return Rect.fromCenter(center: center, width: width, height: depth);
+  }
+
+  bool containsComponentPlacement(
+    MockViewportComponentPlacementPreview placement,
+    Offset position, {
+    double inflate = 0,
+  }) {
+    final rect = componentPlacementRect(placement).inflate(inflate);
+    final radians = -placement.rotationZDegrees * math.pi / 180;
+    final cos = math.cos(radians);
+    final sin = math.sin(radians);
+    final offset = position - rect.center;
+    final local = Offset(
+      offset.dx * cos - offset.dy * sin,
+      offset.dx * sin + offset.dy * cos,
+    );
+    final localRect = Rect.fromCenter(
+      center: Offset.zero,
+      width: rect.width,
+      height: rect.height,
+    );
+
+    return localRect.contains(local);
   }
 
   Rect featureRect(MockViewportFeaturePreview feature) {
@@ -473,6 +558,16 @@ class MockViewportLayout {
   }
 }
 
+const _defaultComponentPlacementPreviews = [
+  MockViewportComponentPlacementPreview(
+    semanticId: 'button_board_placement',
+    width: 48,
+    depth: 32,
+    referenceWidth: 120,
+    referenceDepth: 70,
+  ),
+];
+
 class MockViewportHitTester {
   const MockViewportHitTester();
 
@@ -482,6 +577,8 @@ class MockViewportHitTester {
     required ViewportState state,
     MockViewportBodyDimensions bodyDimensions =
         const MockViewportBodyDimensions(),
+    List<MockViewportComponentPlacementPreview> componentPlacements =
+        _defaultComponentPlacementPreviews,
     List<MockViewportFeaturePreview> features = const [],
     List<MockViewportFeatureGroupPreview> featureGroups = const [],
   }) {
@@ -531,11 +628,17 @@ class MockViewportHitTester {
       }
     }
 
-    if (layout.boardRect.contains(position)) {
-      return const ViewportHitResult(
-        kind: ViewportHitKind.componentPlacement,
-        semanticId: 'button_board_placement',
-      );
+    for (final placement in componentPlacements.reversed) {
+      if (layout.containsComponentPlacement(
+        placement,
+        position,
+        inflate: 4 * state.zoom,
+      )) {
+        return ViewportHitResult(
+          kind: ViewportHitKind.componentPlacement,
+          semanticId: placement.semanticId,
+        );
+      }
     }
 
     if (layout.lidRect.contains(position)) {

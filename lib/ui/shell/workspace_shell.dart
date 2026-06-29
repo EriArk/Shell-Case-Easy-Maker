@@ -202,7 +202,9 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       return;
     }
 
-    if (placement.locked && parameterId != 'locked') {
+    if (placement.locked &&
+        parameterId != 'locked' &&
+        parameterId != 'visible') {
       return;
     }
 
@@ -1021,6 +1023,7 @@ ComponentPlacement _updatedComponentPlacementParameter(
       rotation: placement.rotation,
       mountingSide: value is String ? value : placement.mountingSide,
       locked: placement.locked,
+      visible: placement.visible,
       metadata: placement.metadata,
     ),
     'locked' => ComponentPlacement(
@@ -1030,6 +1033,17 @@ ComponentPlacement _updatedComponentPlacementParameter(
       rotation: placement.rotation,
       mountingSide: placement.mountingSide,
       locked: value is bool ? value : placement.locked,
+      visible: placement.visible,
+      metadata: placement.metadata,
+    ),
+    'visible' => ComponentPlacement(
+      id: placement.id,
+      templateId: placement.templateId,
+      position: placement.position,
+      rotation: placement.rotation,
+      mountingSide: placement.mountingSide,
+      locked: placement.locked,
+      visible: value is bool ? value : placement.visible,
       metadata: placement.metadata,
     ),
     _ => placement,
@@ -1053,6 +1067,7 @@ ComponentPlacement _copyComponentPlacementWithPosition(
     rotation: placement.rotation,
     mountingSide: placement.mountingSide,
     locked: placement.locked,
+    visible: placement.visible,
     metadata: placement.metadata,
   );
 }
@@ -1074,6 +1089,7 @@ ComponentPlacement _copyComponentPlacementWithRotation(
     ],
     mountingSide: placement.mountingSide,
     locked: placement.locked,
+    visible: placement.visible,
     metadata: placement.metadata,
   );
 }
@@ -1588,9 +1604,13 @@ class _ProjectBrowser extends StatelessWidget {
           _BrowserHeader(label: 'Компоненты'),
           for (final placement in project.componentPlacements)
             _BrowserRow(
-              icon: Icons.memory_rounded,
+              icon: placement.visible
+                  ? Icons.memory_rounded
+                  : Icons.visibility_off_rounded,
               title: _templateName(project, placement.templateId),
-              subtitle: placement.id,
+              subtitle: placement.visible
+                  ? placement.id
+                  : '${placement.id} · скрыто',
               selected:
                   selection.kind == SelectionKind.componentPlacement &&
                   selection.id == placement.id,
@@ -1853,6 +1873,7 @@ class _ViewportAreaState extends State<_ViewportArea> {
           size: viewportSize,
           state: widget.viewportState,
           bodyDimensions: _mockViewportBodyDimensions(widget.project),
+          componentPlacements: _mockComponentPlacementPreviews(widget.project),
           features: _mockFeaturePreviews(widget.project),
           featureGroups: _mockFeatureGroupPreviews(widget.project),
         ),
@@ -1904,6 +1925,8 @@ class _ViewportAreaState extends State<_ViewportArea> {
                         bodyDimensions: _mockViewportBodyDimensions(
                           widget.project,
                         ),
+                        componentPlacementPreviews:
+                            _mockComponentPlacementPreviews(widget.project),
                         featurePreviews: _mockFeaturePreviews(widget.project),
                         featureGroupPreviews: _mockFeatureGroupPreviews(
                           widget.project,
@@ -2521,6 +2544,7 @@ Map<String, Object?> _componentPlacementParameterValues(
     'rotationZ': _positionAt(placement.rotation, 2),
     'mountingSide': placement.mountingSide,
     'locked': placement.locked,
+    'visible': placement.visible,
   });
 }
 
@@ -2576,6 +2600,12 @@ const _componentPlacementParameterSchema = ParameterSchema(
       label: 'Зафиксировать',
       kind: ParameterKind.boolean,
       defaultValue: false,
+    ),
+    ParameterDefinition(
+      id: 'visible',
+      label: 'Показывать',
+      kind: ParameterKind.boolean,
+      defaultValue: true,
     ),
   ],
 );
@@ -4388,6 +4418,7 @@ class _ViewportPainter extends CustomPainter {
   const _ViewportPainter({
     required this.colorScheme,
     required this.bodyDimensions,
+    required this.componentPlacementPreviews,
     required this.featurePreviews,
     required this.featureGroupPreviews,
     required this.selection,
@@ -4396,6 +4427,7 @@ class _ViewportPainter extends CustomPainter {
 
   final ColorScheme colorScheme;
   final MockViewportBodyDimensions bodyDimensions;
+  final List<MockViewportComponentPlacementPreview> componentPlacementPreviews;
   final List<MockViewportFeaturePreview> featurePreviews;
   final List<MockViewportFeatureGroupPreview> featureGroupPreviews;
   final SelectionModel selection;
@@ -4452,13 +4484,7 @@ class _ViewportPainter extends CustomPainter {
       topPaint,
     );
 
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        layout.boardRect,
-        Radius.circular(layout.boardRadius),
-      ),
-      Paint()..color = const Color(0xFF243F3D),
-    );
+    _paintComponentPlacements(canvas, layout);
 
     for (final center in layout.buttonCenters) {
       canvas.drawCircle(center, layout.buttonRadius, accentPaint);
@@ -4529,8 +4555,22 @@ class _ViewportPainter extends CustomPainter {
       }
     }
 
-    if (selection.kind == SelectionKind.componentPlacement ||
-        selection.kind == SelectionKind.componentTemplate) {
+    if (selection.kind == SelectionKind.componentPlacement) {
+      final placement = componentPlacementPreviews
+          .where((placement) => placement.semanticId == selection.id)
+          .firstOrNull;
+      if (placement != null) {
+        _drawRotatedRRect(
+          canvas,
+          layout.componentPlacementRect(placement).inflate(5),
+          placement.rotationZDegrees,
+          Radius.circular(layout.boardRadius + 3),
+          secondaryHighlightPaint,
+        );
+      }
+    }
+
+    if (selection.kind == SelectionKind.componentTemplate) {
       canvas.drawRRect(
         RRect.fromRectAndRadius(
           layout.boardRect.inflate(5),
@@ -4588,6 +4628,35 @@ class _ViewportPainter extends CustomPainter {
           canvas.drawCircle(center, radius + 5, secondaryHighlightPaint);
         }
       }
+    }
+  }
+
+  void _paintComponentPlacements(Canvas canvas, MockViewportLayout layout) {
+    final boardFill = Paint()
+      ..color = const Color(0xFF243F3D)
+      ..style = PaintingStyle.fill;
+    final boardStroke = Paint()
+      ..color = colorScheme.secondary.withValues(alpha: 0.28)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+
+    for (final placement in componentPlacementPreviews) {
+      final rect = layout.componentPlacementRect(placement);
+      final radius = Radius.circular(layout.boardRadius);
+      _drawRotatedRRect(
+        canvas,
+        rect,
+        placement.rotationZDegrees,
+        radius,
+        boardFill,
+      );
+      _drawRotatedRRect(
+        canvas,
+        rect,
+        placement.rotationZDegrees,
+        radius,
+        boardStroke,
+      );
     }
   }
 
@@ -4719,11 +4788,27 @@ class _ViewportPainter extends CustomPainter {
   bool shouldRepaint(covariant _ViewportPainter oldDelegate) {
     return oldDelegate.colorScheme != colorScheme ||
         oldDelegate.bodyDimensions != bodyDimensions ||
+        oldDelegate.componentPlacementPreviews != componentPlacementPreviews ||
         oldDelegate.featurePreviews != featurePreviews ||
         oldDelegate.featureGroupPreviews != featureGroupPreviews ||
         oldDelegate.selection != selection ||
         oldDelegate.viewportState != viewportState;
   }
+}
+
+void _drawRotatedRRect(
+  Canvas canvas,
+  Rect rect,
+  double rotationZDegrees,
+  Radius radius,
+  Paint paint,
+) {
+  canvas.save();
+  canvas.translate(rect.center.dx, rect.center.dy);
+  canvas.rotate(rotationZDegrees * math.pi / 180);
+  canvas.translate(-rect.center.dx, -rect.center.dy);
+  canvas.drawRRect(RRect.fromRectAndRadius(rect, radius), paint);
+  canvas.restore();
 }
 
 MockViewportBodyDimensions _mockViewportBodyDimensions(ProjectModel project) {
@@ -4738,6 +4823,50 @@ MockViewportBodyDimensions _mockViewportBodyDimensions(ProjectModel project) {
     height: _sizeAt(enclosure, 2, 28),
     cornerRadius: enclosure.cornerRadius,
   );
+}
+
+List<MockViewportComponentPlacementPreview> _mockComponentPlacementPreviews(
+  ProjectModel project,
+) {
+  final enclosure = project.bodies.firstOrNull;
+  final referenceWidth = enclosure == null ? 120.0 : _sizeAt(enclosure, 0, 120);
+  final referenceDepth = enclosure == null ? 70.0 : _sizeAt(enclosure, 1, 70);
+
+  return [
+    for (final placement in project.componentPlacements)
+      if (placement.visible)
+        MockViewportComponentPlacementPreview(
+          semanticId: placement.id,
+          width:
+              _componentTemplateForProjectPlacement(
+                project,
+                placement,
+              )?.board.outline.width ??
+              40,
+          depth:
+              _componentTemplateForProjectPlacement(
+                project,
+                placement,
+              )?.board.outline.height ??
+              30,
+          referenceWidth: referenceWidth,
+          referenceDepth: referenceDepth,
+          position: Offset(
+            _positionAt(placement.position, 0),
+            _positionAt(placement.position, 1),
+          ),
+          rotationZDegrees: _positionAt(placement.rotation, 2),
+        ),
+  ];
+}
+
+ComponentTemplate? _componentTemplateForProjectPlacement(
+  ProjectModel project,
+  ComponentPlacement placement,
+) {
+  return project.componentTemplates
+      .where((template) => template.id == placement.templateId)
+      .firstOrNull;
 }
 
 List<MockViewportFeaturePreview> _mockFeaturePreviews(ProjectModel project) {

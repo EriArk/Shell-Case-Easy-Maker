@@ -91,6 +91,9 @@ When schema changes:
 The first implementation lives under `lib/project/` and keeps project data semantic:
 - `ProjectModel` owns schema/version, units, bodies, component templates, placements, features, feature groups, constraints, and export presets.
 - `Enclosure`, `SemanticFeature`, `FeatureGroup`, `ComponentTemplate`, and `ComponentPlacement` are typed model entry points with JSON round-trip tests.
+- `ComponentPlacement.visible` is a typed semantic display flag. Missing values
+  default to `true` for older project files; hidden placements remain editable
+  project objects and are only omitted from the mock viewport placement preview.
 - Unknown semantic metadata is preserved when reading and writing fixtures so partially typed subsystem data is not silently dropped.
 - `ProjectMigration` is the central entrypoint for schema upgrades and currently supports version 1.
 

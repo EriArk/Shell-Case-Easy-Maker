@@ -2100,6 +2100,10 @@ workspace shell status bar, project semantic models, and geometry/widget tests.
   - Passed.
 - `git diff --check`:
   - Passed.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed.
 
 ### Validation
 - Geometry checked?
@@ -2473,3 +2477,93 @@ service slice.
 Keep placement rotation and lock semantics in the semantic `ComponentPlacement`.
 Do not infer editable placement state from preview mesh transforms or OCCT
 topology.
+
+---
+
+## 2026-06-29 - M29 Component Placement Visibility
+
+### Goal
+Add a semantic visibility toggle for component placements so a placement can be
+hidden from the mock viewport without deleting it from the editable project.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, component placement model, workspace
+shell inspector/browser/viewport code, `ViewportController`, and related
+model/viewport/widget tests.
+
+### Changes made
+- `lib/project/component_placement.dart`:
+  - Added typed `visible` state with default `true`.
+  - Kept older project JSON compatible by defaulting missing `visible` to
+    `true`.
+  - Preserved unknown placement metadata while excluding the typed `visible`
+    field from metadata.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added `Показывать` to the component placement inspector.
+  - Preserved visibility through placement position, rotation, side, and lock
+    edits.
+  - Allowed visibility changes even while a placement is locked.
+  - Marked hidden placements in the project browser with a visibility-off icon.
+  - Built mock component placement previews from semantic placements and
+    component template board outlines.
+  - Omitted hidden placements from mock viewport drawing and hit-testing.
+- `lib/viewport/viewport_controller.dart`:
+  - Added `MockViewportComponentPlacementPreview`.
+  - Routed component placement hit-testing through supplied semantic placement
+    previews instead of only one hard-coded board ID.
+- `lib/selection/project_selection_resolver.dart`:
+  - Added placement visibility to selection details.
+- Tests:
+  - Added placement visibility serialization coverage.
+  - Added mock viewport hit-test coverage for omitted component previews.
+  - Added widget coverage for visibility toggle, hidden hit target, and undo.
+- Docs/tasks/roadmap:
+  - Documented M29, component placement visibility, semantic viewport previews,
+    and test expectations.
+
+### Tests run
+- `flutter test test\project_model_test.dart test\viewport_controller_test.dart test\widget_test.dart`:
+  - Passed, 53 targeted tests.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 105 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+
+### Validation
+- Geometry checked?
+  - Mock viewport drawing/hit-testing only; no generated B-Rep or mesh is
+    created.
+- Serialization checked?
+  - Unit tests cover default `visible: true` for older JSON and hidden placement
+    round-trip.
+- UI checked?
+  - Widget test confirms hide/show state, viewport hit omission, and undo.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Hidden component placement hides only the mock board placement marker;
+  generated feature groups such as standoffs are still separate semantic objects.
+  - Severity: Expected.
+  - Next action: decide later whether component-driven generated objects need
+    their own visibility/group isolation controls.
+- Issue: Component placement preview is still a schematic rectangle.
+  - Severity: Expected.
+  - Next action: replace with geometry-service preview data when OCCT generated
+    board/reference geometry exists.
+
+### Next step
+Commit and push M29, then continue toward the next safe viewport or placement
+workflow slice.
+
+### Notes for future Codex sessions
+Keep `ComponentPlacement.visible` as semantic display state. Do not infer hidden
+or visible placement state from preview mesh presence.

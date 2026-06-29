@@ -69,12 +69,15 @@ standoff item prototype while preserving source mounting-hole pattern data.
 Repeated items stay grouped and undoable as one semantic object.
 
 When a component placement is selected, the inspector renders a compact
-placement editor for X/Y/Z position, Z rotation, mounting side, and locked
-state. Edits replace the selected semantic `ComponentPlacement`, refresh
-preview/validation, and commit through the same undo history. This lets
-placement validation issues be corrected directly after selecting an issue row.
-When a placement is locked, position/rotation/side controls are disabled and
-the lock checkbox remains available so it can be unlocked.
+placement editor for X/Y/Z position, Z rotation, mounting side, locked state,
+and viewport visibility. Edits replace the selected semantic
+`ComponentPlacement`, refresh preview/validation, and commit through the same
+undo history. This lets placement validation issues be corrected directly after
+selecting an issue row. When a placement is locked, position/rotation/side
+controls are disabled and the lock checkbox remains available so it can be
+unlocked. The visibility checkbox remains available too; hiding a placement
+removes only its mock viewport placement marker/hit target, not the semantic
+project object.
 
 ## Project browser
 
@@ -91,6 +94,9 @@ It lists:
 
 Selecting an item updates the inspector, status hint, viewport label, and mock
 highlight.
+
+Hidden component placements stay visible in the browser with a muted visibility
+icon so they can be selected and shown again from the inspector.
 
 ## Project JSON file service
 
@@ -183,8 +189,8 @@ disabled until their semantic command behavior is implemented and tested.
 - Viewport selection is still mocked and schematic, though direct hit testing
   already returns semantic IDs.
 - Component placement still uses typed dialog values rather than viewport
-  picking or snapping, though selected placements can now be adjusted from the
-  inspector.
+  picking or snapping, though selected placements can now be adjusted and
+  hidden/shown from the inspector.
 - USB-C placement still uses dialog values and target surface selection rather
   than face-local picking/snapping. The visible marker is a mock viewport
   affordance.

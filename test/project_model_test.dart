@@ -123,6 +123,32 @@ void main() {
     expect(replaced.componentPlacements.last.locked, isTrue);
   });
 
+  test('component placement visibility defaults and round trips', () {
+    final fromOldJson = ComponentPlacement.fromJson(const {
+      'id': 'legacy_board_placement',
+      'templateId': 'custom_button_board_v1',
+      'position': [0, 0, 4],
+      'rotation': [0, 0, 0],
+      'mountingSide': 'bottom_inside',
+      'locked': false,
+    });
+    const hidden = ComponentPlacement(
+      id: 'hidden_board_placement',
+      templateId: 'custom_button_board_v1',
+      position: [0, 0, 4],
+      rotation: [0, 0, 0],
+      mountingSide: 'bottom_inside',
+      locked: false,
+      visible: false,
+    );
+    final hiddenJson = hidden.toJson();
+    final decodedHidden = ComponentPlacement.fromJson(hiddenJson);
+
+    expect(fromOldJson.visible, isTrue);
+    expect(hiddenJson['visible'], isFalse);
+    expect(decodedHidden.visible, isFalse);
+  });
+
   test('project replaces or appends semantic features by stable id', () {
     final project = ProjectModel.initial();
     const added = SemanticFeature(

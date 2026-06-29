@@ -8,6 +8,7 @@ class ComponentPlacement {
     required this.rotation,
     required this.mountingSide,
     required this.locked,
+    this.visible = true,
     this.metadata = const {},
   });
 
@@ -17,6 +18,7 @@ class ComponentPlacement {
   final List<double> rotation;
   final String mountingSide;
   final bool locked;
+  final bool visible;
   final Map<String, Object?> metadata;
 
   factory ComponentPlacement.fromJson(Map<String, Object?> json) {
@@ -30,6 +32,7 @@ class ComponentPlacement {
       rotation: readDoubleList(json['rotation'], fallback: const [0, 0, 0]),
       mountingSide: readString(json['mountingSide'], fallback: 'bottom_inside'),
       locked: readBool(json['locked'], fallback: false),
+      visible: readBool(json['visible'], fallback: true),
       metadata: withoutKeys(json, const {
         'id',
         'templateId',
@@ -37,6 +40,7 @@ class ComponentPlacement {
         'rotation',
         'mountingSide',
         'locked',
+        'visible',
       }),
     );
   }
@@ -49,6 +53,7 @@ class ComponentPlacement {
       'rotation': rotation,
       'mountingSide': mountingSide,
       'locked': locked,
+      'visible': visible,
       ...metadata,
     };
   }

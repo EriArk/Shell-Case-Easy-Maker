@@ -13,6 +13,8 @@ If it changes geometry, serialization, validation, or UI state, test it.
 - Project semantic validation warnings/errors.
 - Component placement and keepout semantic validation.
 - Rotation-aware placement bounds validation.
+- Component placement visibility serialization and mock viewport hit-test
+  behavior.
 - Pattern positions.
 - Clearance profile calculations.
 - Command system.
@@ -43,6 +45,8 @@ Use deterministic test fixtures.
 ### UI tests
 
 - Inspector changes with selection.
+- Inspector visibility toggles update semantic state and viewport selection
+  affordances.
 - Validation status/details show warning and error messages.
 - Context popovers show correct actions.
 - Parameter knob updates model.

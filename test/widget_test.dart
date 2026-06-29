@@ -754,6 +754,74 @@ void main() {
     expect(find.text('Размещение зафиксировано.'), findsNothing);
   });
 
+  testWidgets(
+    'component placement visibility toggle hides viewport hit target',
+    (tester) async {
+      await tester.pumpWidget(const CaseMakerApp());
+      await tester.pumpAndSettle();
+
+      final undoButton = find.byKey(
+        const ValueKey('toolbar-command-${CommandIds.undo}'),
+      );
+
+      await tester.tap(find.text('button_board_placement').first);
+      await tester.pumpAndSettle();
+
+      final xField = find.byKey(
+        const ValueKey('component-placement-param-button_board_placement-x'),
+      );
+      final visibleField = find.byKey(
+        const ValueKey(
+          'component-placement-param-button_board_placement-visible',
+        ),
+      );
+      expect(tester.widget<CheckboxListTile>(visibleField).value, isTrue);
+
+      await tester.ensureVisible(visibleField);
+      await tester.pump();
+      await tester.tap(visibleField);
+      await _pumpAsyncUi(tester);
+
+      expect(tester.widget<CheckboxListTile>(visibleField).value, isFalse);
+      expect(tester.widget<IconButton>(undoButton).onPressed, isNotNull);
+
+      await tester.tap(find.text('main_enclosure').first);
+      await tester.pumpAndSettle();
+      expect(xField, findsNothing);
+
+      final canvasFinder = find.byKey(const ValueKey('mock-viewport-canvas'));
+      final canvasTopLeft = tester.getTopLeft(canvasFinder);
+      final canvasSize = tester.getSize(canvasFinder);
+      final layout = MockViewportLayout.fromSize(
+        canvasSize,
+        const ViewportState(),
+      );
+      const placementPreview = MockViewportComponentPlacementPreview(
+        semanticId: 'button_board_placement',
+        width: 48,
+        depth: 32,
+        referenceWidth: 120,
+        referenceDepth: 70,
+      );
+
+      await tester.tapAt(
+        canvasTopLeft + layout.componentPlacementRect(placementPreview).center,
+      );
+      await tester.pumpAndSettle();
+
+      expect(xField, findsNothing);
+
+      await tester.tap(undoButton);
+      await _pumpAsyncUi(tester);
+      await tester.tapAt(
+        canvasTopLeft + layout.componentPlacementRect(placementPreview).center,
+      );
+      await tester.pumpAndSettle();
+
+      expect(xField, findsOneWidget);
+    },
+  );
+
   testWidgets('place component command is disabled without templates', (
     tester,
   ) async {

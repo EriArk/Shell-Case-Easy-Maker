@@ -141,6 +141,10 @@ class ProjectSelectionResolver {
           label: 'Закреплен',
           value: placement.locked ? 'да' : 'нет',
         ),
+        ProjectSelectionProperty(
+          label: 'Показан',
+          value: placement.visible ? 'да' : 'нет',
+        ),
       ],
     );
   }

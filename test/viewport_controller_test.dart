@@ -89,6 +89,37 @@ void main() {
     expect(portHit?.semanticId, 'front_usb_c');
   });
 
+  test('mock hit tester respects component placement preview list', () {
+    const state = ViewportState();
+    const size = Size(900, 600);
+    final layout = MockViewportLayout.fromSize(size, state);
+    const hitTester = MockViewportHitTester();
+    const visiblePlacement = MockViewportComponentPlacementPreview(
+      semanticId: 'second_board_placement',
+      width: 48,
+      depth: 32,
+      referenceWidth: 120,
+      referenceDepth: 70,
+    );
+
+    final hiddenHit = hitTester.hitTest(
+      position: layout.boardRect.center,
+      size: size,
+      state: state,
+      componentPlacements: const [],
+    );
+    final visibleHit = hitTester.hitTest(
+      position: layout.componentPlacementRect(visiblePlacement).center,
+      size: size,
+      state: state,
+      componentPlacements: const [visiblePlacement],
+    );
+
+    expect(hiddenHit?.kind, isNot(ViewportHitKind.componentPlacement));
+    expect(visibleHit?.kind, ViewportHitKind.componentPlacement);
+    expect(visibleHit?.semanticId, 'second_board_placement');
+  });
+
   test('mock hit tester returns semantic feature marker ids', () {
     const state = ViewportState();
     const size = Size(900, 600);

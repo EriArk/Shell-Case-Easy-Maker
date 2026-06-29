@@ -47,6 +47,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M26 — Validation Issue Target Selection
 - [x] M27 — Component Placement Inspector Editing
 - [x] M28 — Component Placement Rotation + Lock Guard
+- [x] M29 — Component Placement Visibility
 
 ---
 
@@ -1146,3 +1147,49 @@ state in the inspector/state path.
 - Toggle `Зафиксировать`.
 - Confirm X/Y/Z/Поворот/Посадка controls are disabled while locked, then unlock
   and confirm they work again.
+
+---
+
+## M29 — Component Placement Visibility
+
+### Goal
+Let component placements be hidden from the mock viewport while staying as
+editable semantic project objects.
+
+### Tasks
+- [x] Add typed `visible` state to `ComponentPlacement` with default `true` for
+      older project JSON.
+- [x] Add a `Показывать` checkbox to the component placement inspector.
+- [x] Preserve visibility through placement position, rotation, side, and lock
+      edits.
+- [x] Show hidden placements in the project browser with a visibility-off icon.
+- [x] Generate mock viewport component placement previews from semantic
+      placements/templates instead of always hit-testing one hard-coded board.
+- [x] Omit hidden placements from mock viewport drawing and hit-testing.
+- [x] Add serialization, viewport hit-test, and widget undo coverage.
+
+### Done Criteria
+- Older project files without `visible` load placements as visible.
+- Toggling `Показывать` updates the semantic `ComponentPlacement` and is
+  undoable.
+- Hidden placements remain selectable from the browser/inspector.
+- Hidden placements are not selected by clicking their former mock viewport
+  location.
+- No generated mesh, B-Rep, triangle ID, or OCCT topology becomes editable
+  state.
+
+### Tests
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Select `button_board_placement`.
+- Turn off `Показывать`.
+- Select `main_enclosure`, then click the board area in the viewport and
+  confirm the component placement is not selected from the hidden marker.
+- Select `button_board_placement` from the browser and turn `Показывать` back
+  on.
+- Click the board area again and confirm the placement inspector opens.

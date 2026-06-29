@@ -33,6 +33,12 @@ centers from `ViewportState`.
 
 It does not return mesh IDs, triangle IDs, OCCT face IDs, or generated topology.
 
+Component placement hit zones are now supplied as
+`MockViewportComponentPlacementPreview` values derived from semantic
+`ComponentPlacement` objects and their `ComponentTemplate` board outlines. The
+mock viewer omits placements whose semantic `visible` flag is false, while the
+project browser and inspector can still select and restore those placements.
+
 ## Feature Markers
 
 The mock viewport draws selectable markers for semantic features:
@@ -104,6 +110,8 @@ license, and packaging complexity.
 
 - The viewport is still a stylized 2.5D mock drawing, not generated geometry.
 - Hit zones are deterministic mock zones, not mesh picking.
+- Component placement previews are semantic mock rectangles, not generated
+  board meshes or OCCT bodies.
 - Surface feature markers are schematic rectangles, not generated cut/recess
   B-Rep.
 - Button-group marker expansion supports first-pass diamond, row, and grid
