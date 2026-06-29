@@ -121,11 +121,12 @@ same dialog from the component feature's cutout metadata and records source
 placement/template/feature IDs on the generated cutout. Both paths commit one
 undoable project snapshot.
 
-The next surface-based rail command is `button.create_group`. It is also
-available only when a semantic surface is selected. The command creates a
-`button_group` `FeatureGroup` with editable pattern data and commits it as one
-undoable project snapshot. Repeated buttons are not flattened into independent
-features.
+The next rail command is `button.create_group`. From a semantic surface it
+creates a manual `button_group` `FeatureGroup` with editable pattern data. From
+a selected component placement with switch features, it creates one sourced
+`button_group` using saved switch centers in `pattern.switchPositions`. Both
+paths commit one undoable project snapshot, and repeated buttons are not
+flattened into independent features.
 
 `glass.create_recess` is the first glass/insert command. It is available only
 when a semantic surface is selected. The command creates a `glass_recess`

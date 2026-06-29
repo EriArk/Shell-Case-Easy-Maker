@@ -146,6 +146,11 @@ first-pass semantic `usb_c_cutout` from a template USB-C feature's `cutout`
 metadata. The generated cutout records source placement/template/feature IDs so
 future geometry and propagation tools can trace where it came from.
 
+The `Кнопки` generator can now create a first-pass semantic `button_group` from
+template switch features. Switch centers are saved in
+`FeatureGroup.pattern.switchPositions`, source placement/template IDs are kept,
+and repeated buttons remain one editable group instead of being flattened.
+
 `ProjectSemanticValidator` also performs a first-pass component placement check
 against the enclosure inner volume. It treats the component board as a semantic
 outline/thickness envelope, accounts for the placement's Z rotation with a

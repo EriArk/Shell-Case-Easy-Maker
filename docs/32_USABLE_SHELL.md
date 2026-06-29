@@ -222,6 +222,14 @@ group remains one semantic object rather than becoming several unrelated
 button holes. The mock viewport derives schematic markers from that pattern;
 clicking one marker selects the whole button group.
 
+`Кнопки` is also available when a selected component placement's template has
+switch features. In that context the dialog starts from
+`from_component_switches`, stores the switch centers in
+`button_group.pattern.switchPositions`, and records source placement/template
+IDs. The result is still one editable `FeatureGroup`; switching the layout away
+from `from_component_switches` makes the group behave like a normal manual
+pattern.
+
 Clicking `Стекло` is enabled only after selecting a semantic surface. The
 command opens a compact glass recess dialog and appends a semantic
 `glass_recess` feature with window size, recess depth, ledge width, radius,

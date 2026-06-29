@@ -100,9 +100,9 @@ class CoreCommands {
       id: CommandIds.createButtonGroup,
       label: 'Кнопки',
       icon: 'button',
-      scopes: {CommandScope.surface, CommandScope.feature},
+      scopes: {CommandScope.surface, CommandScope.component},
       undoBehavior: UndoBehavior.singleTransaction,
-      availability: {CommandAvailability.activeSurface},
+      availability: {CommandAvailability.selectedObject},
     ),
     AppCommand(
       id: CommandIds.generateMount,

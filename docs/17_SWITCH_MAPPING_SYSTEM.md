@@ -36,6 +36,13 @@ Switch center has:
 - Align button pattern to switch centers.
 - Adjust cap pattern independently while stems target switches.
 
+## Current implementation slice
+
+Selecting a component placement and running `Кнопки` creates one semantic
+`button_group` from template switch centers. The switch centers are stored in
+`FeatureGroup.pattern.switchPositions`, and the group remains editable as a
+pattern rather than becoming independent holes or generated geometry.
+
 ## Validation
 
 - Projection reaches target surface.

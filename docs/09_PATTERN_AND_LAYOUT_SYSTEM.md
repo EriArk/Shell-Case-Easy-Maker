@@ -121,6 +121,13 @@ saved `FeatureGroup.pattern.holePositions` are preferred, and
 `ComponentTemplate.mountingHoles` are used as a fallback when saved positions
 are absent.
 
+For component-derived button groups, the engine also supports
+`layout: from_component_switches`. In that mode saved
+`FeatureGroup.pattern.switchPositions` are preferred over generated
+diamond/row/grid positions. If the user changes the layout back to a manual
+pattern, the saved switch positions remain traceable data but stop driving the
+marker layout.
+
 This is first-pass semantic expansion only. Generated marker positions are not
 stored back into the project file, and the editable source remains the
 `FeatureGroup` pattern plus item prototype. Future geometry generation should

@@ -66,6 +66,37 @@ void main() {
     );
   });
 
+  test('button group command works from surface and component context', () {
+    final registry = CommandRegistry.core;
+    final createButtons = registry.byId(CommandIds.createButtonGroup);
+
+    expect(
+      createButtons.isAvailable(
+        const CommandContext(activeScope: CommandScope.workspace),
+      ),
+      isFalse,
+    );
+    expect(
+      createButtons.isAvailable(
+        const CommandContext(
+          activeScope: CommandScope.surface,
+          selectedObjectId: 'main_enclosure',
+          activeSurfaceId: 'main_enclosure.top_lid.outer',
+        ),
+      ),
+      isTrue,
+    );
+    expect(
+      createButtons.isAvailable(
+        const CommandContext(
+          activeScope: CommandScope.component,
+          selectedObjectId: 'button_board_placement',
+        ),
+      ),
+      isTrue,
+    );
+  });
+
   test(
     'place component command works from workspace, enclosure, and surface context',
     () {

@@ -353,12 +353,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                 _runPlaceComponentCommand();
               },
       CommandIds.addUsbC => _usbCCommandAction(),
-      CommandIds.createButtonGroup =>
-        _selection.kind == SelectionKind.surface
-            ? () {
-                _runCreateButtonGroupCommand(_selection);
-              }
-            : null,
+      CommandIds.createButtonGroup => _buttonGroupCommandAction(),
       CommandIds.createGlassRecess =>
         _selection.kind == SelectionKind.surface
             ? () {
@@ -398,6 +393,27 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
         target.placement,
         target.template,
         target.feature,
+      );
+    };
+  }
+
+  VoidCallback? _buttonGroupCommandAction() {
+    if (_selection.kind == SelectionKind.surface) {
+      return () {
+        _runCreateButtonGroupCommand(_selection);
+      };
+    }
+
+    final target = _selectedSwitchComponentGroup();
+    if (target == null) {
+      return null;
+    }
+
+    return () {
+      _runCreateButtonGroupFromComponentCommand(
+        target.placement,
+        target.template,
+        target.switches,
       );
     };
   }
@@ -569,6 +585,47 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     );
   }
 
+  Future<void> _runCreateButtonGroupFromComponentCommand(
+    ComponentPlacement placement,
+    ComponentTemplate template,
+    List<ComponentFeature> switches,
+  ) async {
+    if (switches.isEmpty) {
+      return;
+    }
+
+    final targetSurfaceId = _targetSurfaceForComponentFeature(
+      _project,
+      switches.first,
+    );
+    if (targetSurfaceId == null) {
+      return;
+    }
+
+    final group = await showDialog<FeatureGroup>(
+      context: context,
+      builder: (context) => _ButtonGroupDialog(
+        initialGroup: _buttonGroupFromComponentSwitches(
+          id: _nextFeatureGroupId(_project, 'button_group'),
+          targetSurfaceId: targetSurfaceId,
+          placement: placement,
+          template: template,
+          switches: switches,
+        ),
+      ),
+    );
+    if (!mounted || group == null) {
+      return;
+    }
+
+    _commitProjectEdit(
+      id: CommandIds.createButtonGroup,
+      label: 'Создать кнопки от компонента',
+      nextState: _project.replaceFeatureGroup(group),
+      selection: SelectionModel.featureGroup(group.id),
+    );
+  }
+
   Future<void> _runCreateGlassRecessCommand(
     SelectionModel surfaceSelection,
   ) async {
@@ -689,6 +746,43 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     }
 
     return (placement: placement, template: template, feature: feature);
+  }
+
+  ({
+    ComponentPlacement placement,
+    ComponentTemplate template,
+    List<ComponentFeature> switches,
+  })?
+  _selectedSwitchComponentGroup() {
+    if (_selection.kind != SelectionKind.componentPlacement ||
+        _selection.id == null) {
+      return null;
+    }
+
+    final placement = _project.componentPlacements
+        .where((placement) => placement.id == _selection.id)
+        .firstOrNull;
+    if (placement == null) {
+      return null;
+    }
+
+    final template = _componentTemplateForPlacement(placement);
+    if (template == null) {
+      return null;
+    }
+
+    final switches = [
+      for (final feature in template.features)
+        if (feature.type == 'switch' &&
+            feature.position.length >= 2 &&
+            _targetSurfaceForComponentFeature(_project, feature) != null)
+          feature,
+    ];
+    if (switches.isEmpty) {
+      return null;
+    }
+
+    return (placement: placement, template: template, switches: switches);
   }
 
   ComponentTemplate? _componentTemplateForPlacement(
@@ -1656,6 +1750,47 @@ FeatureGroup _defaultButtonGroup({
       'mode': 'plunger',
     },
     placement: const {'anchor': 'center'},
+  );
+}
+
+FeatureGroup _buttonGroupFromComponentSwitches({
+  required String id,
+  required String targetSurfaceId,
+  required ComponentPlacement placement,
+  required ComponentTemplate template,
+  required List<ComponentFeature> switches,
+}) {
+  return FeatureGroup(
+    id: id,
+    type: 'button_group',
+    targetSurface: targetSurfaceId,
+    pattern: {
+      'layout': 'from_component_switches',
+      'count': switches.length,
+      'spacing': 14.0,
+      'sourcePlacementId': placement.id,
+      'sourceTemplateId': template.id,
+      'switchPositions': [
+        for (final switchFeature in switches)
+          {
+            'id': switchFeature.id,
+            'position': switchFeature.position,
+            if (switchFeature.direction != null)
+              'direction': switchFeature.direction,
+          },
+      ],
+    },
+    itemPrototype: const {
+      'type': 'button',
+      'shape': 'circle',
+      'diameter': 8.0,
+      'mode': 'plunger',
+    },
+    placement: {
+      'anchor': 'component_switch_centers',
+      'componentPosition': placement.position,
+      'componentRotation': placement.rotation,
+    },
   );
 }
 
@@ -3445,6 +3580,7 @@ const _buttonGroupParameterSchema = ParameterSchema(
       kind: ParameterKind.choice,
       defaultValue: 'diamond',
       options: [
+        ParameterOption(id: 'from_component_switches', label: 'От компонента'),
         ParameterOption(id: 'diamond', label: 'Ромб'),
         ParameterOption(id: 'row', label: 'Ряд'),
         ParameterOption(id: 'grid', label: 'Сетка'),
@@ -4481,6 +4617,7 @@ class _ButtonGroupDialogState extends State<_ButtonGroupDialog> {
   late String _mode;
 
   static const _layouts = [
+    _ButtonLayoutOption('from_component_switches', 'От компонента'),
     _ButtonLayoutOption('diamond', 'Ромб'),
     _ButtonLayoutOption('row', 'Ряд'),
     _ButtonLayoutOption('grid', 'Сетка'),
@@ -4618,17 +4755,21 @@ class _ButtonGroupDialogState extends State<_ButtonGroupDialog> {
               type: widget.initialGroup.type,
               targetSurface: widget.initialGroup.targetSurface,
               pattern: {
+                ...widget.initialGroup.pattern,
                 'layout': _layout,
                 'count': _clampDouble(_count, 1, 16).round(),
                 'spacing': _clampDouble(_spacing, 4, 60),
               },
               itemPrototype: {
+                ...widget.initialGroup.itemPrototype,
                 'type': 'button',
                 'shape': 'circle',
                 'diameter': _clampDouble(_diameter, 2, 30),
                 'mode': _mode,
               },
               placement: widget.initialGroup.placement,
+              overrides: widget.initialGroup.overrides,
+              metadata: widget.initialGroup.metadata,
             ),
           ),
           child: const Text('Создать'),

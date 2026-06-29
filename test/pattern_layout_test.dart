@@ -66,6 +66,64 @@ void main() {
     ]);
   });
 
+  test('button group positions prefer saved semantic switch centers', () {
+    const group = FeatureGroup(
+      id: 'button_group_1',
+      type: 'button_group',
+      targetSurface: 'main_enclosure.top_lid.outer',
+      pattern: {
+        'layout': 'from_component_switches',
+        'count': 4,
+        'spacing': 14.0,
+        'switchPositions': [
+          {
+            'id': 'sw_a',
+            'position': [7.0, 0.0],
+          },
+          {
+            'id': 'sw_b',
+            'position': [0.0, -7.0],
+          },
+          {
+            'id': 'bad',
+            'position': ['x', 0.0],
+          },
+        ],
+      },
+      itemPrototype: {'diameter': 8.0},
+    );
+
+    expect(PatternLayoutEngine.buttonGroupPositions(group), const [
+      PatternPoint(7, 0),
+      PatternPoint(0, -7),
+    ]);
+  });
+
+  test('button group layout can detach from saved switch centers', () {
+    const group = FeatureGroup(
+      id: 'button_group_1',
+      type: 'button_group',
+      targetSurface: 'main_enclosure.top_lid.outer',
+      pattern: {
+        'layout': 'row',
+        'count': 2,
+        'spacing': 10.0,
+        'switchPositions': [
+          {
+            'id': 'sw_a',
+            'position': [7.0, 0.0],
+          },
+        ],
+      },
+      itemPrototype: {'diameter': 8.0},
+    );
+
+    expect(PatternLayoutEngine.buttonGroupPositions(group), const [
+      PatternPoint(-5, 0),
+      PatternPoint(5, 0),
+    ]);
+  });
+
   test('standoff positions prefer saved semantic mounting-hole positions', () {
     const group = FeatureGroup(
       id: 'standoff_mounts_1',

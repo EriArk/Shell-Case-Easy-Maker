@@ -26,8 +26,18 @@ class PatternLayoutEngine {
   const PatternLayoutEngine._();
 
   static List<PatternPoint> buttonGroupPositions(FeatureGroup group) {
+    final layout = readString(group.pattern['layout'], fallback: 'diamond');
+    if (layout == 'from_component_switches') {
+      final switchPositions = _savedPatternPositions(
+        group.pattern['switchPositions'],
+      );
+      if (switchPositions.isNotEmpty) {
+        return switchPositions;
+      }
+    }
+
     return expandButtonLayout(
-      layout: readString(group.pattern['layout'], fallback: 'diamond'),
+      layout: layout,
       count: readDouble(group.pattern['count'], fallback: 4).round(),
       spacing: readDouble(group.pattern['spacing'], fallback: 14),
     );
@@ -53,7 +63,7 @@ class PatternLayoutEngine {
     FeatureGroup group, {
     ComponentTemplate? fallbackTemplate,
   }) {
-    final savedPositions = _holePatternPositions(
+    final savedPositions = _savedPatternPositions(
       group.pattern['holePositions'],
     );
     if (savedPositions.isNotEmpty) {
@@ -119,7 +129,7 @@ List<PatternPoint> _diamondPatternPositions(int count, double spacing) {
   ];
 }
 
-List<PatternPoint> _holePatternPositions(Object? rawPositions) {
+List<PatternPoint> _savedPatternPositions(Object? rawPositions) {
   if (rawPositions is! List) {
     return const [];
   }

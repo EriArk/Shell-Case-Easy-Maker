@@ -60,6 +60,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M39 — Placement Dialog Rotation
 - [x] M40 — Snap Anchor Placement
 - [x] M41 — Component USB-C Cutout Propagation
+- [x] M42 — Component Switch Button Group
 
 ---
 
@@ -1704,3 +1705,45 @@ from a selected placed component's connector template data.
 - Click `Добавить`.
 - Confirm `usb_c_cutout_2` appears and can be selected/edited like a normal
   USB-C feature.
+
+---
+
+## M42 — Component Switch Button Group
+
+### Goal
+Start switch-to-button propagation by creating one editable semantic
+`button_group` from a selected placed component's switch centers.
+
+### Tasks
+- [x] Allow the `Кнопки` command to run from selected component placement
+      context when the template exposes switch features.
+- [x] Keep the existing surface-based manual button group command behavior.
+- [x] Build `button_group.pattern.switchPositions` from component switch
+      centers.
+- [x] Prefer saved switch positions in the pattern layout engine when
+      `layout == from_component_switches`.
+- [x] Preserve switch source data through the button group dialog confirmation.
+- [x] Add command, pattern, and widget coverage, including saved project data.
+
+### Done Criteria
+- Selecting `button_board_placement` enables `Кнопки`.
+- Confirming the dialog creates one semantic `FeatureGroup`, not independent
+  button holes.
+- The group records source placement/template IDs and switch center positions.
+- The pattern can still be manually changed away from component switch centers.
+- No generated mesh, B-Rep, triangle ID, or OCCT topology becomes editable
+  project state.
+
+### Tests
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Select `button_board_placement`.
+- Click `Кнопки`.
+- Confirm the dialog opens with count `4`.
+- Click `Создать`.
+- Confirm `button_group_1` appears and remains one editable group.

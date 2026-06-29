@@ -66,6 +66,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Component placement dialog rotation editing.
 - [x] Component placement dialog snap anchor selection.
 - [x] First-pass component-driven USB-C cutout command.
+- [x] First-pass component-driven button group command.
 - [x] First-pass component placement inspector editing.
 - [x] First-pass component placement rotation editing.
 - [x] First-pass component placement lock guard.
@@ -167,6 +168,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [ ] Generate side wall cutouts from ports.
 - [x] First-pass semantic USB-C cutout from component connector metadata.
 - [ ] Generate top/lid cutouts from switches/buttons.
+- [x] First-pass semantic button group from component switch centers.
 - [x] First-pass keepout warnings.
 - [ ] Generate support ribs from drawn line.
 - [ ] Generate rectangular structural rib grid.
@@ -240,6 +242,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 
 - [ ] Switch center overlay.
 - [ ] Generate holes from switch centers.
+- [x] First-pass semantic button group from switch centers.
 - [ ] Generate full button cap/plunger from switch centers.
 - [ ] U-cut button generator.
 - [ ] Plunger stem generator.
@@ -250,6 +253,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] First-pass manual button group viewport markers.
 - [x] First-pass manual button group inspector parameter editing.
 - [ ] Pattern generation from switch groups.
+- [x] First-pass pattern source from component switch groups.
 
 ## Phase 13 — Shape and aesthetics
 

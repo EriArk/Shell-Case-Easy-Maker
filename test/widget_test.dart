@@ -1496,6 +1496,73 @@ void main() {
     expect(tester.widget<IconButton>(undoButton).onPressed, isNull);
   });
 
+  testWidgets('component button command creates switch-sourced group', (
+    tester,
+  ) async {
+    final fileService = _MemoryProjectFileService();
+    final saveFile = File('component_buttons.enclosure.json');
+    final dialog = _FakeProjectFileDialogService(saveFile: saveFile);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkspaceShell(
+          project: ProjectModel.initial(),
+          geometryService: const MockGeometryService(),
+          projectFileService: fileService,
+          projectFileDialogService: dialog,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final buttonGroupButton = find.byKey(
+      const ValueKey('rail-command-${CommandIds.createButtonGroup}'),
+    );
+
+    await tester.tap(find.text('button_board_placement').first);
+    await tester.pumpAndSettle();
+
+    expect(tester.widget<IconButton>(buttonGroupButton).onPressed, isNotNull);
+
+    await tester.tap(buttonGroupButton);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('button-group-confirm')), findsOneWidget);
+    expect(_dialogNumberText(tester, 'button-group-count'), '4');
+    expect(_dialogNumberText(tester, 'button-group-diameter'), '8');
+
+    await tester.tap(find.byKey(const ValueKey('button-group-confirm')));
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('button_group_1'), findsWidgets);
+
+    await tester.tap(
+      find.byKey(const ValueKey('toolbar-command-${CommandIds.saveProject}')),
+    );
+    await _pumpAsyncUi(tester);
+
+    final saved = await fileService.readProject(saveFile);
+    final created = saved.featureGroups.singleWhere(
+      (group) => group.id == 'button_group_1',
+    );
+    final switchPositions = created.pattern['switchPositions'] as List<Object?>;
+
+    expect(created.targetSurface, 'main_enclosure.top_lid.outer');
+    expect(created.pattern['layout'], 'from_component_switches');
+    expect(created.pattern['count'], 4);
+    expect(created.pattern['sourcePlacementId'], 'button_board_placement');
+    expect(created.pattern['sourceTemplateId'], 'custom_button_board_v1');
+    expect(switchPositions, hasLength(4));
+    expect(
+      switchPositions
+          .whereType<Map<Object?, Object?>>()
+          .map((entry) => entry['id'])
+          .toList(),
+      ['sw_a', 'sw_b', 'sw_x', 'sw_y'],
+    );
+    expect(created.placement['anchor'], 'component_switch_centers');
+  });
+
   testWidgets('glass recess rail command commits through undo history', (
     tester,
   ) async {

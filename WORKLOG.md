@@ -42,6 +42,104 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-29 - M42 Component switch button group
+
+### Goal
+Let a selected semantic component placement create one editable button group from
+its switch centers, while keeping the old surface-selected manual button group
+flow intact.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `docs/07_COMPONENT_TEMPLATE_SYSTEM.md`,
+`docs/09_PATTERN_AND_LAYOUT_SYSTEM.md`, `docs/17_SWITCH_MAPPING_SYSTEM.md`,
+`docs/31_COMMANDS_AND_UNDO.md`, `docs/32_USABLE_SHELL.md`, and the existing
+command/widget/pattern tests.
+
+### Changes made
+- `lib/commands/command_registry.dart`:
+  - Allows `button.create_group` from surface and component contexts.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Keeps the manual surface-selected button group command.
+  - Enables the button group command for selected component placements with
+    switch features.
+  - Creates a semantic `button_group` with source placement/template IDs and
+    saved switch-center positions.
+  - Preserves source pattern, placement, overrides, and metadata when the dialog
+    confirms.
+- `lib/patterns/pattern_layout.dart`:
+  - Uses saved `switchPositions` for `from_component_switches` groups.
+  - Keeps generated row/grid/diamond fallback layouts available after manual
+    detach/edit.
+- Tests:
+  - Added command availability, pattern layout, detach, and widget-save coverage
+    for component-sourced button groups.
+- Docs/tasks/roadmap:
+  - Recorded M42 behavior, limitations, tests, and poke checklist.
+
+### Tests run
+- `flutter test test\pattern_layout_test.dart --plain-name "button group positions prefer saved semantic switch centers"`:
+  - Passed.
+- `flutter test test\command_registry_test.dart --plain-name "button group command works from surface and component context"`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "component button command creates switch-sourced group"`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "button group rail command commits through undo history"`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "button group rail command can be cancelled"`:
+  - Passed.
+- `flutter test test\pattern_layout_test.dart --plain-name "button group layout can detach from saved switch centers"`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 123 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Semantic pattern generation only; no generated B-Rep or mesh is created.
+- Serialization checked?
+  - Widget test saves the project and verifies group source IDs plus switch
+    positions in JSON.
+- UI checked?
+  - Widget tests cover old surface flow, cancel flow, and new selected-component
+    flow.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: The generated group stores template switch centers, but not yet
+  projected face-local component coordinates.
+  - Severity: Expected first-pass limitation.
+  - Next action: add projected placement metadata before real geometry cuts.
+- Issue: This creates a semantic editable button group; it does not yet cut real
+  generated geometry.
+  - Severity: Expected.
+  - Next action: connect semantic feature groups to geometry service/OCCT worker
+    later.
+
+### Next step
+Commit and push M42, then continue with the next component-to-semantic feature
+slice or projected component feature placement data.
+
+### Notes for future Codex sessions
+Component-driven buttons must remain one editable `FeatureGroup`; do not flatten
+switches into unrelated individual holes unless the user explicitly detaches the
+group later.
+
+---
+
 ## 2026-06-27 — Documentation pack created
 
 ### Goal

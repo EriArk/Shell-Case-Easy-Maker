@@ -70,6 +70,8 @@ Use deterministic test fixtures.
   selected snap point without saving anchor UI state.
 - Component-driven USB-C cutout generation preserves source placement/template
   data in saved project JSON.
+- Component-driven button group generation preserves source switch centers in
+  saved project JSON and keeps the result grouped.
 - Validation status/details show warning and error messages.
 - Context popovers show correct actions.
 - Parameter knob updates model.
