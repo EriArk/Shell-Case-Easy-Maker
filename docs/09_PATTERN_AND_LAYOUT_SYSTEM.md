@@ -116,6 +116,11 @@ The mock viewport now derives schematic markers from the same group data:
 deterministic expansion. The workspace shell only converts returned local
 pattern points into viewport marker offsets.
 
+The same engine also owns first-pass `standoff_mounts` source expansion:
+saved `FeatureGroup.pattern.holePositions` are preferred, and
+`ComponentTemplate.mountingHoles` are used as a fallback when saved positions
+are absent.
+
 This is first-pass semantic expansion only. Generated marker positions are not
 stored back into the project file, and the editable source remains the
 `FeatureGroup` pattern plus item prototype. Future geometry generation should
@@ -158,4 +163,5 @@ Use compact knobs and icons.
 ## Tests
 
 Current tests cover deterministic `diamond`, `row` fallback, `grid`, clamping,
-and reading positions from semantic `FeatureGroup.pattern` data.
+reading button positions from semantic `FeatureGroup.pattern` data, and
+standoff source positions from saved group data or component templates.

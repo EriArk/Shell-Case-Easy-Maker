@@ -129,6 +129,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 
 - [x] First-pass semantic standoff group from board mounting holes.
 - [x] First-pass standoff marker preview from board mounting holes.
+- [x] Reusable standoff source-anchor layout helper.
 - [ ] Generate real standoff geometry from board mounting holes.
 - [ ] Generate side wall cutouts from ports.
 - [ ] Generate top/lid cutouts from switches/buttons.
@@ -144,6 +145,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] First-pass pattern/group inspector parameter editing.
 - [x] Promote pattern expansion out of mock viewport into reusable layout logic.
 - [x] First-pass generated standoff marker positions.
+- [x] Promote standoff source-anchor expansion out of mock viewport.
 - [ ] Line pattern.
 - [ ] Grid pattern.
 - [x] First-pass diamond/rhombus button pattern data.

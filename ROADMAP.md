@@ -41,6 +41,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M20 — Feature Parameter Inspector Editing
 - [x] M21 — Feature Group Parameter Inspector Editing
 - [x] M22 — Reusable Pattern Layout Engine
+- [x] M23 — Reusable Standoff Source Layout
 
 ---
 
@@ -904,3 +905,39 @@ a reusable deterministic module that future geometry generation can consume.
   still appear on the lid.
 - Change the group layout/count in the inspector and confirm markers still
   update as before.
+
+---
+
+## M23 — Reusable Standoff Source Layout
+
+### Goal
+Move first-pass standoff source mounting-hole expansion out of the workspace
+shell and into the reusable pattern/layout module.
+
+### Tasks
+- [x] Extend `PatternLayoutEngine` with `standoffMountPositions`.
+- [x] Prefer saved semantic `FeatureGroup.pattern.holePositions` when present.
+- [x] Fall back to `ComponentTemplate.mountingHoles` when a group references a
+      template but has no saved hole positions.
+- [x] Keep invalid source positions from crashing preview generation.
+- [x] Replace workspace shell hole-position parsing with the reusable helper.
+- [x] Add deterministic unit tests for saved and fallback standoff positions.
+
+### Done Criteria
+- Workspace shell no longer owns standoff source-hole parsing.
+- Standoff markers still render/select from semantic group data.
+- Source mounting holes remain semantic group pattern data, not generated mesh
+  or topology IDs.
+- Layout tests cover saved source positions and template fallback.
+
+### Tests
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Generate `Крепёж` from the sample board.
+- Confirm four standoff markers still appear around the mock board.
+- Click one standoff marker and confirm the `Крепёж` inspector still opens.

@@ -4180,13 +4180,13 @@ MockViewportFeatureGroupPreview? _mockStandoffMountPreview(
   FeatureGroup group,
 ) {
   final template = _templateForMockFeatureGroup(project, group);
-  final sourcePositions = _featureGroupHolePositions(group);
-  final positions = sourcePositions.isNotEmpty
-      ? sourcePositions
-      : [
-          for (final hole in template?.mountingHoles ?? const <MountingHole>[])
-            ?_offsetFromDoubleList(hole.position),
-        ];
+  final positions = [
+    for (final point in PatternLayoutEngine.standoffMountPositions(
+      group,
+      fallbackTemplate: template,
+    ))
+      Offset(point.x, point.y),
+  ];
 
   if (positions.isEmpty) {
     return null;
@@ -4242,46 +4242,6 @@ List<Offset> _buttonGroupPatternPositions(FeatureGroup group) {
     for (final point in PatternLayoutEngine.buttonGroupPositions(group))
       Offset(point.x, point.y),
   ];
-}
-
-List<Offset> _featureGroupHolePositions(FeatureGroup group) {
-  final rawPositions = group.pattern['holePositions'];
-  if (rawPositions is! List) {
-    return const [];
-  }
-
-  final positions = <Offset>[];
-  for (final rawEntry in rawPositions) {
-    final rawPosition = rawEntry is Map ? rawEntry['position'] : null;
-    final position = _offsetFromJsonList(rawPosition);
-    if (position != null) {
-      positions.add(position);
-    }
-  }
-
-  return positions;
-}
-
-Offset? _offsetFromJsonList(Object? rawValue) {
-  if (rawValue is! List || rawValue.length < 2) {
-    return null;
-  }
-
-  final x = rawValue[0];
-  final y = rawValue[1];
-  if (x is! num || y is! num) {
-    return null;
-  }
-
-  return Offset(x.toDouble(), y.toDouble());
-}
-
-Offset? _offsetFromDoubleList(List<double> values) {
-  if (values.length < 2) {
-    return null;
-  }
-
-  return Offset(values[0], values[1]);
 }
 
 double _sizeAt(Enclosure enclosure, int index, double fallback) {

@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import '../project/component_template.dart';
 import '../project/feature_group.dart';
 import '../project/json_helpers.dart';
 
@@ -46,6 +47,25 @@ class PatternLayoutEngine {
       'diamond' => _diamondPatternPositions(safeCount, safeSpacing),
       _ => _rowPatternPositions(safeCount, safeSpacing),
     };
+  }
+
+  static List<PatternPoint> standoffMountPositions(
+    FeatureGroup group, {
+    ComponentTemplate? fallbackTemplate,
+  }) {
+    final savedPositions = _holePatternPositions(
+      group.pattern['holePositions'],
+    );
+    if (savedPositions.isNotEmpty) {
+      return savedPositions;
+    }
+
+    return [
+      for (final hole
+          in fallbackTemplate?.mountingHoles ?? const <MountingHole>[])
+        if (hole.position.length >= 2)
+          PatternPoint(hole.position[0], hole.position[1]),
+    ];
   }
 }
 
@@ -97,4 +117,35 @@ List<PatternPoint> _diamondPatternPositions(int count, double spacing) {
         math.sin(index * math.pi * 2 / count) * spacing,
       ),
   ];
+}
+
+List<PatternPoint> _holePatternPositions(Object? rawPositions) {
+  if (rawPositions is! List) {
+    return const [];
+  }
+
+  final positions = <PatternPoint>[];
+  for (final rawEntry in rawPositions) {
+    final rawPosition = rawEntry is Map ? rawEntry['position'] : null;
+    final position = _pointFromJsonList(rawPosition);
+    if (position != null) {
+      positions.add(position);
+    }
+  }
+
+  return positions;
+}
+
+PatternPoint? _pointFromJsonList(Object? rawValue) {
+  if (rawValue is! List || rawValue.length < 2) {
+    return null;
+  }
+
+  final x = rawValue[0];
+  final y = rawValue[1];
+  if (x is! num || y is! num) {
+    return null;
+  }
+
+  return PatternPoint(x.toDouble(), y.toDouble());
 }

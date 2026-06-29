@@ -64,6 +64,10 @@ Standoff markers are derived from component mounting data:
 - source component board size,
 - standoff diameter.
 
+The local standoff positions come from `PatternLayoutEngine`, which resolves
+saved semantic hole positions or falls back to component template mounting
+holes. The viewport keeps only the mock screen-space conversion and hit zones.
+
 The markers are a viewport affordance only. Clicking one marker selects the
 whole feature group, not an individual mesh primitive or flattened hole.
 

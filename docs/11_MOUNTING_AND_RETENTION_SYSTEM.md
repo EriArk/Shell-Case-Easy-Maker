@@ -95,6 +95,12 @@ Current behavior:
 - shows schematic standoff markers in the mock viewport and allows clicking a
   marker to select the whole mount group.
 
+`PatternLayoutEngine` resolves standoff marker source positions. It prefers the
+saved semantic `holePositions` in the mount group's pattern data, and can fall
+back to the source component template's mounting holes if those saved positions
+are missing. The workspace shell only converts resolved local points into mock
+viewport markers.
+
 When a `standoff_mounts` group is selected, the contextual inspector currently
 supports editing standoff diameter, hole diameter, height, and clearance
 profile. The values are written back to `FeatureGroup.itemPrototype`; source

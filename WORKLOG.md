@@ -1967,3 +1967,83 @@ next safe semantic geometry-prep slice.
 ### Notes for future Codex sessions
 Pattern expansion should remain reusable and deterministic. Do not reintroduce
 layout math into widgets or painters when adding geometry generation.
+
+---
+
+## 2026-06-28 - M23 Reusable Standoff Source Layout
+
+### Goal
+Move first-pass standoff source mounting-hole expansion out of the workspace
+shell and into the reusable pattern/layout module.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `docs/09_PATTERN_AND_LAYOUT_SYSTEM.md`,
+`docs/11_MOUNTING_AND_RETENTION_SYSTEM.md`, `docs/33_VIEWPORT_MVP.md`,
+`lib/patterns/pattern_layout.dart`, workspace shell, viewport controller, and
+widget/viewport/pattern tests.
+
+### Changes made
+- `lib/patterns/pattern_layout.dart`:
+  - Added `PatternLayoutEngine.standoffMountPositions`.
+  - Resolves saved semantic `FeatureGroup.pattern.holePositions`.
+  - Falls back to `ComponentTemplate.mountingHoles` when saved source positions
+    are absent.
+  - Skips malformed saved positions instead of crashing preview generation.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Replaced local standoff source-hole parsing with `PatternLayoutEngine`.
+  - Kept mock viewport conversion as UI-only `Offset` mapping.
+- `test/pattern_layout_test.dart`:
+  - Added deterministic coverage for saved standoff source positions and
+    component-template fallback positions.
+- `ROADMAP.md`, `TASKS.md`, `docs/09_PATTERN_AND_LAYOUT_SYSTEM.md`,
+  `docs/11_MOUNTING_AND_RETENTION_SYSTEM.md`, and `docs/33_VIEWPORT_MVP.md`:
+  - Documented M23 and the boundary between semantic source-anchor expansion
+    and viewport marker rendering.
+
+### Tests run
+- `flutter test test\pattern_layout_test.dart test\viewport_controller_test.dart test\widget_test.dart`:
+  - Passed, 41 targeted tests.
+- `flutter pub get`:
+  - Passed; 4 packages still have newer incompatible versions.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 88 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed `releases/latest/windows/shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Standoff source expansion is deterministic local semantic data only; no
+    generated B-Rep or mesh is created yet.
+- Serialization checked?
+  - No schema change; generated pattern points are not saved.
+- UI checked?
+  - Widget/viewport tests confirm existing standoff marker selection behavior
+    still passes through the mock viewport.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Source-anchor expansion only covers component mounting holes.
+  - Severity: Expected for this slice.
+  - Next action: add source anchors for ports, switches, and keepouts when
+    component-driven cutout generation begins.
+- Issue: The mock viewport still owns screen-space marker placement.
+  - Severity: Expected.
+  - Next action: keep only semantic/local layout in reusable modules and move
+    real geometry projection into the geometry service when OCCT preview starts.
+
+### Next step
+Commit and push M23, then continue toward the next safe semantic geometry-prep
+slice.
+
+### Notes for future Codex sessions
+Standoff mount positions should keep coming from semantic group/template data.
+Do not use generated mesh, triangle, or OCCT topology IDs for source anchors.

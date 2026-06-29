@@ -65,4 +65,60 @@ void main() {
       PatternPoint(12, 0),
     ]);
   });
+
+  test('standoff positions prefer saved semantic mounting-hole positions', () {
+    const group = FeatureGroup(
+      id: 'standoff_mounts_1',
+      type: 'standoff_mounts',
+      targetSurface: 'main_enclosure.bottom_inside',
+      pattern: {
+        'holePositions': [
+          {
+            'id': 'mh1',
+            'position': [-20.0, -12.0],
+          },
+          {
+            'id': 'mh2',
+            'position': [20.0, -12.0],
+          },
+          {
+            'id': 'bad',
+            'position': ['x', 0.0],
+          },
+        ],
+      },
+      itemPrototype: {'diameter': 5.0},
+    );
+
+    expect(
+      PatternLayoutEngine.standoffMountPositions(
+        group,
+        fallbackTemplate: ComponentTemplate.buttonBoard(),
+      ),
+      const [PatternPoint(-20, -12), PatternPoint(20, -12)],
+    );
+  });
+
+  test('standoff positions fall back to component template mounting holes', () {
+    const group = FeatureGroup(
+      id: 'standoff_mounts_1',
+      type: 'standoff_mounts',
+      targetSurface: 'main_enclosure.bottom_inside',
+      pattern: {'layout': 'from_component_mounting_holes'},
+      itemPrototype: {'diameter': 5.0},
+    );
+
+    expect(
+      PatternLayoutEngine.standoffMountPositions(
+        group,
+        fallbackTemplate: ComponentTemplate.buttonBoard(),
+      ),
+      const [
+        PatternPoint(-20, -12),
+        PatternPoint(20, -12),
+        PatternPoint(-20, 12),
+        PatternPoint(20, 12),
+      ],
+    );
+  });
 }
