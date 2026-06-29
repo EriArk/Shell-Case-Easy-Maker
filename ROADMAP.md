@@ -87,6 +87,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M66 - Native Preview Mesh Viewport
 - [x] M67 - Native Preview Surface Ranges
 - [x] M68 - Preview Surface Range Highlight
+- [x] M69 - Native Shell/Cavity Slice
 
 ---
 
@@ -2968,3 +2969,54 @@ semantic surface in the generated preview mesh, without adding mesh picking.
   top-lid range while the existing workplane overlay still appears.
 - Click/selection behavior should feel the same as before; this chunk does not
   add triangle picking.
+
+---
+
+## M69 - Native Shell/Cavity Slice
+
+### Goal
+Turn the native rounded enclosure preview from a solid block into the first
+validated top-open shell/cavity generated from semantic wall thickness.
+
+### Tasks
+- [x] Add native shell/cavity generation after the rounded outer B-Rep.
+- [x] Build a rounded internal cavity tool from `wallThickness`.
+- [x] Cut the top-open body with OCCT Boolean subtraction.
+- [x] Validate the resulting shell/cavity with `BRepCheck_Analyzer`.
+- [x] Keep Flutter output limited to preview mesh data, semantic ranges, and
+      metrics.
+- [x] Map `main_enclosure.top_lid.outer` to the visible top rim until the real
+      lid/body split exists.
+- [x] Update native smoke expectations, docs, tasks, and worklog.
+
+### Done Criteria
+- Native worker metrics report `shellCavityApplied: true`,
+  `shellCavityValid: true`, `shellCavityToolCount: 1`, and
+  `shellOpening: top`.
+- Sample native smoke reports 1198 vertices, 1550 triangles, 3 surface
+  mappings, and 494 mapped triangles.
+- Sample volume drops to `33756.044084`, proving the body is no longer a solid
+  block.
+- Generated B-Rep, topology IDs, and preview triangle IDs stay out of editable
+  project JSON.
+
+### Tests
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open
+  `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- Confirm the viewport label still shows `occt_worker_native_occt`.
+- Confirm the generated body now reads as an open shell/tray rather than a
+  closed solid block.
+- Select `Top lid` and confirm the cyan highlight follows the visible top rim.
+- Orbit and zoom; the shell should stay faceted but stable, with no old flat
+  schematic body replacing it.

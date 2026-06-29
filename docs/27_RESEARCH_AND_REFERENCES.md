@@ -330,3 +330,55 @@ opt-in OCCT-linked native target only after local readiness is true.
 - Install/configure vcpkg locally or set `OpenCASCADE_DIR` / `CASROOT`.
 - Add an opt-in OCCT CMake target after readiness is true.
 - Keep generated B-Rep/mesh disposable and behind the worker protocol.
+
+---
+
+## 2026-06-29 - OCCT shell/cavity generation
+
+## Question
+
+What OCCT operation should produce the first editable-enclosure body shell while
+keeping Flutter behind the `GeometryService` boundary?
+
+## Sources checked
+
+- OpenCascade reference:
+  [BRepOffsetAPI_MakeThickSolid](https://dev.opencascade.org/doc/refman/html/class_b_rep_offset_a_p_i___make_thick_solid.html)
+- OpenCascade package reference:
+  [BRepOffsetAPI](https://dev.opencascade.org/doc/refman/html/package_brepoffsetapi.html)
+- OpenCascade reference:
+  [BRepAlgoAPI_Cut](https://dev.opencascade.org/doc/refman/html/class_b_rep_algo_a_p_i___cut.html)
+
+## Findings
+
+- `BRepOffsetAPI_MakeThickSolid` is intended for hollowed solids from an initial
+  solid plus faces to remove. In local experiments, the `GeomAbs_Arc` join
+  produced the expected visible cavity but failed the first strict
+  `BRepCheck_Analyzer` pass; `GeomAbs_Intersection` passed validity but kept
+  the sample metrics equivalent to the old solid preview.
+- `BRepAlgoAPI_Cut` is the official Boolean subtraction API. A semantic
+  generator can build one rounded internal cavity tool from `wallThickness` and
+  cut it from the rounded outer body without exposing Boolean operations in the
+  default UI.
+- The Boolean-cavity result for the sample enclosure passes
+  `BRepCheck_Analyzer`, meshes with status `0`, and produces deterministic
+  shell metrics.
+
+## Decision
+
+Use a generator-owned `BRepAlgoAPI_Cut` for the first top-open shell/cavity
+slice:
+- outer rounded box comes from semantic enclosure size/corner radius;
+- inner rounded cavity tool comes from semantic wall thickness;
+- top opening is implicit because the cavity tool starts above the bottom floor
+  and extends through the top;
+- Flutter receives only disposable preview mesh data, semantic surface ranges,
+  and metrics.
+
+## Follow-up tasks
+
+- Revisit `BRepOffsetAPI_MakeThickSolid` for later lid/body variants if it gives
+  cleaner wall construction for less-rounded or multi-part bodies.
+- Add feature-intent cuts for USB-C/glass/buttons against the generated shell.
+- Add STEP/STL export only after native B-Rep validation and license notices are
+  ready.

@@ -31,6 +31,7 @@ void main() {
 
       expect(source, contains('BRepPrimAPI_MakeBox'));
       expect(source, contains('BRepFilletAPI_MakeFillet'));
+      expect(source, contains('BRepAlgoAPI_Cut'));
       expect(source, contains('BRepMesh_IncrementalMesh'));
       expect(source, contains('BRep_Tool'));
       expect(source, contains('Poly_Triangulation'));
@@ -40,9 +41,11 @@ void main() {
       expect(source, contains('Standard_Version'));
       expect(source, contains('occt_worker_native_occt'));
       expect(source, contains('preview_mesh_smoke'));
-      expect(source, contains('occt.rounded_enclosure.preview_mesh.v1'));
+      expect(source, contains('occt.rounded_enclosure.shell_preview_mesh.v1'));
       expect(source, contains('ReadNativeRequest'));
       expect(source, contains('BuildRoundedEnclosureShape'));
+      expect(source, contains('BuildCavityCutTool'));
+      expect(source, contains('BuildTopOpenEnclosureShell'));
       expect(source, contains('BuildPreviewMesh'));
       expect(source, contains('ClassifyPreviewSurface'));
       expect(source, contains('PreviewSurfaceMappingData'));
@@ -53,6 +56,10 @@ void main() {
       expect(source, contains('worker.geometry.invalid_enclosure_dimensions'));
       expect(source, contains('cornerRadiusApplied'));
       expect(source, contains('filletedEdgeCount'));
+      expect(source, contains('shellCavityApplied'));
+      expect(source, contains('shellCavityValid'));
+      expect(source, contains('shellCavityToolCount'));
+      expect(source, contains('shellOpening'));
       expect(source, contains('bounds'));
       expect(source, contains('surfaceArea'));
       expect(source, contains('volume'));
@@ -129,10 +136,14 @@ void main() {
       expect(tool, contains('queryCapabilities()'));
       expect(tool, contains('GeometryRequest.previewMesh'));
       expect(tool, contains('preview_mesh_smoke'));
-      expect(tool, contains('occt.rounded_enclosure.preview_mesh.v1'));
+      expect(tool, contains('occt.rounded_enclosure.shell_preview_mesh.v1'));
       expect(tool, contains('previewMesh.vertexCount'));
       expect(tool, contains('previewMesh.triangleCount'));
       expect(tool, contains('previewMesh.surfaces.length == 3'));
+      expect(tool, contains('shellCavityApplied'));
+      expect(tool, contains('shellCavityValid'));
+      expect(tool, contains('shellCavityToolCount'));
+      expect(tool, contains('shellOpening'));
       expect(tool, contains('semantic_face_ranges_v1'));
       expect(tool, contains('previewSurfaceMappingCount'));
       expect(tool, contains('previewMappedTriangleCount'));

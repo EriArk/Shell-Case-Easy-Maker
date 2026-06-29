@@ -87,6 +87,17 @@ Update from M67:
   top lid, front wall, and bottom inside.
 - The sample smoke reports 3 surface mappings and 6 mapped central planar
   triangles.
+
+Update from M69:
+
+- The native worker now cuts a validated top-open shell/cavity from the rounded
+  enclosure body using one semantic wall-thickness cavity tool.
+- The sample smoke reports `shellCavityApplied=true`,
+  `shellCavityValid=true`, `shellCavityToolCount=1`, and `shellOpening=top`.
+- The sample shell preview emits 1198 vertices, 1550 triangles, 3 surface
+  mappings, 494 mapped triangles, bounds `[-60, -35, 0]` to
+  `[60, 35, 27.464102]`, surface area `34761.268581`, and volume
+  `33756.044084`.
 - Preview mesh output and triangle ranges remain disposable and not editable
   project state.
 

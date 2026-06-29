@@ -122,7 +122,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Add feature/group geometry intents to preview requests.
 - [x] Add deterministic geometry operation plan from feature intents.
 - [x] Generate rounded box B-Rep.
-- [ ] Generate shell/cavity for box.
+- [x] Generate shell/cavity for box.
 - [x] Generate mock preview mesh through protocol.
 - [x] Generate OCCT preview mesh.
 - [x] Emit first native semantic preview surface ranges.

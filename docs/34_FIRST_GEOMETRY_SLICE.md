@@ -131,10 +131,10 @@ dart run tool\native_occt_worker_metrics_smoke.dart --skip-build
 
 The current native response returns deterministic bounds, dimensions, surface
 area, volume, disposable preview mesh data, and first-pass semantic surface
-ranges for the first semantic enclosure. For the sample enclosure it emits 800
-vertices, 1060 triangles, 3 surface mappings, and 6 mapped central planar
-triangles. It still does not return STL, B-Rep, OCCT topology IDs, or triangle
-IDs as stable editable references.
+ranges for the first semantic enclosure. For the sample enclosure it emits a
+top-open rounded shell/cavity with 1198 vertices, 1550 triangles, 3 surface
+mappings, and 494 mapped triangles. It still does not return STL, B-Rep, OCCT
+topology IDs, or triangle IDs as stable editable references.
 
 The scaffold smoke command wraps build, capability query, and request smoke:
 
@@ -239,6 +239,11 @@ state.
 - `main_enclosure.front_wall.outer`,
 - `main_enclosure.bottom_inside`.
 
+For the first top-open native shell, the selected `top_lid.outer` semantic ID
+maps to the generated top rim because the original top face is cut away by the
+cavity generator. This keeps selection highlighting semantic while the separate
+lid/body split is still future work.
+
 Triangle ranges are allowed only as disposable preview metadata. They are not
 stable project IDs and must not leak into semantic editing.
 
@@ -250,23 +255,28 @@ The first native OCCT slices now:
 2. Validate dimensions, wall thickness, and corner radius.
 3. Build a box from `size`.
 4. Apply radius to eligible enclosure edges.
-5. Return deterministic bounds, dimensions, surface area, and volume.
-6. Mesh the generated B-Rep with explicit linear/angular deflection settings.
-7. Return disposable preview mesh vertices and triangle indices.
-8. Return first-pass semantic preview surface ranges for planar top, front, and
-   bottom face blocks.
+5. Build one rounded internal cavity tool from semantic wall thickness.
+6. Cut a top-open shell/cavity from the rounded outer B-Rep.
+7. Check the resulting shell/cavity shape with `BRepCheck_Analyzer`.
+8. Return deterministic bounds, dimensions, surface area, and volume.
+9. Mesh the generated B-Rep with explicit linear/angular deflection settings.
+10. Return disposable preview mesh vertices and triangle indices.
+11. Return first-pass semantic preview surface ranges for top rim, front, and
+    bottom face blocks.
 
 The next native geometry slices should:
 
-1. Expand semantic face mapping beyond central planar face blocks.
-2. Generate shell/cavity geometry.
-3. Consume feature intents for cutouts and mounts.
+1. Consume feature intents for cutouts and mounts.
+2. Add screw-boss/lid-body split geometry.
+3. Expand semantic face mapping beyond the first top/front/bottom ranges.
 
 Expected sample dimensions:
 - size: `120 x 70 x 28 mm`,
 - wall thickness: `2 mm`,
 - corner radius: `4 mm`,
-- initial bounds: `[-60, -35, 0]` to `[60, 35, 28]`.
+- shell preview bounds: `[-60, -35, 0]` to `[60, 35, 27.464102]`,
+- shell preview volume: `33756.044084 mm^3`,
+- shell preview surface area: `34761.268581 mm^2`.
 
 ## Current Limitations
 
@@ -298,8 +308,9 @@ Expected sample dimensions:
   bounds, component feature keepouts, and standoff mount safety. Component
   placement/keepout bounds account for Z rotation using conservative envelopes.
   This is still pre-geometry validation, not OCCT body validation.
-- Rounded edges, first native preview mesh emission, and first-pass planar
-  semantic surface ranges are implemented; shell/cavity generation and richer
-  face mapping are still planned.
+- Rounded edges, first top-open native shell/cavity generation, first native
+  preview mesh emission, and first-pass semantic surface ranges are
+  implemented; feature cutouts, screw/lid geometry, and richer face mapping are
+  still planned.
 - STEP/STL export operations intentionally return unsupported in the mock
   backend.

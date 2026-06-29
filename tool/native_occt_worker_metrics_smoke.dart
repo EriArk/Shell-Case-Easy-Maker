@@ -98,12 +98,12 @@ Future<void> main(List<String> args) async {
       failures,
     );
     _expect(
-      previewMesh.vertexCount == 800,
+      previewMesh.vertexCount == 1198,
       'previewMesh must contain the deterministic sample vertex count',
       failures,
     );
     _expect(
-      previewMesh.triangleCount == 1060,
+      previewMesh.triangleCount == 1550,
       'previewMesh must contain the deterministic sample triangle count',
       failures,
     );
@@ -179,7 +179,7 @@ Future<void> main(List<String> args) async {
     );
     _expectDoubleList(
       previewMesh.bounds.max,
-      const [60, 35, 28],
+      const [60, 35, 27.464102],
       'previewMesh.bounds.max',
       failures,
     );
@@ -187,8 +187,8 @@ Future<void> main(List<String> args) async {
 
   final metrics = response.metrics;
   _expect(
-    metrics['generator'] == 'occt.rounded_enclosure.preview_mesh.v1',
-    'generator metric must identify the rounded enclosure preview mesh slice',
+    metrics['generator'] == 'occt.rounded_enclosure.shell_preview_mesh.v1',
+    'generator metric must identify the rounded enclosure shell preview mesh slice',
     failures,
   );
   _expect(
@@ -209,6 +209,26 @@ Future<void> main(List<String> args) async {
   _expect(
     metrics['filletedEdgeCount'] == 24,
     'filleted edge count must be deterministic',
+    failures,
+  );
+  _expect(
+    metrics['shellCavityApplied'] == true,
+    'shell cavity must be applied',
+    failures,
+  );
+  _expect(
+    metrics['shellCavityValid'] == true,
+    'shell cavity must pass the native validity check',
+    failures,
+  );
+  _expect(
+    metrics['shellCavityToolCount'] == 1,
+    'shell cavity must use one deterministic cavity tool',
+    failures,
+  );
+  _expect(
+    metrics['shellOpening'] == 'top',
+    'shell opening must be top',
     failures,
   );
   _expect(
@@ -293,24 +313,29 @@ Future<void> main(List<String> args) async {
   );
   _expectDoubleList(
     metrics['dimensions'],
-    const [120, 70, 28],
+    const [120, 70, 27.464102],
     'dimensions',
     failures,
   );
 
   final bounds = _readMap(metrics['bounds']);
   _expectDoubleList(bounds['min'], const [-60, -35, 0], 'bounds.min', failures);
-  _expectDoubleList(bounds['max'], const [60, 35, 28], 'bounds.max', failures);
+  _expectDoubleList(
+    bounds['max'],
+    const [60, 35, 27.464102],
+    'bounds.max',
+    failures,
+  );
   _expectClose(
     _readNumber(metrics['surfaceArea']),
-    25924.813728,
+    34761.268581,
     0.001,
     'surfaceArea',
     failures,
   );
   _expectClose(
     _readNumber(metrics['volume']),
-    232291.58617,
+    33756.044084,
     0.001,
     'volume',
     failures,
@@ -341,6 +366,10 @@ Future<void> main(List<String> args) async {
       'previewTriangles': previewMesh?.triangleCount,
       'previewSurfaceMappings': previewMesh?.surfaces.length,
       'previewMappedTriangles': metrics['previewMappedTriangleCount'],
+      'shellCavityApplied': metrics['shellCavityApplied'],
+      'shellCavityValid': metrics['shellCavityValid'],
+      'shellCavityToolCount': metrics['shellCavityToolCount'],
+      'shellOpening': metrics['shellOpening'],
       'bounds': metrics['bounds'],
       'dimensions': metrics['dimensions'],
       'surfaceArea': metrics['surfaceArea'],

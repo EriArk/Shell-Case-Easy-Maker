@@ -1,4 +1,6 @@
 #include <BRepBndLib.hxx>
+#include <BRepAlgoAPI_Cut.hxx>
+#include <BRepCheck_Analyzer.hxx>
 #include <BRepFilletAPI_MakeFillet.hxx>
 #include <BRepGProp.hxx>
 #include <BRepMesh_IncrementalMesh.hxx>
@@ -78,6 +80,16 @@ struct ShapeMetrics {
   double volume = 0.0;
   bool corner_radius_applied = false;
   int filleted_edge_count = 0;
+  bool shell_cavity_applied = false;
+  bool shell_cavity_valid = false;
+  int shell_cavity_tool_count = 0;
+};
+
+struct ShellBuildResult {
+  TopoDS_Shape shape;
+  bool cavity_applied = false;
+  bool cavity_valid = false;
+  int cavity_tool_count = 0;
 };
 
 struct PreviewTriangleRangeData {
@@ -107,6 +119,37 @@ struct FaceBounds {
   std::array<double, 3> min = {0.0, 0.0, 0.0};
   std::array<double, 3> max = {0.0, 0.0, 0.0};
 };
+
+FaceBounds ComputeTopoBounds(const TopoDS_Shape& shape) {
+  Bnd_Box bounds;
+  BRepBndLib::AddOptimal(shape, bounds, false, false);
+  if (bounds.IsVoid()) {
+    throw std::runtime_error("OCCT could not compute shape bounds.");
+  }
+
+  FaceBounds result;
+  bounds.Get(result.min[0],
+             result.min[1],
+             result.min[2],
+             result.max[0],
+             result.max[1],
+             result.max[2]);
+  return result;
+}
+
+std::array<double, 3> DimensionsFromBounds(const FaceBounds& bounds) {
+  return {bounds.max[0] - bounds.min[0],
+          bounds.max[1] - bounds.min[1],
+          bounds.max[2] - bounds.min[2]};
+}
+
+double PreviewSurfaceToleranceForDimensions(
+    const std::array<double, 3>& dimensions) {
+  const double max_dimension =
+      std::max({dimensions[0], dimensions[1], dimensions[2]});
+  return std::max(0.01, max_dimension * 0.0001) +
+         kPreviewLinearDeflection * 2.0;
+}
 
 std::string ReadStdin() {
   return std::string{std::istreambuf_iterator<char>{std::cin},
@@ -696,6 +739,11 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
         !IsPositiveDimension(result.enclosure.size[2]) ||
         !std::isfinite(result.enclosure.wall_thickness) ||
         result.enclosure.wall_thickness <= 0.0 ||
+        result.enclosure.wall_thickness * 2.0 >=
+            result.enclosure.size[0] ||
+        result.enclosure.wall_thickness * 2.0 >=
+            result.enclosure.size[1] ||
+        result.enclosure.wall_thickness >= result.enclosure.size[2] ||
         !std::isfinite(result.enclosure.corner_radius) ||
         result.enclosure.corner_radius < 0.0 ||
         result.enclosure.corner_radius >= min_size / 2.0) {
@@ -715,28 +763,27 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
   return result;
 }
 
-TopoDS_Shape BuildRoundedEnclosureShape(const EnclosureRequest& enclosure,
-                                        bool* corner_radius_applied,
-                                        int* filleted_edge_count) {
+TopoDS_Shape BuildRoundedBoxShape(const gp_Pnt& origin,
+                                  const std::array<double, 3>& size,
+                                  double corner_radius,
+                                  bool* corner_radius_applied,
+                                  int* filleted_edge_count) {
   const TopoDS_Shape box =
-      BRepPrimAPI_MakeBox(gp_Pnt(-enclosure.size[0] / 2.0,
-                                 -enclosure.size[1] / 2.0,
-                                 0.0),
-                          enclosure.size[0],
-                          enclosure.size[1],
-                          enclosure.size[2])
-          .Shape();
+      BRepPrimAPI_MakeBox(origin, size[0], size[1], size[2]).Shape();
 
   *corner_radius_applied = false;
   *filleted_edge_count = 0;
-  if (enclosure.corner_radius <= 0.0) {
+  const double max_radius =
+      std::min({size[0], size[1], size[2]}) / 2.0 - 0.001;
+  const double safe_radius = std::min(corner_radius, max_radius);
+  if (safe_radius <= 0.0) {
     return box;
   }
 
   BRepFilletAPI_MakeFillet fillet(box);
   for (TopExp_Explorer explorer(box, TopAbs_EDGE); explorer.More();
        explorer.Next()) {
-    fillet.Add(enclosure.corner_radius, TopoDS::Edge(explorer.Current()));
+    fillet.Add(safe_radius, TopoDS::Edge(explorer.Current()));
     ++(*filleted_edge_count);
   }
 
@@ -749,24 +796,54 @@ TopoDS_Shape BuildRoundedEnclosureShape(const EnclosureRequest& enclosure,
   return fillet.Shape();
 }
 
+TopoDS_Shape BuildRoundedEnclosureShape(const EnclosureRequest& enclosure,
+                                        bool* corner_radius_applied,
+                                        int* filleted_edge_count) {
+  return BuildRoundedBoxShape(gp_Pnt(-enclosure.size[0] / 2.0,
+                                     -enclosure.size[1] / 2.0,
+                                     0.0),
+                              enclosure.size,
+                              enclosure.corner_radius,
+                              corner_radius_applied,
+                              filleted_edge_count);
+}
+
+TopoDS_Shape BuildCavityCutTool(const EnclosureRequest& enclosure) {
+  const std::array<double, 3> inner_size = {
+      enclosure.size[0] - enclosure.wall_thickness * 2.0,
+      enclosure.size[1] - enclosure.wall_thickness * 2.0,
+      enclosure.size[2]};
+  const gp_Pnt inner_origin(-inner_size[0] / 2.0,
+                            -inner_size[1] / 2.0,
+                            enclosure.wall_thickness);
+  const double inner_radius =
+      std::max(0.0, enclosure.corner_radius - enclosure.wall_thickness);
+  bool inner_radius_applied = false;
+  int inner_filleted_edge_count = 0;
+  return BuildRoundedBoxShape(inner_origin,
+                              inner_size,
+                              inner_radius,
+                              &inner_radius_applied,
+                              &inner_filleted_edge_count);
+}
+
 ShapeMetrics ComputeShapeMetrics(const TopoDS_Shape& shape,
                                  bool corner_radius_applied,
-                                 int filleted_edge_count) {
+                                 int filleted_edge_count,
+                                 bool shell_cavity_applied,
+                                 bool shell_cavity_valid,
+                                 int shell_cavity_tool_count) {
   ShapeMetrics metrics;
   metrics.corner_radius_applied = corner_radius_applied;
   metrics.filleted_edge_count = filleted_edge_count;
+  metrics.shell_cavity_applied = shell_cavity_applied;
+  metrics.shell_cavity_valid = shell_cavity_valid;
+  metrics.shell_cavity_tool_count = shell_cavity_tool_count;
 
-  Bnd_Box bounds;
-  BRepBndLib::AddOptimal(shape, bounds, false, false);
-  bounds.Get(metrics.bounds_min[0],
-             metrics.bounds_min[1],
-             metrics.bounds_min[2],
-             metrics.bounds_max[0],
-             metrics.bounds_max[1],
-             metrics.bounds_max[2]);
-  metrics.dimensions = {metrics.bounds_max[0] - metrics.bounds_min[0],
-                        metrics.bounds_max[1] - metrics.bounds_min[1],
-                        metrics.bounds_max[2] - metrics.bounds_min[2]};
+  const FaceBounds bounds = ComputeTopoBounds(shape);
+  metrics.bounds_min = bounds.min;
+  metrics.bounds_max = bounds.max;
+  metrics.dimensions = DimensionsFromBounds(bounds);
 
   GProp_GProps surface_properties;
   BRepGProp::SurfaceProperties(shape, surface_properties, false, false);
@@ -780,11 +857,7 @@ ShapeMetrics ComputeShapeMetrics(const TopoDS_Shape& shape,
 }
 
 double PreviewSurfaceTolerance(const ShapeMetrics& metrics) {
-  const double max_dimension =
-      std::max({metrics.dimensions[0], metrics.dimensions[1],
-                metrics.dimensions[2]});
-  return std::max(0.01, max_dimension * 0.0001) +
-         kPreviewLinearDeflection * 2.0;
+  return PreviewSurfaceToleranceForDimensions(metrics.dimensions);
 }
 
 bool FaceIsOnPlane(double face_min,
@@ -793,6 +866,35 @@ bool FaceIsOnPlane(double face_min,
                    double tolerance) {
   return std::abs(face_min - plane) <= tolerance &&
          std::abs(face_max - plane) <= tolerance;
+}
+
+ShellBuildResult BuildTopOpenEnclosureShell(const TopoDS_Shape& outer_shape,
+                                            const EnclosureRequest& enclosure) {
+  ShellBuildResult result;
+  result.shape = outer_shape;
+
+  const TopoDS_Shape cavity_tool = BuildCavityCutTool(enclosure);
+  if (cavity_tool.IsNull()) {
+    throw std::runtime_error("OCCT generated a null cavity cut tool.");
+  }
+
+  BRepAlgoAPI_Cut cut(outer_shape, cavity_tool);
+  cut.SimplifyResult(true, true);
+  if (!cut.IsDone() || cut.HasErrors()) {
+    throw std::runtime_error("OCCT shell/cavity cut did not complete.");
+  }
+
+  result.shape = cut.Shape();
+  if (result.shape.IsNull()) {
+    throw std::runtime_error("OCCT generated a null shell/cavity shape.");
+  }
+
+  BRepCheck_Analyzer analyzer(result.shape, false);
+  result.cavity_valid = analyzer.IsValid();
+
+  result.cavity_applied = true;
+  result.cavity_tool_count = 1;
+  return result;
 }
 
 FaceBounds ComputeFaceBounds(const Handle(Poly_Triangulation)& triangulation,
@@ -831,6 +933,11 @@ std::optional<std::pair<std::string, std::string>> ClassifyPreviewSurface(
                     metrics.bounds_max[2],
                     tolerance)) {
     return std::make_pair(body_id + ".top_lid.outer", "Top lid");
+  }
+
+  if (face_bounds.max[2] >= metrics.bounds_max[2] - tolerance &&
+      face_bounds.min[2] > metrics.bounds_min[2] + tolerance) {
+    return std::make_pair(body_id + ".top_lid.outer", "Top rim");
   }
 
   if (FaceIsOnPlane(face_bounds.min[2],
@@ -1149,7 +1256,7 @@ void WriteRoundedEnclosurePreviewResponse(const NativeRequestEnvelope& request,
             << EscapeJsonString(request.operation) << "\",\n"
             << "    \"occtVersion\": \""
             << EscapeJsonString(OCC_VERSION_COMPLETE) << "\",\n"
-            << "    \"generator\": \"occt.rounded_enclosure.preview_mesh.v1\",\n"
+            << "    \"generator\": \"occt.rounded_enclosure.shell_preview_mesh.v1\",\n"
             << "    \"bodyId\": \"" << EscapeJsonString(enclosure.id)
             << "\",\n"
             << "    \"shape\": \"" << EscapeJsonString(enclosure.shape)
@@ -1165,6 +1272,13 @@ void WriteRoundedEnclosurePreviewResponse(const NativeRequestEnvelope& request,
             << (metrics.corner_radius_applied ? "true" : "false") << ",\n"
             << "    \"filletedEdgeCount\": " << metrics.filleted_edge_count
             << ",\n"
+            << "    \"shellCavityApplied\": "
+            << (metrics.shell_cavity_applied ? "true" : "false") << ",\n"
+            << "    \"shellCavityValid\": "
+            << (metrics.shell_cavity_valid ? "true" : "false") << ",\n"
+            << "    \"shellCavityToolCount\": "
+            << metrics.shell_cavity_tool_count << ",\n"
+            << "    \"shellOpening\": \"top\",\n"
             << "    \"bounds\": {\n"
             << "      \"min\": ";
   WriteDoubleArray(metrics.bounds_min);
@@ -1247,18 +1361,29 @@ int main(int argc, char* argv[]) {
   try {
     bool corner_radius_applied = false;
     int filleted_edge_count = 0;
-    const TopoDS_Shape shape =
+    const TopoDS_Shape outer_shape =
         BuildRoundedEnclosureShape(parsed_request.enclosure,
                                    &corner_radius_applied,
                                    &filleted_edge_count);
-    if (shape.IsNull()) {
+    if (outer_shape.IsNull()) {
       throw std::runtime_error("OCCT generated a null enclosure shape.");
     }
 
+    const ShellBuildResult shell =
+        BuildTopOpenEnclosureShell(outer_shape, parsed_request.enclosure);
+    if (shell.shape.IsNull()) {
+      throw std::runtime_error("OCCT generated a null shell/cavity shape.");
+    }
+
     const ShapeMetrics metrics =
-        ComputeShapeMetrics(shape, corner_radius_applied, filleted_edge_count);
+        ComputeShapeMetrics(shell.shape,
+                            corner_radius_applied,
+                            filleted_edge_count,
+                            shell.cavity_applied,
+                            shell.cavity_valid,
+                            shell.cavity_tool_count);
     const PreviewMeshData mesh =
-        BuildPreviewMesh(shape, metrics, parsed_request.enclosure.id);
+        BuildPreviewMesh(shell.shape, metrics, parsed_request.enclosure.id);
     WriteRoundedEnclosurePreviewResponse(
         parsed_request.request, parsed_request.enclosure, metrics, mesh);
     return 0;

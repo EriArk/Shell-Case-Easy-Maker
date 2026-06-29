@@ -42,6 +42,104 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-29 - M69 Native shell/cavity slice
+
+### Goal
+Turn the native rounded enclosure preview from a closed solid block into the
+first validated top-open shell/cavity generated from semantic wall thickness.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`docs/27_RESEARCH_AND_REFERENCES.md`, `docs/34_FIRST_GEOMETRY_SLICE.md`,
+`occt_worker/native/src/occt_main.cpp`,
+`tool/native_occt_worker_metrics_smoke.dart`, and official OCCT references for
+`BRepOffsetAPI_MakeThickSolid` and `BRepAlgoAPI_Cut`.
+
+### Changes made
+- `occt_worker/native/src/occt_main.cpp`:
+  - Added a rounded cavity cut tool generated from semantic `wallThickness`.
+  - Cuts the rounded outer body with `BRepAlgoAPI_Cut` to create a top-open
+    shell/cavity.
+  - Validates the resulting shell with `BRepCheck_Analyzer`.
+  - Emits shell metrics: `shellCavityApplied`, `shellCavityValid`,
+    `shellCavityToolCount`, and `shellOpening`.
+  - Maps `main_enclosure.top_lid.outer` to the visible top rim because the
+    original top face is now removed by the cavity generator.
+- `tool/native_occt_worker_metrics_smoke.dart`:
+  - Updated deterministic expectations to 1198 vertices, 1550 triangles, 3
+    surface mappings, 494 mapped triangles, bounds ending at Z `27.464102`,
+    surface area `34761.268581`, and volume `33756.044084`.
+- `test/occt_native_target_scaffold_test.dart`:
+  - Updated the source-contract checks for the shell preview generator and
+    native cavity metrics.
+- Docs/tasks/roadmap:
+  - Marked shell/cavity generation complete.
+  - Recorded the OCCT shell/cavity research decision.
+  - Documented current shell metrics, top-rim mapping, and the next geometry
+    tasks.
+
+### Tests run
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`:
+  - Passed.
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`:
+  - Passed; sample reports `shellCavityValid: true`.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`:
+  - Passed, 5 tests.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with constraints.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed, 184 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `Test-Path releases\latest\windows\occt_worker\native\occt_worker_native_occt.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed with existing line-ending warnings for touched Markdown files.
+
+### Validation
+- Geometry checked?
+  - Yes. Native smoke verifies a real top-open shell/cavity, valid OCCT shape
+    check, deterministic mesh counts, bounds, surface area, and volume.
+- Serialization checked?
+  - Yes. Existing full test suite passed; editable project remains semantic
+    JSON only.
+- UI checked?
+  - Automated widget coverage passed; latest native OCCT bundle was rebuilt for
+    manual launch.
+- Export checked?
+  - No. STEP/STL export is still not implemented.
+
+### Known issues
+- Issue:
+  - The first native shell uses the top rim as the `top_lid.outer` highlight
+    target until the real lid/body split exists.
+  - Severity: Low for current preview; expected transitional behavior.
+  - Next action: Add explicit lid/body geometry and richer semantic face
+    mapping after feature cutouts start landing.
+- Issue:
+  - Feature intents still do not cut the native B-Rep.
+  - Severity: Medium for MVP geometry.
+  - Next action: Start the first native feature cutout slice, likely USB-C.
+
+### Next step
+Implement the first feature-intent cut against the native shell, probably the
+USB-C front cutout, with deterministic native smoke metrics.
+
+### Notes for future Codex sessions
+Do not switch Flutter to mesh/topology picking. Native preview triangle ranges
+remain disposable highlight metadata only. The generated shell is valid and
+local-only; no B-Rep, STL, OCCT topology ID, or release artifact should be
+committed.
+
+---
+
 ## 2026-06-29 - M68 Preview surface range highlight
 
 ### Goal

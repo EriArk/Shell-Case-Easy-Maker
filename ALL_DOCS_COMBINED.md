@@ -220,7 +220,7 @@ This is the living task backlog. Keep it updated.
 - [ ] Create `occt_worker` CLI or local service.
 - [ ] Define JSON protocol for geometry requests.
 - [ ] Generate rounded box B-Rep.
-- [ ] Generate shell/cavity for box.
+- [x] Generate shell/cavity for box.
 - [ ] Generate preview mesh.
 - [ ] Export STEP.
 - [ ] Export STL.
