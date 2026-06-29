@@ -71,6 +71,16 @@ It can report capabilities and returns `worker.backend.native_not_implemented`
 for geometry requests. This target is a scaffold for the future OCCT worker,
 not native B-Rep generation.
 
+Native stub smoke command:
+
+```powershell
+dart run tool\native_worker_stub_smoke.dart
+```
+
+The smoke command builds the native stub, queries capabilities through
+`GeometryWorkerProcessClient.queryCapabilities()`, sends a preview request, and
+expects `worker.backend.native_not_implemented`.
+
 Process-client smoke command:
 
 ```powershell

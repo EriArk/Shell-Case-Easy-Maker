@@ -74,6 +74,18 @@ void main() {
       expect(script, isNot(contains('releases')));
     },
   );
+
+  test('native worker smoke tool exercises build and process client paths', () {
+    final tool = File('tool/native_worker_stub_smoke.dart').readAsStringSync();
+
+    expect(tool, contains('build_occt_worker_stub.ps1'));
+    expect(tool, contains('GeometryWorkerProcessClient'));
+    expect(tool, contains('queryCapabilities()'));
+    expect(tool, contains('GeometryRequest.previewMesh'));
+    expect(tool, contains('worker.backend.native_not_implemented'));
+    expect(tool, contains('--skip-build'));
+    expect(tool, contains('--configuration'));
+  });
 }
 
 String _rawJsonString(String source, String variableName) {

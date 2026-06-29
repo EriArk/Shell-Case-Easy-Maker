@@ -170,6 +170,16 @@ This scaffold intentionally does not link OCCT yet. It exists to prove the
 native worker build boundary, process invocation, and protocol-shaped error
 responses before B-Rep generation is added.
 
+Native scaffold smoke command:
+
+```powershell
+dart run tool\native_worker_stub_smoke.dart
+```
+
+The smoke command builds the stub, queries capabilities through the Dart process
+client, sends a preview request, and treats `worker.backend.native_not_implemented`
+as the expected result while OCCT is still absent.
+
 ## Worker process client
 
 `GeometryWorkerProcessClient` is the Dart-side process adapter for the future

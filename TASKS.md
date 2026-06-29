@@ -109,6 +109,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Add worker capability contract for backend readiness and supported operations.
 - [x] Add Dart-side worker capability query client.
 - [x] Add native worker executable build scaffold.
+- [x] Add native worker stub smoke command.
 - [x] Define JSON protocol for geometry requests.
 - [x] Add feature/group geometry intents to preview requests.
 - [x] Add deterministic geometry operation plan from feature intents.

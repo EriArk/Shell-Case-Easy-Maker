@@ -205,6 +205,9 @@ through `tools/build_occt_worker_stub.ps1`. The scaffold can report capabilities
 and structured not-implemented responses, but it does not link OCCT or generate
 B-Rep yet.
 
+`tool/native_worker_stub_smoke.dart` wraps the native stub build, capability
+query, and preview request smoke into one developer command.
+
 ## Worker Process Client
 
 `GeometryWorkerProcessClient` is the first external-process adapter. It sends a

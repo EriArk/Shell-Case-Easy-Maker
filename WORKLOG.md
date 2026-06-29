@@ -42,6 +42,93 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-29 - M56 Native worker stub smoke tool
+
+### Goal
+Add one developer smoke command that builds the native worker stub, queries
+capabilities through the Dart process client, sends a preview request, and
+verifies the expected `native_not_implemented` response.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `README.md`,
+`occt_worker/README.md`, `docs/03_ARCHITECTURE_OVERVIEW.md`,
+`docs/04_GEOMETRY_ENGINE_OCCT.md`, `docs/34_FIRST_GEOMETRY_SLICE.md`,
+`lib/geometry/geometry_service.dart`, and `test/native_worker_scaffold_test.dart`.
+
+### Changes made
+- `tool/native_worker_stub_smoke.dart`:
+  - Added a smoke command for the native stub build and process-client path.
+  - Supports `--skip-build` and `--configuration Debug|Release`.
+  - Prints a compact JSON summary with executable path, capability status, and
+    request smoke result.
+  - Exits nonzero if capabilities fail or the expected native stub response is
+    missing.
+- `test/native_worker_scaffold_test.dart`:
+  - Added coverage that keeps the smoke tool wired to the native build script,
+    `GeometryWorkerProcessClient`, capability query, preview request, and
+    expected native stub issue code.
+- Docs/tasks/roadmap:
+  - Documented M56, added the smoke command to developer docs, and kept
+    `TASKS.md` aligned with the roadmap.
+
+### Tests run
+- `flutter test test\native_worker_scaffold_test.dart`:
+  - Passed, 5 tests.
+- `dart run tool\native_worker_stub_smoke.dart --skip-build`:
+  - Passed; found the Release native stub, queried capabilities, and received
+    expected `worker.backend.native_not_implemented`.
+- `dart run tool\native_worker_stub_smoke.dart`:
+  - Passed; rebuilt the native stub before running the same smoke path.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed, 169 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed; Git reported markdown line-ending normalization warnings only.
+
+### Validation
+- Geometry checked?
+  - Native stub path only. No OCCT B-Rep generation is implemented in this
+    chunk, and no editable mesh/STL state was introduced.
+- Serialization checked?
+  - Yes. The smoke command sends a semantic `ProjectModel.initial()` preview
+    request through the worker process contract.
+- UI checked?
+  - Full widget suite passes and the latest Windows bundle was rebuilt. No
+    user-facing UI behavior changed in this chunk.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Native worker still returns the expected not-implemented response for
+  geometry requests.
+  - Severity: Expected for the current scaffold.
+  - Next action: Start replacing the stub response with the first real OCCT
+    rounded enclosure generation path once the native dependency/build decision
+    is locked.
+
+### Next step
+Begin the first native geometry implementation slice: keep the semantic request
+contract stable, add the minimum native protocol parsing needed by the worker,
+and generate a deterministic rounded enclosure shape or a narrower preparatory
+slice if OCCT packaging needs one more bridge.
+
+### Notes for future Codex sessions
+The fast smoke command is `dart run tool\native_worker_stub_smoke.dart`. It is
+safe to use before the full app build because it only touches
+`build/occt_worker_native` and expects the native stub to report
+`worker.backend.native_not_implemented`.
+
 ## 2026-06-29 - M55 Native worker build scaffold
 
 ### Goal

@@ -69,6 +69,12 @@ Build the native worker stub with:
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/build_occt_worker_stub.ps1
 ```
 
+Run the native worker stub smoke with:
+
+```powershell
+dart run tool/native_worker_stub_smoke.dart
+```
+
 Build the latest manual Windows bundle with:
 
 ```powershell

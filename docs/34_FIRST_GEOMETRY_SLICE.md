@@ -82,6 +82,12 @@ It builds `occt_worker_native_stub` under `build/occt_worker_native`. The stub
 can emit capabilities and structured not-implemented responses, but it does not
 link OCCT or generate B-Rep yet.
 
+The scaffold smoke command wraps build, capability query, and request smoke:
+
+```powershell
+dart run tool\native_worker_stub_smoke.dart
+```
+
 `GeometryWorkerProcessClient` can also exercise the same harness across a real
 process boundary:
 

@@ -74,6 +74,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M53 - Worker Capability Contract
 - [x] M54 - Worker Capability Process Client
 - [x] M55 - Native Worker Build Scaffold
+- [x] M56 - Native Worker Stub Smoke Tool
 
 ---
 
@@ -2358,5 +2359,48 @@ implemented.
 - Optional developer poke: run
   `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_stub.ps1`
   and then run the printed `--capabilities` command.
+- Launch latest Windows app normally and confirm the default project still opens
+  with the mock preview and clean validation status.
+
+---
+
+## M56 - Native Worker Stub Smoke Tool
+
+### Goal
+Add a single developer smoke command that builds the native worker stub, queries
+capabilities through the Dart process client, and verifies the expected
+not-implemented geometry response.
+
+### Tasks
+- [x] Add `tool/native_worker_stub_smoke.dart`.
+- [x] Run `tools/build_occt_worker_stub.ps1` from the smoke tool.
+- [x] Locate the native stub executable under `build/occt_worker_native`.
+- [x] Query capabilities with `GeometryWorkerProcessClient.queryCapabilities()`.
+- [x] Send a preview request through `GeometryWorkerProcessClient.buildGeometry()`.
+- [x] Treat `worker.backend.native_not_implemented` as the expected scaffold
+      response.
+- [x] Add scaffold-test coverage for the smoke tool path.
+
+### Done Criteria
+- `dart run tool\native_worker_stub_smoke.dart` builds and verifies the native
+  stub.
+- Smoke output includes executable path, capability status, and request result.
+- The tool exits non-zero if capabilities fail or the not-implemented response
+  is missing.
+- No release artifacts or build outputs are committed.
+
+### Tests
+- `flutter test test\native_worker_scaffold_test.dart`
+- `dart run tool\native_worker_stub_smoke.dart`
+- `dart run tool\native_worker_stub_smoke.dart --skip-build`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- No meaningful manual UI poke for this chunk; it is a developer worker smoke.
+- Optional developer poke: run `dart run tool\native_worker_stub_smoke.dart`.
 - Launch latest Windows app normally and confirm the default project still opens
   with the mock preview and clean validation status.
