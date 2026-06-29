@@ -61,6 +61,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] First executable component placement command.
 - [x] Component placement dialog live semantic fit check.
 - [x] Component placement dialog transient viewport candidate.
+- [x] Component placement dialog selected template size summary.
 - [x] First-pass component placement inspector editing.
 - [x] First-pass component placement rotation editing.
 - [x] First-pass component placement lock guard.

@@ -3504,6 +3504,7 @@ class _PlaceComponentDialogState extends State<_PlaceComponentDialog> {
   @override
   Widget build(BuildContext context) {
     final candidatePlacement = _candidatePlacement;
+    final selectedTemplate = _selectedTemplate;
     final placementIssue = _prospectivePlacementIssue(
       widget.project,
       candidatePlacement,
@@ -3560,6 +3561,7 @@ class _PlaceComponentDialogState extends State<_PlaceComponentDialog> {
                   ),
                 ),
               ),
+              _ComponentTemplateSummary(template: selectedTemplate),
               const SizedBox(height: 10),
               Row(
                 children: [
@@ -3659,6 +3661,62 @@ class _PlaceComponentDialogState extends State<_PlaceComponentDialog> {
       mountingSide: _mountingSide,
       locked: _locked,
       visible: widget.initialPlacement.visible,
+    );
+  }
+
+  ComponentTemplate? get _selectedTemplate {
+    return widget.templates
+        .where((template) => template.id == _templateId)
+        .firstOrNull;
+  }
+}
+
+class _ComponentTemplateSummary extends StatelessWidget {
+  const _ComponentTemplateSummary({required this.template});
+
+  final ComponentTemplate? template;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final template = this.template;
+    if (template == null) {
+      return Padding(
+        key: const ValueKey('place-component-template-summary'),
+        padding: const EdgeInsets.only(top: 6),
+        child: Text(
+          'Шаблон компонента не найден.',
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: theme.colorScheme.error,
+          ),
+        ),
+      );
+    }
+
+    final outline = template.board.outline;
+    return Padding(
+      key: const ValueKey('place-component-template-summary'),
+      padding: const EdgeInsets.only(top: 6),
+      child: Row(
+        children: [
+          Icon(
+            Icons.developer_board_rounded,
+            size: 16,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Плата ${_formatNumber(outline.width)} x '
+              '${_formatNumber(outline.height)} x '
+              '${_formatNumber(template.board.thickness)} mm',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

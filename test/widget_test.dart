@@ -863,6 +863,11 @@ void main() {
       find.byKey(const ValueKey('place-component-fit-check')),
       findsOneWidget,
     );
+    expect(
+      find.byKey(const ValueKey('place-component-template-summary')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('48 x 32 x 1.6 mm'), findsOneWidget);
     expect(find.text('Плата помещается в текущий корпус.'), findsOneWidget);
 
     await tester.enterText(

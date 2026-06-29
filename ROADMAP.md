@@ -55,6 +55,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M34 — Snap Placement Fit Feedback
 - [x] M35 — Placement Dialog Live Fit Check
 - [x] M36 — Placement Dialog Viewport Candidate
+- [x] M37 — Placement Template Size Summary
 
 ---
 
@@ -1496,3 +1497,37 @@ candidate while the dialog is open.
 - Click `Отмена` and confirm the footprint disappears.
 - Repeat, click `Разместить`, and confirm the transient footprint becomes a
   normal solid component marker.
+
+---
+
+## M37 — Placement Template Size Summary
+
+### Goal
+Make the component placement dialog show the selected template board footprint
+dimensions so candidate fit feedback is easier to understand.
+
+### Tasks
+- [x] Resolve the selected component template inside the placement dialog.
+- [x] Show board width, height, and thickness under the template selector.
+- [x] Show a clear missing-template fallback.
+- [x] Keep the summary read-only and outside project/undo state.
+- [x] Add widget coverage for the sample board size summary.
+
+### Done Criteria
+- Opening `Компоненты` shows the selected board dimensions.
+- The summary updates with the selected template state.
+- Placement commit behavior is unchanged.
+- No generated mesh, B-Rep, triangle ID, or OCCT topology becomes editable
+  state.
+
+### Tests
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Click `Компоненты`.
+- Confirm the dialog shows the board dimensions under `Шаблон`.
+- Confirm fit feedback still updates when changing X/Y/Z.

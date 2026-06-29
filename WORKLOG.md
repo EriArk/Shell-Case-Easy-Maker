@@ -3151,3 +3151,74 @@ component anchor mapping.
 `_placementDialogCandidate` is UI-only state. Do not serialize it, include it in
 undo history, or let it become a real placement unless the dialog returns a
 confirmed `ComponentPlacement`.
+
+---
+
+## 2026-06-29 - M37 Placement Template Size Summary
+
+### Goal
+Show selected component template board dimensions in the placement dialog so
+candidate fit feedback is easier to interpret.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `docs/32_USABLE_SHELL.md`,
+`lib/ui/shell/workspace_shell.dart`, and placement dialog widget tests.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Resolves the currently selected component template in the placement dialog.
+  - Adds a compact board summary under the template selector.
+  - Shows board width, height, and thickness.
+  - Shows a missing-template fallback if the selected ID cannot be resolved.
+- `test/widget_test.dart`:
+  - Added coverage for the sample board dimension summary in the placement
+    dialog.
+- Docs/tasks/roadmap:
+  - Recorded M37 behavior, done criteria, and poke checklist.
+
+### Tests run
+- `flutter test test\widget_test.dart --plain-name "place component dialog validates current candidate placement"`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 115 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Not applicable; this is read-only semantic template UI.
+- Serialization checked?
+  - Not applicable; no project data changed.
+- UI checked?
+  - Widget test confirms the dimension summary is rendered.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: The dialog still has only one sample component template in the default
+  project.
+  - Severity: Expected.
+  - Next action: add template editing/loading before broader template selection
+    polish matters.
+- Issue: The summary is textual only; no board-specific mini preview yet.
+  - Severity: Low.
+  - Next action: use the viewport footprint as the primary visual preview for
+    now.
+
+### Next step
+Commit and push M37, then continue toward guided placement or component anchor
+mapping.
+
+### Notes for future Codex sessions
+Template summaries are read-only UI hints. Keep editable component template
+work as a separate subsystem with its own tests/docs when it begins.
