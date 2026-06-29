@@ -1887,3 +1887,83 @@ the next safe semantic editing chunk.
 Feature group edits must keep repeated items grouped. Do not flatten button
 groups or mount patterns into independent semantic features unless the user
 explicitly chooses a detach workflow.
+
+---
+
+## 2026-06-28 - M22 Reusable Pattern Layout Engine
+
+### Goal
+Move first-pass button-group pattern expansion out of the workspace shell into
+a reusable deterministic module that future geometry generation can consume.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `docs/09_PATTERN_AND_LAYOUT_SYSTEM.md`,
+`docs/33_VIEWPORT_MVP.md`, workspace shell, viewport controller, and widget/
+viewport tests.
+
+### Changes made
+- `lib/patterns/pattern_layout.dart`:
+  - Added viewport-independent `PatternPoint`.
+  - Added `PatternLayoutEngine` for `button_group` local point expansion.
+  - Supports first-pass `diamond`, `row`, and `grid` layouts with deterministic
+    clamping/fallback behavior.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Replaced local button pattern math with `PatternLayoutEngine`.
+  - Kept mock viewport marker conversion as UI-only `Offset` mapping.
+- `test/pattern_layout_test.dart`:
+  - Added deterministic unit coverage for diamond, grid, fallback/clamping, and
+    reading semantic `FeatureGroup.pattern` data.
+- `ROADMAP.md`, `TASKS.md`, `docs/09_PATTERN_AND_LAYOUT_SYSTEM.md`, and
+  `docs/33_VIEWPORT_MVP.md`:
+  - Documented M22 and the boundary between semantic pattern expansion and
+    viewport marker rendering.
+
+### Tests run
+- `flutter test test\pattern_layout_test.dart test\viewport_controller_test.dart test\widget_test.dart`:
+  - Passed, 39 targeted tests.
+- `flutter pub get`:
+  - Passed; 4 packages still have newer incompatible versions.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 86 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed `releases/latest/windows/shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Layout expansion is deterministic local semantic data only; no generated
+    B-Rep or mesh is created yet.
+- Serialization checked?
+  - No schema change; generated pattern points are not saved.
+- UI checked?
+  - Widget/viewport tests confirm existing marker selection behavior still
+    passes through the mock viewport.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: The reusable layout engine covers button `diamond`, `row`, and `grid`
+  only.
+  - Severity: Expected for this slice.
+  - Next action: add square/circle/arc/path expansion when those semantic
+    pattern types are introduced.
+- Issue: Standoff hole positions are still read by the shell from source
+  mounting-hole data.
+  - Severity: Expected.
+  - Next action: move source-anchor expansion into a reusable component-driven
+    layout helper when geometry generation starts consuming standoff groups.
+
+### Next step
+Commit and push M22, then continue toward reusable source-anchor layout or the
+next safe semantic geometry-prep slice.
+
+### Notes for future Codex sessions
+Pattern expansion should remain reusable and deterministic. Do not reintroduce
+layout math into widgets or painters when adding geometry generation.

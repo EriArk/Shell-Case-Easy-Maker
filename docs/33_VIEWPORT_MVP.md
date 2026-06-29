@@ -55,6 +55,10 @@ Button-group markers are derived from the editable pattern data:
 - spacing,
 - item diameter.
 
+The local button positions come from `PatternLayoutEngine`, not from ad hoc
+math inside the viewport painter. The viewport converts those local pattern
+points into mock screen markers only.
+
 Standoff markers are derived from component mounting data:
 - source mounting-hole positions,
 - source component board size,

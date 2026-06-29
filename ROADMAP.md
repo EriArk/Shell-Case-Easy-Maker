@@ -40,6 +40,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M19 — Surface Feature Viewport Markers
 - [x] M20 — Feature Parameter Inspector Editing
 - [x] M21 — Feature Group Parameter Inspector Editing
+- [x] M22 — Reusable Pattern Layout Engine
 
 ---
 
@@ -866,3 +867,40 @@ while keeping repeated items as one semantic `FeatureGroup`.
 - Generate `Крепёж`, select one standoff marker, change `Отверстие`, and
   confirm values stay within the standoff diameter.
 - Undo the mount edit and confirm the previous value returns.
+
+---
+
+## M22 — Reusable Pattern Layout Engine
+
+### Goal
+Move first-pass button-group pattern expansion out of the workspace shell into
+a reusable deterministic module that future geometry generation can consume.
+
+### Tasks
+- [x] Add a `patterns` module with `PatternLayoutEngine`.
+- [x] Add a small viewport-independent `PatternPoint` value type.
+- [x] Move `diamond`, `row`, and `grid` button layout expansion out of
+      `workspace_shell.dart`.
+- [x] Keep mock viewport markers derived from semantic `FeatureGroup` data via
+      the new layout engine.
+- [x] Add deterministic unit tests for supported layout expansion, fallback,
+      and clamping.
+
+### Done Criteria
+- Workspace shell no longer owns button pattern expansion math.
+- Button group markers still render/select from semantic group data.
+- Repeated buttons remain one editable `FeatureGroup`.
+- Layout tests cover known point positions.
+
+### Tests
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Create a button group with `Ромб`, then switch/select it and confirm markers
+  still appear on the lid.
+- Change the group layout/count in the inspector and confirm markers still
+  update as before.

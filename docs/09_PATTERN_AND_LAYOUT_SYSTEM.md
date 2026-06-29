@@ -112,9 +112,15 @@ The mock viewport now derives schematic markers from the same group data:
 - `row`,
 - `grid`.
 
-This is first-pass preview expansion only. Generated marker positions are not
+`PatternLayoutEngine` in `lib/patterns/pattern_layout.dart` owns this first
+deterministic expansion. The workspace shell only converts returned local
+pattern points into viewport marker offsets.
+
+This is first-pass semantic expansion only. Generated marker positions are not
 stored back into the project file, and the editable source remains the
-`FeatureGroup` pattern plus item prototype.
+`FeatureGroup` pattern plus item prototype. Future geometry generation should
+consume the same layout engine rather than reimplementing pattern math inside
+widgets or OCCT adapters.
 
 When a `button_group` is selected, the contextual inspector currently supports
 editing layout, count, spacing, button diameter, and button mode. Layout/count/
@@ -151,4 +157,5 @@ Use compact knobs and icons.
 
 ## Tests
 
-Test generated item positions for each pattern type.
+Current tests cover deterministic `diamond`, `row` fallback, `grid`, clamping,
+and reading positions from semantic `FeatureGroup.pattern` data.

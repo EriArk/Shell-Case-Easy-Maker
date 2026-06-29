@@ -142,7 +142,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] First-pass editable `FeatureGroup` command.
 - [x] First-pass generated pattern item preview/positions.
 - [x] First-pass pattern/group inspector parameter editing.
-- [ ] Promote pattern expansion out of mock viewport into reusable layout logic.
+- [x] Promote pattern expansion out of mock viewport into reusable layout logic.
 - [x] First-pass generated standoff marker positions.
 - [ ] Line pattern.
 - [ ] Grid pattern.
@@ -155,7 +155,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [ ] Pattern inspector.
 - [ ] Per-item override model.
 - [ ] Pattern detachment.
-- [ ] Pattern tests.
+- [x] Pattern tests.
 
 ## Phase 9 — Mounting and retention
 
