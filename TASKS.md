@@ -55,6 +55,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Toolbar open/save for project JSON files.
 - [x] Unsaved changes prompt before opening another project.
 - [x] First-pass validation details sheet.
+- [x] Validation issue rows select semantic targets.
 - [x] First executable left rail generator command.
 - [x] First executable component placement command.
 - [x] First executable surface-based USB-C command.

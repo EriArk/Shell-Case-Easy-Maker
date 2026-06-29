@@ -690,7 +690,15 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
-      builder: (context) => _ValidationDetailsSheet(report: report),
+      builder: (sheetContext) => _ValidationDetailsSheet(
+        report: report,
+        selectionForTarget: (targetId) =>
+            _selectionForValidationTarget(_project, targetId),
+        onSelectionRequested: (selection) {
+          Navigator.of(sheetContext).pop();
+          _select(selection);
+        },
+      ),
     );
   }
 
@@ -833,6 +841,77 @@ SelectionModel? _selectionFromViewportHit(ViewportHitResult? hit) {
     ViewportHitKind.feature => SelectionModel.feature(hit.semanticId),
     ViewportHitKind.featureGroup => SelectionModel.featureGroup(hit.semanticId),
   };
+}
+
+SelectionModel? _selectionForValidationTarget(
+  ProjectModel project,
+  String? targetId,
+) {
+  if (targetId == null || targetId.isEmpty) {
+    return null;
+  }
+
+  for (final body in project.bodies) {
+    if (body.id == targetId) {
+      return SelectionModel.enclosure(body.id);
+    }
+  }
+
+  for (final placement in project.componentPlacements) {
+    if (placement.id == targetId) {
+      return SelectionModel.componentPlacement(placement.id);
+    }
+  }
+
+  for (final template in project.componentTemplates) {
+    if (template.id == targetId) {
+      return SelectionModel.componentTemplate(template.id);
+    }
+  }
+
+  for (final feature in project.features) {
+    if (feature.id == targetId) {
+      return SelectionModel.feature(feature.id);
+    }
+  }
+
+  for (final group in project.featureGroups) {
+    if (group.id == targetId) {
+      return SelectionModel.featureGroup(group.id);
+    }
+  }
+
+  for (final body in project.bodies) {
+    if (targetId.startsWith('${body.id}.')) {
+      return SelectionModel.surface(id: targetId, parentId: body.id);
+    }
+  }
+
+  for (final placement in project.componentPlacements) {
+    if (targetId.startsWith('${placement.id}.')) {
+      return SelectionModel.componentPlacement(placement.id);
+    }
+  }
+
+  for (final template in project.componentTemplates) {
+    if (targetId.startsWith('${template.id}.')) {
+      return SelectionModel.componentTemplate(template.id);
+    }
+  }
+
+  for (final feature in project.features) {
+    if (targetId.startsWith('${feature.id}.')) {
+      return SelectionModel.feature(feature.id);
+    }
+  }
+
+  for (final group in project.featureGroups) {
+    if (targetId.startsWith('${group.id}.')) {
+      return SelectionModel.featureGroup(group.id);
+    }
+  }
+
+  return null;
 }
 
 bool _sameJson(Map<String, Object?> left, Map<String, Object?> right) {
@@ -3765,9 +3844,15 @@ class _StatusBar extends StatelessWidget {
 }
 
 class _ValidationDetailsSheet extends StatelessWidget {
-  const _ValidationDetailsSheet({required this.report});
+  const _ValidationDetailsSheet({
+    required this.report,
+    required this.selectionForTarget,
+    required this.onSelectionRequested,
+  });
 
   final ValidationReport report;
+  final SelectionModel? Function(String? targetId) selectionForTarget;
+  final ValueChanged<SelectionModel> onSelectionRequested;
 
   @override
   Widget build(BuildContext context) {
@@ -3831,7 +3916,13 @@ class _ValidationDetailsSheet extends StatelessWidget {
                   color: theme.dividerColor.withValues(alpha: 0.16),
                 ),
                 itemBuilder: (context, index) {
-                  return _ValidationMessageRow(message: issues[index]);
+                  final message = issues[index];
+                  return _ValidationMessageRow(
+                    key: ValueKey('validation-issue-${message.code}-$index'),
+                    message: message,
+                    selection: selectionForTarget(message.targetId),
+                    onSelectionRequested: onSelectionRequested,
+                  );
                 },
               ),
             ),
@@ -3872,45 +3963,65 @@ class _ValidationCountBadge extends StatelessWidget {
 }
 
 class _ValidationMessageRow extends StatelessWidget {
-  const _ValidationMessageRow({required this.message});
+  const _ValidationMessageRow({
+    super.key,
+    required this.message,
+    required this.selection,
+    required this.onSelectionRequested,
+  });
 
   final ValidationMessage message;
+  final SelectionModel? selection;
+  final ValueChanged<SelectionModel> onSelectionRequested;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final color = _validationSeverityColor(theme, message.severity);
     final target = message.targetId ?? message.code;
+    final canSelect = selection != null;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            _validationSeverityIcon(message.severity),
-            color: color,
-            size: 19,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(message.message, style: theme.textTheme.bodyMedium),
-                const SizedBox(height: 2),
-                Text(
-                  target,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
+    return InkWell(
+      onTap: canSelect ? () => onSelectionRequested(selection!) : null,
+      borderRadius: BorderRadius.circular(6),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              _validationSeverityIcon(message.severity),
+              color: color,
+              size: 19,
             ),
-          ),
-        ],
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(message.message, style: theme.textTheme.bodyMedium),
+                  const SizedBox(height: 2),
+                  Text(
+                    target,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (canSelect) ...[
+              const SizedBox(width: 8),
+              Icon(
+                Icons.arrow_forward_rounded,
+                size: 17,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

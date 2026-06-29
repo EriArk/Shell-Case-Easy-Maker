@@ -2218,3 +2218,85 @@ viewport-prep slice.
 ### Notes for future Codex sessions
 Keep validation issue targets semantic. Do not point issue rows at preview
 triangles, generated mesh IDs, or OCCT topology.
+
+---
+
+## 2026-06-29 - M26 Validation Issue Target Selection
+
+### Goal
+Make validation issue rows navigate back to their semantic target so warnings
+and errors are actionable from the details sheet.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `SelectionModel`,
+`ProjectSelectionResolver`, `ValidationReport`, workspace shell status/details
+UI, and widget tests.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added semantic validation-target resolution from `targetId` to
+    `SelectionModel`.
+  - Resolves direct enclosure, component placement, component template, feature,
+    and feature group targets.
+  - Resolves nested targets such as `button_board_placement.usb_c` to their
+    semantic parent.
+  - Keeps surface-like targets semantic by mapping body-prefixed IDs to surface
+    selection.
+  - Made validation issue rows selectable when a semantic target can be
+    resolved.
+  - Selecting a row closes the details sheet and updates the main shell
+    selection.
+- Tests:
+  - Added widget coverage that clicks a validation issue row and verifies the
+    target feature inspector opens.
+- Docs/tasks/roadmap:
+  - Documented M26 and the semantic target-selection behavior.
+
+### Tests run
+- `flutter test test\widget_test.dart`:
+  - Passed, 30 widget tests.
+- `flutter pub get`:
+  - Passed; 4 packages have newer incompatible versions.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 99 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Not applicable; this is semantic UI navigation only.
+- Serialization checked?
+  - No schema change.
+- UI checked?
+  - Widget test confirms issue row selection closes the sheet and opens the
+    target feature inspector.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Validation issue rows select semantic targets but do not yet provide
+  one-click fix actions.
+  - Severity: Expected.
+  - Next action: add guided fixes after more validation rules stabilize.
+- Issue: Nested component feature targets resolve to the parent placement, not
+  to a per-feature component sub-selection.
+  - Severity: Expected for the current selection model.
+  - Next action: add component sub-feature selection when the component editor
+    exists.
+
+### Next step
+Commit and push M26, then continue toward the next safe geometry-service or
+viewport-prep slice.
+
+### Notes for future Codex sessions
+Validation navigation must remain semantic. Do not route issue rows through
+preview triangle IDs, generated mesh IDs, or OCCT topology names.

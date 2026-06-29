@@ -44,6 +44,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M23 — Reusable Standoff Source Layout
 - [x] M24 — First Semantic Validation Warnings
 - [x] M25 — Validation Details + Placement Bounds
+- [x] M26 — Validation Issue Target Selection
 
 ---
 
@@ -1022,3 +1023,42 @@ semantic component placement/keepout bounds checks before real geometry exists.
 - Click the small checks/details icon in the bottom status bar.
 - Confirm the bottom sheet opens with `Проверка проекта` and lists the warning.
 - Close the sheet and undo the wall edit.
+
+---
+
+## M26 — Validation Issue Target Selection
+
+### Goal
+Make validation issue rows navigate back to their semantic target so warnings
+and errors are actionable from the details sheet.
+
+### Tasks
+- [x] Add semantic target resolution from validation `targetId` values to
+      `SelectionModel`.
+- [x] Resolve direct body, component placement, component template, feature,
+      and feature group targets.
+- [x] Resolve surface-like and nested targets without using preview topology.
+- [x] Make validation issue rows selectable when their target can be resolved.
+- [x] Close the details sheet and update the inspector/browser selection after
+      selecting an issue.
+- [x] Add widget coverage for issue-row target selection.
+
+### Done Criteria
+- Clicking a validation row for a semantic feature selects that feature.
+- Nested keepout-style targets resolve to their parent semantic component.
+- Non-targeted project-level issues remain visible but are not selectable.
+- The workflow still uses semantic IDs only, not generated mesh, B-Rep,
+  triangle IDs, or OCCT topology.
+
+### Tests
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Create or edit a glass recess so it produces a validation warning.
+- Open the status-bar validation details sheet.
+- Click the `glass_recess_*` issue row.
+- Confirm the sheet closes and the glass recess inspector opens.

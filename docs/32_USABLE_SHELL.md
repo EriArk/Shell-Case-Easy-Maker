@@ -112,6 +112,10 @@ When the report contains warnings or errors, the status bar shows a compact
 details button. It opens a bottom sheet with issue counts and every current
 warning/error message. This keeps the default shell uncluttered while still
 making multi-issue validation inspectable before real geometry generation.
+Issue rows with semantic targets can be clicked to close the sheet and select
+the affected enclosure, surface, component, template, feature, or feature
+group. Nested targets such as component keepouts resolve to their semantic
+parent instead of preview geometry.
 
 ## First Generator Command
 
@@ -183,8 +187,8 @@ disabled until their semantic command behavior is implemented and tested.
 - Mount generation currently creates semantic standoff group data only; real
   B-Rep/mesh stand-off geometry is still future geometry-service work. The
   visible markers are mock viewport affordances.
-- Validation details currently show project-level semantic messages only; they
-  do not yet select or focus the affected object from the issue list.
+- Validation details can select semantic targets, but issue rows do not yet
+  provide fix actions or scroll the project browser to the selected object.
 - Undo history is connected only to enclosure parameter edits, first
   USB-C/glass feature parameter edits, first button/mount feature-group
   parameter edits, first enclosure creation, first component placement, first

@@ -99,6 +99,45 @@ void main() {
     expect(find.text('glass_recess_1'), findsOneWidget);
   });
 
+  testWidgets('semantic validation issue row selects its target', (
+    tester,
+  ) async {
+    final project = ProjectModel.initial().replaceFeature(
+      const SemanticFeature(
+        id: 'glass_recess_1',
+        type: 'glass_recess',
+        targetSurface: 'main_enclosure.top_lid.outer',
+        operation: 'recess',
+        parameters: {
+          'width': 42.0,
+          'height': 24.0,
+          'recessDepth': 2.2,
+          'ledgeWidth': 1.5,
+          'cornerRadius': 2.0,
+        },
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkspaceShell(
+          project: project,
+          geometryService: const MockGeometryService(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('status-validation-details')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('glass_recess_1').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Проверка проекта'), findsNothing);
+    expect(find.text('ledgeWidth'), findsOneWidget);
+    expect(find.text('glass_recess_1'), findsWidgets);
+  });
+
   testWidgets('selecting a feature updates contextual inspector', (
     tester,
   ) async {
