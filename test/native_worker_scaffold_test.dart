@@ -9,13 +9,13 @@ void main() {
 
     expect(
       cmake,
-      contains('project(shell_case_occt_worker_native_stub LANGUAGES CXX)'),
+      contains('project(shell_case_occt_worker_native LANGUAGES CXX)'),
     );
+    expect(cmake, contains('option(SHELL_CASE_ENABLE_OCCT'));
     expect(cmake, contains('add_executable(occt_worker_native_stub'));
     expect(cmake, contains('src/main.cpp'));
     expect(cmake, contains('cxx_std_17'));
-    expect(cmake.contains('find_package(OpenCASCADE'), isFalse);
-    expect(cmake.contains('TopoDS'), isFalse);
+    expect(cmake, contains('if(SHELL_CASE_ENABLE_OCCT)'));
   });
 
   test('native worker stub emits protocol-compatible capability JSON', () {

@@ -19,7 +19,9 @@ worker capability JSON for backend readiness and supported operations. Native
 OCCT generation is not implemented yet. M55 adds a separately buildable native
 stub executable; it does not link OCCT yet. M56 adds a native smoke command. M57
 makes the native stub read and validate the top-level request envelope before
-returning scaffold responses.
+returning scaffold responses. M58 records the Windows OCCT dependency decision.
+M59 adds the separate opt-in `occt_worker_native_occt` link-smoke target; it is
+not built unless OCCT readiness is true.
 
 Regenerate protocol fixtures:
 
@@ -96,6 +98,17 @@ The command is read-only. It reports whether `OpenCASCADEConfig.cmake` is
 discoverable through `OpenCASCADE_DIR`, `CASROOT`, or a vcpkg-style install.
 The dependency decision is recorded in
 `docs/35_OCCT_WINDOWS_DEPENDENCY_PLAN.md`.
+
+Opt-in OCCT target build command after readiness is true:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1
+```
+
+This builds `occt_worker_native_occt` under `build/occt_worker_native_occt`.
+The target references OCCT modeling APIs and reports
+`worker.backend.occt_link_smoke_only`; semantic B-Rep generation is still not
+implemented.
 
 Process-client smoke command:
 

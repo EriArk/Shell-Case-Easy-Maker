@@ -95,16 +95,24 @@ That form exits `2` when no `OpenCASCADEConfig.cmake` is found.
 
 ## Future native target shape
 
-The first OCCT-linked target should be separate from the stub:
+The first OCCT-linked target is separate from the stub:
 
 ```text
 occt_worker_native_stub  -> no OCCT, always buildable
 occt_worker_native_occt  -> opt-in, requires OpenCASCADEConfig.cmake
 ```
 
-The initial OCCT target should link only the minimal modeling/meshing toolkits
-needed for a rounded enclosure preview. STEP/STL export should stay out of the
-first linker slice unless required by the exact test.
+`occt_worker_native_occt` is enabled with `SHELL_CASE_ENABLE_OCCT=ON` and is
+built through:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1
+```
+
+The current OCCT target is a link smoke only. It references
+`BRepPrimAPI_MakeBox` and reports `worker.backend.occt_link_smoke_only`; it does
+not generate semantic enclosure geometry yet. STEP/STL export should stay out of
+the first linker slice unless required by the exact test.
 
 ## Follow-up tasks
 

@@ -215,6 +215,11 @@ The first OCCT dependency decision is documented in
 stub stay independent of OCCT until `tools/check_occt_windows_readiness.ps1`
 finds a local `OpenCASCADEConfig.cmake`.
 
+`occt_worker_native_occt` is the separate opt-in OCCT link-smoke target. It is
+configured with `SHELL_CASE_ENABLE_OCCT=ON` through
+`tools/build_occt_worker_occt.ps1` and should remain separate from
+`occt_worker_native_stub`.
+
 ## Worker Process Client
 
 `GeometryWorkerProcessClient` is the first external-process adapter. It sends a

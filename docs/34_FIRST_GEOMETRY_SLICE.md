@@ -96,6 +96,16 @@ run:
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_occt_windows_readiness.ps1
 ```
 
+Once readiness is true, build the opt-in OCCT link-smoke target:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1
+```
+
+The target is `occt_worker_native_occt`. It is separate from
+`occt_worker_native_stub`, references OCCT modeling APIs, and returns
+`worker.backend.occt_link_smoke_only` until semantic B-Rep generation is added.
+
 The scaffold smoke command wraps build, capability query, and request smoke:
 
 ```powershell

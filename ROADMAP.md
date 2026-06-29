@@ -77,6 +77,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M56 - Native Worker Stub Smoke Tool
 - [x] M57 - Native Worker Request Envelope
 - [x] M58 - OCCT Windows Dependency Readiness
+- [x] M59 - Opt-in OCCT Native Target Scaffold
 
 ---
 
@@ -2498,5 +2499,50 @@ before adding an OCCT-linked native target.
   tooling.
 - Optional developer poke: run the readiness command and confirm `ready` is
   currently `false` until vcpkg/OCCT is configured.
+- Launch latest Windows app normally and confirm the default project still opens
+  with the mock preview and clean validation status.
+
+---
+
+## M59 - Opt-in OCCT Native Target Scaffold
+
+### Goal
+Add the separate OCCT-linked native target scaffold while keeping the existing
+native stub buildable without OCCT.
+
+### Tasks
+- [x] Add `SHELL_CASE_ENABLE_OCCT` CMake option.
+- [x] Keep `occt_worker_native_stub` as the default no-OCCT target.
+- [x] Add opt-in `occt_worker_native_occt` target.
+- [x] Link the opt-in target through `OpenCASCADEConfig.cmake`.
+- [x] Add `occt_worker/native/src/occt_main.cpp` as an OCCT link smoke.
+- [x] Add `tools/build_occt_worker_occt.ps1`.
+- [x] Make the OCCT build script require readiness without installing packages.
+- [x] Add tests for the target scaffold, source contract, and build script.
+- [x] Update README, worker docs, OCCT docs, tasks, and worklog.
+
+### Done Criteria
+- `tools/build_occt_worker_stub.ps1` still builds without OCCT installed.
+- `tools/build_occt_worker_occt.ps1` exits cleanly when readiness is false.
+- The OCCT target is not part of normal Flutter builds.
+- The OCCT target is a link smoke only and does not expose topology IDs,
+  generated B-Rep, or preview mesh as editable project state.
+- No OCCT source, binary dependency, build output, or release artifact is
+  committed.
+
+### Tests
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_stub.ps1`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1`
+- `flutter test test\native_worker_scaffold_test.dart test\occt_native_target_scaffold_test.dart`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- No meaningful manual UI poke for this chunk; it is a native build scaffold.
+- Optional developer poke: run `tools\build_occt_worker_occt.ps1` and confirm it
+  exits with readiness guidance until OCCT is configured.
 - Launch latest Windows app normally and confirm the default project still opens
   with the mock preview and clean validation status.

@@ -84,6 +84,12 @@ Check local Windows OCCT readiness with:
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/check_occt_windows_readiness.ps1
 ```
 
+Build the opt-in OCCT native worker after readiness is true with:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/build_occt_worker_occt.ps1
+```
+
 Build the latest manual Windows bundle with:
 
 ```powershell

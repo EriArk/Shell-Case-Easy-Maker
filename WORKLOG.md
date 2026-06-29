@@ -42,6 +42,103 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-29 - M59 Opt-in OCCT native target scaffold
+
+### Goal
+Add the separate OCCT-linked native worker scaffold without making the default
+stub build or normal Flutter app build depend on OCCT.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `occt_worker/native/CMakeLists.txt`,
+`docs/35_OCCT_WINDOWS_DEPENDENCY_PLAN.md`, `docs/04_GEOMETRY_ENGINE_OCCT.md`,
+`docs/34_FIRST_GEOMETRY_SLICE.md`, and `occt_worker/README.md`.
+
+### Changes made
+- `occt_worker/native/CMakeLists.txt`:
+  - Renamed the native project to `shell_case_occt_worker_native`.
+  - Added `SHELL_CASE_ENABLE_OCCT`.
+  - Kept `occt_worker_native_stub` as the default no-OCCT target.
+  - Added opt-in `occt_worker_native_occt` target behind the OCCT option.
+- `occt_worker/native/src/occt_main.cpp`:
+  - Added OCCT link-smoke source that references `BRepPrimAPI_MakeBox`.
+  - Emits capability JSON with `status=linked_smoke`.
+  - Returns `worker.backend.occt_link_smoke_only` until semantic B-Rep
+    generation is implemented.
+- `tools/build_occt_worker_occt.ps1`:
+  - Added opt-in build script for the OCCT-linked target.
+  - Requires readiness through `tools/check_occt_windows_readiness.ps1`.
+  - Does not install vcpkg/OCCT or touch release output.
+- `test/occt_native_target_scaffold_test.dart`:
+  - Added tests for CMake opt-in wiring, OCCT source contract, and build script
+    safety.
+- Docs/tasks/roadmap:
+  - Recorded M59 and documented the OCCT target build command.
+
+### Tests run
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_stub.ps1`:
+  - Passed; default native stub still builds without OCCT.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1`:
+  - Returned expected `EXIT:2` with readiness JSON because local OCCT readiness
+    is still false.
+- `flutter test test\native_worker_scaffold_test.dart test\occt_native_target_scaffold_test.dart`:
+  - Passed, 8 tests.
+- `dart format lib test tool occt_worker`:
+  - Applied formatting to `test\occt_native_target_scaffold_test.dart`.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed after formatting was applied.
+- `dart run tool\native_worker_stub_smoke.dart --skip-build`:
+  - Passed; native stub still reports expected not-implemented response and
+    preserves request ID.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed, 174 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed; Git reported markdown line-ending normalization warnings only.
+
+### Validation
+- Geometry checked?
+  - Link-smoke scaffold only. No semantic B-Rep generation, preview mesh output,
+    STL workflow, or editable generated geometry was introduced.
+- Serialization checked?
+  - Capability/response contracts are textual in the OCCT source and covered by
+    scaffold tests. Existing native stub process smoke still parses through the
+    Dart process client.
+- UI checked?
+  - Full widget suite passes and the latest Windows bundle was rebuilt. No
+    user-facing UI behavior changed in this chunk.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: `occt_worker_native_occt` cannot be built locally until OCCT readiness
+  is true.
+  - Severity: Expected.
+  - Next action: Install/configure vcpkg or set `OpenCASCADE_DIR` / `CASROOT`,
+    then rerun `tools\build_occt_worker_occt.ps1`.
+- Issue: OCCT target is a link smoke only.
+  - Severity: Expected.
+  - Next action: After OCCT readiness is true, add deterministic rounded
+    enclosure generation behind the same worker protocol.
+
+### Next step
+Make OCCT readiness true locally, then build `occt_worker_native_occt` and
+replace `worker.backend.occt_link_smoke_only` with the first deterministic
+rounded enclosure geometry response.
+
+### Notes for future Codex sessions
+Do not wire `occt_worker_native_occt` into normal Flutter builds. Keep it
+opt-in behind `SHELL_CASE_ENABLE_OCCT` until native packaging and license
+notices are ready.
+
 ## 2026-06-29 - M58 OCCT Windows dependency readiness
 
 ### Goal
