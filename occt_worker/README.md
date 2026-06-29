@@ -15,9 +15,11 @@ adds the Dart-side process client, and M49 adds the worker-backed
 development runs. M51 keeps the checked-in protocol examples generated from a
 typed Dart fixture project and the mock backend. M52 adds
 `occt_worker/bin/occt_worker.dart` as the canonical local worker CLI. M53 adds
-worker capability JSON for backend readiness and supported operations. No
-native OCCT executable is built yet. M55 adds a separately buildable native
-stub executable; it does not link OCCT yet.
+worker capability JSON for backend readiness and supported operations. Native
+OCCT generation is not implemented yet. M55 adds a separately buildable native
+stub executable; it does not link OCCT yet. M56 adds a native smoke command. M57
+makes the native stub read and validate the top-level request envelope before
+returning scaffold responses.
 
 Regenerate protocol fixtures:
 
@@ -68,8 +70,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_stub
 
 The resulting executable is local build output under `build/occt_worker_native`.
 It can report capabilities and returns `worker.backend.native_not_implemented`
-for geometry requests. This target is a scaffold for the future OCCT worker,
-not native B-Rep generation.
+for valid geometry request envelopes. It also returns structured
+`worker.request.*` errors for empty payloads, non-object payloads, invalid
+schemas, and invalid operations. This target is a scaffold for the future OCCT
+worker, not native B-Rep generation.
 
 Native stub smoke command:
 
@@ -79,7 +83,8 @@ dart run tool\native_worker_stub_smoke.dart
 
 The smoke command builds the native stub, queries capabilities through
 `GeometryWorkerProcessClient.queryCapabilities()`, sends a preview request, and
-expects `worker.backend.native_not_implemented`.
+expects `worker.backend.native_not_implemented` while also verifying that the
+native response preserves the request ID.
 
 Process-client smoke command:
 
@@ -111,6 +116,8 @@ only when explicitly configured.
 ## Planned responsibilities
 
 - Read `shell_case.geometry.request` JSON from stdin or a local IPC transport.
+- Validate request envelope schema, operation, and request ID before geometry
+  generation.
 - Generate B-Rep from semantic project data.
 - Consume request `featureIntents` for semantic cutouts, recesses, button
   groups, and mounts.

@@ -203,7 +203,9 @@ details directly.
 not part of the Flutter Windows runner and builds into `build/occt_worker_native`
 through `tools/build_occt_worker_stub.ps1`. The scaffold can report capabilities
 and structured not-implemented responses, but it does not link OCCT or generate
-B-Rep yet.
+B-Rep yet. It reads the top-level worker request envelope, preserves request
+IDs, validates schema/operation, and reports invalid payloads through typed
+`worker.request.*` issues before any future geometry generation runs.
 
 `tool/native_worker_stub_smoke.dart` wraps the native stub build, capability
 query, and preview request smoke into one developer command.

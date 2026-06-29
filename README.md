@@ -75,6 +75,9 @@ Run the native worker stub smoke with:
 dart run tool/native_worker_stub_smoke.dart
 ```
 
+This verifies native capabilities, request ID preservation, and the expected
+`worker.backend.native_not_implemented` scaffold response.
+
 Build the latest manual Windows bundle with:
 
 ```powershell

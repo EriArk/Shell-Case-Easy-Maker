@@ -82,6 +82,12 @@ It builds `occt_worker_native_stub` under `build/occt_worker_native`. The stub
 can emit capabilities and structured not-implemented responses, but it does not
 link OCCT or generate B-Rep yet.
 
+The native stub now reads the top-level worker request envelope before returning
+that scaffold response. It preserves `requestId`, validates the request schema
+and operation, and returns typed `worker.request.*` issues for invalid payloads.
+This is protocol hardening only; it does not make native generated geometry
+editable or replace the semantic project model.
+
 The scaffold smoke command wraps build, capability query, and request smoke:
 
 ```powershell

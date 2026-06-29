@@ -163,8 +163,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_stub
 
 The target is `occt_worker_native_stub` and its build output stays under
 `build/occt_worker_native`. It currently supports `--capabilities` and returns a
-structured `worker.backend.native_not_implemented` response for geometry
-requests.
+structured `worker.backend.native_not_implemented` response for valid geometry
+request envelopes. Before returning that scaffold response, it reads the
+top-level request envelope, preserves `requestId`, validates the protocol
+schema and operation, and emits typed `worker.request.*` issues for malformed
+or unsupported envelopes.
 
 This scaffold intentionally does not link OCCT yet. It exists to prove the
 native worker build boundary, process invocation, and protocol-shaped error
@@ -177,8 +180,9 @@ dart run tool\native_worker_stub_smoke.dart
 ```
 
 The smoke command builds the stub, queries capabilities through the Dart process
-client, sends a preview request, and treats `worker.backend.native_not_implemented`
-as the expected result while OCCT is still absent.
+client, sends a preview request, verifies request ID preservation, and treats
+`worker.backend.native_not_implemented` as the expected result while OCCT is
+still absent.
 
 ## Worker process client
 

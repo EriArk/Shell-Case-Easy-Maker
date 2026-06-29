@@ -75,6 +75,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M54 - Worker Capability Process Client
 - [x] M55 - Native Worker Build Scaffold
 - [x] M56 - Native Worker Stub Smoke Tool
+- [x] M57 - Native Worker Request Envelope
 
 ---
 
@@ -2402,5 +2403,53 @@ not-implemented geometry response.
 ### Poke Checklist
 - No meaningful manual UI poke for this chunk; it is a developer worker smoke.
 - Optional developer poke: run `dart run tool\native_worker_stub_smoke.dart`.
+- Launch latest Windows app normally and confirm the default project still opens
+  with the mock preview and clean validation status.
+
+---
+
+## M57 - Native Worker Request Envelope
+
+### Goal
+Make the native worker stub read and validate the top-level worker request
+envelope before returning the scaffold not-implemented response.
+
+### Tasks
+- [x] Replace stdin discard behavior with request envelope reading.
+- [x] Preserve `requestId` in native error responses.
+- [x] Validate top-level `schema` before treating payloads as geometry
+      requests.
+- [x] Validate top-level `operation` against planned worker operations.
+- [x] Return structured request errors for empty payload, non-object payload,
+      invalid schema, and invalid operation.
+- [x] Include `requestedOperation` in native response metrics when available.
+- [x] Make native smoke fail if request IDs are not preserved.
+- [x] Update scaffold tests and docs.
+
+### Done Criteria
+- Valid preview requests return `worker.backend.native_not_implemented` with
+  the same `requestId` that was sent.
+- Invalid native request envelopes return typed `worker.request.*` issue codes.
+- The native stub still does not link OCCT or generate B-Rep.
+- No generated build or release artifacts are committed.
+
+### Tests
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_stub.ps1`
+- `dart run tool\native_worker_stub_smoke.dart --skip-build`
+- Native stub empty payload smoke
+- Native stub invalid schema smoke
+- Native stub invalid operation smoke
+- `flutter test test\native_worker_scaffold_test.dart`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- No meaningful manual UI poke for this chunk; it is a native protocol hardening
+  change.
+- Optional developer poke: run `dart run tool\native_worker_stub_smoke.dart` and
+  confirm `requestIdPreserved` is `true`.
 - Launch latest Windows app normally and confirm the default project still opens
   with the mock preview and clean validation status.

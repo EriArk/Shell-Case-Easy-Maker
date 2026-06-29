@@ -37,13 +37,16 @@ Future<void> main(List<String> args) async {
     ),
   );
   final capabilities = await client.queryCapabilities();
+  const smokeRequestId = 'native_worker_stub_smoke';
   final response = await client.buildGeometry(
     GeometryRequest.previewMesh(
       ProjectModel.initial(),
-      requestId: 'native_worker_stub_smoke',
+      requestId: smokeRequestId,
     ),
   );
+  final requestIdPreserved = response.requestId == smokeRequestId;
   final expectedNativeStub =
+      requestIdPreserved &&
       response.hasErrors &&
       response.backend == 'occt_worker_native_stub' &&
       response.issues.any(
@@ -66,6 +69,8 @@ Future<void> main(List<String> args) async {
     },
     'requestSmoke': {
       'expectedNotImplemented': expectedNativeStub,
+      'requestId': response.requestId,
+      'requestIdPreserved': requestIdPreserved,
       'status': response.status.wireName,
       'backend': response.backend,
       'issues': [for (final issue in response.issues) issue.toJson()],

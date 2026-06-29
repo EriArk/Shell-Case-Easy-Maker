@@ -40,24 +40,32 @@ void main() {
       native['issueCodes'],
       contains('worker.backend.native_not_implemented'),
     );
+    expect(native['issueCodes'], contains('worker.request.empty'));
+    expect(native['issueCodes'], contains('worker.request.invalid_json'));
+    expect(native['issueCodes'], contains('worker.request.invalid_schema'));
+    expect(native['issueCodes'], contains('worker.request.invalid_operation'));
     expect(source, isNot(contains('TopoDS')));
   });
 
-  test('native worker stub emits structured not implemented response', () {
-    final source = File('occt_worker/native/src/main.cpp').readAsStringSync();
-    final response =
-        jsonDecode(_rawJsonString(source, 'kNativeStubResponseJson'))
-            as Map<String, Object?>;
-    final issues = response['issues']! as List<Object?>;
-    final issue = issues.single as Map<String, Object?>;
+  test(
+    'native worker stub validates request envelope before scaffold response',
+    () {
+      final source = File('occt_worker/native/src/main.cpp').readAsStringSync();
 
-    expect(response['schema'], 'shell_case.geometry.response');
-    expect(response['status'], 'error');
-    expect(response['backend'], 'occt_worker_native_stub');
-    expect(issue['severity'], 'error');
-    expect(issue['code'], 'worker.backend.native_not_implemented');
-    expect(jsonEncode(response), isNot(contains('TopoDS')));
-  });
+      expect(source, contains('ReadNativeRequestEnvelope'));
+      expect(source, contains('ExtractTopLevelStringField'));
+      expect(source, contains('request.request_id'));
+      expect(source, contains('worker.request.empty'));
+      expect(source, contains('worker.request.invalid_json'));
+      expect(source, contains('worker.request.invalid_schema'));
+      expect(source, contains('worker.request.invalid_operation'));
+      expect(source, contains('worker.backend.native_not_implemented'));
+      expect(source, contains('requestedOperation'));
+      expect(source, isNot(contains('native_stub_request')));
+      expect(source, isNot(contains('DiscardStdin')));
+      expect(source, isNot(contains('TopoDS')));
+    },
+  );
 
   test(
     'native worker build script confines generated output to build folder',
@@ -83,6 +91,7 @@ void main() {
     expect(tool, contains('queryCapabilities()'));
     expect(tool, contains('GeometryRequest.previewMesh'));
     expect(tool, contains('worker.backend.native_not_implemented'));
+    expect(tool, contains('requestIdPreserved'));
     expect(tool, contains('--skip-build'));
     expect(tool, contains('--configuration'));
   });

@@ -42,6 +42,108 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-29 - M57 Native worker request envelope
+
+### Goal
+Make the native worker stub read and validate the top-level worker request
+envelope before returning scaffold responses.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `README.md`,
+`occt_worker/native/src/main.cpp`, `tool/native_worker_stub_smoke.dart`,
+`test/native_worker_scaffold_test.dart`, `occt_worker/README.md`,
+`docs/03_ARCHITECTURE_OVERVIEW.md`, `docs/04_GEOMETRY_ENGINE_OCCT.md`, and
+`docs/34_FIRST_GEOMETRY_SLICE.md`.
+
+### Changes made
+- `occt_worker/native/src/main.cpp`:
+  - Replaced stdin discard behavior with a small native request-envelope
+    reader.
+  - Preserves `requestId` in native scaffold responses.
+  - Validates top-level `schema` and planned `operation` values.
+  - Returns typed `worker.request.*` issues for empty payloads, non-object
+    payloads, invalid schema, and invalid operation.
+  - Adds `requestedOperation` response metrics when the operation is available.
+- `tool/native_worker_stub_smoke.dart`:
+  - Now fails if the native response does not preserve the smoke request ID.
+  - Prints `requestId` and `requestIdPreserved` in the JSON summary.
+- `test/native_worker_scaffold_test.dart`:
+  - Updated scaffold coverage for envelope validation, request issue codes, and
+    request ID preservation smoke coverage.
+- Docs/tasks/roadmap:
+  - Recorded M57 and documented the native envelope validation behavior.
+
+### Tests run
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_stub.ps1`:
+  - Passed; rebuilt
+    `C:\Users\EriArk\Documents\CaseMaker\build\occt_worker_native\Release\occt_worker_native_stub.exe`.
+- `dart run tool\native_worker_stub_smoke.dart --skip-build`:
+  - Passed; `requestIdPreserved=true` and expected
+    `worker.backend.native_not_implemented`.
+- Native stub invalid payload smokes:
+  - Empty payload returned `worker.request.empty`.
+  - Non-object payload returned `worker.request.invalid_json`.
+  - Invalid schema preserved `requestId=bad_schema` and returned
+    `worker.request.invalid_schema`.
+  - Invalid operation preserved `requestId=bad_op` and returned
+    `worker.request.invalid_operation`.
+- `dart format lib test tool occt_worker`:
+  - Applied formatting to `test\native_worker_scaffold_test.dart`.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed after formatting was applied.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test test\native_worker_scaffold_test.dart`:
+  - Passed, 5 tests.
+- `dart run tool\native_worker_stub_smoke.dart`:
+  - Passed; rebuilt the native stub and verified request ID preservation.
+- `flutter test --reporter compact`:
+  - Passed, 169 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed; Git reported markdown line-ending normalization warnings only.
+
+### Validation
+- Geometry checked?
+  - Protocol boundary only. No OCCT B-Rep, mesh generation, STL workflow, or
+    editable generated geometry was introduced.
+- Serialization checked?
+  - Yes. Native responses are protocol-shaped JSON and the Dart process client
+    parsed the smoke response successfully.
+- UI checked?
+  - Full widget suite passes and the latest Windows bundle was rebuilt. No
+    user-facing UI behavior changed in this chunk.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Native worker still uses a minimal envelope reader instead of a full
+  native JSON library.
+  - Severity: Acceptable for the scaffold.
+  - Next action: Decide the native JSON dependency together with OCCT packaging
+    before parsing the full semantic project payload.
+- Issue: Native worker still returns the expected not-implemented response for
+  valid geometry requests.
+  - Severity: Expected for the current scaffold.
+  - Next action: Start the first real OCCT-backed rounded enclosure generation
+    slice after dependency/build research is recorded.
+
+### Next step
+Research and lock the Windows OCCT/native dependency path, then add the first
+native geometry slice behind the same worker protocol.
+
+### Notes for future Codex sessions
+`dart run tool\native_worker_stub_smoke.dart` now checks capability query,
+request ID preservation, and the expected native scaffold issue. Native invalid
+request responses use `worker.request.*` codes and should stay typed.
+
 ## 2026-06-29 - M56 Native worker stub smoke tool
 
 ### Goal
