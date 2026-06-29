@@ -22,6 +22,7 @@ If it changes geometry, serialization, validation, or UI state, test it.
 - Clearance profile calculations.
 - Command system.
 - Geometry request feature-intent serialization and group item expansion.
+- Geometry operation-plan generation from feature intents.
 - Undo/redo grouping.
 - Input mapping.
 - Step system.
@@ -79,6 +80,8 @@ Use deterministic test fixtures.
   validation errors; missing projection sources report warnings.
 - Geometry preview requests include semantic feature/group intents without
   generated mesh, B-Rep, or topology IDs in the editable project model.
+- Geometry operation plans map feature/group intents to deterministic backend
+  tasks without flattening editable feature groups.
 - Validation status/details show warning and error messages.
 - Context popovers show correct actions.
 - Parameter knob updates model.

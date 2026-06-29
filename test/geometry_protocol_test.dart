@@ -125,6 +125,69 @@ void main() {
     expect(standoffIntent.items.first.source['screw'], 'M2');
   });
 
+  test('operation planner creates deterministic backend operations', () {
+    final project = ProjectModel.initial().copyWith(
+      features: const [
+        SemanticFeature(
+          id: 'front_usb_c',
+          type: 'usb_c_cutout',
+          targetSurface: 'main_enclosure.front_wall.outer',
+          operation: 'negative',
+          parameters: {'width': 10.5, 'height': 4.2, 'cornerRadius': 1.0},
+        ),
+        SemanticFeature(
+          id: 'top_glass',
+          type: 'glass_recess',
+          targetSurface: 'main_enclosure.top_lid.outer',
+          operation: 'recess',
+          parameters: {'width': 42.0, 'height': 24.0},
+        ),
+      ],
+      featureGroups: const [
+        FeatureGroup(
+          id: 'projected_buttons',
+          type: 'button_group',
+          targetSurface: 'main_enclosure.top_lid.outer',
+          pattern: {
+            'layout': 'from_component_switches',
+            'count': 1,
+            'sourcePlacementId': 'button_board_placement',
+            'switchPositions': [
+              {
+                'id': 'sw_a',
+                'position': [7.0, 0.0],
+                'direction': 'top',
+              },
+            ],
+          },
+          itemPrototype: {'diameter': 8.0, 'mode': 'plunger'},
+        ),
+      ],
+    );
+    final request = GeometryRequest.previewMesh(
+      project,
+      requestId: 'preview_operations',
+    );
+
+    final operations = GeometryOperationPlanner.fromRequest(request);
+
+    expect(operations.map((operation) => operation.id), [
+      'front_usb_c',
+      'top_glass',
+      'projected_buttons.sw_a',
+    ]);
+    expect(operations.map((operation) => operation.kind), [
+      'cutout.usb_c',
+      'recess.glass',
+      'cutout.button',
+    ]);
+    expect(operations.last.parentId, 'projected_buttons');
+    expect(operations.last.operation, 'negative');
+    expect(operations.last.parameters['position'], [7.0, 0.0]);
+    expect(operations.last.parameters['diameter'], 8.0);
+    expect(operations.last.source['direction'], 'top');
+  });
+
   test('geometry response preserves preview mesh semantic mappings', () {
     const response = GeometryResponse(
       requestId: 'preview_001',
@@ -175,6 +238,8 @@ void main() {
     expect(response.previewMesh?.vertexCount, 8);
     expect(response.previewMesh?.triangleCount, 12);
     expect(response.metrics['featureIntents'], 2);
+    expect(response.metrics['operationCount'], 2);
+    expect(response.metrics['operationPlan'], isA<List<Object?>>());
     expect(
       response.previewMesh?.surfaces.map((surface) => surface.semanticId),
       contains('main_enclosure.front_wall.outer'),

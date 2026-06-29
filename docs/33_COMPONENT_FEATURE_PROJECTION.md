@@ -55,6 +55,11 @@ component-sourced button groups, expanded request items use projected
 The request payload is disposable backend input. The project file remains the
 semantic source of truth.
 
+`GeometryOperationPlanner` then maps these intents into backend operation tasks.
+Projected USB-C anchors become `cutout.usb_c` operation data, while projected
+button-group items become `cutout.button` operation data. This is still planning
+data only; real generated B-Rep will be produced later by the worker.
+
 ## USB-C Cutout Metadata
 
 When a component-sourced USB-C cutout is created, `SemanticFeature.placement`

@@ -90,6 +90,20 @@ state and they do not flatten feature groups in `ProjectModel`.
 The worker must consume these semantic intents, not Flutter widget state, mesh
 triangle IDs, or raw OCCT topology IDs.
 
+## Operation plan
+
+`GeometryOperationPlanner` turns feature intents into deterministic backend
+operations before real B-Rep generation exists:
+
+- `usb_c_cutout` -> `cutout.usb_c`,
+- `glass_recess` -> `recess.glass`,
+- `button_group` items -> `cutout.button`,
+- `standoff_mounts` items -> `mount.standoff`.
+
+The mock backend exposes this plan in response metrics for testing and worker
+development. The plan is disposable backend input. It must not be saved as the
+editable project model and must not contain OCCT topology IDs.
+
 ## Preview mesh
 
 Preview mesh is generated from B-Rep with adjustable quality:

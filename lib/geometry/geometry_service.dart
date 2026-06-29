@@ -1,8 +1,10 @@
 import '../project/project_model.dart';
 import '../validation/project_semantic_validator.dart';
 import '../validation/validation_result.dart';
+import 'geometry_operation_plan.dart';
 import 'geometry_protocol.dart';
 
+export 'geometry_operation_plan.dart';
 export 'geometry_protocol.dart';
 
 abstract interface class GeometryService {
@@ -58,6 +60,8 @@ class MockGeometryService implements GeometryService {
       );
     }
 
+    final operationPlan = GeometryOperationPlanner.fromRequest(request);
+
     return GeometryResponse(
       requestId: request.requestId,
       status: GeometryResponseStatus.ok,
@@ -68,6 +72,10 @@ class MockGeometryService implements GeometryService {
         'deterministic': true,
         'worker': 'mock',
         'featureIntents': request.featureIntents.length,
+        'operationCount': operationPlan.length,
+        'operationPlan': [
+          for (final operation in operationPlan) operation.toJson(),
+        ],
       },
     );
   }
@@ -91,6 +99,7 @@ class MockGeometryService implements GeometryService {
         'previewVertices': response.previewMesh?.vertexCount ?? 0,
         'previewTriangles': response.previewMesh?.triangleCount ?? 0,
         'featureIntents': response.metrics['featureIntents'] ?? 0,
+        'operationCount': response.metrics['operationCount'] ?? 0,
       },
     );
   }

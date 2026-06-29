@@ -42,6 +42,89 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-29 - M46 Geometry operation plan
+
+### Goal
+Convert geometry feature intents into deterministic backend operation tasks
+without adding real OCCT/B-Rep generation yet.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `lib/geometry/geometry_protocol.dart`,
+`lib/geometry/geometry_service.dart`, `test/geometry_protocol_test.dart`,
+`docs/03_ARCHITECTURE_OVERVIEW.md`, `docs/04_GEOMETRY_ENGINE_OCCT.md`,
+`docs/26_TESTING_AND_QUALITY.md`, `docs/33_COMPONENT_FEATURE_PROJECTION.md`,
+and `occt_worker/README.md`.
+
+### Changes made
+- `lib/geometry/geometry_operation_plan.dart`:
+  - Added `GeometryBuildOperation`.
+  - Added `GeometryOperationPlanner.fromRequest`.
+  - Maps semantic feature intents to backend operation kinds such as
+    `cutout.usb_c` and `recess.glass`.
+  - Maps button group items to `cutout.button` operations.
+  - Maps standoff mount items to `mount.standoff` operations.
+- `lib/geometry/geometry_service.dart`:
+  - Exports the operation-plan API.
+  - Mock backend reports `operationCount` and `operationPlan` metrics.
+- `test/geometry_protocol_test.dart`:
+  - Added deterministic operation-plan coverage.
+  - Extended mock backend metrics coverage.
+- Docs/tasks/roadmap:
+  - Recorded M46 behavior and worker boundary expectations.
+
+### Tests run
+- `flutter test test\geometry_protocol_test.dart`:
+  - Passed, 9 tests.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 132 tests.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Operation planning only; no generated B-Rep, mesh, STL, or OCCT topology is
+    stored.
+- Serialization checked?
+  - Geometry protocol tests cover request intents and operation-plan metrics.
+- UI checked?
+  - Full widget suite passes; no UI behavior changes are expected.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Operation plan is mock/backend planning data only.
+  - Severity: Expected.
+  - Next action: use these operations in a worker/adapter when real geometry
+    generation begins.
+- Issue: Operation kinds are first-pass labels, not final OCCT algorithm
+  selection.
+  - Severity: Expected.
+  - Next action: refine operation kinds when implementing real cut/add/recess
+    B-Rep steps.
+
+### Next step
+Commit and push M46, then continue toward worker/adapter consumption or the
+next UI workflow slice.
+
+### Notes for future Codex sessions
+Operation plans are disposable backend task lists. Keep editable project state
+semantic and grouped; do not persist operation-plan items as independent user
+features.
+
+---
+
 ## 2026-06-29 - M45 Geometry feature intent protocol
 
 ### Goal

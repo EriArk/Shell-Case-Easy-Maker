@@ -64,6 +64,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M43 - Projected Component Feature Anchors
 - [x] M44 - Projected Anchor Validation
 - [x] M45 - Geometry Feature Intent Protocol
+- [x] M46 - Geometry Operation Plan
 
 ---
 
@@ -1885,5 +1886,47 @@ mount data without reading UI state or mesh topology.
 
 ### Poke Checklist
 - No meaningful manual UI poke for this chunk; it is a backend protocol change.
+- Launch latest Windows app and confirm the default project still opens with a
+  clean mock preview and validation status.
+
+---
+
+## M46 - Geometry Operation Plan
+
+### Goal
+Convert geometry feature intents into a deterministic backend operation plan
+that the future worker can consume before real B-Rep generation exists.
+
+### Tasks
+- [x] Add `GeometryBuildOperation` as a typed operation-plan item.
+- [x] Add `GeometryOperationPlanner.fromRequest`.
+- [x] Map semantic features such as USB-C cutouts and glass recesses to backend
+      operation kinds.
+- [x] Map button group items to negative button-cut operations.
+- [x] Map standoff mount items to positive standoff operations.
+- [x] Keep operation plan data request/response scoped, not editable project
+      state.
+- [x] Expose mock backend operation-count and operation-plan metrics.
+- [x] Add tests for deterministic operation ordering and group item operation
+      generation.
+
+### Done Criteria
+- Feature intents can be converted to backend operation tasks without reading
+  Flutter UI state.
+- Button/standoff groups remain semantic groups in `ProjectModel`.
+- Operation plan JSON contains semantic IDs and target surfaces, not OCCT
+  topology IDs or preview triangle IDs.
+- Mock backend reports operation-plan metrics for preview requests.
+
+### Tests
+- `flutter test test\geometry_protocol_test.dart`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- No meaningful manual UI poke for this chunk; it is a backend planning change.
 - Launch latest Windows app and confirm the default project still opens with a
   clean mock preview and validation status.

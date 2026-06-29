@@ -103,6 +103,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [ ] Create `occt_worker` CLI or local service.
 - [x] Define JSON protocol for geometry requests.
 - [x] Add feature/group geometry intents to preview requests.
+- [x] Add deterministic geometry operation plan from feature intents.
 - [ ] Generate rounded box B-Rep.
 - [ ] Generate shell/cavity for box.
 - [x] Generate mock preview mesh through protocol.
@@ -172,6 +173,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] First-pass projected component feature anchors.
 - [x] First-pass projected component feature anchor validation.
 - [x] Feed semantic feature/group intents into geometry requests.
+- [x] Build request-time operation plan from feature/group intents.
 - [ ] Generate top/lid cutouts from switches/buttons.
 - [x] First-pass semantic button group from component switch centers.
 - [x] First-pass keepout warnings.
