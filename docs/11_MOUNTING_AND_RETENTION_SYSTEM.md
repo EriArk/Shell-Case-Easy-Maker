@@ -95,6 +95,13 @@ Current behavior:
 - shows schematic standoff markers in the mock viewport and allows clicking a
   marker to select the whole mount group.
 
+When a `standoff_mounts` group is selected, the contextual inspector currently
+supports editing standoff diameter, hole diameter, height, and clearance
+profile. The values are written back to `FeatureGroup.itemPrototype`; source
+mounting-hole positions remain in `FeatureGroup.pattern`. Hole diameter is
+clamped below the standoff diameter so the semantic request stays physically
+usable for later geometry generation.
+
 Current limitation:
 - no OCCT/B-Rep standoff bodies are generated yet; the semantic group is the
   editable source that the future geometry worker will consume.

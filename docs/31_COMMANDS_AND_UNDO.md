@@ -71,6 +71,16 @@ Submitting a changed value replaces the selected `SemanticFeature` in
 `ProjectModel.features`; submitting an unchanged value is ignored by the shared
 JSON equality guard.
 
+Feature group inspector edits also use semantic snapshots. The first supported
+group parameter edits are:
+- `button_group`: layout, count, spacing, diameter, mode,
+- `standoff_mounts`: diameter, hole diameter, height, clearance profile.
+
+Submitting a changed group value replaces the selected `FeatureGroup` in
+`ProjectModel.featureGroups`. Button group pattern fields are written to
+`pattern`, item fields are written to `itemPrototype`, and standoff source
+mounting-hole data stays grouped.
+
 Project open/save commands are also wired from the toolbar. They use
 `UndoBehavior.none`: saving should not change semantic state, and opening a file
 replaces the current project with a fresh undo history for that file.
@@ -127,7 +137,8 @@ visible and disabled, instead of running empty callbacks.
 - There is still no central command dispatcher; the shell has a small explicit
   action map for the first generator commands.
 - Undo history is wired for first enclosure parameter edits, first USB-C/glass
-  feature parameter edits, and first enclosure creation/component
-  placement/USB-C cutout/button group/glass recess/mount group only.
+  feature parameter edits, first button/mount feature-group parameter edits,
+  and first enclosure creation/component placement/USB-C cutout/button
+  group/glass recess/mount group only.
 - Selection and active surface context are available from the shell selection
   model, but most editing commands are not wired yet.

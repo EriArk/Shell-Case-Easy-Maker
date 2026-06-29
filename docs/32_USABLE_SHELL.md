@@ -61,6 +61,13 @@ are `usb_c_cutout` and `glass_recess`. Submitting a value replaces the selected
 same undo history. The mock viewport marker is refreshed from semantic
 parameters; no generated mesh, B-Rep, or topology ID becomes editable state.
 
+When a supported semantic feature group is selected, the inspector renders a
+group-specific parameter bank. The first supported group editors are
+`button_group` and `standoff_mounts`. Button group edits update
+`FeatureGroup.pattern` and `FeatureGroup.itemPrototype`; mount edits update the
+standoff item prototype while preserving source mounting-hole pattern data.
+Repeated items stay grouped and undoable as one semantic object.
+
 ## Project browser
 
 The shell includes a compact semantic browser next to the icon rail.
@@ -144,9 +151,10 @@ disabled until their semantic command behavior is implemented and tested.
 ## Current limitations
 
 - Only the first enclosure parameter bank, first USB-C/glass feature parameter
-  banks, first create-enclosure command, first component placement command,
-  first USB-C cutout command, and first button group/glass recess/mount
-  commands edit project state.
+  banks, first button/mount feature-group parameter banks, first
+  create-enclosure command, first component placement command, first USB-C
+  cutout command, and first button group/glass recess/mount commands edit
+  project state.
 - Viewport selection is still mocked and schematic, though direct hit testing
   already returns semantic IDs.
 - Component placement still uses typed dialog values rather than viewport
@@ -163,6 +171,6 @@ disabled until their semantic command behavior is implemented and tested.
   B-Rep/mesh stand-off geometry is still future geometry-service work. The
   visible markers are mock viewport affordances.
 - Undo history is connected only to enclosure parameter edits, first
-  USB-C/glass feature parameter edits, first enclosure creation, first
-  component placement, first USB-C cutout, and first button group/glass
-  recess/mount commands.
+  USB-C/glass feature parameter edits, first button/mount feature-group
+  parameter edits, first enclosure creation, first component placement, first
+  USB-C cutout, and first button group/glass recess/mount commands.

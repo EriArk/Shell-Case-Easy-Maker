@@ -182,6 +182,59 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     );
   }
 
+  void _updateFeatureGroupParameter(
+    String groupId,
+    String parameterId,
+    Object? value,
+  ) {
+    final group = _project.featureGroups
+        .where((group) => group.id == groupId)
+        .firstOrNull;
+    if (group == null) {
+      return;
+    }
+
+    final parameter = _featureGroupParameterSchema(
+      group.type,
+    )?.parameters.where((parameter) => parameter.id == parameterId).firstOrNull;
+    final target = _featureGroupParameterTarget(group.type, parameterId);
+    if (parameter == null || target == null) {
+      return;
+    }
+
+    final nextPattern = {...group.pattern};
+    final nextItemPrototype = {...group.itemPrototype};
+    final normalizedValue = parameter.normalize(value);
+    switch (target) {
+      case _FeatureGroupParameterTarget.pattern:
+        nextPattern[parameterId] = normalizedValue;
+      case _FeatureGroupParameterTarget.itemPrototype:
+        nextItemPrototype[parameterId] = normalizedValue;
+    }
+
+    final normalized = _normalizeFeatureGroupParameterMaps(
+      group.type,
+      pattern: nextPattern,
+      itemPrototype: nextItemPrototype,
+    );
+
+    final updatedGroup = FeatureGroup(
+      id: group.id,
+      type: group.type,
+      targetSurface: group.targetSurface,
+      pattern: normalized.pattern,
+      itemPrototype: normalized.itemPrototype,
+      placement: group.placement,
+      overrides: group.overrides,
+      metadata: group.metadata,
+    );
+    _commitProjectEdit(
+      id: 'featureGroup.parameter.$parameterId',
+      label: 'Изменить группу',
+      nextState: _project.replaceFeatureGroup(updatedGroup),
+    );
+  }
+
   void _commitProjectEdit({
     required String id,
     required String label,
@@ -692,6 +745,8 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                         selection: _selection,
                         onEnclosureParameterChanged: _updateEnclosureParameter,
                         onFeatureParameterChanged: _updateFeatureParameter,
+                        onFeatureGroupParameterChanged:
+                            _updateFeatureGroupParameter,
                       ),
                     ],
                   ),
@@ -1788,6 +1843,7 @@ class _Inspector extends StatelessWidget {
     required this.selection,
     required this.onEnclosureParameterChanged,
     required this.onFeatureParameterChanged,
+    required this.onFeatureGroupParameterChanged,
   });
 
   final ProjectSelectionDetails details;
@@ -1797,6 +1853,8 @@ class _Inspector extends StatelessWidget {
   onEnclosureParameterChanged;
   final void Function(String featureId, String parameterId, Object? value)
   onFeatureParameterChanged;
+  final void Function(String groupId, String parameterId, Object? value)
+  onFeatureGroupParameterChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -1807,6 +1865,11 @@ class _Inspector extends StatelessWidget {
     final selectedFeature = selection.kind == SelectionKind.feature
         ? project.features
               .where((feature) => feature.id == selection.id)
+              .firstOrNull
+        : null;
+    final selectedFeatureGroup = selection.kind == SelectionKind.featureGroup
+        ? project.featureGroups
+              .where((group) => group.id == selection.id)
               .firstOrNull
         : null;
 
@@ -1872,6 +1935,21 @@ class _Inspector extends StatelessWidget {
               onChanged: (parameterId, value) {
                 onFeatureParameterChanged(
                   selectedFeature.id,
+                  parameterId,
+                  value,
+                );
+              },
+            ),
+          ],
+          if (selectedFeatureGroup != null &&
+              _featureGroupParameterSchema(selectedFeatureGroup.type) !=
+                  null) ...[
+            const SizedBox(height: 14),
+            _FeatureGroupParameterEditor(
+              group: selectedFeatureGroup,
+              onChanged: (parameterId, value) {
+                onFeatureGroupParameterChanged(
+                  selectedFeatureGroup.id,
                   parameterId,
                   value,
                 );
@@ -2024,6 +2102,83 @@ class _FeatureParameterEditor extends StatelessWidget {
   }
 }
 
+class _FeatureGroupParameterEditor extends StatelessWidget {
+  const _FeatureGroupParameterEditor({
+    required this.group,
+    required this.onChanged,
+  });
+
+  final FeatureGroup group;
+  final void Function(String parameterId, Object? value) onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final schema = _featureGroupParameterSchema(group.type);
+    if (schema == null) {
+      return const SizedBox.shrink();
+    }
+
+    final values = _featureGroupParameterValues(group, schema);
+    final issues = schema.validate(values);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Divider(color: theme.dividerColor.withValues(alpha: 0.18)),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Icon(
+              Icons.dashboard_customize_rounded,
+              size: 18,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                schema.label,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        for (final parameter in schema.parameters) ...[
+          if (parameter.kind == ParameterKind.choice)
+            _ParameterChoiceField(
+              keyPrefix: 'feature-group-param-${group.id}',
+              parameter: parameter,
+              value: values[parameter.id] as String?,
+              onChanged: (value) => onChanged(parameter.id, value),
+            )
+          else
+            _ParameterNumberField(
+              keyPrefix: 'feature-group-param-${group.id}',
+              parameter: parameter,
+              value: values[parameter.id],
+              onSubmitted: (value) => onChanged(parameter.id, value),
+            ),
+          const SizedBox(height: 10),
+        ],
+        for (final issue in issues)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Text(
+              issue.message,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.error,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 ParameterSchema? _featureParameterSchema(String type) {
   return switch (type) {
     'usb_c_cutout' => _usbCParameterSchema,
@@ -2114,6 +2269,165 @@ const _glassRecessParameterSchema = ParameterSchema(
       unit: 'mm',
       defaultValue: 1.0,
       range: ParameterRange(min: 0.2, max: 8, step: 0.1),
+    ),
+  ],
+);
+
+enum _FeatureGroupParameterTarget { pattern, itemPrototype }
+
+ParameterSchema? _featureGroupParameterSchema(String type) {
+  return switch (type) {
+    'button_group' => _buttonGroupParameterSchema,
+    'standoff_mounts' => _standoffMountsParameterSchema,
+    _ => null,
+  };
+}
+
+Map<String, Object?> _featureGroupParameterValues(
+  FeatureGroup group,
+  ParameterSchema schema,
+) {
+  return schema.applyDefaults({...group.pattern, ...group.itemPrototype});
+}
+
+_FeatureGroupParameterTarget? _featureGroupParameterTarget(
+  String type,
+  String parameterId,
+) {
+  return switch (type) {
+    'button_group' => switch (parameterId) {
+      'layout' || 'count' || 'spacing' => _FeatureGroupParameterTarget.pattern,
+      'diameter' || 'mode' => _FeatureGroupParameterTarget.itemPrototype,
+      _ => null,
+    },
+    'standoff_mounts' => switch (parameterId) {
+      'diameter' ||
+      'holeDiameter' ||
+      'height' ||
+      'clearanceProfile' => _FeatureGroupParameterTarget.itemPrototype,
+      _ => null,
+    },
+    _ => null,
+  };
+}
+
+({Map<String, Object?> pattern, Map<String, Object?> itemPrototype})
+_normalizeFeatureGroupParameterMaps(
+  String type, {
+  required Map<String, Object?> pattern,
+  required Map<String, Object?> itemPrototype,
+}) {
+  if (type != 'standoff_mounts') {
+    return (pattern: pattern, itemPrototype: itemPrototype);
+  }
+
+  final diameter = _featureDouble(itemPrototype, 'diameter', 5).clamp(3, 20);
+  final maxHoleDiameter = math.max(0.8, diameter - 0.8);
+  final holeDiameter = _featureDouble(
+    itemPrototype,
+    'holeDiameter',
+    2.2,
+  ).clamp(0.8, maxHoleDiameter);
+
+  return (
+    pattern: pattern,
+    itemPrototype: {
+      ...itemPrototype,
+      'diameter': diameter.toDouble(),
+      'holeDiameter': holeDiameter.toDouble(),
+    },
+  );
+}
+
+const _buttonGroupParameterSchema = ParameterSchema(
+  id: 'feature_group.button_group',
+  label: 'Группа кнопок',
+  parameters: [
+    ParameterDefinition(
+      id: 'layout',
+      label: 'Раскладка',
+      kind: ParameterKind.choice,
+      defaultValue: 'diamond',
+      options: [
+        ParameterOption(id: 'diamond', label: 'Ромб'),
+        ParameterOption(id: 'row', label: 'Ряд'),
+        ParameterOption(id: 'grid', label: 'Сетка'),
+      ],
+    ),
+    ParameterDefinition(
+      id: 'count',
+      label: 'Кол-во',
+      kind: ParameterKind.count,
+      defaultValue: 4,
+      range: ParameterRange(min: 1, max: 16, step: 1),
+    ),
+    ParameterDefinition(
+      id: 'spacing',
+      label: 'Шаг',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 14.0,
+      range: ParameterRange(min: 4, max: 60, step: 0.1),
+    ),
+    ParameterDefinition(
+      id: 'diameter',
+      label: 'Диаметр',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 8.0,
+      range: ParameterRange(min: 2, max: 30, step: 0.1),
+    ),
+    ParameterDefinition(
+      id: 'mode',
+      label: 'Тип',
+      kind: ParameterKind.choice,
+      defaultValue: 'plunger',
+      options: [
+        ParameterOption(id: 'plunger', label: 'Плунжеры'),
+        ParameterOption(id: 'cutout', label: 'Только отверстия'),
+      ],
+    ),
+  ],
+);
+
+const _standoffMountsParameterSchema = ParameterSchema(
+  id: 'feature_group.standoff_mounts',
+  label: 'Крепёж',
+  parameters: [
+    ParameterDefinition(
+      id: 'diameter',
+      label: 'Стойка',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 5.0,
+      range: ParameterRange(min: 3, max: 20, step: 0.1),
+    ),
+    ParameterDefinition(
+      id: 'holeDiameter',
+      label: 'Отверстие',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 2.2,
+      range: ParameterRange(min: 0.8, max: 19.2, step: 0.1),
+    ),
+    ParameterDefinition(
+      id: 'height',
+      label: 'Высота',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 4.0,
+      range: ParameterRange(min: 1, max: 30, step: 0.1),
+    ),
+    ParameterDefinition(
+      id: 'clearanceProfile',
+      label: 'Зазор',
+      kind: ParameterKind.choice,
+      defaultValue: 'fdm_normal',
+      options: [
+        ParameterOption(id: 'fdm_normal', label: 'FDM обычный'),
+        ParameterOption(id: 'fdm_loose', label: 'FDM свободный'),
+        ParameterOption(id: 'resin_normal', label: 'Resin обычный'),
+      ],
     ),
   ],
 );
@@ -3268,9 +3582,13 @@ class _ParameterChoiceField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final selectedValue = parameter.options.any((option) => option.id == value)
+        ? value
+        : null;
+
     return DropdownButtonFormField<String>(
       key: ValueKey('$keyPrefix-${parameter.id}'),
-      initialValue: value,
+      initialValue: selectedValue,
       isExpanded: true,
       items: [
         for (final option in parameter.options)

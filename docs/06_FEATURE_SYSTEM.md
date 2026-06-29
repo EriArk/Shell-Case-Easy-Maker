@@ -76,6 +76,11 @@ Groups store:
 - placement,
 - overrides.
 
+Current inspector editing supports the first parameter banks for
+`button_group` and `standoff_mounts`. These edits replace group pattern/item
+prototype maps semantically and do not detach repeated items into independent
+features.
+
 ## Detach behavior
 
 User can detach:

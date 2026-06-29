@@ -39,6 +39,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M18 — Button Group Viewport Markers
 - [x] M19 — Surface Feature Viewport Markers
 - [x] M20 — Feature Parameter Inspector Editing
+- [x] M21 — Feature Group Parameter Inspector Editing
 
 ---
 
@@ -821,3 +822,47 @@ existing undo history.
 - Click undo and confirm the width returns to the previous value.
 - Create or select a `glass_recess`, change width/depth in the inspector, then
   undo and confirm the old values return.
+
+---
+
+## M21 — Feature Group Parameter Inspector Editing
+
+### Goal
+Let selected semantic feature groups expose editable inspector parameter banks
+while keeping repeated items as one semantic `FeatureGroup`.
+
+### Tasks
+- [x] Add a feature-group parameter schema resolver for supported group types.
+- [x] Add inspector controls for `button_group` layout, count, spacing,
+      diameter, and mode.
+- [x] Add inspector controls for `standoff_mounts` diameter, hole diameter,
+      height, and clearance profile.
+- [x] Route group parameter edits back into `pattern` or `itemPrototype`
+      without flattening generated markers.
+- [x] Preserve mount safety by clamping hole diameter below standoff diameter.
+- [x] Add widget tests for button-group and standoff inspector edits plus undo.
+
+### Done Criteria
+- Selecting a button group shows editable pattern/item controls in the
+  inspector.
+- Selecting a standoff mount group shows editable mount controls in the
+  inspector.
+- Submitting a changed value updates the semantic `FeatureGroup` and refreshes
+  schematic viewport markers.
+- Undo restores the previous group parameter value.
+- Repeated buttons/mounts remain one group object.
+
+### Tests
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Create a button group, select one of its viewport markers, and change
+  `Кол-во` in the inspector.
+- Confirm the marker count changes, then undo and confirm the old count returns.
+- Generate `Крепёж`, select one standoff marker, change `Отверстие`, and
+  confirm values stay within the standoff diameter.
+- Undo the mount edit and confirm the previous value returns.

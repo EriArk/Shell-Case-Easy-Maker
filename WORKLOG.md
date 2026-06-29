@@ -1801,3 +1801,89 @@ Commit and push M20, then continue with the next safe semantic editing chunk.
 Feature inspector edits must keep replacing semantic `SemanticFeature` data.
 Do not make generated viewport rectangles, mesh faces, or OCCT topology IDs the
 editable source of truth.
+
+---
+
+## 2026-06-28 - M21 Feature Group Parameter Inspector Editing
+
+### Goal
+Let selected semantic button groups and standoff mount groups expose editable
+parameter banks in the contextual inspector while keeping repeated items as one
+semantic `FeatureGroup`.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `docs/06_FEATURE_SYSTEM.md`,
+`docs/09_PATTERN_AND_LAYOUT_SYSTEM.md`,
+`docs/11_MOUNTING_AND_RETENTION_SYSTEM.md`,
+`docs/31_COMMANDS_AND_UNDO.md`, `docs/32_USABLE_SHELL.md`, workspace shell,
+feature-group model, viewport controller, and widget tests.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added feature-group parameter update handling for selected
+    `FeatureGroup` objects.
+  - Added first-pass inspector schemas for `button_group` and
+    `standoff_mounts`.
+  - Routed button group `layout`, `count`, and `spacing` edits to `pattern`.
+  - Routed button `diameter`/`mode` and mount item edits to `itemPrototype`.
+  - Kept mount hole diameter clamped below standoff diameter.
+  - Made choice fields tolerate unknown imported values without crashing.
+- `test/widget_test.dart`:
+  - Added button group inspector edit + undo coverage.
+  - Added standoff mount inspector edit + undo coverage, including hole
+    diameter clamping.
+- `ROADMAP.md`, `TASKS.md`, `docs/06_FEATURE_SYSTEM.md`,
+  `docs/09_PATTERN_AND_LAYOUT_SYSTEM.md`,
+  `docs/11_MOUNTING_AND_RETENTION_SYSTEM.md`,
+  `docs/31_COMMANDS_AND_UNDO.md`, and `docs/32_USABLE_SHELL.md`:
+  - Documented M21 and the semantic boundary for grouped repeated items.
+
+### Tests run
+- `flutter test test\widget_test.dart`:
+  - Passed, 27 targeted widget tests.
+- `flutter pub get`:
+  - Passed; 4 packages still have newer incompatible versions.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 82 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed `releases/latest/windows/shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Group edits only update semantic pattern/item data; mock markers are
+    rebuilt from the project. No generated B-Rep or mesh is created yet.
+- Serialization checked?
+  - No schema change; existing `FeatureGroup.pattern` and `itemPrototype`
+    storage are reused.
+- UI checked?
+  - Widget tests select button/mount groups from viewport markers, submit
+    inspector values, and undo the changes.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Pattern expansion still lives in the mock viewport shell.
+  - Severity: Expected for this slice.
+  - Next action: promote pattern expansion into reusable layout logic before
+    geometry generation consumes it.
+- Issue: Group placement is still centered/schematic.
+  - Severity: Expected.
+  - Next action: add face-local placement/snapping before real geometry consumes
+    these groups.
+
+### Next step
+Commit and push M21, then continue with reusable pattern/layout extraction or
+the next safe semantic editing chunk.
+
+### Notes for future Codex sessions
+Feature group edits must keep repeated items grouped. Do not flatten button
+groups or mount patterns into independent semantic features unless the user
+explicitly chooses a detach workflow.

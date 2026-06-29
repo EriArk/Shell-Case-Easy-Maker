@@ -61,6 +61,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] First executable surface-based glass recess command.
 - [x] First executable component-driven mount command.
 - [x] First-pass semantic feature parameter inspector editing.
+- [x] First-pass semantic feature group parameter inspector editing.
 
 ## Phase 3 — Viewport MVP
 
@@ -140,6 +141,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 
 - [x] First-pass editable `FeatureGroup` command.
 - [x] First-pass generated pattern item preview/positions.
+- [x] First-pass pattern/group inspector parameter editing.
 - [ ] Promote pattern expansion out of mock viewport into reusable layout logic.
 - [x] First-pass generated standoff marker positions.
 - [ ] Line pattern.
@@ -160,6 +162,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [ ] Define mountable surfaces and forbidden zones in component templates.
 - [x] First-pass semantic screw standoff command from component mounting holes.
 - [x] First-pass visual standoff markers in mock viewport.
+- [x] First-pass standoff inspector parameter editing.
 - [ ] Generate pocket mount.
 - [ ] Generate friction-fit mount.
 - [ ] Generate side walls.
@@ -208,6 +211,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [ ] Button cap texture.
 - [x] First-pass manual button group generator.
 - [x] First-pass manual button group viewport markers.
+- [x] First-pass manual button group inspector parameter editing.
 - [ ] Pattern generation from switch groups.
 
 ## Phase 13 — Shape and aesthetics

@@ -116,6 +116,12 @@ This is first-pass preview expansion only. Generated marker positions are not
 stored back into the project file, and the editable source remains the
 `FeatureGroup` pattern plus item prototype.
 
+When a `button_group` is selected, the contextual inspector currently supports
+editing layout, count, spacing, button diameter, and button mode. Layout/count/
+spacing are written back to `FeatureGroup.pattern`; diameter/mode are written
+back to `FeatureGroup.itemPrototype`. The group remains one semantic object,
+and undo restores the previous pattern/item data.
+
 ## Per-item overrides
 
 Allow advanced overrides without losing group identity:

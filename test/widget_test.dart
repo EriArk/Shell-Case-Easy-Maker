@@ -152,6 +152,198 @@ void main() {
     },
   );
 
+  testWidgets('selected button group inspector edits pattern through undo', (
+    tester,
+  ) async {
+    final project = ProjectModel.initial().replaceFeatureGroup(
+      const FeatureGroup(
+        id: 'button_group_1',
+        type: 'button_group',
+        targetSurface: 'main_enclosure.top_lid.outer',
+        pattern: {'layout': 'diamond', 'count': 4, 'spacing': 14.0},
+        itemPrototype: {
+          'type': 'button',
+          'shape': 'circle',
+          'diameter': 8.0,
+          'mode': 'plunger',
+        },
+        placement: {'anchor': 'center'},
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkspaceShell(
+          project: project,
+          geometryService: const MockGeometryService(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final undoButton = find.byKey(
+      const ValueKey('toolbar-command-${CommandIds.undo}'),
+    );
+
+    final canvasFinder = find.byKey(const ValueKey('mock-viewport-canvas'));
+    final canvasTopLeft = tester.getTopLeft(canvasFinder);
+    final canvasSize = tester.getSize(canvasFinder);
+    final layout = MockViewportLayout.fromSize(
+      canvasSize,
+      const ViewportState(),
+    );
+    const buttonGroup = MockViewportFeatureGroupPreview(
+      semanticId: 'button_group_1',
+      kind: MockViewportFeatureGroupKind.buttonGroup,
+      sourcePositions: [
+        Offset(14, 0),
+        Offset(0, -14),
+        Offset(0, 14),
+        Offset(-14, 0),
+      ],
+      referenceWidth: 120,
+      referenceHeight: 70,
+      itemDiameter: 8,
+    );
+
+    await tester.tapAt(
+      canvasTopLeft + layout.featureGroupCenters(buttonGroup).first,
+    );
+    await tester.pumpAndSettle();
+
+    final countField = find.byKey(
+      const ValueKey('feature-group-param-button_group_1-count'),
+    );
+
+    await tester.enterText(countField, '6');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(tester.widget<TextFormField>(countField).controller?.text, '6');
+    expect(tester.widget<IconButton>(undoButton).onPressed, isNotNull);
+
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+
+    expect(tester.widget<TextFormField>(countField).controller?.text, '4');
+  });
+
+  testWidgets(
+    'selected standoff group inspector edits mount parameters through undo',
+    (tester) async {
+      final project = ProjectModel.initial().replaceFeatureGroup(
+        const FeatureGroup(
+          id: 'standoff_mounts_1',
+          type: 'standoff_mounts',
+          targetSurface: 'main_enclosure.bottom_inside',
+          pattern: {
+            'layout': 'from_component_mounting_holes',
+            'count': 4,
+            'sourcePlacementId': 'button_board_placement',
+            'sourceTemplateId': 'custom_button_board_v1',
+            'holePositions': [
+              {
+                'id': 'mh1',
+                'position': [-20.0, -12.0],
+                'diameter': 2.2,
+                'screw': 'M2',
+              },
+              {
+                'id': 'mh2',
+                'position': [20.0, -12.0],
+                'diameter': 2.2,
+                'screw': 'M2',
+              },
+              {
+                'id': 'mh3',
+                'position': [-20.0, 12.0],
+                'diameter': 2.2,
+                'screw': 'M2',
+              },
+              {
+                'id': 'mh4',
+                'position': [20.0, 12.0],
+                'diameter': 2.2,
+                'screw': 'M2',
+              },
+            ],
+          },
+          itemPrototype: {
+            'type': 'standoff',
+            'diameter': 5.0,
+            'height': 4.0,
+            'holeDiameter': 2.2,
+            'screw': 'M2',
+            'clearanceProfile': 'fdm_normal',
+          },
+          placement: {
+            'anchor': 'component_mounting_holes',
+            'componentPlacementId': 'button_board_placement',
+            'componentPosition': [0.0, 0.0, 4.0],
+            'componentRotation': [0.0, 0.0, 0.0],
+            'mountingSide': 'bottom_inside',
+          },
+        ),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: WorkspaceShell(
+            project: project,
+            geometryService: const MockGeometryService(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final undoButton = find.byKey(
+        const ValueKey('toolbar-command-${CommandIds.undo}'),
+      );
+
+      final canvasFinder = find.byKey(const ValueKey('mock-viewport-canvas'));
+      final canvasTopLeft = tester.getTopLeft(canvasFinder);
+      final canvasSize = tester.getSize(canvasFinder);
+      final layout = MockViewportLayout.fromSize(
+        canvasSize,
+        const ViewportState(),
+      );
+      const mountGroup = MockViewportFeatureGroupPreview(
+        semanticId: 'standoff_mounts_1',
+        kind: MockViewportFeatureGroupKind.standoffMounts,
+        sourcePositions: [
+          Offset(-20, -12),
+          Offset(20, -12),
+          Offset(-20, 12),
+          Offset(20, 12),
+        ],
+        referenceWidth: 48,
+        referenceHeight: 32,
+        itemDiameter: 5,
+      );
+
+      await tester.tapAt(
+        canvasTopLeft + layout.featureGroupCenters(mountGroup).first,
+      );
+      await tester.pumpAndSettle();
+
+      final holeField = find.byKey(
+        const ValueKey('feature-group-param-standoff_mounts_1-holeDiameter'),
+      );
+
+      await tester.enterText(holeField, '9');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      expect(tester.widget<TextFormField>(holeField).controller?.text, '4.2');
+      expect(tester.widget<IconButton>(undoButton).onPressed, isNotNull);
+
+      await tester.tap(undoButton);
+      await _pumpAsyncUi(tester);
+
+      expect(tester.widget<TextFormField>(holeField).controller?.text, '2.2');
+    },
+  );
+
   testWidgets('editing enclosure width updates semantic inspector', (
     tester,
   ) async {
@@ -489,7 +681,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('button_group_1'), findsWidgets);
-    expect(find.text('6'), findsOneWidget);
+    expect(find.text('6'), findsWidgets);
     expect(tester.widget<IconButton>(undoButton).onPressed, isNotNull);
 
     await tester.tap(find.text('main_enclosure').first);
@@ -704,7 +896,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Отверстие'), findsOneWidget);
+    expect(find.text('Отверстие'), findsWidgets);
 
     await tester.tap(undoButton);
     await _pumpAsyncUi(tester);
