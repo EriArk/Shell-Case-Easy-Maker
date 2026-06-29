@@ -42,6 +42,106 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-29 - M63 First native rounded enclosure metrics
+
+### Goal
+Replace the native OCCT link-smoke response with the first deterministic
+rounded enclosure generation slice while keeping generated B-Rep internal to
+the worker.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`occt_worker/native/src/occt_main.cpp`, `occt_worker/protocol/preview_request.example.json`,
+`tool/native_worker_stub_smoke.dart`, `lib/project/project_model.dart`,
+`lib/geometry/geometry_service.dart`, `lib/geometry/geometry_protocol.dart`,
+`lib/geometry/geometry_worker_process_client.dart`,
+`docs/34_FIRST_GEOMETRY_SLICE.md`, `docs/04_GEOMETRY_ENGINE_OCCT.md`,
+`docs/27_RESEARCH_AND_REFERENCES.md`, `docs/35_OCCT_WINDOWS_DEPENDENCY_PLAN.md`,
+and `occt_worker/README.md`.
+
+### Changes made
+- `occt_worker/native/src/occt_main.cpp`:
+  - Parses the first semantic `rounded_box` enclosure from the worker request.
+  - Validates dimensions, wall thickness, and corner radius.
+  - Builds a centered OCCT box, applies fillets to enclosure edges, and computes
+    bounds, dimensions, surface area, and volume.
+  - Returns `occt.rounded_enclosure.metrics.v1` metrics for `preview_mesh`
+    requests with `previewMeshEmitted=false`.
+  - Keeps OCCT topology, generated B-Rep, preview mesh vertices, STL, and
+    triangle IDs out of the response.
+- `tool/native_occt_worker_metrics_smoke.dart`:
+  - Added a process-client smoke for the OCCT target.
+  - Verifies capabilities, request ID preservation, sample bounds, dimensions,
+    surface area, volume, and non-editable generated geometry flags.
+- `test/occt_native_target_scaffold_test.dart`:
+  - Updated source-contract expectations from link smoke to metrics smoke.
+  - Added smoke-tool contract coverage.
+- Docs/tasks/roadmap:
+  - Recorded M63 and marked the first rounded box B-Rep task complete while
+    leaving shell/cavity, preview mesh, STEP, and STL open.
+
+### Tests run
+- `dart format tool\native_occt_worker_metrics_smoke.dart test\occt_native_target_scaffold_test.dart`:
+  - Passed; formatted 2 files.
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`:
+  - Passed, 5 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`:
+  - Passed; rebuilt `occt_worker_native_occt.exe` and reused already-installed
+    OCCT packages.
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`:
+  - Passed; capabilities report `metrics_smoke`, response status is `ok`, and
+    sample metrics match expected dimensions, area, and volume.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed, 178 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed; Git reported markdown line-ending normalization warnings only.
+
+### Validation
+- Geometry checked?
+  - Yes. The native worker builds the first rounded enclosure B-Rep internally
+    and computes deterministic metrics. It does not emit preview mesh yet.
+- Serialization checked?
+  - Native request/response JSON is exercised through
+    `GeometryWorkerProcessClient`.
+- UI checked?
+  - Full widget suite passed and the latest Windows bundle was rebuilt. No
+    user-facing UI behavior changed; the app still uses the mock preview by
+    default.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Native OCCT still returns metrics only, not a preview mesh.
+  - Severity: Expected.
+  - Next action: Add deterministic preview mesh emission from the generated
+    B-Rep.
+- Issue: Shell/cavity, feature cutouts, STEP, and STL remain unimplemented in
+  the native target.
+  - Severity: Expected.
+  - Next action: Continue in safe geometry slices after the metrics contract is
+    stable.
+
+### Next step
+Commit and push M63, then continue toward native preview mesh emission.
+
+### Notes for future Codex sessions
+Use `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build` after
+`tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall` to verify the native
+metrics contract. Do not commit `external/`,
+`occt_worker/native/vcpkg_installed/`, `build/`, `releases/`, or OCCT DLLs.
+
 ## 2026-06-29 - M62 Local OCCT restore and link smoke
 
 ### Goal

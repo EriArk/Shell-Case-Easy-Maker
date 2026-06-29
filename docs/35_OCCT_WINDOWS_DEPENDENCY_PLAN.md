@@ -62,6 +62,17 @@ Update from M62:
 - `occt_worker_native_occt` builds and reports `status=linked_smoke` with
   `occtVersion=8.0.0`.
 
+Update from M63:
+
+- `occt_worker_native_occt` now reports `status=metrics_smoke`.
+- The target parses the first semantic rounded enclosure, builds the rounded
+  box B-Rep internally with OCCT, and returns deterministic metrics only.
+- The sample metrics smoke reports bounds `[-60, -35, 0]` to `[60, 35, 28]`,
+  dimensions `[120, 70, 28]`, surface area `25924.813728`, and volume
+  `232291.58617`.
+- Preview mesh vertices, generated B-Rep, STEP/STL artifacts, raw OCCT topology
+  IDs, and triangle IDs are still not returned to Flutter.
+
 ## License / compatibility notes
 
 - Do not copy OCCT source into this repository.
@@ -171,10 +182,11 @@ build directory once:
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall -Clean
 ```
 
-The current OCCT target is a link smoke only. It references
-`BRepPrimAPI_MakeBox` and reports `worker.backend.occt_link_smoke_only`; it does
-not generate semantic enclosure geometry yet. STEP/STL export should stay out of
-the first linker slice unless required by the exact test.
+The current OCCT target is a metrics smoke. It references OCCT box, fillet,
+bounding-box, surface-property, and volume-property APIs. For the sample
+rounded enclosure it returns deterministic metrics while keeping generated
+B-Rep internal to the worker. STEP/STL export and preview mesh emission should
+stay out of this slice unless required by a later exact test.
 
 ## Follow-up tasks
 
@@ -182,6 +194,6 @@ the first linker slice unless required by the exact test.
 - Use `tools\bootstrap_vcpkg_windows.ps1 -PlanOnly` to inspect the local vcpkg
   setup before cloning or installing anything.
 - Use `-AllowVcpkgInstall` only when a large vcpkg manifest restore is expected.
-- Add a deterministic native smoke that returns a generated rounded enclosure
-  preview or a narrower geometric metrics response.
+- Add native preview mesh emission from the generated rounded enclosure B-Rep.
+- Add shell/cavity generation after the metrics contract remains stable.
 - Add third-party license notice packaging before distributing OCCT DLLs.

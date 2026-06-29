@@ -81,6 +81,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M60 - OCCT vcpkg Manifest Restore Path
 - [x] M61 - Repo-local vcpkg Bootstrap Helper
 - [x] M62 - Local OCCT Restore + Link Smoke
+- [x] M63 - First Native Rounded Enclosure Metrics
 
 ---
 
@@ -2680,3 +2681,53 @@ can link and run against the restored package.
 - Optional developer poke: run
   `build\occt_worker_native_occt\Release\occt_worker_native_occt.exe --capabilities`
   and confirm it reports OCCT `8.0.0`.
+
+---
+
+## M63 - First Native Rounded Enclosure Metrics
+
+### Goal
+Replace the OCCT link-smoke response with the first deterministic native
+rounded enclosure generation slice while keeping generated B-Rep internal to the
+worker.
+
+### Tasks
+- [x] Parse the first semantic enclosure body from `shell_case.geometry.request`.
+- [x] Validate rounded-box dimensions, wall thickness, and corner radius.
+- [x] Build the rounded enclosure B-Rep with OCCT box and fillet APIs.
+- [x] Compute deterministic bounds, dimensions, surface area, and volume.
+- [x] Return metrics-only `preview_mesh` responses without preview vertices.
+- [x] Keep OCCT topology IDs, triangle IDs, B-Rep, STL, and generated mesh out
+      of editable Flutter state.
+- [x] Add `tool/native_occt_worker_metrics_smoke.dart`.
+- [x] Update source-contract tests and documentation.
+
+### Done Criteria
+- `occt_worker_native_occt --capabilities` reports `status=metrics_smoke`.
+- A sample `preview_mesh` request returns `status=ok`,
+  `generator=occt.rounded_enclosure.metrics.v1`, and request ID preservation.
+- The sample metrics report bounds `[-60, -35, 0]` to `[60, 35, 28]`,
+  dimensions `[120, 70, 28]`, surface area `25924.813728`, and volume
+  `232291.58617`.
+- The response explicitly reports `previewMeshEmitted=false` and
+  `editableGeneratedGeometry=false`.
+- No generated dependency, worker build, release bundle, OCCT DLL, or mesh
+  artifact is committed.
+
+### Tests
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`
+- `git diff --check`
+
+### Poke Checklist
+- No meaningful manual UI poke for this chunk; the app still shows the mock
+  viewport.
+- Optional developer poke: run
+  `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build` and
+  confirm `metricsSmoke.ok` is `true`.

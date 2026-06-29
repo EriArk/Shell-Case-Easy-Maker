@@ -119,7 +119,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Define JSON protocol for geometry requests.
 - [x] Add feature/group geometry intents to preview requests.
 - [x] Add deterministic geometry operation plan from feature intents.
-- [ ] Generate rounded box B-Rep.
+- [x] Generate rounded box B-Rep.
 - [ ] Generate shell/cavity for box.
 - [x] Generate mock preview mesh through protocol.
 - [ ] Generate OCCT preview mesh.
@@ -127,6 +127,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [ ] Export STL.
 - [x] Define response issues/warnings model.
 - [x] Add protocol tests for known mock dimensions.
+- [x] Add native OCCT metrics smoke for known rounded-box dimensions.
 - [x] First-pass semantic validation warnings/errors.
 - [x] First-pass component placement and keepout semantic validation.
 - [x] Rotation-aware component placement bounds validation.

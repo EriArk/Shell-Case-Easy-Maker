@@ -106,7 +106,7 @@ The helper uses ignored `external/vcpkg` output and restores `opencascade` only
 when `-InstallOpenCascade` is passed. Manifest-mode installed packages are
 local-only under ignored `occt_worker/native/vcpkg_installed`.
 
-Once readiness is true, build the opt-in OCCT link-smoke target:
+Once readiness is true, build the opt-in OCCT target:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1
@@ -118,8 +118,21 @@ Use `-Clean` once if the native build directory was configured before OCCT
 readiness became true or before manifest mode was enabled.
 
 The target is `occt_worker_native_occt`. It is separate from
-`occt_worker_native_stub`, references OCCT modeling APIs, and returns
-`worker.backend.occt_link_smoke_only` until semantic B-Rep generation is added.
+`occt_worker_native_stub`, references OCCT modeling APIs, and now implements the
+first metrics-only rounded enclosure slice for `preview_mesh` requests.
+Capabilities report `status=metrics_smoke`.
+
+The native OCCT metrics smoke command verifies the built target through the Dart
+process client:
+
+```powershell
+dart run tool\native_occt_worker_metrics_smoke.dart --skip-build
+```
+
+The current native response returns deterministic bounds, dimensions, surface
+area, and volume for the first semantic enclosure. It deliberately reports
+`previewMeshEmitted=false`; no preview mesh vertices, STL, B-Rep, OCCT topology
+IDs, or triangle IDs are returned to Flutter.
 
 The scaffold smoke command wraps build, capability query, and request smoke:
 
@@ -211,15 +224,19 @@ stable project IDs and must not leak into semantic editing.
 
 ## Initial Rounded Enclosure Plan
 
-The first real worker implementation should:
+The first native OCCT slice now:
 
 1. Read the semantic enclosure body.
 2. Validate dimensions, wall thickness, and corner radius.
 3. Build a box from `size`.
 4. Apply radius to eligible enclosure edges.
-5. Preserve named semantic surface mappings.
-6. Mesh with explicit linear/angular deflection settings.
-7. Return bounds, mesh stats, warnings, and preview mesh.
+5. Return deterministic bounds, dimensions, surface area, and volume.
+
+The next native geometry slices should:
+
+1. Preserve named semantic surface mappings.
+2. Mesh with explicit linear/angular deflection settings.
+3. Return disposable preview mesh data, mesh stats, and warnings.
 
 Expected sample dimensions:
 - size: `120 x 70 x 28 mm`,
@@ -229,13 +246,13 @@ Expected sample dimensions:
 
 ## Current Limitations
 
-- No native OCCT executable is built yet.
 - `occt_worker/bin/occt_worker.dart` is a Dart-only local worker CLI backed by
   mock geometry by default.
 - `dart run occt_worker\bin\occt_worker.dart --capabilities` reports worker
   backend readiness, not generated geometry.
-- `occt_worker/native` is a buildable native stub only; OCCT B-Rep generation is
-  still planned.
+- `occt_worker/native` has both a no-OCCT stub and an opt-in OCCT target. The
+  OCCT target can build a rounded enclosure B-Rep internally and return metrics,
+  but it does not emit preview mesh yet.
 - `tool/mock_geometry_worker.dart` is only a compatibility alias for the local
   worker runtime.
 - `--backend=native` currently returns a structured not-implemented response,
@@ -244,6 +261,8 @@ Expected sample dimensions:
   through the process client, not through native OCCT.
 - `tool/mock_worker_geometry_service_smoke.dart` runs the worker-backed
   `GeometryService` adapter through the same mock worker process.
+- `tool/native_occt_worker_metrics_smoke.dart` runs the native OCCT target
+  through the Dart process client and checks the metrics-only response.
 - The normal app backend selector defaults to mock unless worker backend and
   executable are both explicitly configured.
 - The protocol example files are generated fixtures backed by the typed Dart
@@ -254,6 +273,7 @@ Expected sample dimensions:
   bounds, component feature keepouts, and standoff mount safety. Component
   placement/keepout bounds account for Z rotation using conservative envelopes.
   This is still pre-geometry validation, not OCCT body validation.
-- Rounded edges and shell/cavity generation are planned, not implemented.
+- Rounded edges are implemented for the first native metrics slice; shell/cavity
+  generation and semantic surface mapping are still planned.
 - STEP/STL export operations intentionally return unsupported in the mock
   backend.

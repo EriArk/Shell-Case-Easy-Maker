@@ -15,13 +15,14 @@ adds the Dart-side process client, and M49 adds the worker-backed
 development runs. M51 keeps the checked-in protocol examples generated from a
 typed Dart fixture project and the mock backend. M52 adds
 `occt_worker/bin/occt_worker.dart` as the canonical local worker CLI. M53 adds
-worker capability JSON for backend readiness and supported operations. Native
-OCCT generation is not implemented yet. M55 adds a separately buildable native
-stub executable; it does not link OCCT yet. M56 adds a native smoke command. M57
-makes the native stub read and validate the top-level request envelope before
-returning scaffold responses. M58 records the Windows OCCT dependency decision.
-M59 adds the separate opt-in `occt_worker_native_occt` link-smoke target; it is
-not built unless OCCT readiness is true.
+worker capability JSON for backend readiness and supported operations. M55 adds
+a separately buildable native stub executable; it does not link OCCT. M56 adds a
+native smoke command. M57 makes the native stub read and validate the top-level
+request envelope before returning scaffold responses. M58 records the Windows
+OCCT dependency decision. M59-M62 add and locally restore the separate opt-in
+`occt_worker_native_occt` target. M63 makes that target build the first rounded
+enclosure B-Rep internally and return deterministic metrics without emitting
+preview mesh vertices.
 
 Regenerate protocol fixtures:
 
@@ -122,9 +123,21 @@ Use `-Clean` once if the build directory was configured with different manifest
 mode settings.
 
 This builds `occt_worker_native_occt` under `build/occt_worker_native_occt`.
-The target references OCCT modeling APIs and reports
-`worker.backend.occt_link_smoke_only`; semantic B-Rep generation is still not
-implemented.
+The target references OCCT modeling APIs, reports `status=metrics_smoke`, and
+returns deterministic rounded enclosure metrics for `preview_mesh` requests.
+It still does not emit preview mesh vertices, STEP/STL artifacts, or editable
+generated geometry.
+
+Native OCCT metrics smoke command:
+
+```powershell
+dart run tool\native_occt_worker_metrics_smoke.dart --skip-build
+```
+
+The smoke command queries capabilities through
+`GeometryWorkerProcessClient.queryCapabilities()`, sends the sample preview
+request, and verifies bounds, dimensions, surface area, volume, request ID
+preservation, and `previewMeshEmitted=false`.
 
 Process-client smoke command:
 
@@ -180,13 +193,16 @@ only when explicitly configured.
 Generate a deterministic rounded enclosure preview from the sample semantic
 project:
 
-1. Build a box from enclosure dimensions.
-2. Apply corner fillets from semantic corner radius.
-3. Preserve semantic surface mapping for top lid, front wall, and bottom inside.
-4. Read `featureIntents` and their derived operation plan to prepare
+1. Build a box from enclosure dimensions. Done for the native metrics slice.
+2. Apply corner fillets from semantic corner radius. Done for the native metrics
+   slice.
+3. Return deterministic bounds, dimensions, surface area, and volume. Done for
+   the native metrics slice.
+4. Preserve semantic surface mapping for top lid, front wall, and bottom inside.
+5. Read `featureIntents` and their derived operation plan to prepare
    deterministic future cutout/mount operations.
-5. Mesh the generated B-Rep with explicit deflection settings.
-6. Return preview mesh, bounds, issues, and metrics.
+6. Mesh the generated B-Rep with explicit deflection settings.
+7. Return preview mesh, bounds, issues, and metrics.
 
 The worker implementation should be added only after the OCCT build/distribution
 choice is finalized for Windows development.

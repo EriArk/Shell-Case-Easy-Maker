@@ -208,10 +208,20 @@ After the first local restore, `tools\check_occt_windows_readiness.ps1` should
 report `ready=true`. If an earlier CMake configure used different manifest
 settings, rerun the OCCT build command with `-AllowVcpkgInstall -Clean`.
 
-This builds `occt_worker_native_occt`, a separate link-smoke target that
-references OCCT modeling APIs but still returns
-`worker.backend.occt_link_smoke_only` for geometry requests. It does not replace
-the stub, and it does not generate semantic B-Rep yet.
+This builds `occt_worker_native_occt`, a separate opt-in OCCT target. It now
+builds the first semantic rounded enclosure B-Rep internally and returns
+deterministic metrics for `preview_mesh` requests. It does not replace the
+stub, and it still does not return preview mesh vertices, STEP/STL artifacts, or
+editable generated geometry.
+
+Native OCCT metrics smoke command:
+
+```powershell
+dart run tool\native_occt_worker_metrics_smoke.dart --skip-build
+```
+
+The smoke checks capabilities, request ID preservation, sample bounds,
+dimensions, surface area, volume, and the `previewMeshEmitted=false` contract.
 
 Native scaffold smoke command:
 
