@@ -42,6 +42,95 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-29 - M43 Projected component feature anchors
+
+### Goal
+Add a semantic projection layer that turns placed component feature anchors into
+world and target-surface coordinates for component-driven ports and buttons.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `docs/07_COMPONENT_TEMPLATE_SYSTEM.md`,
+`docs/10_ENCLOSURE_AUTO_GENERATION.md`, `docs/17_SWITCH_MAPPING_SYSTEM.md`,
+`docs/26_TESTING_AND_QUALITY.md`, `docs/31_COMMANDS_AND_UNDO.md`, and
+`docs/32_USABLE_SHELL.md`.
+
+### Changes made
+- `lib/component_features/component_feature_projection.dart`:
+  - Added `ComponentFeatureSurfaceProjector` and `ComponentFeatureProjection`.
+  - Applies component placement `rotationZ` and emits component-local, rotated,
+    world, and surface positions.
+  - Maps `front/back` to `x,z`, `left/right` to `y,z`, and `top/bottom` to
+    `x,y` target surface coordinates.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Uses the projector for component-sourced USB-C and switch button group
+    commands.
+  - Stores projected USB-C anchor metadata in `SemanticFeature.placement`.
+  - Stores projected switch positions in
+    `FeatureGroup.pattern.switchPositions`.
+- Tests:
+  - Added unit coverage for connector/switch projection and unsupported
+    directions.
+  - Extended widget-save coverage for projected USB-C and switch metadata.
+- Docs/tasks/roadmap:
+  - Added `docs/33_COMPONENT_FEATURE_PROJECTION.md`.
+  - Recorded the M43 chunk and marked projected component feature anchors done.
+
+### Tests run
+- `flutter test test\component_feature_projection_test.dart`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "component USB-C rail command creates sourced cutout"`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "component button command creates switch-sourced group"`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 126 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Projection metadata only; no B-Rep, mesh, STL, or OCCT topology is stored.
+- Serialization checked?
+  - Widget tests save the project and verify projected anchor metadata in JSON.
+- UI checked?
+  - Existing component-sourced USB-C and button commands still open/confirm via
+    widget tests.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Projection targets the first enclosure body.
+  - Severity: Expected first-pass limitation.
+  - Next action: add explicit target enclosure selection before multi-body
+    generation.
+- Issue: Projection records positions but does not yet perform reachability or
+  boundary validation on the target face.
+  - Severity: Expected.
+  - Next action: add face-local validation before real cutouts/plungers.
+
+### Next step
+Commit and push M43, then continue toward validation/geometry consumption of
+projected anchors.
+
+### Notes for future Codex sessions
+Projected anchor metadata is a semantic bridge only. Do not replace it with
+mesh coordinates or OCCT topology IDs; future geometry should consume these
+semantic coordinates through `GeometryService`.
+
+---
+
 ## 2026-06-29 - M42 Component switch button group
 
 ### Goal

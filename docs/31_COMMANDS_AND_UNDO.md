@@ -118,14 +118,14 @@ The first port rail command is `port.add_usb_c`. From a semantic surface it
 creates a manual `usb_c_cutout` `SemanticFeature` targeted at that surface. From
 a selected component placement with a USB-C template feature, it pre-fills the
 same dialog from the component feature's cutout metadata and records source
-placement/template/feature IDs on the generated cutout. Both paths commit one
-undoable project snapshot.
+placement/template/feature IDs plus projected world/surface coordinates on the
+generated cutout. Both paths commit one undoable project snapshot.
 
 The next rail command is `button.create_group`. From a semantic surface it
 creates a manual `button_group` `FeatureGroup` with editable pattern data. From
 a selected component placement with switch features, it creates one sourced
-`button_group` using saved switch centers in `pattern.switchPositions`. Both
-paths commit one undoable project snapshot, and repeated buttons are not
+`button_group` using projected switch centers in `pattern.switchPositions`.
+Both paths commit one undoable project snapshot, and repeated buttons are not
 flattened into independent features.
 
 `glass.create_recess` is the first glass/insert command. It is available only

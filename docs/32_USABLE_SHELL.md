@@ -212,8 +212,9 @@ feature.
 USB-C feature with `cutout` metadata. In that context the same USB-C dialog is
 pre-filled from the component template, targets the first semantic enclosure
 surface implied by the connector direction, and preserves source placement,
-template, and component feature IDs on the generated `usb_c_cutout`. The
-editable result is still a normal semantic feature, not generated geometry.
+template, component feature IDs, and projected `surfacePosition` metadata on
+the generated `usb_c_cutout`. The editable result is still a normal semantic
+feature, not generated geometry.
 
 Clicking `Кнопки` is enabled only after selecting a semantic surface such as
 `Top lid`. The command opens a compact button group dialog and appends a
@@ -226,9 +227,10 @@ clicking one marker selects the whole button group.
 switch features. In that context the dialog starts from
 `from_component_switches`, stores the switch centers in
 `button_group.pattern.switchPositions`, and records source placement/template
-IDs. The result is still one editable `FeatureGroup`; switching the layout away
-from `from_component_switches` makes the group behave like a normal manual
-pattern.
+IDs. The saved switch positions are projected to the target surface, while each
+entry also keeps the original template-local switch center. The result is still
+one editable `FeatureGroup`; switching the layout away from
+`from_component_switches` makes the group behave like a normal manual pattern.
 
 Clicking `Стекло` is enabled only after selecting a semantic surface. The
 command opens a compact glass recess dialog and appends a semantic
@@ -263,10 +265,12 @@ disabled until their semantic command behavior is implemented and tested.
   the same dialog-based flow, and the footprint preview is schematic with
   first-pass semantic fit feedback only.
 - USB-C placement still uses dialog values and target surface selection rather
-  than face-local picking/snapping. The visible marker is a mock viewport
-  affordance.
+  than face-local picking/snapping. Component-sourced USB-C cutouts do store
+  first-pass projected surface coordinates for future geometry. The visible
+  marker is a mock viewport affordance.
 - Button group placement still uses centered dialog defaults rather than
-  face-local picking/snapping or generated item previews.
+  face-local picking/snapping. Component-sourced button groups do store
+  projected switch centers for future geometry and mock marker layout.
 - Glass recess placement still uses selected surface and dialog dimensions
   rather than face-local picking/snapping. The visible marker is a mock
   viewport affordance.

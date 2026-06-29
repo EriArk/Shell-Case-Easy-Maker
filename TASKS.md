@@ -157,7 +157,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] First-pass placement dialog rotation editing.
 - [x] First-pass snap anchor selection for component placement.
 - [ ] Guided component placement workflow with viewport picking.
-- [ ] Project switch centers and connector anchors to enclosure surfaces.
+- [x] Project switch centers and connector anchors to enclosure surfaces.
 
 ## Phase 7 — Component-driven enclosure generation
 
@@ -167,6 +167,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [ ] Generate real standoff geometry from board mounting holes.
 - [ ] Generate side wall cutouts from ports.
 - [x] First-pass semantic USB-C cutout from component connector metadata.
+- [x] First-pass projected component feature anchors.
 - [ ] Generate top/lid cutouts from switches/buttons.
 - [x] First-pass semantic button group from component switch centers.
 - [x] First-pass keepout warnings.

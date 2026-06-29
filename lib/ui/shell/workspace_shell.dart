@@ -10,6 +10,7 @@ import '../../commands/app_command.dart';
 import '../../commands/command_ids.dart';
 import '../../commands/command_registry.dart';
 import '../../commands/undo_history.dart' as app_undo;
+import '../../component_features/component_feature_projection.dart';
 import '../../geometry/geometry_service.dart';
 import '../../parameters/enclosure_parameter_adapter.dart';
 import '../../parameters/parameter_model.dart';
@@ -537,6 +538,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
         initialFeature: _usbCCutoutFeatureFromComponent(
           id: _nextFeatureId(_project, 'usb_c_cutout'),
           targetSurfaceId: targetSurfaceId,
+          project: _project,
           placement: placement,
           template: template,
           componentFeature: componentFeature,
@@ -594,11 +596,12 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       return;
     }
 
-    final targetSurfaceId = _targetSurfaceForComponentFeature(
-      _project,
-      switches.first,
+    final firstProjection = ComponentFeatureSurfaceProjector.projectFeature(
+      project: _project,
+      placement: placement,
+      feature: switches.first,
     );
-    if (targetSurfaceId == null) {
+    if (firstProjection == null) {
       return;
     }
 
@@ -607,7 +610,8 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       builder: (context) => _ButtonGroupDialog(
         initialGroup: _buttonGroupFromComponentSwitches(
           id: _nextFeatureGroupId(_project, 'button_group'),
-          targetSurfaceId: targetSurfaceId,
+          targetSurfaceId: firstProjection.targetSurfaceId,
+          project: _project,
           placement: placement,
           template: template,
           switches: switches,
@@ -738,7 +742,12 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
           (feature) =>
               feature.type == 'usb_c' &&
               _componentFeatureCutout(feature).isNotEmpty &&
-              _targetSurfaceForComponentFeature(_project, feature) != null,
+              ComponentFeatureSurfaceProjector.projectFeature(
+                    project: _project,
+                    placement: placement,
+                    feature: feature,
+                  ) !=
+                  null,
         )
         .firstOrNull;
     if (feature == null) {
@@ -775,7 +784,12 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       for (final feature in template.features)
         if (feature.type == 'switch' &&
             feature.position.length >= 2 &&
-            _targetSurfaceForComponentFeature(_project, feature) != null)
+            ComponentFeatureSurfaceProjector.projectFeature(
+                  project: _project,
+                  placement: placement,
+                  feature: feature,
+                ) !=
+                null)
           feature,
     ];
     if (switches.isEmpty) {
@@ -1619,11 +1633,17 @@ SemanticFeature _defaultUsbCCutoutFeature({
 SemanticFeature _usbCCutoutFeatureFromComponent({
   required String id,
   required String targetSurfaceId,
+  required ProjectModel project,
   required ComponentPlacement placement,
   required ComponentTemplate template,
   required ComponentFeature componentFeature,
 }) {
   final cutout = _componentFeatureCutout(componentFeature);
+  final projection = ComponentFeatureSurfaceProjector.projectFeature(
+    project: project,
+    placement: placement,
+    feature: componentFeature,
+  );
 
   return SemanticFeature(
     id: id,
@@ -1638,9 +1658,13 @@ SemanticFeature _usbCCutoutFeatureFromComponent({
     placement: {
       'componentPosition': placement.position,
       'componentRotation': placement.rotation,
-      'componentFeaturePosition': componentFeature.position,
-      if (componentFeature.direction != null)
-        'componentFeatureDirection': componentFeature.direction,
+      if (projection != null)
+        ...projection.toPlacementJson()
+      else ...{
+        'componentFeaturePosition': componentFeature.position,
+        if (componentFeature.direction != null)
+          'componentFeatureDirection': componentFeature.direction,
+      },
     },
     parameters: {
       'width': _mapDouble(cutout, 'width', 10.5),
@@ -1667,26 +1691,10 @@ String? _targetSurfaceForComponentFeature(
   ProjectModel project,
   ComponentFeature feature,
 ) {
-  final enclosure = project.bodies.firstOrNull;
-  if (enclosure == null) {
-    return null;
-  }
-
-  final direction = feature.direction ?? 'front';
-  final surfacePart = switch (direction) {
-    'front' => 'front_wall',
-    'back' => 'back_wall',
-    'left' => 'left_wall',
-    'right' => 'right_wall',
-    'top' => 'top_lid',
-    'bottom' => 'bottom',
-    _ => null,
-  };
-  if (surfacePart == null) {
-    return null;
-  }
-
-  return '${enclosure.id}.$surfacePart.outer';
+  return ComponentFeatureSurfaceProjector.targetSurfaceId(
+    project: project,
+    feature: feature,
+  );
 }
 
 double _mapDouble(Map<String, Object?> values, String key, double fallback) {
@@ -1756,10 +1764,23 @@ FeatureGroup _defaultButtonGroup({
 FeatureGroup _buttonGroupFromComponentSwitches({
   required String id,
   required String targetSurfaceId,
+  required ProjectModel project,
   required ComponentPlacement placement,
   required ComponentTemplate template,
   required List<ComponentFeature> switches,
 }) {
+  final projections = <String, ComponentFeatureProjection>{};
+  for (final switchFeature in switches) {
+    final projection = ComponentFeatureSurfaceProjector.projectFeature(
+      project: project,
+      placement: placement,
+      feature: switchFeature,
+    );
+    if (projection != null) {
+      projections[switchFeature.id] = projection;
+    }
+  }
+
   return FeatureGroup(
     id: id,
     type: 'button_group',
@@ -1772,12 +1793,7 @@ FeatureGroup _buttonGroupFromComponentSwitches({
       'sourceTemplateId': template.id,
       'switchPositions': [
         for (final switchFeature in switches)
-          {
-            'id': switchFeature.id,
-            'position': switchFeature.position,
-            if (switchFeature.direction != null)
-              'direction': switchFeature.direction,
-          },
+          _switchPatternPoint(switchFeature, projections[switchFeature.id]),
       ],
     },
     itemPrototype: const {
@@ -1792,6 +1808,21 @@ FeatureGroup _buttonGroupFromComponentSwitches({
       'componentRotation': placement.rotation,
     },
   );
+}
+
+Map<String, Object?> _switchPatternPoint(
+  ComponentFeature switchFeature,
+  ComponentFeatureProjection? projection,
+) {
+  if (projection != null) {
+    return projection.toPatternPointJson(id: switchFeature.id);
+  }
+
+  return {
+    'id': switchFeature.id,
+    'position': switchFeature.position,
+    if (switchFeature.direction != null) 'direction': switchFeature.direction,
+  };
 }
 
 FeatureGroup _defaultMountGroup({

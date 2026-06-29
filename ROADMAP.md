@@ -61,6 +61,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M40 — Snap Anchor Placement
 - [x] M41 — Component USB-C Cutout Propagation
 - [x] M42 — Component Switch Button Group
+- [x] M43 - Projected Component Feature Anchors
 
 ---
 
@@ -1747,3 +1748,53 @@ Start switch-to-button propagation by creating one editable semantic
 - Confirm the dialog opens with count `4`.
 - Click `Создать`.
 - Confirm `button_group_1` appears and remains one editable group.
+
+---
+
+## M43 - Projected Component Feature Anchors
+
+### Goal
+Add a small semantic projection layer that turns placed component feature
+coordinates into world and target-surface coordinates for component-driven
+cutouts and button groups.
+
+### Tasks
+- [x] Add `ComponentFeatureSurfaceProjector` outside the Flutter UI shell.
+- [x] Apply placement `rotationZ` to component feature centers.
+- [x] Project `front/back` features to surface `x,z` coordinates.
+- [x] Project `left/right` features to surface `y,z` coordinates.
+- [x] Project `top/bottom` features to surface `x,y` coordinates.
+- [x] Store projected anchor metadata on component-sourced USB-C cutouts.
+- [x] Store projected switch positions in component-sourced button groups.
+- [x] Add unit and widget coverage for projection and saved JSON metadata.
+- [x] Document the projection schema in
+      `docs/33_COMPONENT_FEATURE_PROJECTION.md`.
+
+### Done Criteria
+- Component feature projection is testable without Flutter widgets or OCCT.
+- USB-C cutouts keep source IDs plus `worldPosition`, `surfacePosition`, and
+  `surfaceAxes`.
+- Button groups use projected switch positions as their saved pattern
+  positions.
+- The editable project still stores semantic features/groups, not mesh,
+  generated B-Rep, or topology IDs.
+
+### Tests
+- `flutter test test\component_feature_projection_test.dart`
+- `flutter test test\widget_test.dart --plain-name "component USB-C rail command creates sourced cutout"`
+- `flutter test test\widget_test.dart --plain-name "component button command creates switch-sourced group"`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Select `button_board_placement`.
+- Click `Порты`, create the USB-C cutout, then save the project.
+- Confirm the saved JSON for the new cutout contains `surfacePosition`.
+- Select `button_board_placement` again.
+- Click `Кнопки`, create the button group, then save the project.
+- Confirm the group still appears as one editable group and its saved
+  `switchPositions` include projected positions.

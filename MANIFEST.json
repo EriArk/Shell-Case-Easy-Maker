@@ -1,7 +1,7 @@
 {
   "package": "enclosure_cad_codex_package",
   "created": "2026-06-26",
-  "file_count": 42,
+  "file_count": 43,
   "files": [
     "AGENTS.md",
     "ALL_DOCS_COMBINED.md",
@@ -40,6 +40,7 @@
     "docs/28_IMPLEMENTATION_PLAN.md",
     "docs/29_CODING_STANDARDS.md",
     "docs/30_ADVANCED_CAD_MODE.md",
+    "docs/33_COMPONENT_FEATURE_PROJECTION.md",
     "examples/component_template_button_board.json",
     "examples/sample_project.enclosure.json",
     "templates/FEATURE_SPEC_TEMPLATE.md",

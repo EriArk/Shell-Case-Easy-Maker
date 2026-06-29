@@ -151,6 +151,14 @@ template switch features. Switch centers are saved in
 `FeatureGroup.pattern.switchPositions`, source placement/template IDs are kept,
 and repeated buttons remain one editable group instead of being flattened.
 
+Placed component features now also pass through
+`ComponentFeatureSurfaceProjector` when component-sourced ports or button
+groups are created. The template remains local component data; projected
+`worldPosition`, `surfacePosition`, and `surfaceAxes` are stored on the
+generated semantic feature/group so future geometry can regenerate cutouts
+without relying on mesh or topology IDs. See
+`docs/33_COMPONENT_FEATURE_PROJECTION.md`.
+
 `ProjectSemanticValidator` also performs a first-pass component placement check
 against the enclosure inner volume. It treats the component board as a semantic
 outline/thickness envelope, accounts for the placement's Z rotation with a

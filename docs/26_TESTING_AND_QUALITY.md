@@ -69,9 +69,10 @@ Use deterministic test fixtures.
 - Snap-seeded component placement can align semantic component anchors to the
   selected snap point without saving anchor UI state.
 - Component-driven USB-C cutout generation preserves source placement/template
-  data in saved project JSON.
+  data and projected surface anchors in saved project JSON.
 - Component-driven button group generation preserves source switch centers in
-  saved project JSON and keeps the result grouped.
+  saved project JSON, stores projected switch positions, and keeps the result
+  grouped.
 - Validation status/details show warning and error messages.
 - Context popovers show correct actions.
 - Parameter knob updates model.

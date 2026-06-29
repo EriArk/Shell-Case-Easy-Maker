@@ -43,6 +43,11 @@ Selecting a component placement and running `Кнопки` creates one semantic
 `FeatureGroup.pattern.switchPositions`, and the group remains editable as a
 pattern rather than becoming independent holes or generated geometry.
 
+`ComponentFeatureSurfaceProjector` now applies component placement `rotationZ`
+and stores projected `position`, `worldPosition`, `surfaceAxes`, and original
+`componentFeaturePosition` for each switch entry. The projected `position` is
+what the pattern layout engine uses for the current mock marker layout.
+
 ## Validation
 
 - Projection reaches target surface.

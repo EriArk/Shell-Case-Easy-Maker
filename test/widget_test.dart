@@ -1400,7 +1400,16 @@ void main() {
     expect(created.source?['componentPlacementId'], 'button_board_placement');
     expect(created.source?['componentTemplateId'], 'custom_button_board_v1');
     expect(created.source?['componentFeatureId'], 'usb_c');
+    expect(
+      created.placement?['projectionMode'],
+      'component_feature_surface_projection',
+    );
     expect(created.placement?['componentFeatureDirection'], 'front');
+    expect(created.placement?['componentFeaturePosition'], [0.0, -16.0, 0.0]);
+    expect(created.placement?['rotatedOffset'], [0.0, -16.0, 0.0]);
+    expect(created.placement?['worldPosition'], [0.0, -16.0, 4.0]);
+    expect(created.placement?['surfacePosition'], [0.0, 4.0]);
+    expect(created.placement?['surfaceAxes'], ['x', 'z']);
   });
 
   testWidgets('button group rail command commits through undo history', (
@@ -1559,6 +1568,24 @@ void main() {
           .map((entry) => entry['id'])
           .toList(),
       ['sw_a', 'sw_b', 'sw_x', 'sw_y'],
+    );
+    expect(
+      switchPositions.whereType<Map<Object?, Object?>>().first['position'],
+      [7.0, 0.0],
+    );
+    expect(
+      switchPositions
+          .whereType<Map<Object?, Object?>>()
+          .first['componentFeaturePosition'],
+      [7.0, 0.0, 0.0],
+    );
+    expect(
+      switchPositions.whereType<Map<Object?, Object?>>().first['worldPosition'],
+      [7.0, 0.0, 4.0],
+    );
+    expect(
+      switchPositions.whereType<Map<Object?, Object?>>().first['surfaceAxes'],
+      ['x', 'y'],
     );
     expect(created.placement['anchor'], 'component_switch_centers');
   });

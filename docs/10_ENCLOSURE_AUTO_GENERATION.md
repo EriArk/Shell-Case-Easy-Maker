@@ -40,6 +40,12 @@ For a side-facing connector:
 
 If connector does not reach a wall, warn.
 
+The current implementation stores a first-pass semantic projection for
+component-sourced USB-C cutouts. `ComponentFeatureSurfaceProjector` records the
+source component feature position, rotated offset, world position, target
+surface position, and surface axes in the generated `SemanticFeature.placement`
+map. See `docs/33_COMPONENT_FEATURE_PROJECTION.md`.
+
 ## Buttons/switches
 
 For upward switches:
@@ -47,6 +53,11 @@ For upward switches:
 - generate hole or plunger,
 - check height/travel,
 - warn if switch cannot be reached.
+
+Component-sourced button groups use the same projector. Saved
+`FeatureGroup.pattern.switchPositions[*].position` values are target-surface
+positions, while `componentFeaturePosition` keeps the original template-local
+switch center.
 
 ## Supports/ribs
 
