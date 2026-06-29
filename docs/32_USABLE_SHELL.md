@@ -126,6 +126,11 @@ The viewport mirrors the same transient state with a translucent component
 footprint preview. It uses the first component template's board outline and the
 snap-seeded project position, but it is not selectable and is not saved.
 
+The snap inspector also runs the prospective placement through semantic
+validation and shows whether the component fits the current enclosure. Only
+messages targeted at the prospective placement are shown, so unrelated project
+warnings do not confuse the snap preview.
+
 ## Project JSON file service
 
 `ProjectFileService` provides basic JSON encode/decode and disk read/write.
@@ -223,7 +228,8 @@ disabled until their semantic command behavior is implemented and tested.
 - Component placement supports first-pass snap-seeded dialog defaults, but it
   does not yet have drag placement, live collision feedback, or a full
   viewport-confirm workflow. The active snap inspector action is a shortcut into
-  the same dialog-based flow, and the footprint preview is schematic only.
+  the same dialog-based flow, and the footprint preview is schematic with
+  first-pass semantic fit feedback only.
 - USB-C placement still uses dialog values and target surface selection rather
   than face-local picking/snapping. The visible marker is a mock viewport
   affordance.

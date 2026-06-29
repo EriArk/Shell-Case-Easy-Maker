@@ -56,6 +56,8 @@ Use deterministic test fixtures.
 - Active snap inspector actions open the same seeded placement flow and can
   clear transient snap state.
 - Active snap footprint previews appear and clear with transient snap state.
+- Snap placement fit feedback uses semantic validation and reports oversized
+  previews before commit.
 - Validation status/details show warning and error messages.
 - Context popovers show correct actions.
 - Parameter knob updates model.

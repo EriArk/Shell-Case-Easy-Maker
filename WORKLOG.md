@@ -2908,3 +2908,86 @@ semantic component anchors.
 ### Notes for future Codex sessions
 Keep active snap footprint previews transient. They should guide the next
 semantic action but never become editable saved placement data by themselves.
+
+---
+
+## 2026-06-29 - M34 Snap Placement Fit Feedback
+
+### Goal
+Show semantic fit feedback for snap-seeded component placement previews before
+the user commits a new placement.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `docs/31_COMMANDS_AND_UNDO.md`,
+`docs/32_USABLE_SHELL.md`, `docs/33_VIEWPORT_MVP.md`,
+`lib/validation/project_semantic_validator.dart`, `lib/ui/shell/workspace_shell.dart`,
+and snap/widget tests from M31-M33.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Builds a temporary prospective `ComponentPlacement` from the active snap
+    target.
+  - Runs that placement through `ProjectSemanticValidator` without saving it.
+  - Filters preview validation to messages targeted at the temporary placement.
+  - Shows a compact fit/status row in the active snap inspector panel.
+  - Tints the transient viewport footprint by validation severity.
+- `test/widget_test.dart`:
+  - Added coverage for the normal snap placement fit state.
+  - Added coverage for an oversized component template that would fail before
+    placement is committed.
+- Docs/tasks/roadmap:
+  - Recorded M34 behavior, limitations, test expectations, and poke checklist.
+
+### Tests run
+- `flutter test test\widget_test.dart --plain-name "active snap target inspector action opens placement dialog"`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "active snap target can be cleared from inspector"`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "active snap placement check reports oversized footprint"`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Initially reported `test/widget_test.dart` needed formatting; passed after
+    formatting.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 114 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Mock viewport drawing and semantic bounds validation only; no generated
+    B-Rep or mesh is created.
+- Serialization checked?
+  - Not applicable; prospective placement and fit status are transient and not
+    saved.
+- UI checked?
+  - Widget tests confirm normal fit feedback and oversized preview warning.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Fit feedback uses coarse semantic placement bounds, not real generated
+  geometry/collision.
+  - Severity: Expected.
+  - Next action: replace or augment with geometry-service collision/clearance
+    checks when real preview geometry exists.
+- Issue: Only the first component template is previewed from active snap state.
+  - Severity: Expected.
+  - Next action: connect template selection to live preview in a later placement
+    flow slice.
+
+### Next step
+Commit and push M34, then continue toward guided component placement or
+component anchor mapping.
+
+### Notes for future Codex sessions
+Use temporary semantic objects for preview validation. Do not store preview IDs,
+snap indices, or validation state in `ProjectModel`.

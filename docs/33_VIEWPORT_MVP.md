@@ -63,7 +63,8 @@ When a snap hint is active and the project has a component template, the mock
 viewport also draws a translucent component footprint at the snap-seeded
 position. This footprint is preview-only: it is not included in hit testing and
 does not become a saved `ComponentPlacement` unless the user confirms the
-placement dialog.
+placement dialog. The footprint is tinted by the semantic fit status from a
+temporary what-if placement.
 
 ## Feature Markers
 
@@ -148,7 +149,8 @@ license, and packaging complexity.
   subsystem yet.
 - Snap placement footprints are schematic rectangles derived from component
   template board outlines, not generated board meshes or collision-aware
-  previews.
+  previews. Current feedback checks the same coarse semantic placement bounds as
+  committed components.
 - Surface feature markers are schematic rectangles, not generated cut/recess
   B-Rep.
 - Button-group marker expansion supports first-pass diamond, row, and grid

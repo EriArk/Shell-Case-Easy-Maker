@@ -85,6 +85,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Implement basic snapping visual hints.
 - [x] Implement first-pass clickable snap hints.
 - [x] Implement transient snap placement footprint preview.
+- [x] Implement semantic fit feedback for snap placement previews.
 - [x] Implement focus/fit view.
 
 ## Phase 4 — OCCT worker MVP
@@ -141,6 +142,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] First-pass snap-seeded component placement from viewport picking.
 - [x] First-pass active snap target placement action.
 - [x] First-pass transient component footprint preview from snap target.
+- [x] First-pass snap placement fit feedback.
 - [ ] Guided component placement workflow with viewport picking.
 - [ ] Project switch centers and connector anchors to enclosure surfaces.
 

@@ -17,6 +17,7 @@ import '../../patterns/pattern_layout.dart';
 import '../../project/project_model.dart';
 import '../../selection/project_selection_resolver.dart';
 import '../../selection/selection_model.dart';
+import '../../validation/project_semantic_validator.dart';
 import '../../validation/validation_result.dart';
 import '../../viewport/viewport_controller.dart';
 
@@ -792,6 +793,10 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
               surfaceLabels: surfaceLabels,
             ).describe(_selection);
             final commandContext = _selection.toCommandContext();
+            final activeSnapPlacementIssue = _activeSnapPlacementIssue(
+              _project,
+              _activeSnapTarget,
+            );
 
             return Column(
               children: [
@@ -826,6 +831,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                           selection: _selection,
                           selectionDetails: details,
                           activeSnapTarget: _activeSnapTarget,
+                          activeSnapPlacementIssue: activeSnapPlacementIssue,
                           viewportState: _viewportController.state,
                           onOrbit: _orbitViewport,
                           onPan: _panViewport,
@@ -839,6 +845,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                         project: _project,
                         selection: _selection,
                         activeSnapTarget: _activeSnapTarget,
+                        activeSnapPlacementIssue: activeSnapPlacementIssue,
                         onPlaceComponentFromSnap:
                             _activeSnapTarget != null &&
                                 _project.componentTemplates.isNotEmpty
@@ -1200,6 +1207,51 @@ ComponentPlacement _defaultComponentPlacement({
     mountingSide: snapTarget?.mountingSide ?? 'bottom_inside',
     locked: false,
   );
+}
+
+const _activeSnapPreviewPlacementId = 'active_snap_component_preview';
+
+ComponentPlacement? _activeSnapProspectivePlacement(
+  ProjectModel project,
+  _ActiveSnapTarget? snapTarget,
+) {
+  if (snapTarget == null) {
+    return null;
+  }
+
+  final template = project.componentTemplates.firstOrNull;
+  if (template == null) {
+    return null;
+  }
+
+  return _defaultComponentPlacement(
+    id: _activeSnapPreviewPlacementId,
+    templateId: template.id,
+    index: project.componentPlacements.length,
+    snapTarget: snapTarget,
+  );
+}
+
+ValidationMessage? _activeSnapPlacementIssue(
+  ProjectModel project,
+  _ActiveSnapTarget? snapTarget,
+) {
+  final placement = _activeSnapProspectivePlacement(project, snapTarget);
+  if (placement == null) {
+    return null;
+  }
+
+  final report = ProjectSemanticValidator.validate(
+    project.replaceComponentPlacement(placement),
+  );
+
+  return report.issues
+      .where(
+        (message) =>
+            message.targetId == placement.id ||
+            (message.targetId?.startsWith('${placement.id}.') ?? false),
+      )
+      .firstOrNull;
 }
 
 ComponentPlacement _updatedComponentPlacementParameter(
@@ -2003,6 +2055,7 @@ class _ViewportArea extends StatefulWidget {
     required this.selection,
     required this.selectionDetails,
     required this.activeSnapTarget,
+    required this.activeSnapPlacementIssue,
     required this.viewportState,
     required this.onOrbit,
     required this.onPan,
@@ -2016,6 +2069,7 @@ class _ViewportArea extends StatefulWidget {
   final SelectionModel selection;
   final ProjectSelectionDetails selectionDetails;
   final _ActiveSnapTarget? activeSnapTarget;
+  final ValidationMessage? activeSnapPlacementIssue;
   final ViewportState viewportState;
   final ValueChanged<Offset> onOrbit;
   final ValueChanged<Offset> onPan;
@@ -2141,6 +2195,8 @@ class _ViewportAreaState extends State<_ViewportArea> {
                         componentPlacementPreviews:
                             _mockComponentPlacementPreviews(widget.project),
                         activeSnapPlacementPreview: activeSnapPlacementPreview,
+                        activeSnapPlacementIssue:
+                            widget.activeSnapPlacementIssue,
                         workplaneOverlay: workplaneOverlay,
                         activeSnapTarget: widget.activeSnapTarget,
                         featurePreviews: _mockFeaturePreviews(widget.project),
@@ -2314,6 +2370,7 @@ class _Inspector extends StatelessWidget {
     required this.project,
     required this.selection,
     required this.activeSnapTarget,
+    required this.activeSnapPlacementIssue,
     required this.onPlaceComponentFromSnap,
     required this.onClearSnapTarget,
     required this.onEnclosureParameterChanged,
@@ -2326,6 +2383,7 @@ class _Inspector extends StatelessWidget {
   final ProjectModel project;
   final SelectionModel selection;
   final _ActiveSnapTarget? activeSnapTarget;
+  final ValidationMessage? activeSnapPlacementIssue;
   final VoidCallback? onPlaceComponentFromSnap;
   final VoidCallback onClearSnapTarget;
   final void Function(String enclosureId, String parameterId, Object? value)
@@ -2405,6 +2463,7 @@ class _Inspector extends StatelessWidget {
             const SizedBox(height: 14),
             _ActiveSnapTargetPanel(
               target: activeSnapTarget!,
+              placementIssue: activeSnapPlacementIssue,
               onPlaceComponent: onPlaceComponentFromSnap,
               onClear: onClearSnapTarget,
             ),
@@ -2473,11 +2532,13 @@ class _Inspector extends StatelessWidget {
 class _ActiveSnapTargetPanel extends StatelessWidget {
   const _ActiveSnapTargetPanel({
     required this.target,
+    required this.placementIssue,
     required this.onPlaceComponent,
     required this.onClear,
   });
 
   final _ActiveSnapTarget target;
+  final ValidationMessage? placementIssue;
   final VoidCallback? onPlaceComponent;
   final VoidCallback onClear;
 
@@ -2532,6 +2593,7 @@ class _ActiveSnapTargetPanel extends StatelessWidget {
           label: 'Посадка',
           value: _mountingSideLabel(target.mountingSide),
         ),
+        _ActiveSnapPlacementCheck(issue: placementIssue),
         const SizedBox(height: 8),
         SizedBox(
           width: double.infinity,
@@ -2543,6 +2605,42 @@ class _ActiveSnapTargetPanel extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ActiveSnapPlacementCheck extends StatelessWidget {
+  const _ActiveSnapPlacementCheck({required this.issue});
+
+  final ValidationMessage? issue;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final hasIssue = issue != null;
+    final color = hasIssue
+        ? _validationSeverityColor(theme, issue!.severity)
+        : theme.colorScheme.primary;
+    final icon = hasIssue
+        ? _validationSeverityIcon(issue!.severity)
+        : Icons.check_circle_outline_rounded;
+
+    return Padding(
+      key: const ValueKey('active-snap-placement-check'),
+      padding: const EdgeInsets.only(top: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              hasIssue ? issue!.message : 'Плата помещается в текущий корпус.',
+              style: theme.textTheme.labelSmall?.copyWith(color: color),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -4759,6 +4857,7 @@ class _ViewportPainter extends CustomPainter {
     required this.bodyDimensions,
     required this.componentPlacementPreviews,
     required this.activeSnapPlacementPreview,
+    required this.activeSnapPlacementIssue,
     required this.workplaneOverlay,
     required this.activeSnapTarget,
     required this.featurePreviews,
@@ -4771,6 +4870,7 @@ class _ViewportPainter extends CustomPainter {
   final MockViewportBodyDimensions bodyDimensions;
   final List<MockViewportComponentPlacementPreview> componentPlacementPreviews;
   final MockViewportComponentPlacementPreview? activeSnapPlacementPreview;
+  final ValidationMessage? activeSnapPlacementIssue;
   final MockViewportWorkplaneOverlay? workplaneOverlay;
   final _ActiveSnapTarget? activeSnapTarget;
   final List<MockViewportFeaturePreview> featurePreviews;
@@ -5091,11 +5191,16 @@ class _ViewportPainter extends CustomPainter {
       return;
     }
 
+    final baseColor = switch (activeSnapPlacementIssue?.severity) {
+      ValidationSeverity.error => colorScheme.error,
+      ValidationSeverity.warning => Colors.amber,
+      ValidationSeverity.info || null => colorScheme.secondary,
+    };
     final fill = Paint()
-      ..color = colorScheme.secondary.withValues(alpha: 0.13)
+      ..color = baseColor.withValues(alpha: 0.13)
       ..style = PaintingStyle.fill;
     final stroke = Paint()
-      ..color = colorScheme.secondary.withValues(alpha: 0.78)
+      ..color = baseColor.withValues(alpha: 0.78)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
     final rect = layout.componentPlacementRect(placement);
@@ -5241,6 +5346,7 @@ class _ViewportPainter extends CustomPainter {
         oldDelegate.bodyDimensions != bodyDimensions ||
         oldDelegate.componentPlacementPreviews != componentPlacementPreviews ||
         oldDelegate.activeSnapPlacementPreview != activeSnapPlacementPreview ||
+        oldDelegate.activeSnapPlacementIssue != activeSnapPlacementIssue ||
         oldDelegate.workplaneOverlay != workplaneOverlay ||
         oldDelegate.activeSnapTarget != activeSnapTarget ||
         oldDelegate.featurePreviews != featurePreviews ||
@@ -5318,11 +5424,12 @@ MockViewportComponentPlacementPreview? _mockActiveSnapPlacementPreview(
   ProjectModel project,
   _ActiveSnapTarget? snapTarget,
 ) {
-  if (snapTarget == null) {
+  final placement = _activeSnapProspectivePlacement(project, snapTarget);
+  if (placement == null) {
     return null;
   }
 
-  final template = project.componentTemplates.firstOrNull;
+  final template = _componentTemplateForProjectPlacement(project, placement);
   if (template == null) {
     return null;
   }
@@ -5332,12 +5439,16 @@ MockViewportComponentPlacementPreview? _mockActiveSnapPlacementPreview(
   final referenceDepth = enclosure == null ? 70.0 : _sizeAt(enclosure, 1, 70);
 
   return MockViewportComponentPlacementPreview(
-    semanticId: 'active_snap_component_preview',
+    semanticId: placement.id,
     width: template.board.outline.width,
     depth: template.board.outline.height,
     referenceWidth: referenceWidth,
     referenceDepth: referenceDepth,
-    position: snapTarget.projectPosition,
+    position: Offset(
+      _positionAt(placement.position, 0),
+      _positionAt(placement.position, 1),
+    ),
+    rotationZDegrees: _positionAt(placement.rotation, 2),
   );
 }
 

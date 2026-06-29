@@ -202,6 +202,11 @@ void main() {
       find.byKey(const ValueKey('mock-active-snap-placement-preview')),
       findsOneWidget,
     );
+    expect(
+      find.byKey(const ValueKey('active-snap-placement-check')),
+      findsOneWidget,
+    );
+    expect(find.text('Плата помещается в текущий корпус.'), findsOneWidget);
 
     await tester.tap(
       find.byKey(const ValueKey('rail-command-${CommandIds.placeComponent}')),
@@ -297,6 +302,52 @@ void main() {
       find.byKey(const ValueKey('mock-active-snap-placement-preview')),
       findsNothing,
     );
+  });
+
+  testWidgets('active snap placement check reports oversized footprint', (
+    tester,
+  ) async {
+    final baseTemplate = ComponentTemplate.buttonBoard();
+    final oversizedTemplate = ComponentTemplate(
+      id: baseTemplate.id,
+      name: baseTemplate.name,
+      board: const ComponentBoard(
+        outline: BoardOutline(
+          type: 'rounded_rectangle',
+          width: 140,
+          height: 32,
+          cornerRadius: 2,
+        ),
+        thickness: 1.6,
+        referencePlane: 'bottom',
+      ),
+      mountingHoles: baseTemplate.mountingHoles,
+      features: baseTemplate.features,
+      zones: baseTemplate.zones,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkspaceShell(
+          project: ProjectModel.initial().copyWith(
+            componentTemplates: [oversizedTemplate],
+            componentPlacements: const [],
+          ),
+          geometryService: const MockGeometryService(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Top lid').first);
+    await tester.pumpAndSettle();
+    await _tapTopLidSnap(tester, const Offset(30, 0));
+
+    expect(
+      find.byKey(const ValueKey('active-snap-placement-check')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Компонент выходит'), findsOneWidget);
   });
 
   testWidgets('selecting a feature updates contextual inspector', (

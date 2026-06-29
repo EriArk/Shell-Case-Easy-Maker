@@ -105,6 +105,8 @@ only after the user confirms the placement dialog and a semantic
 
 The viewport may also show a transient footprint preview for the active snap
 target. This preview is not command state and does not enter undo/redo history.
+Its fit feedback is computed from a temporary semantic placement and discarded
+after rendering.
 
 The first surface-based rail command is `port.add_usb_c`. It is available only
 when the active selection is a semantic surface. The command creates a

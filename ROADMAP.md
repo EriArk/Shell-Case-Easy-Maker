@@ -52,6 +52,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M31 — Snap Picking Seeds Component Placement
 - [x] M32 — Active Snap Inspector Action
 - [x] M33 — Snap Placement Footprint Preview
+- [x] M34 — Snap Placement Fit Feedback
 
 ---
 
@@ -1373,3 +1374,44 @@ point, before the user confirms placement.
 - Click the clear icon in the inspector and confirm the footprint disappears.
 - Click the same snap dot, use `Разместить компонент`, confirm the dialog, and
   check the committed component becomes the normal solid board marker.
+
+---
+
+## M34 — Snap Placement Fit Feedback
+
+### Goal
+Validate the snap-seeded placement preview before confirmation and show whether
+the future component fits in the current enclosure.
+
+### Tasks
+- [x] Build a prospective `ComponentPlacement` from the active snap target.
+- [x] Run the prospective placement through `ProjectSemanticValidator` without
+      saving it.
+- [x] Filter validation messages to only the prospective placement target.
+- [x] Show a compact fit/status row in the active snap inspector panel.
+- [x] Tint the transient footprint preview by validation severity.
+- [x] Add widget coverage for the normal fit state and an oversized footprint
+      error.
+
+### Done Criteria
+- Selecting a valid snap target reports that the board fits.
+- A prospective component that would leave the enclosure reports the same
+  semantic placement error as a committed component.
+- Existing unrelated project validation messages do not pollute the snap
+  preview status.
+- The preview status does not enter undo/redo history and is not saved.
+- No mesh, B-Rep, triangle ID, or OCCT topology becomes editable state.
+
+### Tests
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Select `Top lid`.
+- Click a snap dot.
+- Confirm the snap panel says the board fits the current enclosure.
+- After later adding/editing a very large component template, confirm this same
+  panel warns before committing placement.
