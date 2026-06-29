@@ -1388,3 +1388,90 @@ Run full validation, refresh latest Windows bundle, commit, and push M15.
 Glass/insert recesses are semantic features. Keep DXF contours, B-Rep, and mesh
 outputs generated from this semantic source rather than storing them in the
 editable project file.
+
+---
+
+## 2026-06-28 — M16 Mount Generation Command
+
+### Goal
+Make the first component-driven rail command create editable semantic standoff
+mounts from the selected component placement's mounting holes.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`,
+`docs/07_COMPONENT_TEMPLATE_SYSTEM.md`,
+`docs/11_MOUNTING_AND_RETENTION_SYSTEM.md`,
+`docs/31_COMMANDS_AND_UNDO.md`, `docs/32_USABLE_SHELL.md`,
+current workspace shell, selection resolver, component template model, and
+widget/resolver tests.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Wired `mount.generate` from the left rail only when a selected
+    `ComponentPlacement` resolves to a template with mounting holes.
+  - Added a compact mount dialog for standoff diameter, hole diameter, height,
+    and clearance profile.
+  - Creates a semantic `standoff_mounts` `FeatureGroup` with source
+    placement/template IDs and template mounting-hole positions.
+  - Commits the new group through semantic undo history and selects it.
+  - Added human browser titles/icons for glass recess and standoff mount groups.
+- `lib/selection/project_selection_resolver.dart`:
+  - Added the human label and inspector details for `standoff_mounts`.
+- `test/project_selection_resolver_test.dart` and `test/widget_test.dart`:
+  - Added coverage for mount group display, disabled-without-component state,
+    create, cancel, and undo behavior.
+- `ROADMAP.md`, `TASKS.md`, `docs/05_PROJECT_FILE_FORMAT.md`,
+  `docs/07_COMPONENT_TEMPLATE_SYSTEM.md`,
+  `docs/11_MOUNTING_AND_RETENTION_SYSTEM.md`,
+  `docs/31_COMMANDS_AND_UNDO.md`, and `docs/32_USABLE_SHELL.md`:
+  - Documented M16 and the current boundary between semantic mount groups and
+    future generated geometry.
+
+### Tests run
+- `flutter test test\widget_test.dart test\project_selection_resolver_test.dart`:
+  - Passed, 29 targeted tests.
+- `flutter pub get`:
+  - Passed; 4 packages still have newer incompatible versions.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 75 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed `releases/latest/windows/shell_case_easy_maker.exe`.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Mock preview refreshes after the feature group edit; real stand-off
+    geometry is still future OCCT/GeometryService work.
+- Serialization checked?
+  - The existing `FeatureGroup` JSON path stores the semantic mount group data.
+- UI checked?
+  - Widget tests cover component selection enablement, create, cancel, and undo.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Mount generation currently creates semantic group data only, without
+  generated OCCT/B-Rep stand-off bodies.
+  - Severity: Expected for this slice.
+  - Next action: feed `standoff_mounts` into geometry worker once the first
+    real geometry generator is ready.
+- Issue: Mount target surface mapping is coarse and follows current placement
+  side values.
+  - Severity: Expected.
+  - Next action: refine target surfaces when face-local placement/snapping and
+    inner lid surfaces are modeled.
+
+### Next step
+Start the next safe component-driven geometry slice: either derive preview
+positions for `standoff_mounts` or wire the first geometry-worker request for
+rounded enclosure/standoff generation.
+
+### Notes for future Codex sessions
+Mounts generated from component templates must remain semantic feature groups.
+Do not flatten a board's mounting-hole mounts into unrelated holes or mesh
+objects unless the user explicitly detaches the group.

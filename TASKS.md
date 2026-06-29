@@ -59,6 +59,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] First executable surface-based USB-C command.
 - [x] First executable surface-based button group command.
 - [x] First executable surface-based glass recess command.
+- [x] First executable component-driven mount command.
 
 ## Phase 3 — Viewport MVP
 
@@ -119,7 +120,8 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 
 ## Phase 7 — Component-driven enclosure generation
 
-- [ ] Generate standoffs from board mounting holes.
+- [x] First-pass semantic standoff group from board mounting holes.
+- [ ] Generate real standoff geometry from board mounting holes.
 - [ ] Generate side wall cutouts from ports.
 - [ ] Generate top/lid cutouts from switches/buttons.
 - [ ] Generate keepout warnings.
@@ -146,6 +148,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 ## Phase 9 — Mounting and retention
 
 - [ ] Define mountable surfaces and forbidden zones in component templates.
+- [x] First-pass semantic screw standoff command from component mounting holes.
 - [ ] Generate pocket mount.
 - [ ] Generate friction-fit mount.
 - [ ] Generate side walls.

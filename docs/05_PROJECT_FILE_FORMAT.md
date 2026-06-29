@@ -117,6 +117,8 @@ Current behavior:
   with editable pattern and item prototype data,
 - the `Стекло` rail command can append semantic `glass_recess` features targeted
   at a selected semantic surface,
+- the `Крепёж` rail command can append semantic `standoff_mounts` feature
+  groups sourced from a selected component placement's template mounting holes,
 - generated previews are refreshed from the loaded semantic model.
 
 Current limitations:

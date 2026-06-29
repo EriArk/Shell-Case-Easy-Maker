@@ -91,6 +91,13 @@ when a semantic surface is selected. The command creates a `glass_recess`
 `SemanticFeature` targeted at that surface and commits it as one undoable
 project snapshot.
 
+`mount.generate` is the first component-driven command. It is available only
+when the selected object is a component placement whose template has mounting
+holes. The command creates a `standoff_mounts` `FeatureGroup` sourced from the
+template holes and commits it as one undoable project snapshot. The mounts stay
+editable as one semantic group instead of becoming unrelated independent
+features.
+
 Undo/redo now validates the active selection against the restored project. If
 the selected semantic object no longer exists after undo, the shell falls back
 to workspace selection instead of keeping a stale object ID.
@@ -110,6 +117,7 @@ visible and disabled, instead of running empty callbacks.
 - There is still no central command dispatcher; the shell has a small explicit
   action map for the first generator commands.
 - Undo history is wired for first enclosure parameter edits and first enclosure
-  creation/component placement/USB-C cutout/button group/glass recess only.
+  creation/component placement/USB-C cutout/button group/glass recess/mount
+  group only.
 - Selection and active surface context are available from the shell selection
   model, but most editing commands are not wired yet.

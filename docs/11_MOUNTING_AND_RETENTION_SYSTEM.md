@@ -78,3 +78,21 @@ Parameters:
 - Clamp printable.
 - Screw accessible.
 - Component can be inserted/removed if intended.
+
+## Current implementation slice
+
+The first wired mount command is `mount.generate`.
+
+Current behavior:
+- enabled only for a selected `ComponentPlacement` whose `ComponentTemplate`
+  has mounting holes,
+- creates one semantic `FeatureGroup` with `type: standoff_mounts`,
+- stores source placement/template IDs and the template mounting-hole positions
+  in the group pattern data,
+- stores editable standoff diameter, hole diameter, height, screw label, and
+  clearance profile in the item prototype,
+- commits through semantic undo history and selects the new group.
+
+Current limitation:
+- no OCCT/B-Rep standoff bodies are generated yet; the semantic group is the
+  editable source that the future geometry worker will consume.

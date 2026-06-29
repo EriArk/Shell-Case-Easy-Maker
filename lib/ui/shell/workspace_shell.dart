@@ -194,7 +194,19 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                 _runCreateGlassRecessCommand(_selection);
               }
             : null,
+      CommandIds.generateMount => _mountCommandAction(),
       _ => null,
+    };
+  }
+
+  VoidCallback? _mountCommandAction() {
+    final target = _selectedMountablePlacement();
+    if (target == null) {
+      return null;
+    }
+
+    return () {
+      _runGenerateMountCommand(target.placement, target.template);
     };
   }
 
@@ -336,6 +348,68 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       nextState: _project.replaceFeature(feature),
       selection: SelectionModel.feature(feature.id),
     );
+  }
+
+  Future<void> _runGenerateMountCommand(
+    ComponentPlacement placement,
+    ComponentTemplate template,
+  ) async {
+    if (template.mountingHoles.isEmpty) {
+      return;
+    }
+
+    final group = await showDialog<FeatureGroup>(
+      context: context,
+      builder: (context) => _MountGenerationDialog(
+        componentName: template.name,
+        mountingHoleCount: template.mountingHoles.length,
+        initialGroup: _defaultMountGroup(
+          id: _nextFeatureGroupId(_project, 'standoff_mounts'),
+          placement: placement,
+          template: template,
+        ),
+      ),
+    );
+    if (!mounted || group == null) {
+      return;
+    }
+
+    _commitProjectEdit(
+      id: CommandIds.generateMount,
+      label: 'Сгенерировать крепёж',
+      nextState: _project.replaceFeatureGroup(group),
+      selection: SelectionModel.featureGroup(group.id),
+    );
+  }
+
+  ({ComponentPlacement placement, ComponentTemplate template})?
+  _selectedMountablePlacement() {
+    if (_selection.kind != SelectionKind.componentPlacement ||
+        _selection.id == null) {
+      return null;
+    }
+
+    final placement = _project.componentPlacements
+        .where((placement) => placement.id == _selection.id)
+        .firstOrNull;
+    if (placement == null) {
+      return null;
+    }
+
+    final template = _componentTemplateForPlacement(placement);
+    if (template == null || template.mountingHoles.isEmpty) {
+      return null;
+    }
+
+    return (placement: placement, template: template);
+  }
+
+  ComponentTemplate? _componentTemplateForPlacement(
+    ComponentPlacement placement,
+  ) {
+    return _project.componentTemplates
+        .where((template) => template.id == placement.templateId)
+        .firstOrNull;
   }
 
   void _undo() {
@@ -780,6 +854,59 @@ FeatureGroup _defaultButtonGroup({
     },
     placement: const {'anchor': 'center'},
   );
+}
+
+FeatureGroup _defaultMountGroup({
+  required String id,
+  required ComponentPlacement placement,
+  required ComponentTemplate template,
+}) {
+  final firstHole = template.mountingHoles.firstOrNull;
+  final screw = firstHole?.screw ?? 'M2';
+
+  return FeatureGroup(
+    id: id,
+    type: 'standoff_mounts',
+    targetSurface: _mountTargetSurfaceFor(placement),
+    pattern: {
+      'layout': 'from_component_mounting_holes',
+      'count': template.mountingHoles.length,
+      'sourcePlacementId': placement.id,
+      'sourceTemplateId': template.id,
+      'holePositions': [
+        for (final hole in template.mountingHoles)
+          {
+            'id': hole.id,
+            'position': hole.position,
+            'diameter': hole.diameter,
+            if (hole.screw != null) 'screw': hole.screw,
+          },
+      ],
+    },
+    itemPrototype: {
+      'type': 'standoff',
+      'diameter': 5.0,
+      'height': 4.0,
+      'holeDiameter': firstHole?.diameter ?? 2.2,
+      'screw': screw,
+      'clearanceProfile': 'fdm_normal',
+    },
+    placement: {
+      'anchor': 'component_mounting_holes',
+      'componentPlacementId': placement.id,
+      'componentPosition': placement.position,
+      'componentRotation': placement.rotation,
+      'mountingSide': placement.mountingSide,
+    },
+  );
+}
+
+String _mountTargetSurfaceFor(ComponentPlacement placement) {
+  return switch (placement.mountingSide) {
+    'top_lid_inside' => 'main_enclosure.top_lid.outer',
+    'bottom_inside' => 'main_enclosure.bottom_inside',
+    _ => 'main_enclosure.bottom_inside',
+  };
 }
 
 String _nextFeatureGroupId(ProjectModel project, String type) {
@@ -1321,6 +1448,8 @@ IconData _featureIcon(String type) {
   return switch (type) {
     'usb_c_cutout' => Icons.settings_input_component_rounded,
     'button_group' => Icons.radio_button_checked_rounded,
+    'glass_recess' => Icons.crop_square_rounded,
+    'standoff_mounts' => Icons.construction_rounded,
     _ => Icons.extension_rounded,
   };
 }
@@ -1329,6 +1458,8 @@ String _featureTitle(String type) {
   return switch (type) {
     'usb_c_cutout' => 'USB-C',
     'button_group' => 'Группа кнопок',
+    'glass_recess' => 'Посадка под стекло',
+    'standoff_mounts' => 'Крепёж',
     _ => type.replaceAll('_', ' '),
   };
 }
@@ -2346,6 +2477,177 @@ class _ButtonModeOption {
 
   final String id;
   final String label;
+}
+
+class _MountGenerationDialog extends StatefulWidget {
+  const _MountGenerationDialog({
+    required this.componentName,
+    required this.mountingHoleCount,
+    required this.initialGroup,
+  });
+
+  final String componentName;
+  final int mountingHoleCount;
+  final FeatureGroup initialGroup;
+
+  @override
+  State<_MountGenerationDialog> createState() => _MountGenerationDialogState();
+}
+
+class _MountGenerationDialogState extends State<_MountGenerationDialog> {
+  late double _diameter;
+  late double _height;
+  late double _holeDiameter;
+  late String _clearanceProfile;
+  late String _screw;
+
+  static const _profiles = [
+    _ClearanceProfileOption('fdm_normal', 'FDM обычный'),
+    _ClearanceProfileOption('fdm_loose', 'FDM свободный'),
+    _ClearanceProfileOption('resin_normal', 'Resin обычный'),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    final itemPrototype = widget.initialGroup.itemPrototype;
+    _diameter = _featureDouble(itemPrototype, 'diameter', 5);
+    _height = _featureDouble(itemPrototype, 'height', 4);
+    _holeDiameter = _featureDouble(itemPrototype, 'holeDiameter', 2.2);
+    _clearanceProfile = _featureString(
+      itemPrototype,
+      'clearanceProfile',
+      'fdm_normal',
+    );
+    _screw = _featureString(itemPrototype, 'screw', 'M2');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return AlertDialog(
+      title: const Text('Крепёж'),
+      content: SizedBox(
+        width: 340,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                '${widget.componentName} · ${widget.mountingHoleCount} отв.',
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: _DialogNumberField(
+                      key: const ValueKey('mount-diameter'),
+                      label: 'Стойка',
+                      value: _diameter,
+                      onChanged: (value) => setState(() => _diameter = value),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _DialogNumberField(
+                      key: const ValueKey('mount-hole-diameter'),
+                      label: 'Отверстие',
+                      value: _holeDiameter,
+                      onChanged: (value) =>
+                          setState(() => _holeDiameter = value),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              _DialogNumberField(
+                key: const ValueKey('mount-height'),
+                label: 'Высота',
+                value: _height,
+                onChanged: (value) => setState(() => _height = value),
+              ),
+              const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                key: const ValueKey('mount-clearance-profile'),
+                initialValue: _clearanceProfile,
+                isExpanded: true,
+                items: [
+                  for (final profile in _profiles)
+                    DropdownMenuItem(
+                      value: profile.id,
+                      child: Text(profile.label),
+                    ),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _clearanceProfile = value;
+                    });
+                  }
+                },
+                decoration: InputDecoration(
+                  labelText: 'Зазор',
+                  isDense: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 9,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          key: const ValueKey('mount-cancel'),
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Отмена'),
+        ),
+        FilledButton(
+          key: const ValueKey('mount-confirm'),
+          onPressed: () {
+            final diameter = _clampDouble(_diameter, 3, 20);
+            final holeDiameter = _clampDouble(
+              _holeDiameter,
+              0.8,
+              diameter - 0.8,
+            );
+
+            Navigator.of(context).pop(
+              FeatureGroup(
+                id: widget.initialGroup.id,
+                type: widget.initialGroup.type,
+                targetSurface: widget.initialGroup.targetSurface,
+                pattern: widget.initialGroup.pattern,
+                itemPrototype: {
+                  'type': 'standoff',
+                  'diameter': diameter,
+                  'height': _clampDouble(_height, 1, 30),
+                  'holeDiameter': holeDiameter,
+                  'screw': _screw,
+                  'clearanceProfile': _clearanceProfile,
+                },
+                placement: widget.initialGroup.placement,
+                overrides: widget.initialGroup.overrides,
+                metadata: widget.initialGroup.metadata,
+              ),
+            );
+          },
+          child: const Text('Создать'),
+        ),
+      ],
+    );
+  }
 }
 
 class _GlassRecessDialog extends StatefulWidget {

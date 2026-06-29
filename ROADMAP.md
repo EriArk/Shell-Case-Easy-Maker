@@ -599,3 +599,50 @@ recess on the selected enclosure face.
 - Change width to `50` and click `Создать`.
 - Confirm `glass_recess_1` appears in the feature list/inspector.
 - Click undo and confirm the new recess disappears.
+
+---
+
+## M16 — Mount Generation Command
+
+### Goal
+Make the first component-driven generator command create editable semantic
+standoff mounts from the selected component placement's mounting holes.
+
+### Tasks
+- [x] Wire `mount.generate` from the left rail only when a component placement
+      with mounting holes is selected.
+- [x] Resolve the selected `ComponentPlacement` to its `ComponentTemplate`.
+- [x] Add a compact mount dialog for standoff diameter, hole diameter, height,
+      and clearance profile.
+- [x] Store the result as a `FeatureGroup` with `type: standoff_mounts`.
+- [x] Keep source mounting-hole positions and source placement/template IDs in
+      editable semantic group data.
+- [x] Commit the new group through semantic undo history and select it.
+- [x] Add human inspector/browser labels and mount dimensions.
+- [x] Add widget/resolver tests for disabled state, create, cancel, undo, and
+      display details.
+
+### Done Criteria
+- `Крепёж` stays disabled without a selected component placement.
+- Selecting `button_board_placement` enables `Крепёж`.
+- Confirming the dialog appends a semantic `FeatureGroup` with
+  `type: standoff_mounts`.
+- The group stores mounting-hole-derived pattern data instead of flattening
+  mounts into unrelated independent features.
+- Canceling the dialog makes no project change and creates no undo entry.
+- Undo removes the new mount group and leaves selection valid.
+
+### Tests
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Select `button_board_placement` in the project browser.
+- Click `Крепёж` in the left rail.
+- Change `Стойка` to `6` and click `Создать`.
+- Confirm `standoff_mounts_1` appears in the feature list/inspector.
+- Confirm the inspector shows diameter `6.0`, hole, height, and count data.
+- Click undo and confirm the new mount group disappears.

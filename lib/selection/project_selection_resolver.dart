@@ -273,6 +273,7 @@ String _humanizeFeatureType(String type) {
     'usb_c_cutout' => 'USB-C',
     'glass_recess' => 'Посадка под стекло',
     'button_group' => 'Группа кнопок',
+    'standoff_mounts' => 'Крепёж',
     _ => type.replaceAll('_', ' '),
   };
 }
@@ -311,6 +312,16 @@ List<ProjectSelectionProperty> _featureGroupProperties(FeatureGroup group) {
       ProjectSelectionProperty(
         label: 'Диаметр',
         value: _formatValue(group.itemPrototype['diameter']),
+      ),
+    if (group.itemPrototype.containsKey('holeDiameter'))
+      ProjectSelectionProperty(
+        label: 'Отверстие',
+        value: _formatValue(group.itemPrototype['holeDiameter']),
+      ),
+    if (group.itemPrototype.containsKey('height'))
+      ProjectSelectionProperty(
+        label: 'Высота',
+        value: _formatValue(group.itemPrototype['height']),
       ),
     if (group.itemPrototype.containsKey('mode'))
       ProjectSelectionProperty(

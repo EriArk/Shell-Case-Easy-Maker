@@ -90,4 +90,25 @@ void main() {
       containsAll(['Раскладка', 'Кол-во', 'Диаметр']),
     );
   });
+
+  test('describes standoff mount group details', () {
+    final project = ProjectModel.initial().replaceFeatureGroup(
+      const FeatureGroup(
+        id: 'standoff_mounts_1',
+        type: 'standoff_mounts',
+        targetSurface: 'main_enclosure.bottom_inside',
+        pattern: {'layout': 'from_component_mounting_holes', 'count': 4},
+        itemPrototype: {'diameter': 5.0, 'holeDiameter': 2.2, 'height': 4.0},
+      ),
+    );
+    final details = ProjectSelectionResolver(
+      project,
+    ).describe(const SelectionModel.featureGroup('standoff_mounts_1'));
+
+    expect(details.title, 'Крепёж');
+    expect(
+      details.properties.map((property) => property.label),
+      containsAll(['Кол-во', 'Диаметр', 'Отверстие', 'Высота']),
+    );
+  });
 }

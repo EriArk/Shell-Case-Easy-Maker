@@ -110,3 +110,22 @@ When placed in an enclosure:
 - switches generate holes/buttons,
 - keepouts affect supports,
 - height affects lid/case clearance.
+
+## Current implementation slice
+
+The starter `ComponentTemplate.buttonBoard()` includes four typed mounting
+holes. Selecting its `ComponentPlacement` and running `mount.generate` creates a
+semantic `standoff_mounts` `FeatureGroup` from those holes.
+
+The generated group records:
+- source placement/template IDs,
+- source mounting-hole positions,
+- standoff diameter,
+- hole diameter,
+- height,
+- screw label,
+- clearance profile.
+
+The editable project still stores this as semantic intent. Generated B-Rep,
+preview mesh, and export geometry should be derived later by `GeometryService`
+or the OCCT worker.

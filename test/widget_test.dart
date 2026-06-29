@@ -450,6 +450,68 @@ void main() {
     expect(tester.widget<IconButton>(undoButton).onPressed, isNull);
   });
 
+  testWidgets('mount generation rail command commits through undo history', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const CaseMakerApp());
+    await tester.pumpAndSettle();
+
+    final mountButton = find.byKey(
+      const ValueKey('rail-command-${CommandIds.generateMount}'),
+    );
+    final undoButton = find.byKey(
+      const ValueKey('toolbar-command-${CommandIds.undo}'),
+    );
+
+    expect(tester.widget<IconButton>(mountButton).onPressed, isNull);
+
+    await tester.tap(find.text('button_board_placement').first);
+    await tester.pumpAndSettle();
+
+    expect(tester.widget<IconButton>(mountButton).onPressed, isNotNull);
+
+    await tester.tap(mountButton);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('mount-confirm')), findsOneWidget);
+
+    await tester.enterText(find.byKey(const ValueKey('mount-diameter')), '6');
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('mount-confirm')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('standoff_mounts_1'), findsWidgets);
+    expect(find.text('6.0'), findsOneWidget);
+    expect(tester.widget<IconButton>(undoButton).onPressed, isNotNull);
+
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('standoff_mounts_1'), findsNothing);
+  });
+
+  testWidgets('mount generation rail command can be cancelled', (tester) async {
+    await tester.pumpWidget(const CaseMakerApp());
+    await tester.pumpAndSettle();
+
+    final mountButton = find.byKey(
+      const ValueKey('rail-command-${CommandIds.generateMount}'),
+    );
+    final undoButton = find.byKey(
+      const ValueKey('toolbar-command-${CommandIds.undo}'),
+    );
+
+    await tester.tap(find.text('button_board_placement').first);
+    await tester.pumpAndSettle();
+    await tester.tap(mountButton);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('mount-cancel')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('standoff_mounts_1'), findsNothing);
+    expect(tester.widget<IconButton>(undoButton).onPressed, isNull);
+  });
+
   testWidgets('unimplemented rail commands are visible but disabled', (
     tester,
   ) async {
