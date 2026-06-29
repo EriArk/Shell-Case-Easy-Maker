@@ -276,6 +276,50 @@ void main() {
     );
   });
 
+  testWidgets('snap-seeded placement dialog can align a component anchor', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const CaseMakerApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Top lid').first);
+    await tester.pumpAndSettle();
+    await _tapTopLidSnap(tester, const Offset(30, 0));
+
+    await tester.tap(
+      find.byKey(const ValueKey('rail-command-${CommandIds.placeComponent}')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('place-component-anchor')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('place-component-anchor')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('USB-C usb_c').last);
+    await tester.pumpAndSettle();
+
+    expect(_dialogNumberText(tester, 'place-component-x'), '30');
+    expect(_dialogNumberText(tester, 'place-component-y'), '16');
+
+    await tester.tap(
+      find.byKey(const ValueKey('place-component-rotate-right')),
+    );
+    await tester.pump();
+
+    expect(_dialogNumberText(tester, 'place-component-rotation-z'), '90');
+    expect(_dialogNumberText(tester, 'place-component-x'), '14');
+    expect(_dialogNumberText(tester, 'place-component-y'), '0');
+
+    await tester.tap(find.byKey(const ValueKey('place-component-confirm')));
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('custom_button_board_v1_placement_2'), findsWidgets);
+    expect(find.text('14 x 0 x 4 mm'), findsOneWidget);
+  });
+
   testWidgets('active snap target can be cleared from inspector', (
     tester,
   ) async {
@@ -1859,6 +1903,16 @@ Future<void> _tapTopLidSnap(WidgetTester tester, Offset localPosition) async {
     canvasTopLeft + layout.workplaneLocalToCanvas(workplane, localPosition),
   );
   await tester.pumpAndSettle();
+}
+
+String _dialogNumberText(WidgetTester tester, String key) {
+  final field = tester.widget<TextFormField>(
+    find.descendant(
+      of: find.byKey(ValueKey(key)),
+      matching: find.byType(TextFormField),
+    ),
+  );
+  return field.controller?.text ?? field.initialValue ?? '';
 }
 
 class _FakeProjectFileDialogService implements ProjectFileDialogService {

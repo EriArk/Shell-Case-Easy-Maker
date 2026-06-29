@@ -66,6 +66,8 @@ Use deterministic test fixtures.
   commit normal semantic placements.
 - Component placement dialog rotation updates candidate fit feedback and
   committed inspector state.
+- Snap-seeded component placement can align semantic component anchors to the
+  selected snap point without saving anchor UI state.
 - Validation status/details show warning and error messages.
 - Context popovers show correct actions.
 - Parameter knob updates model.

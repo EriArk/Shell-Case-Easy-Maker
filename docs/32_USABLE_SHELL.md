@@ -185,6 +185,12 @@ to the center or near a side of the current enclosure inner space. These
 controls only update transient candidate state until placement is confirmed.
 The dialog also edits `Поворот Z` with 90 degree rotate icons, so rotation-aware
 fit feedback is visible before the semantic placement is committed.
+When placement starts from an active snap target, the dialog also offers
+`Якорь к точке` choices derived from the selected component template: board
+center, mounting holes, and feature centers such as USB-C or switches. Choosing
+one recalculates the candidate center so that anchor lands on the snap point.
+The selected anchor itself remains transient UI state; only the resulting
+semantic placement position and rotation are committed.
 The dialog validates its current candidate placement as X/Y/Z/template values
 change and shows whether it fits before commit.
 While the dialog is open, the shell also keeps a transient candidate footprint

@@ -134,6 +134,13 @@ The mock viewport also derives schematic standoff markers from the same source
 positions. Those markers are selectable affordances for the semantic
 `FeatureGroup`; they are not saved geometry.
 
+When a component placement is started from a surface snap target, the placement
+dialog can use the template's board center, mounting holes, and semantic
+feature centers as transient alignment anchors. Choosing an anchor recalculates
+the placement center so that anchor lands on the selected snap point. The
+project still stores only the resulting semantic `ComponentPlacement`; selected
+anchor UI state is not serialized.
+
 `ProjectSemanticValidator` also performs a first-pass component placement check
 against the enclosure inner volume. It treats the component board as a semantic
 outline/thickness envelope, accounts for the placement's Z rotation with a

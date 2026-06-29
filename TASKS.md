@@ -64,6 +64,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Component placement dialog selected template size summary.
 - [x] Component placement dialog quick position presets.
 - [x] Component placement dialog rotation editing.
+- [x] Component placement dialog snap anchor selection.
 - [x] First-pass component placement inspector editing.
 - [x] First-pass component placement rotation editing.
 - [x] First-pass component placement lock guard.
@@ -152,6 +153,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] First-pass placement dialog viewport candidate preview.
 - [x] First-pass placement dialog quick position presets.
 - [x] First-pass placement dialog rotation editing.
+- [x] First-pass snap anchor selection for component placement.
 - [ ] Guided component placement workflow with viewport picking.
 - [ ] Project switch centers and connector anchors to enclosure surfaces.
 

@@ -3387,3 +3387,92 @@ viewport picking or component anchor mapping.
 Dialog rotation is transient until confirmation. Keep preview/candidate state
 out of undo history and project JSON unless the dialog commits a real
 `ComponentPlacement`.
+
+---
+
+## 2026-06-29 - M40 Snap Anchor Placement
+
+### Goal
+Let snap-seeded component placement align a chosen semantic component anchor,
+such as a mounting hole, USB-C connector, or switch center, to the selected
+surface snap point before commit.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `docs/07_COMPONENT_TEMPLATE_SYSTEM.md`,
+`docs/32_USABLE_SHELL.md`, `docs/26_TESTING_AND_QUALITY.md`,
+`lib/ui/shell/workspace_shell.dart`, and snap/placement widget tests.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Passes the active snap target into the component placement dialog.
+  - Builds transient anchor choices from the selected template center,
+    mounting holes, and semantic component features.
+  - Adds a compact `Якорь к точке` selector when placement starts from a snap.
+  - Recalculates candidate X/Y so the selected anchor lands on the snap point.
+  - Keeps anchor-lock active across rotation until the user manually changes
+    X/Y or uses a quick position preset.
+  - Normalizes tiny floating-point values when formatting dialog/inspector
+    numbers so near-zero values render as `0`.
+- `test/widget_test.dart`:
+  - Added coverage for USB-C anchor alignment from a top-lid snap point and
+    rotation-aware re-alignment.
+- Docs/tasks/roadmap:
+  - Recorded M40 behavior, done criteria, tests, and poke checklist.
+
+### Tests run
+- `flutter test test\widget_test.dart --plain-name "snap-seeded placement dialog can align a component anchor"`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "surface snap point seeds component placement dialog"`:
+  - Passed after rerunning sequentially.
+- `flutter test test\widget_test.dart --plain-name "active snap target inspector action opens placement dialog"`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "place component dialog rotation updates candidate fit and commit"`:
+  - Passed after rerunning sequentially.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 118 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Mock viewport candidate only; no generated B-Rep or mesh is created.
+- Serialization checked?
+  - Selected anchor state is transient and not serialized. The project stores
+    only the resulting semantic `ComponentPlacement` position and rotation.
+- UI checked?
+  - Widget test confirms anchor selection updates candidate coordinates and
+    stays aligned through rotation.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: The anchor selector exists only inside the dialog; direct viewport
+  anchor picking is still future work.
+  - Severity: Expected.
+  - Next action: continue toward a guided viewport placement workflow.
+- Issue: Running multiple targeted `flutter test` commands in parallel on
+  Windows can collide on `build/test_cache`.
+  - Severity: Tooling nuisance.
+  - Next action: run Flutter tests sequentially unless using the single
+    built-in `flutter test` runner.
+
+### Next step
+Commit and push M40, then continue toward guided component placement with more
+viewport-driven confirmation or projected connector/switch workflows.
+
+### Notes for future Codex sessions
+Anchor selection is a placement aid, not project data. Do not serialize
+selected anchor IDs unless the product explicitly grows editable placement
+constraints later.

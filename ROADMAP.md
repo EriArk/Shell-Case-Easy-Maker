@@ -58,6 +58,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M37 — Placement Template Size Summary
 - [x] M38 — Placement Quick Presets
 - [x] M39 — Placement Dialog Rotation
+- [x] M40 — Snap Anchor Placement
 
 ---
 
@@ -1615,3 +1616,48 @@ placement orientation.
   warning clears.
 - Click `Разместить` and confirm the new placement inspector keeps
   `Поворот Z = 90`.
+
+---
+
+## M40 — Snap Anchor Placement
+
+### Goal
+Let a snap-seeded component placement align a chosen component anchor, such as
+a mounting hole, connector, or switch center, to the selected surface snap
+point before commit.
+
+### Tasks
+- [x] Pass the active snap target into the component placement dialog.
+- [x] Build anchor choices from the selected component template center,
+      mounting holes, and semantic features.
+- [x] Add a compact `Якорь к точке` selector when placement starts from a snap.
+- [x] Recalculate the candidate center so the selected anchor lands on the snap
+      target.
+- [x] Keep the selected anchor transient and save only the resulting semantic
+      `ComponentPlacement`.
+- [x] Add widget coverage for USB-C anchor alignment and rotation-aware
+      re-alignment.
+
+### Done Criteria
+- Opening `Компоненты` from an active snap target shows anchor choices.
+- Selecting a component anchor updates X/Y immediately.
+- Rotating the candidate while anchor-locked keeps the chosen anchor on the
+  snap target.
+- Confirming the dialog commits a normal semantic placement position/rotation.
+- No selected anchor state, generated mesh, B-Rep, triangle ID, or OCCT
+  topology becomes editable project state.
+
+### Tests
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Select `Top lid`, click a snap dot, then open `Компоненты`.
+- In `Якорь к точке`, choose `USB-C usb_c`.
+- Confirm X/Y update so the USB-C anchor is aligned to the snap point.
+- Click rotate-right and confirm the candidate keeps that anchor aligned.
+- Click `Разместить` and confirm the committed placement uses the new
+  position/rotation.

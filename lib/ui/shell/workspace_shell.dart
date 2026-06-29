@@ -434,6 +434,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
         templates: _project.componentTemplates,
         initialPlacement: initialPlacement,
         onCandidateChanged: _setPlacementDialogCandidate,
+        snapTarget: snapTarget,
         snapHint: snapTarget?.label,
       ),
     );
@@ -3454,6 +3455,7 @@ class _PlaceComponentDialog extends StatefulWidget {
     required this.templates,
     required this.initialPlacement,
     required this.onCandidateChanged,
+    this.snapTarget,
     this.snapHint,
   });
 
@@ -3461,6 +3463,7 @@ class _PlaceComponentDialog extends StatefulWidget {
   final List<ComponentTemplate> templates;
   final ComponentPlacement initialPlacement;
   final ValueChanged<ComponentPlacement> onCandidateChanged;
+  final _ActiveSnapTarget? snapTarget;
   final String? snapHint;
 
   @override
@@ -3473,8 +3476,12 @@ class _PlaceComponentDialogState extends State<_PlaceComponentDialog> {
   late double _y;
   late double _z;
   late double _rotationZ;
+  late String _anchorId;
+  late bool _snapAnchorLocked;
   late String _mountingSide;
   late bool _locked;
+
+  static const _centerAnchorId = 'center';
 
   static const _mountingSides = [
     _MountingSideOption('bottom_inside', 'Внутри на дне'),
@@ -3491,6 +3498,8 @@ class _PlaceComponentDialogState extends State<_PlaceComponentDialog> {
     _y = _positionAt(initial.position, 1);
     _z = _positionAt(initial.position, 2);
     _rotationZ = _positionAt(initial.rotation, 2);
+    _anchorId = _centerAnchorId;
+    _snapAnchorLocked = widget.snapTarget != null;
     _mountingSide = initial.mountingSide;
     _locked = initial.locked;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -3506,6 +3515,7 @@ class _PlaceComponentDialogState extends State<_PlaceComponentDialog> {
   void _applyQuickPreset(_PlacementQuickPreset preset) {
     FocusManager.instance.primaryFocus?.unfocus();
     _updateCandidate(() {
+      _breakSnapAnchorLock();
       final x = preset.x;
       if (x != null) {
         _x = x;
@@ -3522,7 +3532,33 @@ class _PlaceComponentDialogState extends State<_PlaceComponentDialog> {
     FocusManager.instance.primaryFocus?.unfocus();
     _updateCandidate(() {
       _rotationZ = _normalizeRotationZ(_rotationZ + delta);
+      _applySnapAnchorIfLocked();
     });
+  }
+
+  void _selectAnchor(String anchorId) {
+    _updateCandidate(() {
+      _anchorId = anchorId;
+      _snapAnchorLocked = widget.snapTarget != null;
+      _applySnapAnchorIfLocked();
+    });
+  }
+
+  void _breakSnapAnchorLock() {
+    _anchorId = _centerAnchorId;
+    _snapAnchorLocked = false;
+  }
+
+  void _applySnapAnchorIfLocked() {
+    final snapTarget = widget.snapTarget;
+    if (!_snapAnchorLocked || snapTarget == null) {
+      return;
+    }
+
+    final anchor = _selectedAnchor;
+    final offset = _rotateLocalOffset(anchor.offset, _rotationZ);
+    _x = snapTarget.projectPosition.dx - offset.dx;
+    _y = snapTarget.projectPosition.dy - offset.dy;
   }
 
   @override
@@ -3570,6 +3606,9 @@ class _PlaceComponentDialogState extends State<_PlaceComponentDialog> {
                   if (value != null) {
                     _updateCandidate(() {
                       _templateId = value;
+                      _anchorId = _centerAnchorId;
+                      _snapAnchorLocked = widget.snapTarget != null;
+                      _applySnapAnchorIfLocked();
                     });
                   }
                 },
@@ -3594,7 +3633,10 @@ class _PlaceComponentDialogState extends State<_PlaceComponentDialog> {
                       key: const ValueKey('place-component-x'),
                       label: 'X',
                       value: _x,
-                      onChanged: (value) => _updateCandidate(() => _x = value),
+                      onChanged: (value) => _updateCandidate(() {
+                        _breakSnapAnchorLock();
+                        _x = value;
+                      }),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -3603,7 +3645,10 @@ class _PlaceComponentDialogState extends State<_PlaceComponentDialog> {
                       key: const ValueKey('place-component-y'),
                       label: 'Y',
                       value: _y,
-                      onChanged: (value) => _updateCandidate(() => _y = value),
+                      onChanged: (value) => _updateCandidate(() {
+                        _breakSnapAnchorLock();
+                        _y = value;
+                      }),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -3625,11 +3670,21 @@ class _PlaceComponentDialogState extends State<_PlaceComponentDialog> {
               const SizedBox(height: 10),
               _PlacementRotationControl(
                 value: _rotationZ,
-                onChanged: (value) =>
-                    _updateCandidate(() => _rotationZ = value),
+                onChanged: (value) => _updateCandidate(() {
+                  _rotationZ = value;
+                  _applySnapAnchorIfLocked();
+                }),
                 onRotateLeft: () => _rotateCandidate(-90),
                 onRotateRight: () => _rotateCandidate(90),
               ),
+              if (widget.snapTarget != null) ...[
+                const SizedBox(height: 10),
+                _PlacementAnchorSelector(
+                  anchors: _placementAnchors,
+                  value: _selectedAnchor.id,
+                  onChanged: _selectAnchor,
+                ),
+              ],
               const SizedBox(height: 10),
               DropdownButtonFormField<String>(
                 key: const ValueKey('place-component-side'),
@@ -3709,6 +3764,22 @@ class _PlaceComponentDialogState extends State<_PlaceComponentDialog> {
     return widget.templates
         .where((template) => template.id == _templateId)
         .firstOrNull;
+  }
+
+  List<_ComponentPlacementAnchor> get _placementAnchors {
+    final template = _selectedTemplate;
+    if (template == null) {
+      return const [_ComponentPlacementAnchor.center];
+    }
+
+    return _componentPlacementAnchors(template);
+  }
+
+  _ComponentPlacementAnchor get _selectedAnchor {
+    return _placementAnchors
+            .where((anchor) => anchor.id == _anchorId)
+            .firstOrNull ??
+        _ComponentPlacementAnchor.center;
   }
 
   List<_PlacementQuickPreset> get _quickPresets {
@@ -3930,6 +4001,96 @@ class _PlacementRotationControl extends StatelessWidget {
       ],
     );
   }
+}
+
+class _PlacementAnchorSelector extends StatelessWidget {
+  const _PlacementAnchorSelector({
+    required this.anchors,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final List<_ComponentPlacementAnchor> anchors;
+  final String value;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<String>(
+      key: const ValueKey('place-component-anchor'),
+      initialValue: value,
+      isExpanded: true,
+      items: [
+        for (final anchor in anchors)
+          DropdownMenuItem(value: anchor.id, child: Text(anchor.label)),
+      ],
+      onChanged: (value) {
+        if (value != null) {
+          onChanged(value);
+        }
+      },
+      decoration: InputDecoration(
+        labelText: 'Якорь к точке',
+        isDense: true,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      ),
+    );
+  }
+}
+
+class _ComponentPlacementAnchor {
+  const _ComponentPlacementAnchor({
+    required this.id,
+    required this.label,
+    required this.offset,
+  });
+
+  static const center = _ComponentPlacementAnchor(
+    id: 'center',
+    label: 'Центр платы',
+    offset: Offset.zero,
+  );
+
+  final String id;
+  final String label;
+  final Offset offset;
+}
+
+List<_ComponentPlacementAnchor> _componentPlacementAnchors(
+  ComponentTemplate template,
+) {
+  return [
+    _ComponentPlacementAnchor.center,
+    for (final hole in template.mountingHoles)
+      _ComponentPlacementAnchor(
+        id: 'hole:${hole.id}',
+        label: 'Отверстие ${hole.id}',
+        offset: Offset(
+          _positionAt(hole.position, 0),
+          _positionAt(hole.position, 1),
+        ),
+      ),
+    for (final feature in template.features)
+      _ComponentPlacementAnchor(
+        id: 'feature:${feature.id}',
+        label: '${_componentFeatureAnchorLabel(feature.type)} ${feature.id}',
+        offset: Offset(
+          _positionAt(feature.position, 0),
+          _positionAt(feature.position, 1),
+        ),
+      ),
+  ];
+}
+
+String _componentFeatureAnchorLabel(String type) {
+  return switch (type) {
+    'usb_c' => 'USB-C',
+    'switch' => 'Кнопка',
+    'screen' => 'Экран',
+    'led' => 'LED',
+    _ => type,
+  };
 }
 
 double _innerEnclosureSize(Enclosure enclosure, int index, double fallback) {
@@ -4962,11 +5123,12 @@ class _ParameterBoolField extends StatelessWidget {
 }
 
 String _formatNumber(num value) {
-  if (value == value.roundToDouble()) {
-    return value.toStringAsFixed(0);
+  final normalized = value.abs() < 0.0001 ? 0.0 : value.toDouble();
+  if (normalized == normalized.roundToDouble()) {
+    return normalized.toStringAsFixed(0);
   }
 
-  return value.toStringAsFixed(1);
+  return normalized.toStringAsFixed(1);
 }
 
 class _InspectorValue extends StatelessWidget {
