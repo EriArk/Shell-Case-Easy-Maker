@@ -68,6 +68,12 @@ group-specific parameter bank. The first supported group editors are
 standoff item prototype while preserving source mounting-hole pattern data.
 Repeated items stay grouped and undoable as one semantic object.
 
+When a component placement is selected, the inspector renders a compact
+placement editor for X/Y/Z position, mounting side, and locked state. Edits
+replace the selected semantic `ComponentPlacement`, refresh preview/validation,
+and commit through the same undo history. This lets placement validation issues
+be corrected directly after selecting an issue row.
+
 ## Project browser
 
 The shell includes a compact semantic browser next to the icon rail.
@@ -175,7 +181,8 @@ disabled until their semantic command behavior is implemented and tested.
 - Viewport selection is still mocked and schematic, though direct hit testing
   already returns semantic IDs.
 - Component placement still uses typed dialog values rather than viewport
-  picking or snapping.
+  picking or snapping, though selected placements can now be adjusted from the
+  inspector.
 - USB-C placement still uses dialog values and target surface selection rather
   than face-local picking/snapping. The visible marker is a mock viewport
   affordance.
@@ -190,6 +197,7 @@ disabled until their semantic command behavior is implemented and tested.
 - Validation details can select semantic targets, but issue rows do not yet
   provide fix actions or scroll the project browser to the selected object.
 - Undo history is connected only to enclosure parameter edits, first
+  component placement parameter edits, first
   USB-C/glass feature parameter edits, first button/mount feature-group
   parameter edits, first enclosure creation, first component placement, first
   USB-C cutout, and first button group/glass recess/mount commands.

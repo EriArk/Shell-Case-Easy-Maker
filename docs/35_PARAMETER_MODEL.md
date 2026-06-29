@@ -96,6 +96,12 @@ The first create-enclosure rail command also uses this schema and adapter. Its
 dialog edits normalized schema values, then applies them to the semantic
 `Enclosure` before committing one undoable project snapshot.
 
+The contextual inspector also uses a small schema-backed parameter bank for
+selected component placements. It edits X/Y/Z position, mounting side, and the
+locked flag, then writes those values back to the semantic
+`ComponentPlacement`. This is still UI-side schema usage; the saved project
+continues to store the typed placement fields.
+
 ## Current Limitations
 
 - Parameter values are not stored as a separate typed layer in `ProjectModel`
@@ -104,4 +110,5 @@ dialog edits normalized schema values, then applies them to the semantic
   and cross-object validation, such as "placed board must fit inside the
   enclosure", belong in generator-specific semantic validation. The first pass
   now lives in `ProjectSemanticValidator`, not in `ParameterSchema`.
-- Only the rounded enclosure schema is wired into UI controls so far.
+- Only the rounded enclosure schema and first component placement editor schema
+  are wired into object-level UI controls so far.

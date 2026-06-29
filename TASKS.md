@@ -58,6 +58,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Validation issue rows select semantic targets.
 - [x] First executable left rail generator command.
 - [x] First executable component placement command.
+- [x] First-pass component placement inspector editing.
 - [x] First executable surface-based USB-C command.
 - [x] First executable surface-based button group command.
 - [x] First executable surface-based glass recess command.
@@ -127,6 +128,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [ ] Save/load component templates.
 - [x] First-pass place component inside enclosure.
 - [x] First-pass component placement bounds validation.
+- [x] First-pass edit component placement from inspector.
 - [ ] Guided component placement workflow with viewport picking.
 - [ ] Project switch centers and connector anchors to enclosure surfaces.
 

@@ -2300,3 +2300,85 @@ viewport-prep slice.
 ### Notes for future Codex sessions
 Validation navigation must remain semantic. Do not route issue rows through
 preview triangle IDs, generated mesh IDs, or OCCT topology names.
+
+---
+
+## 2026-06-29 - M27 Component Placement Inspector Editing
+
+### Goal
+Make selected component placements directly editable from the contextual
+inspector so validation errors can be corrected without reopening the placement
+dialog.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `ComponentPlacement`,
+`ProjectModel.replaceComponentPlacement`, parameter model helpers, workspace
+shell inspector/editor code, and widget tests.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added a compact placement parameter schema for X/Y/Z, mounting side, and
+    locked state.
+  - Added a component placement editor to the contextual inspector.
+  - Added a reusable boolean parameter field for the locked flag.
+  - Added semantic placement update helpers that preserve stable placement IDs,
+    template IDs, rotation, and metadata.
+  - Routed placement inspector edits through `UndoHistory<ProjectModel>` and
+    existing preview/validation refresh.
+- Tests:
+  - Added widget coverage for selecting a component placement, editing X,
+    surfacing a validation error, and undoing the edit.
+- Docs/tasks/roadmap:
+  - Documented M27 and the placement editor workflow.
+
+### Tests run
+- `flutter test test\widget_test.dart`:
+  - Passed, 31 widget tests.
+- `flutter pub get`:
+  - Passed; 4 packages have newer incompatible versions.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 100 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Not applicable; placement editing is semantic UI/state work.
+- Serialization checked?
+  - No schema change; edited placements remain standard `ComponentPlacement`
+    JSON fields.
+- UI checked?
+  - Widget test confirms placement edit, validation refresh, and undo.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Placement editor still uses typed values instead of viewport picking,
+  snapping, or face-local handles.
+  - Severity: Expected.
+  - Next action: add viewport-driven placement after local workplane/snapping
+    foundations are ready.
+- Issue: Placement rotation is still read-only in this slice.
+  - Severity: Expected.
+  - Next action: add rotation controls once rotated bounds are validated.
+- Issue: Locked placement state is stored but not yet enforced by all editing
+  pathways.
+  - Severity: Expected.
+  - Next action: define lock semantics before adding viewport placement tools.
+
+### Next step
+Commit and push M27, then continue toward the next safe viewport-prep or
+geometry-service slice.
+
+### Notes for future Codex sessions
+Component placement edits must keep semantic placement IDs stable. Do not use
+preview mesh positions or OCCT topology as editable placement state.

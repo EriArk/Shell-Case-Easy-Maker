@@ -45,6 +45,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M24 — First Semantic Validation Warnings
 - [x] M25 — Validation Details + Placement Bounds
 - [x] M26 — Validation Issue Target Selection
+- [x] M27 — Component Placement Inspector Editing
 
 ---
 
@@ -1062,3 +1063,42 @@ and errors are actionable from the details sheet.
 - Open the status-bar validation details sheet.
 - Click the `glass_recess_*` issue row.
 - Confirm the sheet closes and the glass recess inspector opens.
+
+---
+
+## M27 — Component Placement Inspector Editing
+
+### Goal
+Make selected component placements directly editable from the contextual
+inspector so validation errors found from M25/M26 can be corrected without
+reopening the placement dialog.
+
+### Tasks
+- [x] Add a compact placement parameter schema for X/Y/Z, mounting side, and
+      locked state.
+- [x] Add a component placement editor to the contextual inspector.
+- [x] Commit placement edits through semantic undo history.
+- [x] Refresh mock preview and semantic validation after placement edits.
+- [x] Add widget coverage for placement position edit, validation error, and
+      undo.
+
+### Done Criteria
+- Selecting `button_board_placement` shows editable placement controls.
+- Editing X/Y/Z updates the semantic `ComponentPlacement`.
+- Moving a placement outside the enclosure updates validation status.
+- Undo restores the previous semantic placement and clears the validation issue.
+- The editable project remains semantic JSON only; no generated mesh, B-Rep, or
+  topology is stored.
+
+### Tests
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Select `button_board_placement`.
+- Change `X` to `80` and press Enter.
+- Confirm the bottom status bar reports the component outside the enclosure.
+- Click undo and confirm `X` returns to `0` and the error disappears.

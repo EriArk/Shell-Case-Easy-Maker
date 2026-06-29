@@ -648,6 +648,45 @@ void main() {
     expect(tester.widget<IconButton>(undoButton).onPressed, isNull);
   });
 
+  testWidgets(
+    'selected component placement inspector edits position through undo',
+    (tester) async {
+      await tester.pumpWidget(const CaseMakerApp());
+      await tester.pumpAndSettle();
+
+      final undoButton = find.byKey(
+        const ValueKey('toolbar-command-${CommandIds.undo}'),
+      );
+
+      await tester.tap(find.text('button_board_placement').first);
+      await tester.pumpAndSettle();
+
+      final xField = find.byKey(
+        const ValueKey('component-placement-param-button_board_placement-x'),
+      );
+
+      await tester.enterText(xField, '80');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await _pumpAsyncUi(tester);
+
+      expect(tester.widget<TextFormField>(xField).controller?.text, '80');
+      expect(
+        find.text('Компонент выходит за внутренний объём корпуса.'),
+        findsOneWidget,
+      );
+      expect(tester.widget<IconButton>(undoButton).onPressed, isNotNull);
+
+      await tester.tap(undoButton);
+      await _pumpAsyncUi(tester);
+
+      expect(tester.widget<TextFormField>(xField).controller?.text, '0');
+      expect(
+        find.text('Компонент выходит за внутренний объём корпуса.'),
+        findsNothing,
+      );
+    },
+  );
+
   testWidgets('place component command is disabled without templates', (
     tester,
   ) async {

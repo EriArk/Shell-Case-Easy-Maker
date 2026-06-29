@@ -183,6 +183,39 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     );
   }
 
+  void _updateComponentPlacementParameter(
+    String placementId,
+    String parameterId,
+    Object? value,
+  ) {
+    final placement = _project.componentPlacements
+        .where((placement) => placement.id == placementId)
+        .firstOrNull;
+    if (placement == null) {
+      return;
+    }
+
+    final parameter = _componentPlacementParameterSchema.parameters
+        .where((parameter) => parameter.id == parameterId)
+        .firstOrNull;
+    if (parameter == null) {
+      return;
+    }
+
+    final normalizedValue = parameter.normalize(value);
+    final updatedPlacement = _updatedComponentPlacementParameter(
+      placement,
+      parameterId,
+      normalizedValue,
+    );
+
+    _commitProjectEdit(
+      id: 'componentPlacement.parameter.$parameterId',
+      label: 'Изменить компонент',
+      nextState: _project.replaceComponentPlacement(updatedPlacement),
+    );
+  }
+
   void _updateFeatureGroupParameter(
     String groupId,
     String parameterId,
@@ -765,6 +798,8 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                         project: _project,
                         selection: _selection,
                         onEnclosureParameterChanged: _updateEnclosureParameter,
+                        onComponentPlacementParameterChanged:
+                            _updateComponentPlacementParameter,
                         onFeatureParameterChanged: _updateFeatureParameter,
                         onFeatureGroupParameterChanged:
                             _updateFeatureGroupParameter,
@@ -960,6 +995,62 @@ ComponentPlacement _defaultComponentPlacement({
     mountingSide: 'bottom_inside',
     locked: false,
   );
+}
+
+ComponentPlacement _updatedComponentPlacementParameter(
+  ComponentPlacement placement,
+  String parameterId,
+  Object? value,
+) {
+  return switch (parameterId) {
+    'x' => _copyComponentPlacementWithPosition(placement, x: _asDouble(value)),
+    'y' => _copyComponentPlacementWithPosition(placement, y: _asDouble(value)),
+    'z' => _copyComponentPlacementWithPosition(placement, z: _asDouble(value)),
+    'mountingSide' => ComponentPlacement(
+      id: placement.id,
+      templateId: placement.templateId,
+      position: placement.position,
+      rotation: placement.rotation,
+      mountingSide: value is String ? value : placement.mountingSide,
+      locked: placement.locked,
+      metadata: placement.metadata,
+    ),
+    'locked' => ComponentPlacement(
+      id: placement.id,
+      templateId: placement.templateId,
+      position: placement.position,
+      rotation: placement.rotation,
+      mountingSide: placement.mountingSide,
+      locked: value is bool ? value : placement.locked,
+      metadata: placement.metadata,
+    ),
+    _ => placement,
+  };
+}
+
+ComponentPlacement _copyComponentPlacementWithPosition(
+  ComponentPlacement placement, {
+  double? x,
+  double? y,
+  double? z,
+}) {
+  return ComponentPlacement(
+    id: placement.id,
+    templateId: placement.templateId,
+    position: [
+      x ?? _positionAt(placement.position, 0),
+      y ?? _positionAt(placement.position, 1),
+      z ?? _positionAt(placement.position, 2),
+    ],
+    rotation: placement.rotation,
+    mountingSide: placement.mountingSide,
+    locked: placement.locked,
+    metadata: placement.metadata,
+  );
+}
+
+double _asDouble(Object? value) {
+  return value is num ? value.toDouble() : 0;
 }
 
 String _nextComponentPlacementId(ProjectModel project, String templateId) {
@@ -1939,6 +2030,7 @@ class _Inspector extends StatelessWidget {
     required this.project,
     required this.selection,
     required this.onEnclosureParameterChanged,
+    required this.onComponentPlacementParameterChanged,
     required this.onFeatureParameterChanged,
     required this.onFeatureGroupParameterChanged,
   });
@@ -1948,6 +2040,8 @@ class _Inspector extends StatelessWidget {
   final SelectionModel selection;
   final void Function(String enclosureId, String parameterId, Object? value)
   onEnclosureParameterChanged;
+  final void Function(String placementId, String parameterId, Object? value)
+  onComponentPlacementParameterChanged;
   final void Function(String featureId, String parameterId, Object? value)
   onFeatureParameterChanged;
   final void Function(String groupId, String parameterId, Object? value)
@@ -1958,6 +2052,12 @@ class _Inspector extends StatelessWidget {
     final theme = Theme.of(context);
     final selectedEnclosure = selection.kind == SelectionKind.enclosure
         ? project.bodies.where((body) => body.id == selection.id).firstOrNull
+        : null;
+    final selectedComponentPlacement =
+        selection.kind == SelectionKind.componentPlacement
+        ? project.componentPlacements
+              .where((placement) => placement.id == selection.id)
+              .firstOrNull
         : null;
     final selectedFeature = selection.kind == SelectionKind.feature
         ? project.features
@@ -2018,6 +2118,19 @@ class _Inspector extends StatelessWidget {
               onChanged: (parameterId, value) {
                 onEnclosureParameterChanged(
                   selectedEnclosure.id,
+                  parameterId,
+                  value,
+                );
+              },
+            ),
+          ],
+          if (selectedComponentPlacement != null) ...[
+            const SizedBox(height: 14),
+            _ComponentPlacementParameterEditor(
+              placement: selectedComponentPlacement,
+              onChanged: (parameterId, value) {
+                onComponentPlacementParameterChanged(
+                  selectedComponentPlacement.id,
                   parameterId,
                   value,
                 );
@@ -2109,6 +2222,86 @@ class _EnclosureParameterEditor extends StatelessWidget {
             )
           else
             _ParameterNumberField(
+              parameter: parameter,
+              value: values[parameter.id],
+              onSubmitted: (value) => onChanged(parameter.id, value),
+            ),
+          const SizedBox(height: 10),
+        ],
+        for (final issue in issues)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Text(
+              issue.message,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.error,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _ComponentPlacementParameterEditor extends StatelessWidget {
+  const _ComponentPlacementParameterEditor({
+    required this.placement,
+    required this.onChanged,
+  });
+
+  final ComponentPlacement placement;
+  final void Function(String parameterId, Object? value) onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final values = _componentPlacementParameterValues(placement);
+    final issues = _componentPlacementParameterSchema.validate(values);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Divider(color: theme.dividerColor.withValues(alpha: 0.18)),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Icon(
+              Icons.memory_rounded,
+              size: 18,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                _componentPlacementParameterSchema.label,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        for (final parameter
+            in _componentPlacementParameterSchema.parameters) ...[
+          if (parameter.kind == ParameterKind.choice)
+            _ParameterChoiceField(
+              keyPrefix: 'component-placement-param-${placement.id}',
+              parameter: parameter,
+              value: values[parameter.id] as String?,
+              onChanged: (value) => onChanged(parameter.id, value),
+            )
+          else if (parameter.kind == ParameterKind.boolean)
+            _ParameterBoolField(
+              keyPrefix: 'component-placement-param-${placement.id}',
+              parameter: parameter,
+              value: values[parameter.id] == true,
+              onChanged: (value) => onChanged(parameter.id, value),
+            )
+          else
+            _ParameterNumberField(
+              keyPrefix: 'component-placement-param-${placement.id}',
               parameter: parameter,
               value: values[parameter.id],
               onSubmitted: (value) => onChanged(parameter.id, value),
@@ -2275,6 +2468,66 @@ class _FeatureGroupParameterEditor extends StatelessWidget {
     );
   }
 }
+
+Map<String, Object?> _componentPlacementParameterValues(
+  ComponentPlacement placement,
+) {
+  return _componentPlacementParameterSchema.applyDefaults({
+    'x': _positionAt(placement.position, 0),
+    'y': _positionAt(placement.position, 1),
+    'z': _positionAt(placement.position, 2),
+    'mountingSide': placement.mountingSide,
+    'locked': placement.locked,
+  });
+}
+
+const _componentPlacementParameterSchema = ParameterSchema(
+  id: 'component.placement',
+  label: 'Размещение',
+  parameters: [
+    ParameterDefinition(
+      id: 'x',
+      label: 'X',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 0.0,
+      range: ParameterRange(min: -300, max: 300, step: 0.1),
+    ),
+    ParameterDefinition(
+      id: 'y',
+      label: 'Y',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 0.0,
+      range: ParameterRange(min: -300, max: 300, step: 0.1),
+    ),
+    ParameterDefinition(
+      id: 'z',
+      label: 'Z',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 4.0,
+      range: ParameterRange(min: -20, max: 200, step: 0.1),
+    ),
+    ParameterDefinition(
+      id: 'mountingSide',
+      label: 'Посадка',
+      kind: ParameterKind.choice,
+      defaultValue: 'bottom_inside',
+      options: [
+        ParameterOption(id: 'bottom_inside', label: 'Внутри на дне'),
+        ParameterOption(id: 'top_lid_inside', label: 'На крышке внутри'),
+        ParameterOption(id: 'free', label: 'Свободно'),
+      ],
+    ),
+    ParameterDefinition(
+      id: 'locked',
+      label: 'Зафиксировать',
+      kind: ParameterKind.boolean,
+      defaultValue: false,
+    ),
+  ],
+);
 
 ParameterSchema? _featureParameterSchema(String type) {
   return switch (type) {
@@ -3697,6 +3950,38 @@ class _ParameterChoiceField extends StatelessWidget {
         isDense: true,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
         contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      ),
+    );
+  }
+}
+
+class _ParameterBoolField extends StatelessWidget {
+  const _ParameterBoolField({
+    required this.parameter,
+    required this.value,
+    required this.onChanged,
+    this.keyPrefix = 'enclosure-param',
+  });
+
+  final ParameterDefinition parameter;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  final String keyPrefix;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Material(
+      type: MaterialType.transparency,
+      child: CheckboxListTile(
+        key: ValueKey('$keyPrefix-${parameter.id}'),
+        value: value,
+        onChanged: (value) => onChanged(value ?? false),
+        dense: true,
+        contentPadding: EdgeInsets.zero,
+        controlAffinity: ListTileControlAffinity.leading,
+        title: Text(parameter.label, style: theme.textTheme.bodyMedium),
       ),
     );
   }
