@@ -41,8 +41,9 @@ painter projects its vertices with the current `ViewportState`, draws sorted
 triangles as a faceted body layer, and keeps component, feature, workplane,
 snap, ghost, and selection overlays above it. The mesh is never hit-tested as
 the editable source of truth. Native preview meshes may include disposable
-semantic surface ranges; the current viewport does not use those ranges for
-picking yet.
+semantic surface ranges. When the current selection is a matching semantic
+surface, the viewport can tint/stroke those mapped preview triangles as a
+display-only highlight. It still does not use generated triangles for picking.
 
 Component placement hit zones are now supplied as
 `MockViewportComponentPlacementPreview` values derived from semantic
@@ -128,6 +129,8 @@ whole feature group, not an individual mesh primitive or flattened hole.
 - Click the view cube: fit view.
 - Select a supported surface or visible component placement: show the local
   workplane overlay and snap hints.
+- Select a supported surface with mapped preview ranges: show a generated mesh
+  surface highlight.
 
 These controls are deliberately simple and can be refined after manual testing.
 
@@ -153,8 +156,9 @@ mapping, desktop stability, license, and packaging complexity.
 
 ## Current Limitations
 
-- The viewport can draw a generated preview mesh body when a backend provides
-  one, but semantic overlays are still first-pass schematic affordances.
+- The viewport can draw a generated preview mesh body and selected mapped
+  surface highlights when a backend provides them, but other semantic overlays
+  are still first-pass schematic affordances.
 - Hit zones are deterministic mock zones, not mesh picking.
 - Component placement previews are semantic mock rectangles, not generated
   board meshes or OCCT bodies.

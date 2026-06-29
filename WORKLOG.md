@@ -42,6 +42,93 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-29 - M68 Preview surface range highlight
+
+### Goal
+Use disposable preview surface ranges from `PreviewMesh.surfaces` to highlight
+the selected semantic surface in the generated viewport mesh without adding
+mesh picking or editable triangle IDs.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/ui/shell/workspace_shell.dart`, `test/widget_test.dart`, and
+`docs/33_VIEWPORT_MVP.md`.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Resolves selected semantic surface IDs to preview mesh triangle ranges.
+  - Tints/strokes selected mapped triangles during preview mesh painting.
+  - Adds a hidden widget-test marker when a mapped preview surface highlight is
+    active.
+  - Keeps existing semantic hit testing, workplane overlays, and snap behavior
+    unchanged.
+- `test/widget_test.dart`:
+  - Adds preview mesh surface mapping data to the fake geometry service.
+  - Covers selected surface highlight activation while preserving the workplane
+    overlay.
+- Docs/tasks/roadmap:
+  - Recorded M68 and clarified that preview ranges are used for display-only
+    highlight, not mesh picking.
+
+### Tests run
+- `flutter test test\widget_test.dart --reporter compact`:
+  - Passed, 46 widget tests.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed, 184 tests.
+- `git diff --check`:
+  - Passed; Git repeated an existing CRLF normalization warning for
+    `ROADMAP.md`.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed; rebuilt latest Windows app with native OCCT backend.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `Test-Path releases\latest\windows\occt_worker\native\occt_worker_native_occt.exe`:
+  - Passed.
+- `releases\latest\windows\occt_worker\native\occt_worker_native_occt.exe --capabilities`:
+  - Passed; copied worker reports `preview_mesh_smoke` and first-pass semantic
+    surface ranges.
+
+### Validation
+- Geometry checked?
+  - No worker geometry changed in this slice; release worker capabilities were
+    verified.
+- Serialization checked?
+  - Existing geometry protocol tests still cover surface mapping parsing.
+- UI checked?
+  - Widget coverage proves a selected semantic surface activates preview mesh
+    range highlighting when a matching mapping exists.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Surface selection still uses existing semantic mock hit zones/browser,
+  not generated mesh picking.
+  - Severity: Expected.
+  - Next action: Add explicit generated mesh picking only after stable semantic
+    face mapping is stronger.
+- Issue: Only mapped central planar ranges can be highlighted; curved fillets
+  remain unhighlighted.
+  - Severity: Expected.
+  - Next action: Expand native semantic face mapping in a future geometry slice.
+
+### Next step
+Manual poke the latest build by selecting `Top lid` and checking that the
+native preview mesh shows the mapped surface highlight while the workplane
+overlay still appears.
+
+### Notes for future Codex sessions
+Preview surface ranges are display-only. Do not save triangle ranges into
+`ProjectModel` and do not treat them as stable topology.
+
+---
+
 ## 2026-06-29 - M67 Native preview surface ranges
 
 ### Goal

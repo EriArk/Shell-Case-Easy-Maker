@@ -96,6 +96,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Implement semantic fit feedback for snap placement previews.
 - [x] Implement focus/fit view.
 - [x] Render disposable geometry preview mesh when a backend provides one.
+- [x] Highlight selected semantic surface ranges on generated preview mesh.
 
 ## Phase 4 — OCCT worker MVP
 

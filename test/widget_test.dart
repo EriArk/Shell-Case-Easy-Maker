@@ -174,6 +174,27 @@ void main() {
     expect(find.textContaining('fake_worker_preview'), findsOneWidget);
   });
 
+  testWidgets('selected surface highlights mapped preview mesh range', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const CaseMakerApp(geometryService: _PreviewMeshGeometryService()),
+    );
+    await tester.pumpAndSettle();
+
+    const highlightKey = ValueKey('geometry-preview-surface-highlight-active');
+    expect(find.byKey(highlightKey), findsNothing);
+
+    await tester.tap(find.text('Top lid').first);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(highlightKey), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('mock-workplane-overlay-active')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('surface snap point seeds component placement dialog', (
     tester,
   ) async {
@@ -2168,7 +2189,13 @@ class _PreviewMeshGeometryService extends MockGeometryService {
         vertices: [-10, -10, 0, 10, -10, 0, 0, 10, 0, 0, 0, 12],
         triangles: [0, 1, 2, 0, 3, 1, 1, 3, 2, 2, 3, 0],
         bounds: GeometryBounds(min: [-10, -10, 0], max: [10, 10, 12]),
-        surfaces: [],
+        surfaces: [
+          PreviewSurfaceMapping(
+            semanticId: 'main_enclosure.top_lid.outer',
+            label: 'Top lid',
+            triangleRanges: [PreviewTriangleRange(start: 0, count: 1)],
+          ),
+        ],
       ),
       stats: const {
         'source': 'fake_worker_preview',

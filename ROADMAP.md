@@ -86,6 +86,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M65 - Native OCCT App Backend Wiring
 - [x] M66 - Native Preview Mesh Viewport
 - [x] M67 - Native Preview Surface Ranges
+- [x] M68 - Preview Surface Range Highlight
 
 ---
 
@@ -2925,3 +2926,45 @@ without making generated triangle indices stable editable IDs.
 - Optional developer poke: run
   `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build` and
   confirm `previewSurfaceMappings: 3` and `previewMappedTriangles: 6`.
+
+---
+
+## M68 - Preview Surface Range Highlight
+
+### Goal
+Use disposable `PreviewSurfaceMapping` ranges to visually highlight the selected
+semantic surface in the generated preview mesh, without adding mesh picking.
+
+### Tasks
+- [x] Resolve selected semantic surface IDs to preview mesh triangle ranges.
+- [x] Tint/stroke selected mapped triangles in the viewport mesh painter.
+- [x] Add a widget-test marker for active preview surface highlighting.
+- [x] Keep existing semantic hit testing and workplane overlays unchanged.
+- [x] Update docs, roadmap, tasks, and worklog.
+
+### Done Criteria
+- Selecting a semantic surface can activate mapped mesh-surface highlighting
+  when `previewMesh.surfaces` contains that semantic ID.
+- Invalid or out-of-range preview triangle ranges are ignored safely.
+- Surface selection still comes from existing semantic UI/hit zones, not from
+  clicking generated mesh triangles.
+- The highlight is display-only and does not store triangle IDs in the project.
+
+### Tests
+- `flutter test test\widget_test.dart --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open
+  `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- Confirm the viewport label still shows `occt_worker_native_occt`.
+- Select `Top lid` from the browser or viewport.
+- Confirm the generated mesh body shows a subtle cyan highlight on the mapped
+  top-lid range while the existing workplane overlay still appears.
+- Click/selection behavior should feel the same as before; this chunk does not
+  add triangle picking.

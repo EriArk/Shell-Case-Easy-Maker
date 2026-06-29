@@ -2619,6 +2619,19 @@ class _ViewportAreaState extends State<_ViewportArea> {
                         key: ValueKey('geometry-preview-mesh-active'),
                       ),
                     ),
+                  if (_hasSelectedPreviewSurface(
+                    widget.preview?.previewMesh,
+                    widget.selection,
+                  ))
+                    const Positioned(
+                      left: 0,
+                      top: 0,
+                      child: SizedBox(
+                        key: ValueKey(
+                          'geometry-preview-surface-highlight-active',
+                        ),
+                      ),
+                    ),
                   if (workplaneOverlay != null)
                     const Positioned(
                       left: 0,
@@ -6124,6 +6137,9 @@ class _ViewportPainter extends CustomPainter {
         ),
     ];
 
+    final selectedTriangleIndices = selection.kind == SelectionKind.surface
+        ? _previewSurfaceTriangleIndices(mesh, selection.id)
+        : const <int>{};
     final triangles = <_PreviewMeshTriangle>[];
     for (var index = 0; index < mesh.triangleCount; index++) {
       final base = index * 3;
@@ -6144,6 +6160,7 @@ class _ViewportPainter extends CustomPainter {
           depth:
               (vertices[a].depth + vertices[b].depth + vertices[c].depth) / 3,
           shade: _previewTriangleShade(mesh, a, b, c),
+          selectedSurface: selectedTriangleIndices.contains(index),
         ),
       );
     }
@@ -6159,6 +6176,10 @@ class _ViewportPainter extends CustomPainter {
       ..color = Colors.white.withValues(alpha: 0.08)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.8;
+    final selectedStrokePaint = Paint()
+      ..color = colorScheme.primary.withValues(alpha: 0.84)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.2;
     const shadowColor = Color(0xFF334047);
     const litColor = Color(0xFF74838A);
 
@@ -6168,9 +6189,18 @@ class _ViewportPainter extends CustomPainter {
         ..lineTo(vertices[triangle.b].point.dx, vertices[triangle.b].point.dy)
         ..lineTo(vertices[triangle.c].point.dx, vertices[triangle.c].point.dy)
         ..close();
-      fillPaint.color = Color.lerp(shadowColor, litColor, triangle.shade)!;
+      final baseColor = Color.lerp(shadowColor, litColor, triangle.shade)!;
+      fillPaint.color = triangle.selectedSurface
+          ? Color.alphaBlend(
+              colorScheme.primary.withValues(alpha: 0.38),
+              baseColor,
+            )
+          : baseColor;
       canvas.drawPath(path, fillPaint);
       canvas.drawPath(path, strokePaint);
+      if (triangle.selectedSurface) {
+        canvas.drawPath(path, selectedStrokePaint);
+      }
     }
 
     return true;
@@ -6544,6 +6574,7 @@ class _PreviewMeshTriangle {
     required this.c,
     required this.depth,
     required this.shade,
+    required this.selectedSurface,
   });
 
   final int a;
@@ -6551,10 +6582,44 @@ class _PreviewMeshTriangle {
   final int c;
   final double depth;
   final double shade;
+  final bool selectedSurface;
 }
 
 bool _hasPreviewMesh(PreviewMesh? mesh) {
   return mesh != null && mesh.vertexCount > 0 && mesh.triangleCount > 0;
+}
+
+bool _hasSelectedPreviewSurface(PreviewMesh? mesh, SelectionModel selection) {
+  if (!_hasPreviewMesh(mesh) || selection.kind != SelectionKind.surface) {
+    return false;
+  }
+
+  return _previewSurfaceTriangleIndices(mesh!, selection.id).isNotEmpty;
+}
+
+Set<int> _previewSurfaceTriangleIndices(PreviewMesh mesh, String? semanticId) {
+  if (semanticId == null || semanticId.isEmpty) {
+    return const {};
+  }
+
+  final indices = <int>{};
+  for (final surface in mesh.surfaces) {
+    if (surface.semanticId != semanticId) {
+      continue;
+    }
+
+    for (final range in surface.triangleRanges) {
+      final start = range.start.clamp(0, mesh.triangleCount).toInt();
+      final end = (range.start + range.count)
+          .clamp(0, mesh.triangleCount)
+          .toInt();
+      for (var index = start; index < end; index++) {
+        indices.add(index);
+      }
+    }
+  }
+
+  return indices;
 }
 
 bool _validPreviewMeshIndex(int index, int vertexCount) {
