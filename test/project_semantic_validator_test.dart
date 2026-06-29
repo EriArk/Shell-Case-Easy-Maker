@@ -196,4 +196,108 @@ void main() {
     expect(codes, contains('component.feature.keepout.outside_enclosure'));
     expect(codes, isNot(contains('component.placement.outside_enclosure')));
   });
+
+  test('projected USB-C anchor outside target surface reports an error', () {
+    final project = ProjectModel.initial().copyWith(
+      features: const [
+        SemanticFeature(
+          id: 'projected_usb_c',
+          type: 'usb_c_cutout',
+          targetSurface: 'main_enclosure.front_wall.outer',
+          operation: 'negative',
+          source: {
+            'componentPlacementId': 'button_board_placement',
+            'componentTemplateId': 'custom_button_board_v1',
+            'componentFeatureId': 'usb_c',
+          },
+          placement: {
+            'projectionMode': 'component_feature_surface_projection',
+            'surfacePosition': [80.0, 4.0],
+            'surfaceAxes': ['x', 'z'],
+          },
+          parameters: {'width': 10.5, 'height': 4.2, 'cornerRadius': 1.0},
+        ),
+      ],
+      featureGroups: const [],
+    );
+
+    final report = ProjectSemanticValidator.validate(project);
+
+    expect(report.hasErrors, isTrue);
+    expect(
+      report.messages.map((message) => message.code),
+      contains('feature.projected_anchor.outside_surface'),
+    );
+  });
+
+  test('projected button group anchor outside lid reports an error', () {
+    final project = ProjectModel.initial().copyWith(
+      features: const [],
+      featureGroups: const [
+        FeatureGroup(
+          id: 'projected_buttons',
+          type: 'button_group',
+          targetSurface: 'main_enclosure.top_lid.outer',
+          pattern: {
+            'layout': 'from_component_switches',
+            'count': 1,
+            'sourcePlacementId': 'button_board_placement',
+            'sourceTemplateId': 'custom_button_board_v1',
+            'switchPositions': [
+              {
+                'id': 'sw_far',
+                'position': [70.0, 0.0],
+                'surfaceAxes': ['x', 'y'],
+                'componentFeaturePosition': [70.0, 0.0, 0.0],
+              },
+            ],
+          },
+          itemPrototype: {'diameter': 8.0},
+        ),
+      ],
+    );
+
+    final report = ProjectSemanticValidator.validate(project);
+
+    expect(report.hasErrors, isTrue);
+    expect(
+      report.messages.map((message) => message.code),
+      contains('group.projected_anchor.outside_surface'),
+    );
+  });
+
+  test('projected feature with missing source reports a warning', () {
+    final project = ProjectModel.initial().copyWith(
+      componentPlacements: const [],
+      features: const [
+        SemanticFeature(
+          id: 'orphan_projected_usb_c',
+          type: 'usb_c_cutout',
+          targetSurface: 'main_enclosure.front_wall.outer',
+          operation: 'negative',
+          source: {
+            'componentPlacementId': 'missing_placement',
+            'componentTemplateId': 'custom_button_board_v1',
+            'componentFeatureId': 'usb_c',
+          },
+          placement: {
+            'projectionMode': 'component_feature_surface_projection',
+            'surfacePosition': [0.0, 4.0],
+            'surfaceAxes': ['x', 'z'],
+          },
+          parameters: {'width': 10.5, 'height': 4.2, 'cornerRadius': 1.0},
+        ),
+      ],
+      featureGroups: const [],
+    );
+
+    final report = ProjectSemanticValidator.validate(project);
+
+    expect(report.hasErrors, isFalse);
+    expect(report.hasWarnings, isTrue);
+    expect(
+      report.messages.map((message) => message.code),
+      contains('feature.projected_anchor.source.missing'),
+    );
+  });
 }

@@ -13,6 +13,7 @@ If it changes geometry, serialization, validation, or UI state, test it.
 - Project semantic validation warnings/errors.
 - Component placement and keepout semantic validation.
 - Rotation-aware placement bounds validation.
+- Projected component anchor source and surface-bound validation.
 - Component placement visibility serialization and mock viewport hit-test
   behavior.
 - Mock local workplane and snap-hint layout behavior.
@@ -73,6 +74,8 @@ Use deterministic test fixtures.
 - Component-driven button group generation preserves source switch centers in
   saved project JSON, stores projected switch positions, and keeps the result
   grouped.
+- Projected USB-C/button anchors outside target surfaces report semantic
+  validation errors; missing projection sources report warnings.
 - Validation status/details show warning and error messages.
 - Context popovers show correct actions.
 - Parameter knob updates model.

@@ -62,6 +62,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M41 — Component USB-C Cutout Propagation
 - [x] M42 — Component Switch Button Group
 - [x] M43 - Projected Component Feature Anchors
+- [x] M44 - Projected Anchor Validation
 
 ---
 
@@ -1798,3 +1799,47 @@ cutouts and button groups.
 - Click `Кнопки`, create the button group, then save the project.
 - Confirm the group still appears as one editable group and its saved
   `switchPositions` include projected positions.
+
+---
+
+## M44 - Projected Anchor Validation
+
+### Goal
+Make projected component anchors useful to the semantic validator before real
+geometry generation consumes them.
+
+### Tasks
+- [x] Validate component-sourced USB-C projected `surfacePosition` against the
+      target surface bounds.
+- [x] Validate component-sourced button group switch positions against the lid
+      or target surface bounds.
+- [x] Warn when projected feature source placement/template/feature references
+      are missing.
+- [x] Warn when projected button group source placement/template references are
+      missing.
+- [x] Warn when projected axes are missing or do not match the target surface.
+- [x] Add unit tests for outside-surface and missing-source cases.
+
+### Done Criteria
+- Projected anchors outside the usable enclosure surface produce validation
+  errors.
+- Orphaned projected anchors produce non-blocking validation warnings.
+- Existing valid sample projects remain clean.
+- The validator still works only from semantic project data, not mesh, B-Rep,
+  or topology IDs.
+
+### Tests
+- `flutter test test\project_semantic_validator_test.dart`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Create component-sourced `Порты` and `Кнопки` from `button_board_placement`.
+- Confirm the bottom validation status stays clean for the normal generated
+  anchors.
+- Optional manual check: edit saved JSON so a projected `surfacePosition` is far
+  outside the enclosure, reopen it, and confirm validation reports an issue.

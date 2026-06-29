@@ -230,7 +230,7 @@ class ProjectSemanticValidator {
     for (final feature in project.features) {
       switch (feature.type) {
         case 'usb_c_cutout':
-          _validateUsbC(feature, enclosure, messages);
+          _validateUsbC(project, feature, enclosure, messages);
         case 'glass_recess':
           _validateGlassRecess(feature, enclosure, messages);
       }
@@ -238,6 +238,7 @@ class ProjectSemanticValidator {
   }
 
   static void _validateUsbC(
+    ProjectModel project,
     SemanticFeature feature,
     Enclosure enclosure,
     List<ValidationMessage> messages,
@@ -285,6 +286,15 @@ class ProjectSemanticValidator {
         ),
       );
     }
+
+    _validateProjectedFeatureAnchor(
+      project: project,
+      enclosure: enclosure,
+      feature: feature,
+      sizeA: width,
+      sizeB: height,
+      messages: messages,
+    );
   }
 
   static void _validateGlassRecess(
@@ -362,8 +372,82 @@ class ProjectSemanticValidator {
     List<ValidationMessage> messages,
   ) {
     for (final group in project.featureGroups) {
-      if (group.type == 'standoff_mounts') {
-        _validateStandoffMounts(project, enclosure, group, messages);
+      switch (group.type) {
+        case 'button_group':
+          _validateButtonGroup(project, enclosure, group, messages);
+        case 'standoff_mounts':
+          _validateStandoffMounts(project, enclosure, group, messages);
+      }
+    }
+  }
+
+  static void _validateButtonGroup(
+    ProjectModel project,
+    Enclosure enclosure,
+    FeatureGroup group,
+    List<ValidationMessage> messages,
+  ) {
+    final layout = readString(group.pattern['layout'], fallback: '');
+    if (layout != 'from_component_switches') {
+      return;
+    }
+
+    _validateProjectedGroupSource(project, group, messages);
+
+    final switchPositions = readJsonMapList(group.pattern['switchPositions']);
+    if (switchPositions.isEmpty) {
+      messages.add(
+        ValidationMessage(
+          severity: ValidationSeverity.warning,
+          code: 'group.projected_anchor.position.missing',
+          message: 'Группа кнопок не содержит спроецированные центры кнопок.',
+          targetId: group.id,
+        ),
+      );
+      return;
+    }
+
+    final diameter = readDouble(group.itemPrototype['diameter'], fallback: 8);
+    for (final switchPosition in switchPositions) {
+      final position = readDoubleList(
+        switchPosition['position'],
+        fallback: const [],
+      );
+      final axes = _projectedAnchorAxes(
+        rawAxes: switchPosition['surfaceAxes'],
+        targetSurface: group.targetSurface,
+        targetId: group.id,
+        messages: messages,
+        codePrefix: 'group',
+      );
+      if (position.length < 2 || !_isFinitePosition(position)) {
+        messages.add(
+          ValidationMessage(
+            severity: ValidationSeverity.warning,
+            code: 'group.projected_anchor.position.missing',
+            message: 'Группа кнопок содержит неполную проекцию центра кнопки.',
+            targetId: group.id,
+          ),
+        );
+        continue;
+      }
+
+      if (!_projectedAnchorFitsSurface(
+        enclosure: enclosure,
+        axes: axes,
+        position: position,
+        sizeA: diameter,
+        sizeB: diameter,
+      )) {
+        messages.add(
+          ValidationMessage(
+            severity: ValidationSeverity.error,
+            code: 'group.projected_anchor.outside_surface',
+            message: 'Центр кнопки выходит за доступную поверхность корпуса.',
+            targetId: group.id,
+          ),
+        );
+        return;
       }
     }
   }
@@ -418,6 +502,321 @@ class ProjectSemanticValidator {
         ),
       );
     }
+  }
+
+  static void _validateProjectedFeatureAnchor({
+    required ProjectModel project,
+    required Enclosure enclosure,
+    required SemanticFeature feature,
+    required double sizeA,
+    required double sizeB,
+    required List<ValidationMessage> messages,
+  }) {
+    final placement = feature.placement ?? const {};
+    final projectionMode = readString(
+      placement['projectionMode'],
+      fallback: '',
+    );
+    if (projectionMode != 'component_feature_surface_projection') {
+      return;
+    }
+
+    _validateProjectedFeatureSource(project, feature, messages);
+
+    final position = readDoubleList(
+      placement['surfacePosition'],
+      fallback: const [],
+    );
+    final axes = _projectedAnchorAxes(
+      rawAxes: placement['surfaceAxes'],
+      targetSurface: feature.targetSurface,
+      targetId: feature.id,
+      messages: messages,
+      codePrefix: 'feature',
+    );
+    if (position.length < 2 || !_isFinitePosition(position)) {
+      messages.add(
+        ValidationMessage(
+          severity: ValidationSeverity.warning,
+          code: 'feature.projected_anchor.position.missing',
+          message: 'Фича содержит неполную проекцию на поверхность корпуса.',
+          targetId: feature.id,
+        ),
+      );
+      return;
+    }
+
+    if (!_projectedAnchorFitsSurface(
+      enclosure: enclosure,
+      axes: axes,
+      position: position,
+      sizeA: sizeA,
+      sizeB: sizeB,
+    )) {
+      messages.add(
+        ValidationMessage(
+          severity: ValidationSeverity.error,
+          code: 'feature.projected_anchor.outside_surface',
+          message: 'Спроецированный центр фичи выходит за поверхность корпуса.',
+          targetId: feature.id,
+        ),
+      );
+    }
+  }
+
+  static void _validateProjectedFeatureSource(
+    ProjectModel project,
+    SemanticFeature feature,
+    List<ValidationMessage> messages,
+  ) {
+    final source = feature.source ?? const {};
+    final placementId = readString(
+      source['componentPlacementId'],
+      fallback: '',
+    );
+    final templateId = readString(source['componentTemplateId'], fallback: '');
+    final featureId = readString(source['componentFeatureId'], fallback: '');
+
+    if (placementId.isEmpty) {
+      messages.add(
+        ValidationMessage(
+          severity: ValidationSeverity.warning,
+          code: 'feature.projected_anchor.source.missing',
+          message: 'Спроецированная фича не связана с исходным компонентом.',
+          targetId: feature.id,
+        ),
+      );
+      return;
+    }
+
+    final placement = project.componentPlacements
+        .where((placement) => placement.id == placementId)
+        .firstOrNull;
+    if (placement == null) {
+      messages.add(
+        ValidationMessage(
+          severity: ValidationSeverity.warning,
+          code: 'feature.projected_anchor.source.missing',
+          message: 'Исходный компонент для спроецированной фичи не найден.',
+          targetId: feature.id,
+        ),
+      );
+      return;
+    }
+
+    final template = project.componentTemplates
+        .where(
+          (template) =>
+              template.id ==
+              (templateId.isEmpty ? placement.templateId : templateId),
+        )
+        .firstOrNull;
+    if (template == null) {
+      messages.add(
+        ValidationMessage(
+          severity: ValidationSeverity.warning,
+          code: 'feature.projected_anchor.source.missing',
+          message:
+              'Шаблон исходного компонента для спроецированной фичи не найден.',
+          targetId: feature.id,
+        ),
+      );
+      return;
+    }
+
+    if (featureId.isNotEmpty &&
+        !template.features.any((feature) => feature.id == featureId)) {
+      messages.add(
+        ValidationMessage(
+          severity: ValidationSeverity.warning,
+          code: 'feature.projected_anchor.source.missing',
+          message:
+              'Исходный элемент компонента для спроецированной фичи не найден.',
+          targetId: feature.id,
+        ),
+      );
+    }
+  }
+
+  static void _validateProjectedGroupSource(
+    ProjectModel project,
+    FeatureGroup group,
+    List<ValidationMessage> messages,
+  ) {
+    final placementId = readString(
+      group.pattern['sourcePlacementId'],
+      fallback: '',
+    );
+    final templateId = readString(
+      group.pattern['sourceTemplateId'],
+      fallback: '',
+    );
+
+    if (placementId.isEmpty) {
+      messages.add(
+        ValidationMessage(
+          severity: ValidationSeverity.warning,
+          code: 'group.projected_anchor.source.missing',
+          message: 'Группа кнопок не связана с исходным компонентом.',
+          targetId: group.id,
+        ),
+      );
+      return;
+    }
+
+    final placement = project.componentPlacements
+        .where((placement) => placement.id == placementId)
+        .firstOrNull;
+    if (placement == null) {
+      messages.add(
+        ValidationMessage(
+          severity: ValidationSeverity.warning,
+          code: 'group.projected_anchor.source.missing',
+          message: 'Исходный компонент для группы кнопок не найден.',
+          targetId: group.id,
+        ),
+      );
+      return;
+    }
+
+    final effectiveTemplateId = templateId.isEmpty
+        ? placement.templateId
+        : templateId;
+    final template = project.componentTemplates
+        .where((template) => template.id == effectiveTemplateId)
+        .firstOrNull;
+    if (template == null) {
+      messages.add(
+        ValidationMessage(
+          severity: ValidationSeverity.warning,
+          code: 'group.projected_anchor.source.missing',
+          message: 'Шаблон исходного компонента для группы кнопок не найден.',
+          targetId: group.id,
+        ),
+      );
+    }
+  }
+
+  static List<String> _projectedAnchorAxes({
+    required Object? rawAxes,
+    required String targetSurface,
+    required String targetId,
+    required List<ValidationMessage> messages,
+    required String codePrefix,
+  }) {
+    final axes = _readStringList(rawAxes);
+    final expectedAxes = _expectedAxesForSurface(targetSurface);
+
+    if (axes.length < 2) {
+      messages.add(
+        ValidationMessage(
+          severity: ValidationSeverity.warning,
+          code: '$codePrefix.projected_anchor.axes.missing',
+          message: 'Проекция не содержит оси поверхности.',
+          targetId: targetId,
+        ),
+      );
+      return expectedAxes;
+    }
+
+    final normalizedAxes = axes.take(2).toList(growable: false);
+    if (expectedAxes.isNotEmpty &&
+        !_sameStringList(normalizedAxes, expectedAxes)) {
+      messages.add(
+        ValidationMessage(
+          severity: ValidationSeverity.warning,
+          code: '$codePrefix.projected_anchor.axes.mismatch',
+          message: 'Оси проекции не совпадают с целевой поверхностью.',
+          targetId: targetId,
+        ),
+      );
+    }
+
+    return normalizedAxes;
+  }
+
+  static bool _projectedAnchorFitsSurface({
+    required Enclosure enclosure,
+    required List<String> axes,
+    required List<double> position,
+    required double sizeA,
+    required double sizeB,
+  }) {
+    if (axes.length < 2 || position.length < 2) {
+      return true;
+    }
+
+    final firstRange = _axisRange(enclosure, axes[0]);
+    final secondRange = _axisRange(enclosure, axes[1]);
+    if (firstRange == null || secondRange == null) {
+      return true;
+    }
+
+    const tolerance = 0.000001;
+    final halfA = math.max(0, sizeA) / 2;
+    final halfB = math.max(0, sizeB) / 2;
+    final first = position[0];
+    final second = position[1];
+
+    return first - halfA >= firstRange.min - tolerance &&
+        first + halfA <= firstRange.max + tolerance &&
+        second - halfB >= secondRange.min - tolerance &&
+        second + halfB <= secondRange.max + tolerance;
+  }
+
+  static ({double min, double max})? _axisRange(
+    Enclosure enclosure,
+    String axis,
+  ) {
+    final inner = _innerSpace(enclosure);
+    return switch (axis) {
+      'x' => (min: -inner.width / 2, max: inner.width / 2),
+      'y' => (min: -inner.depth / 2, max: inner.depth / 2),
+      'z' => (min: 0, max: inner.height),
+      _ => null,
+    };
+  }
+
+  static List<String> _expectedAxesForSurface(String targetSurface) {
+    if (targetSurface.contains('front_wall') ||
+        targetSurface.contains('back_wall')) {
+      return const ['x', 'z'];
+    }
+    if (targetSurface.contains('left_wall') ||
+        targetSurface.contains('right_wall')) {
+      return const ['y', 'z'];
+    }
+    if (targetSurface.contains('top_lid') || targetSurface.contains('bottom')) {
+      return const ['x', 'y'];
+    }
+
+    return const [];
+  }
+
+  static List<String> _readStringList(Object? rawValue) {
+    if (rawValue is! List<Object?>) {
+      return const [];
+    }
+
+    return rawValue.whereType<String>().toList(growable: false);
+  }
+
+  static bool _sameStringList(List<String> left, List<String> right) {
+    if (left.length != right.length) {
+      return false;
+    }
+
+    for (var index = 0; index < left.length; index++) {
+      if (left[index] != right[index]) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  static bool _isFinitePosition(List<double> position) {
+    return position.every((value) => value.isFinite);
   }
 
   static ComponentTemplate? _templateForPlacement(

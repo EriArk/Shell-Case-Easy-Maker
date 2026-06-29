@@ -29,6 +29,20 @@ Current first-pass support:
 The projection uses the first enclosure body as the target body for now. Future
 multi-body projects should make the target enclosure explicit.
 
+## Validation
+
+`ProjectSemanticValidator` performs first-pass checks on projected anchors:
+
+- projected USB-C centers must fit within the target surface bounds,
+- projected switch centers in component-sourced button groups must fit within
+  the target surface bounds,
+- missing source placement/template/feature references produce non-blocking
+  warnings,
+- missing or mismatched `surfaceAxes` produce non-blocking warnings.
+
+These checks still use only semantic project data. They do not require preview
+mesh, generated B-Rep, or OCCT topology IDs.
+
 ## USB-C Cutout Metadata
 
 When a component-sourced USB-C cutout is created, `SemanticFeature.placement`
@@ -76,7 +90,7 @@ without flattening the semantic group.
 ## Future Work
 
 - Add explicit target enclosure selection for multi-body projects.
-- Add face-local boundary validation and reachability warnings.
+- Add reachability warnings and richer face-local orientation validation.
 - Store projected cutout orientation when side-wall rotations become more
   detailed.
 - Feed projected anchors into the geometry service/OCCT worker when real

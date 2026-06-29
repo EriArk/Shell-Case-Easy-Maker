@@ -113,6 +113,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] First-pass semantic validation warnings/errors.
 - [x] First-pass component placement and keepout semantic validation.
 - [x] Rotation-aware component placement bounds validation.
+- [x] First-pass projected component anchor validation.
 - [ ] Add OCCT geometry tests for known dimensions.
 
 ## Phase 5 — Enclosure-first MVP
@@ -168,6 +169,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [ ] Generate side wall cutouts from ports.
 - [x] First-pass semantic USB-C cutout from component connector metadata.
 - [x] First-pass projected component feature anchors.
+- [x] First-pass projected component feature anchor validation.
 - [ ] Generate top/lid cutouts from switches/buttons.
 - [x] First-pass semantic button group from component switch centers.
 - [x] First-pass keepout warnings.

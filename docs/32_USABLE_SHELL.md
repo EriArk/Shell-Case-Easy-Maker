@@ -164,6 +164,11 @@ the affected enclosure, surface, component, template, feature, or feature
 group. Nested targets such as component keepouts resolve to their semantic
 parent instead of preview geometry.
 
+The validator also checks component-sourced projected anchors. Normal generated
+USB-C and button anchors should stay clean; anchors outside the usable surface
+become blocking validation errors, while missing source component/template data
+becomes a warning.
+
 ## First Generator Command
 
 The left tool rail now executes the first semantic generator commands:

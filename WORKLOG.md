@@ -42,6 +42,86 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-29 - M44 Projected anchor validation
+
+### Goal
+Make projected component anchors participate in semantic validation before real
+geometry generation consumes them.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`,
+`lib/validation/project_semantic_validator.dart`,
+`test/project_semantic_validator_test.dart`,
+`docs/33_COMPONENT_FEATURE_PROJECTION.md`, and validation/status docs.
+
+### Changes made
+- `lib/validation/project_semantic_validator.dart`:
+  - Validates projected USB-C `surfacePosition` against target surface bounds.
+  - Validates component-sourced button group switch positions against target
+    surface bounds.
+  - Warns when projected feature/group source placement/template/feature
+    references are missing.
+  - Warns when projected `surfaceAxes` are missing or mismatch the target
+    surface.
+- `test/project_semantic_validator_test.dart`:
+  - Added outside-surface USB-C validation coverage.
+  - Added outside-lid button group validation coverage.
+  - Added missing-source projected feature warning coverage.
+- Docs/tasks/roadmap:
+  - Added M44 to `ROADMAP.md`.
+  - Marked projected anchor validation done in `TASKS.md`.
+  - Updated projection, testing, and shell validation docs.
+
+### Tests run
+- `flutter test test\project_semantic_validator_test.dart`:
+  - Passed, 11 tests.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 129 tests.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Semantic validation only; no B-Rep, mesh, STL, or topology IDs are stored.
+- Serialization checked?
+  - Existing project JSON tests and projected metadata tests still pass.
+- UI checked?
+  - Full widget suite passes; validation status continues to consume semantic
+    validator results.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Surface-bound validation uses the first enclosure body's inner extents.
+  - Severity: Expected first-pass limitation.
+  - Next action: make target enclosure explicit before multi-body generation.
+- Issue: Validation checks bounds and source references, not physical
+  reachability/travel/clearance yet.
+  - Severity: Expected.
+  - Next action: add reachability checks before real cutouts/plungers.
+
+### Next step
+Commit and push M44, then continue toward either projected-anchor-driven
+geometry requests or richer component-driven cutout/button generation.
+
+### Notes for future Codex sessions
+Projected-anchor validation should stay semantic. Do not validate by reading
+preview pixels, mesh triangles, or OCCT face IDs.
+
+---
+
 ## 2026-06-29 - M43 Projected component feature anchors
 
 ### Goal
