@@ -73,6 +73,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M52 - Local occt_worker CLI
 - [x] M53 - Worker Capability Contract
 - [x] M54 - Worker Capability Process Client
+- [x] M55 - Native Worker Build Scaffold
 
 ---
 
@@ -2307,5 +2308,55 @@ adapter used for geometry requests, with typed parsing and normalized failures.
   change.
 - Optional developer poke: run
   `dart run occt_worker\bin\occt_worker.dart --capabilities`.
+- Launch latest Windows app normally and confirm the default project still opens
+  with the mock preview and clean validation status.
+
+---
+
+## M55 - Native Worker Build Scaffold
+
+### Goal
+Add a separately buildable native worker executable scaffold that preserves the
+worker protocol boundary without linking OCCT or pretending native geometry is
+implemented.
+
+### Tasks
+- [x] Add `occt_worker/native/CMakeLists.txt`.
+- [x] Add `occt_worker/native/src/main.cpp`.
+- [x] Add `occt_worker_native_stub` CMake executable target.
+- [x] Add `tools/build_occt_worker_stub.ps1`.
+- [x] Keep native scaffold separate from the Flutter Windows runner.
+- [x] Make native stub emit worker capability JSON.
+- [x] Make native stub return structured `worker.backend.native_not_implemented`
+      response for geometry requests.
+- [x] Add scaffold tests for CMake target, JSON contracts, and build script
+      output confinement.
+
+### Done Criteria
+- Native stub builds into `build/occt_worker_native`.
+- `occt_worker_native_stub.exe --capabilities` emits
+  `shell_case.geometry.worker.capabilities`.
+- Piping a geometry request into `occt_worker_native_stub.exe` returns a
+  structured not-implemented geometry response.
+- Scaffold does not add OCCT includes/dependencies yet.
+- Scaffold does not store generated mesh, B-Rep, STL, or OCCT topology IDs in
+  the editable project model.
+
+### Tests
+- `flutter test test\native_worker_scaffold_test.dart`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_stub.ps1`
+- `build\occt_worker_native\Release\occt_worker_native_stub.exe --capabilities`
+- `Get-Content occt_worker\protocol\preview_request.example.json -Raw | build\occt_worker_native\Release\occt_worker_native_stub.exe`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- No meaningful manual UI poke for this chunk; it is a native worker scaffold.
+- Optional developer poke: run
+  `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_stub.ps1`
+  and then run the printed `--capabilities` command.
 - Launch latest Windows app normally and confirm the default project still opens
   with the mock preview and clean validation status.

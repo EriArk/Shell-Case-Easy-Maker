@@ -153,6 +153,23 @@ JSON is metadata; it must not contain raw OCCT topology IDs or generated B-Rep.
 `GeometryWorkerProcessClient.queryCapabilities()` consumes this JSON through the
 same configured process command that will later launch the native worker.
 
+## Native worker scaffold
+
+`occt_worker/native` contains the first standalone native executable scaffold:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_stub.ps1
+```
+
+The target is `occt_worker_native_stub` and its build output stays under
+`build/occt_worker_native`. It currently supports `--capabilities` and returns a
+structured `worker.backend.native_not_implemented` response for geometry
+requests.
+
+This scaffold intentionally does not link OCCT yet. It exists to prove the
+native worker build boundary, process invocation, and protocol-shaped error
+responses before B-Rep generation is added.
+
 ## Worker process client
 
 `GeometryWorkerProcessClient` is the Dart-side process adapter for the future

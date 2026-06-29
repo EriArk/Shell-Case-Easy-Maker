@@ -63,6 +63,12 @@ Inspect local worker backend capabilities with:
 dart run occt_worker\bin\occt_worker.dart --capabilities
 ```
 
+Build the native worker stub with:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/build_occt_worker_stub.ps1
+```
+
 Build the latest manual Windows bundle with:
 
 ```powershell

@@ -42,6 +42,100 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-29 - M55 Native worker build scaffold
+
+### Goal
+Add a separately buildable native worker executable scaffold without linking
+OCCT yet or pretending native B-Rep generation is implemented.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `occt_worker/README.md`,
+`docs/03_ARCHITECTURE_OVERVIEW.md`, `docs/04_GEOMETRY_ENGINE_OCCT.md`,
+`docs/34_FIRST_GEOMETRY_SLICE.md`, `windows/CMakeLists.txt`,
+`windows/runner/CMakeLists.txt`, `.gitignore`, and
+`tools/build_latest_windows.ps1`.
+
+### Changes made
+- `occt_worker/native/CMakeLists.txt`:
+  - Added standalone `occt_worker_native_stub` CMake target.
+  - Uses C++17 and compiler warnings as errors.
+  - Does not add OCCT includes or dependencies yet.
+- `occt_worker/native/src/main.cpp`:
+  - Added native executable scaffold.
+  - Emits `shell_case.geometry.worker.capabilities` for `--capabilities`.
+  - Returns structured `worker.backend.native_not_implemented` response for
+    geometry requests.
+  - Keeps generated/native details out of editable project semantics.
+- `tools/build_occt_worker_stub.ps1`:
+  - Added safe build script for `build/occt_worker_native`.
+  - Includes child-path checks before optional clean/removal.
+- `test/native_worker_scaffold_test.dart`:
+  - Added tests for CMake target shape, capability JSON, not-implemented
+    response JSON, and build-script output confinement.
+- Docs/tasks/roadmap:
+  - Recorded M55 and documented the native stub build command.
+
+### Tests run
+- `flutter test test\native_worker_scaffold_test.dart`:
+  - Passed, 4 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_stub.ps1`:
+  - Passed; built
+    `C:\Users\EriArk\Documents\CaseMaker\build\occt_worker_native\Release\occt_worker_native_stub.exe`.
+- `build\occt_worker_native\Release\occt_worker_native_stub.exe --capabilities`:
+  - Passed; returned `shell_case.geometry.worker.capabilities`,
+    `activeBackend=native`, `nativeStatus=stub`.
+- `Get-Content occt_worker\protocol\preview_request.example.json -Raw | build\occt_worker_native\Release\occt_worker_native_stub.exe`:
+  - Returned expected exit code `2`, `backend=occt_worker_native_stub`, and
+    `worker.backend.native_not_implemented`.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 168 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed; Git reported markdown line-ending normalization warnings only.
+
+### Validation
+- Geometry checked?
+  - Native executable scaffold only. No OCCT B-Rep, STL, editable mesh, or
+    topology IDs were introduced.
+- Serialization checked?
+  - Yes. Tests parse native stub capability/response JSON from the C++ source,
+    and executable smoke commands returned valid JSON.
+- UI checked?
+  - Full widget suite passes; latest Windows bundle rebuilt.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Native worker stub does not parse request JSON or preserve request IDs.
+  - Severity: Expected scaffold limitation.
+  - Next action: replace stub response path with a real native protocol handler
+    once JSON dependency/build policy is chosen.
+- Issue: OCCT is not linked yet.
+  - Severity: Expected.
+  - Next action: add OCCT dependency/build policy and first rounded enclosure
+    B-Rep generation.
+
+### Next step
+Commit and push M55, then continue toward native protocol handling or the first
+OCCT-backed rounded enclosure generation slice.
+
+### Notes for future Codex sessions
+The native stub build is intentionally separate from Flutter. Keep native worker
+artifacts under `build/occt_worker_native` until packaging policy is decided.
+
+---
+
 ## 2026-06-29 - M54 Worker capability process client
 
 ### Goal

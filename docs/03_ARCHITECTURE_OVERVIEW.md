@@ -199,6 +199,12 @@ timeouts, invalid JSON, and non-zero exits are normalized into typed issues so
 callers can inspect worker readiness without crashing or reading native process
 details directly.
 
+`occt_worker/native` is the first standalone native executable scaffold. It is
+not part of the Flutter Windows runner and builds into `build/occt_worker_native`
+through `tools/build_occt_worker_stub.ps1`. The scaffold can report capabilities
+and structured not-implemented responses, but it does not link OCCT or generate
+B-Rep yet.
+
 ## Worker Process Client
 
 `GeometryWorkerProcessClient` is the first external-process adapter. It sends a

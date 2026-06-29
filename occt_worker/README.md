@@ -16,7 +16,8 @@ development runs. M51 keeps the checked-in protocol examples generated from a
 typed Dart fixture project and the mock backend. M52 adds
 `occt_worker/bin/occt_worker.dart` as the canonical local worker CLI. M53 adds
 worker capability JSON for backend readiness and supported operations. No
-native OCCT executable is built yet.
+native OCCT executable is built yet. M55 adds a separately buildable native
+stub executable; it does not link OCCT yet.
 
 Regenerate protocol fixtures:
 
@@ -58,6 +59,17 @@ mock backend as `available` for `preview_mesh` and the native backend as
 `stub`. Capability JSON is metadata only; it is not editable project geometry.
 Dart callers can query the same metadata through
 `GeometryWorkerProcessClient.queryCapabilities()`.
+
+Native stub build command:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_stub.ps1
+```
+
+The resulting executable is local build output under `build/occt_worker_native`.
+It can report capabilities and returns `worker.backend.native_not_implemented`
+for geometry requests. This target is a scaffold for the future OCCT worker,
+not native B-Rep generation.
 
 Process-client smoke command:
 

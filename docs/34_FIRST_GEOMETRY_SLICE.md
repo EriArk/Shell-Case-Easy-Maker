@@ -71,6 +71,17 @@ a stub with planned preview/export/validate operations.
 through the configured worker process and return typed capability data or typed
 issues for timeouts, launch failures, invalid JSON, and non-zero exits.
 
+The first native worker executable scaffold is separate from the Flutter
+Windows runner:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_stub.ps1
+```
+
+It builds `occt_worker_native_stub` under `build/occt_worker_native`. The stub
+can emit capabilities and structured not-implemented responses, but it does not
+link OCCT or generate B-Rep yet.
+
 `GeometryWorkerProcessClient` can also exercise the same harness across a real
 process boundary:
 
@@ -178,6 +189,8 @@ Expected sample dimensions:
   mock geometry by default.
 - `dart run occt_worker\bin\occt_worker.dart --capabilities` reports worker
   backend readiness, not generated geometry.
+- `occt_worker/native` is a buildable native stub only; OCCT B-Rep generation is
+  still planned.
 - `tool/mock_geometry_worker.dart` is only a compatibility alias for the local
   worker runtime.
 - `--backend=native` currently returns a structured not-implemented response,
