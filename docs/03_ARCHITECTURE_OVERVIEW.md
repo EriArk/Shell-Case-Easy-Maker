@@ -208,3 +208,25 @@ Adapter smoke command:
 ```powershell
 dart run tool\mock_worker_geometry_service_smoke.dart
 ```
+
+## Geometry Backend Selection
+
+`CaseMakerApp` now asks a small backend factory for its `GeometryService`.
+Normal builds still resolve to `MockGeometryService`.
+
+Compile-time developer switch:
+
+```powershell
+flutter run -d windows --dart-define=SHELL_CASE_GEOMETRY_BACKEND=worker --dart-define=SHELL_CASE_GEOMETRY_WORKER_EXECUTABLE=dart "--dart-define=SHELL_CASE_GEOMETRY_WORKER_ARGUMENTS=run|tool/mock_geometry_worker.dart"
+```
+
+Supported values:
+- `SHELL_CASE_GEOMETRY_BACKEND`: `mock` or `worker`.
+- `SHELL_CASE_GEOMETRY_WORKER_EXECUTABLE`: executable path/name.
+- `SHELL_CASE_GEOMETRY_WORKER_ARGUMENTS`: pipe-separated argument list.
+- `SHELL_CASE_GEOMETRY_WORKER_WORKING_DIRECTORY`: optional working directory.
+- `SHELL_CASE_GEOMETRY_WORKER_TIMEOUT_MS`: optional timeout, default `30000`.
+
+If `worker` is requested without an executable, the factory falls back to the
+mock backend. Widgets still receive only `GeometryService`; they do not know
+about process clients or native worker command details.

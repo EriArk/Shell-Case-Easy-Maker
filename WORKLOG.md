@@ -42,6 +42,91 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-29 - M50 Geometry backend selection
+
+### Goal
+Add an explicit developer/runtime backend selector so the app can choose mock
+or worker-backed geometry through one factory while keeping mock as the normal
+default.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `lib/app/case_maker_app.dart`,
+`lib/main.dart`, `lib/geometry/geometry_service.dart`,
+`lib/geometry/geometry_worker_process_client.dart`,
+`docs/03_ARCHITECTURE_OVERVIEW.md`, `docs/04_GEOMETRY_ENGINE_OCCT.md`,
+`docs/34_FIRST_GEOMETRY_SLICE.md`, and `occt_worker/README.md`.
+
+### Changes made
+- `lib/geometry/geometry_backend.dart`:
+  - Added `GeometryBackendKind`.
+  - Added `GeometryBackendSettings`.
+  - Added `createGeometryService(settings)`.
+  - Added `createGeometryServiceFromEnvironment()` using compile-time
+    `--dart-define` values.
+  - Added pipe-separated worker argument parsing for developer runs.
+  - Falls back to mock when worker backend is requested without an executable.
+- `lib/app/case_maker_app.dart`:
+  - Uses the backend factory by default.
+  - Keeps optional `geometryService` injection for tests and explicit callers.
+- `test/geometry_backend_test.dart`:
+  - Covers default mock selection, explicit worker selection, safe fallback,
+    and argument parsing.
+- Docs/tasks/roadmap:
+  - Recorded M50 behavior, safe default, and the developer `--dart-define`
+    switch.
+
+### Tests run
+- `flutter test test\geometry_backend_test.dart`:
+  - Passed, 4 tests.
+- `dart format --output=none --set-exit-if-changed lib test tool`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 148 tests.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed; Git reported markdown line-ending normalization warnings only.
+
+### Validation
+- Geometry checked?
+  - Backend selection only; no generated B-Rep, STL, editable mesh, or OCCT
+    topology is introduced.
+- Serialization checked?
+  - Not affected.
+- UI checked?
+  - Full widget suite passes; normal app builds still instantiate mock geometry.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Worker backend selection still targets a mock worker unless a real
+  worker executable is configured.
+  - Severity: Expected.
+  - Next action: add the first native `occt_worker` executable slice.
+- Issue: Worker arguments are pipe-separated, which is simple but not a full
+  shell parser.
+  - Severity: Acceptable developer-only limitation.
+  - Next action: replace with config-file or JSON args if worker launch needs
+    complex quoting.
+
+### Next step
+Commit and push M50, then continue toward the native `occt_worker` executable
+or a richer generated-geometry fixture.
+
+### Notes for future Codex sessions
+Keep backend selection behind `GeometryService`. Do not make widgets branch on
+backend kind, process command, or native worker details.
+
+---
+
 ## 2026-06-29 - M49 Worker GeometryService adapter
 
 ### Goal

@@ -137,6 +137,16 @@ Until native geometry validation exists, semantic validation remains local in
 Dart. Selectable surface IDs are also semantic and local, not derived from
 preview triangle IDs.
 
+## Backend selection
+
+`GeometryBackendSettings` and `createGeometryService` provide the intentional
+runtime switch between mock and worker-backed geometry services. The switch is
+compile-time configured with `--dart-define` values and defaults to mock.
+
+The worker path requires an explicit executable. If it is missing, startup uses
+the mock backend so the app remains usable. This is a developer integration
+switch, not a user-facing modeling mode.
+
 ## Preview mesh
 
 Preview mesh is generated from B-Rep with adjustable quality:

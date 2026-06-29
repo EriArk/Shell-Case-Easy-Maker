@@ -66,6 +66,14 @@ and normalizes process failures into `GeometryResponse` issues.
 dart run tool\mock_worker_geometry_service_smoke.dart
 ```
 
+The default app can now select its geometry backend through a small factory.
+Normal builds use mock geometry. A developer can opt into a worker command with
+`--dart-define` values, for example:
+
+```powershell
+flutter run -d windows --dart-define=SHELL_CASE_GEOMETRY_BACKEND=worker --dart-define=SHELL_CASE_GEOMETRY_WORKER_EXECUTABLE=dart "--dart-define=SHELL_CASE_GEOMETRY_WORKER_ARGUMENTS=run|tool/mock_geometry_worker.dart"
+```
+
 ## Response
 
 `GeometryResponse` contains:
@@ -125,6 +133,8 @@ Expected sample dimensions:
   the process client, not through native OCCT.
 - `tool/mock_worker_geometry_service_smoke.dart` runs the worker-backed
   `GeometryService` adapter through the same mock worker process.
+- The normal app backend selector defaults to mock unless worker backend and
+  executable are both explicitly configured.
 - Mock backend returns a deterministic cuboid preview mesh.
 - Mock backend validation now runs first-pass semantic checks for enclosure
   dimensions, wall thickness, USB-C/glass feature sizes, component placement

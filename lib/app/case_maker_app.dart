@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../geometry/geometry_backend.dart';
 import '../geometry/geometry_service.dart';
 import '../project/project_model.dart';
 import '../ui/shell/workspace_shell.dart';
 import 'app_strings.dart';
 
 class CaseMakerApp extends StatelessWidget {
-  const CaseMakerApp({super.key});
+  const CaseMakerApp({super.key, this.geometryService});
+
+  final GeometryService? geometryService;
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +34,8 @@ class CaseMakerApp extends StatelessWidget {
         visualDensity: VisualDensity.compact,
       ),
       home: WorkspaceShell(
-        geometryService: const MockGeometryService(),
+        geometryService:
+            geometryService ?? createGeometryServiceFromEnvironment(),
         project: ProjectModel.initial(),
       ),
     );

@@ -11,7 +11,8 @@ preview/export results.
 
 M5 adds the protocol skeleton, M47 adds a Dart-only mock protocol harness, M48
 adds the Dart-side process client, and M49 adds the worker-backed
-`GeometryService` adapter. No native executable is built yet.
+`GeometryService` adapter. M50 adds an explicit backend selection switch for
+development runs. No native executable is built yet.
 
 Smoke command:
 
@@ -39,6 +40,15 @@ dart run tool\mock_worker_geometry_service_smoke.dart
 
 This verifies the app-facing `GeometryService` adapter path against the mock
 worker process.
+
+Developer app backend switch:
+
+```powershell
+flutter run -d windows --dart-define=SHELL_CASE_GEOMETRY_BACKEND=worker --dart-define=SHELL_CASE_GEOMETRY_WORKER_EXECUTABLE=dart "--dart-define=SHELL_CASE_GEOMETRY_WORKER_ARGUMENTS=run|tool/mock_geometry_worker.dart"
+```
+
+Normal app builds still default to mock geometry. The worker backend is selected
+only when explicitly configured.
 
 ## Planned responsibilities
 

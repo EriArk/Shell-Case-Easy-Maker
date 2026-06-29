@@ -68,6 +68,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M47 - Mock Worker Protocol Harness
 - [x] M48 - Worker Process Client
 - [x] M49 - Worker GeometryService Adapter
+- [x] M50 - Geometry Backend Selection
 
 ---
 
@@ -2072,3 +2073,45 @@ metadata local and testable.
   `2`, `operationCount` is `2`, and `surfaceCount` is `3`.
 - Launch latest Windows app and confirm the default project still opens with a
   clean mock preview and validation status.
+
+---
+
+## M50 - Geometry Backend Selection
+
+### Goal
+Add a deliberate developer/runtime geometry backend selector so the app can
+instantiate either the stable mock backend or the worker-backed service without
+making the worker the default.
+
+### Tasks
+- [x] Add `GeometryBackendKind`.
+- [x] Add `GeometryBackendSettings`.
+- [x] Add `createGeometryService(settings)`.
+- [x] Add `createGeometryServiceFromEnvironment()` for compile-time
+      `--dart-define` values.
+- [x] Wire `CaseMakerApp` to use the backend factory by default.
+- [x] Keep `CaseMakerApp(geometryService: ...)` injection available for tests
+      and explicit callers.
+- [x] Add tests for default mock selection, explicit worker selection, worker
+      fallback without executable, and pipe-separated worker arguments.
+
+### Done Criteria
+- A normal app run/build still uses `MockGeometryService`.
+- Worker backend is only selected when explicitly configured.
+- Missing worker executable falls back to mock instead of breaking app startup.
+- Backend selection still returns a `GeometryService`; widgets do not know
+  about process clients or native worker details.
+
+### Tests
+- `flutter test test\geometry_backend_test.dart`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app normally and confirm the default project still opens
+  with the mock preview and clean validation status.
+- Optional developer poke later:
+  `flutter run -d windows --dart-define=SHELL_CASE_GEOMETRY_BACKEND=worker --dart-define=SHELL_CASE_GEOMETRY_WORKER_EXECUTABLE=dart "--dart-define=SHELL_CASE_GEOMETRY_WORKER_ARGUMENTS=run|tool/mock_geometry_worker.dart"`
