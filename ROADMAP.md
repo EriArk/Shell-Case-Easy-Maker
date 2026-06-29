@@ -63,6 +63,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M42 — Component Switch Button Group
 - [x] M43 - Projected Component Feature Anchors
 - [x] M44 - Projected Anchor Validation
+- [x] M45 - Geometry Feature Intent Protocol
 
 ---
 
@@ -1843,3 +1844,46 @@ geometry generation consumes them.
   anchors.
 - Optional manual check: edit saved JSON so a projected `surfacePosition` is far
   outside the enclosure, reopen it, and confirm validation reports an issue.
+
+---
+
+## M45 - Geometry Feature Intent Protocol
+
+### Goal
+Pass semantic feature and feature-group generation intent through
+`GeometryRequest` so the future OCCT worker can consume prepared cutout/button
+mount data without reading UI state or mesh topology.
+
+### Tasks
+- [x] Add `GeometryFeatureIntent` to the geometry protocol.
+- [x] Add `GeometryFeatureItemIntent` for derived repeated group items.
+- [x] Include semantic features in `GeometryRequest.previewMesh(project)`.
+- [x] Include feature groups with pattern/itemPrototype/placement/source data.
+- [x] Expand button group item positions through `PatternLayoutEngine`.
+- [x] Expand standoff mount item positions from saved holes or component
+      template mounting holes.
+- [x] Keep the editable project model unchanged; feature intents are request
+      payload data only.
+- [x] Add protocol tests for feature intent round-trip and group item expansion.
+
+### Done Criteria
+- Preview mesh requests include feature intents for current semantic features
+  and feature groups.
+- Repeated feature groups remain semantic groups in `ProjectModel`; only the
+  request contains derived items for the geometry backend.
+- Request JSON contains no OCCT topology IDs, triangle IDs, generated mesh, or
+  editable B-Rep data.
+- Mock backend can report the received feature-intent count in metrics.
+
+### Tests
+- `flutter test test\geometry_protocol_test.dart`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- No meaningful manual UI poke for this chunk; it is a backend protocol change.
+- Launch latest Windows app and confirm the default project still opens with a
+  clean mock preview and validation status.

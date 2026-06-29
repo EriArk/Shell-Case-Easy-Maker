@@ -15,6 +15,8 @@ M5 adds only the protocol skeleton. No native executable is built yet.
 
 - Read `shell_case.geometry.request` JSON from stdin or a local IPC transport.
 - Generate B-Rep from semantic project data.
+- Consume request `featureIntents` for semantic cutouts, recesses, button
+  groups, and mounts.
 - Mesh B-Rep for disposable preview output.
 - Export STEP/STL later.
 - Return `shell_case.geometry.response` JSON.
@@ -35,8 +37,10 @@ project:
 1. Build a box from enclosure dimensions.
 2. Apply corner fillets from semantic corner radius.
 3. Preserve semantic surface mapping for top lid, front wall, and bottom inside.
-4. Mesh the generated B-Rep with explicit deflection settings.
-5. Return preview mesh, bounds, issues, and metrics.
+4. Read `featureIntents` to prepare deterministic future cutout/mount
+   operations.
+5. Mesh the generated B-Rep with explicit deflection settings.
+6. Return preview mesh, bounds, issues, and metrics.
 
 The worker implementation should be added only after the OCCT build/distribution
 choice is finalized for Windows development.

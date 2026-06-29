@@ -42,6 +42,89 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-29 - M45 Geometry feature intent protocol
+
+### Goal
+Carry semantic feature and feature-group generation intent through
+`GeometryRequest` so the future OCCT worker can consume prepared backend input
+without depending on Flutter UI state.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `lib/geometry/geometry_protocol.dart`,
+`lib/geometry/geometry_service.dart`, `test/geometry_protocol_test.dart`,
+`docs/03_ARCHITECTURE_OVERVIEW.md`, `docs/04_GEOMETRY_ENGINE_OCCT.md`,
+`docs/26_TESTING_AND_QUALITY.md`, `docs/33_COMPONENT_FEATURE_PROJECTION.md`,
+and `occt_worker/README.md`.
+
+### Changes made
+- `lib/geometry/geometry_protocol.dart`:
+  - Added `GeometryFeatureIntent` and `GeometryFeatureItemIntent`.
+  - `GeometryRequest.previewMesh(project)` now includes semantic feature
+    intents derived from `ProjectModel.features` and
+    `ProjectModel.featureGroups`.
+  - Feature-group intents preserve pattern/itemPrototype/placement/source data.
+  - Button group and standoff mount intents include derived item positions for
+    backend consumption.
+- `lib/geometry/geometry_service.dart`:
+  - Mock backend reports received feature-intent count in metrics.
+- `test/geometry_protocol_test.dart`:
+  - Added request round-trip coverage for semantic feature intents.
+  - Added button group item expansion coverage.
+  - Added standoff mount template-hole fallback expansion coverage.
+- Docs/tasks/roadmap:
+  - Recorded M45 protocol behavior and worker boundary expectations.
+
+### Tests run
+- `flutter test test\geometry_protocol_test.dart`:
+  - Passed, 8 tests.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 131 tests.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Protocol payload only; no real B-Rep/mesh generation was added.
+- Serialization checked?
+  - Geometry request JSON round-trip covers feature intents and group items.
+- UI checked?
+  - Full widget suite passes; no UI behavior changes are expected.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Feature intents are consumed only by the mock backend metrics for now.
+  - Severity: Expected first-pass limitation.
+  - Next action: teach the real worker/adapter to generate cutout and mount
+    operations from these intents.
+- Issue: Group item expansion is request-time derived data.
+  - Severity: Intentional.
+  - Next action: keep editable project semantics as groups and avoid persisting
+    derived geometry items into project JSON.
+
+### Next step
+Commit and push M45, then continue toward geometry-service consumption of these
+feature intents or the next UI/placement workflow chunk.
+
+### Notes for future Codex sessions
+`featureIntents` are disposable backend request data. They must not become the
+editable source of truth and must not include OCCT topology IDs or preview mesh
+triangle IDs.
+
+---
+
 ## 2026-06-29 - M44 Projected anchor validation
 
 ### Goal

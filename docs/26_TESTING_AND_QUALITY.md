@@ -21,6 +21,7 @@ If it changes geometry, serialization, validation, or UI state, test it.
 - Pattern positions.
 - Clearance profile calculations.
 - Command system.
+- Geometry request feature-intent serialization and group item expansion.
 - Undo/redo grouping.
 - Input mapping.
 - Step system.
@@ -76,6 +77,8 @@ Use deterministic test fixtures.
   grouped.
 - Projected USB-C/button anchors outside target surfaces report semantic
   validation errors; missing projection sources report warnings.
+- Geometry preview requests include semantic feature/group intents without
+  generated mesh, B-Rep, or topology IDs in the editable project model.
 - Validation status/details show warning and error messages.
 - Context popovers show correct actions.
 - Parameter knob updates model.

@@ -43,6 +43,18 @@ multi-body projects should make the target enclosure explicit.
 These checks still use only semantic project data. They do not require preview
 mesh, generated B-Rep, or OCCT topology IDs.
 
+## Geometry Request Handoff
+
+Projected anchors are copied into `GeometryRequest.featureIntents` when a
+preview mesh request is built. For component-sourced USB-C cutouts, the
+projected anchor stays in the feature intent placement data. For
+component-sourced button groups, expanded request items use projected
+`switchPositions` while the editable `ProjectModel` still stores one semantic
+`FeatureGroup`.
+
+The request payload is disposable backend input. The project file remains the
+semantic source of truth.
+
 ## USB-C Cutout Metadata
 
 When a component-sourced USB-C cutout is created, `SemanticFeature.placement`
@@ -93,5 +105,4 @@ without flattening the semantic group.
 - Add reachability warnings and richer face-local orientation validation.
 - Store projected cutout orientation when side-wall rotations become more
   detailed.
-- Feed projected anchors into the geometry service/OCCT worker when real
-  cutouts and plungers are generated.
+- Generate real cutouts and plungers from projected anchors in the OCCT worker.

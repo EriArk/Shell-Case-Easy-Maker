@@ -63,10 +63,11 @@ class MockGeometryService implements GeometryService {
       status: GeometryResponseStatus.ok,
       backend: 'mock',
       previewMesh: _samplePreviewMesh(project),
-      metrics: const {
+      metrics: {
         'source': 'semantic',
         'deterministic': true,
         'worker': 'mock',
+        'featureIntents': request.featureIntents.length,
       },
     );
   }
@@ -85,9 +86,11 @@ class MockGeometryService implements GeometryService {
       stats: {
         'bodies': project.bodies.length,
         'features': project.features.length,
+        'featureGroups': project.featureGroups.length,
         'source': 'semantic',
         'previewVertices': response.previewMesh?.vertexCount ?? 0,
         'previewTriangles': response.previewMesh?.triangleCount ?? 0,
+        'featureIntents': response.metrics['featureIntents'] ?? 0,
       },
     );
   }

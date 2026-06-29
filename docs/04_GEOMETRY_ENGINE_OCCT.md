@@ -24,6 +24,7 @@ Mesh-first libraries are useful later for limited tasks, but not as the core.
 
 Inputs:
 - semantic project JSON,
+- derived semantic feature intents for the current request,
 - export request,
 - feature preview request,
 - validation request.
@@ -74,6 +75,20 @@ Use controlled boolean operations:
 - insert recesses.
 
 Batch operations where possible. Keep feature order deterministic.
+
+## Feature intents
+
+`GeometryRequest.previewMesh(project)` now carries a `featureIntents` list
+derived from `ProjectModel.features` and `ProjectModel.featureGroups`.
+
+Each intent keeps stable semantic IDs, target surfaces, operation category,
+parameters, placement/source metadata, and derived group items for repeated
+features such as button groups and standoff mounts. These derived items are
+request payload for the geometry backend only; they are not editable project
+state and they do not flatten feature groups in `ProjectModel`.
+
+The worker must consume these semantic intents, not Flutter widget state, mesh
+triangle IDs, or raw OCCT topology IDs.
 
 ## Preview mesh
 

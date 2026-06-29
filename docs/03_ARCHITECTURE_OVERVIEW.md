@@ -126,3 +126,14 @@ Geometry validation happens after generation:
 - invalid body,
 - self-intersection risk,
 - export failure.
+
+## Geometry Request Intents
+
+`GeometryRequest.previewMesh(project)` includes derived `featureIntents` for
+semantic features and feature groups. This lets the geometry backend consume
+prepared USB-C cutout, glass recess, button group, and standoff intent without
+depending on Flutter UI state.
+
+Feature-group item expansion in the request is disposable backend input. The
+editable project still stores the source `FeatureGroup` pattern and does not
+store generated mesh, B-Rep, or topology IDs.
