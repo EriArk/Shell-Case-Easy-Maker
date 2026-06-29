@@ -56,6 +56,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M35 — Placement Dialog Live Fit Check
 - [x] M36 — Placement Dialog Viewport Candidate
 - [x] M37 — Placement Template Size Summary
+- [x] M38 — Placement Quick Presets
 
 ---
 
@@ -1531,3 +1532,40 @@ dimensions so candidate fit feedback is easier to understand.
 - Click `Компоненты`.
 - Confirm the dialog shows the board dimensions under `Шаблон`.
 - Confirm fit feedback still updates when changing X/Y/Z.
+
+---
+
+## M38 — Placement Quick Presets
+
+### Goal
+Make the component placement dialog faster to use by adding safe quick position
+presets that update the transient candidate, viewport footprint, and fit check.
+
+### Tasks
+- [x] Add compact quick-position controls to the placement dialog.
+- [x] Derive center/side offsets from the current enclosure inner space and
+      selected board footprint.
+- [x] Keep quick presets transient until the placement dialog is confirmed.
+- [x] Update dialog number fields when values are changed by UI controls.
+- [x] Add widget coverage for quick preset candidate updates and commit.
+
+### Done Criteria
+- Opening `Компоненты` shows quick position icons near the X/Y/Z fields.
+- Clicking a preset updates the dialog coordinates immediately.
+- The transient viewport candidate and semantic fit check stay in sync.
+- Confirming the dialog commits a normal semantic `ComponentPlacement`.
+- Quick preset state does not enter undo/redo history or project JSON.
+
+### Tests
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Click `Компоненты`.
+- Click the right-arrow quick position icon and confirm X changes to `26`.
+- Confirm the translucent candidate footprint moves.
+- Click `Разместить` and confirm the new placement inspector shows
+  `26 x 0 x 4 mm`.

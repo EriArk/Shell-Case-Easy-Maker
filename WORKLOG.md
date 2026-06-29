@@ -3222,3 +3222,84 @@ mapping.
 ### Notes for future Codex sessions
 Template summaries are read-only UI hints. Keep editable component template
 work as a separate subsystem with its own tests/docs when it begins.
+
+---
+
+## 2026-06-29 - M38 Placement Quick Presets
+
+### Goal
+Make component placement faster by adding quick position controls to the
+placement dialog while keeping the workflow semantic and undo-safe.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `docs/32_USABLE_SHELL.md`,
+`docs/26_TESTING_AND_QUALITY.md`, `lib/ui/shell/workspace_shell.dart`, and
+placement dialog widget tests.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added compact quick position icon controls to the component placement
+    dialog.
+  - Derives center/side offsets from the selected template board footprint and
+    current enclosure inner dimensions.
+  - Updates the transient dialog candidate, viewport candidate footprint, and
+    semantic fit check when a preset is clicked.
+  - Converted dialog number fields from `initialValue` to controller-backed
+    fields so programmatic candidate updates are shown immediately.
+- `test/widget_test.dart`:
+  - Added coverage for quick preset candidate updates and confirmed semantic
+    placement creation.
+- Docs/tasks/roadmap:
+  - Recorded M38 behavior, done criteria, tests, and poke checklist.
+
+### Tests run
+- `flutter test test\widget_test.dart --plain-name "place component dialog quick presets update candidate position"`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "place component dialog validates current candidate placement"`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 116 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Mock viewport candidate only; no generated B-Rep or mesh is created.
+- Serialization checked?
+  - Not applicable; quick preset state is transient and only confirmed
+    placement enters semantic project JSON.
+- UI checked?
+  - Widget test confirms a quick preset updates the dialog field, keeps the
+    candidate preview alive, and commits a normal `ComponentPlacement`.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Quick presets are center/side shortcuts, not direct drag placement.
+  - Severity: Expected.
+  - Next action: continue toward guided viewport placement.
+- Issue: Presets use board footprint and enclosure inner dimensions; deeper
+  component keepout/collision polish remains semantic validation feedback.
+  - Severity: Expected.
+  - Next action: improve component anchors and geometry-service checks later.
+
+### Next step
+Commit and push M38, then continue toward guided component placement with
+viewport picking or component anchor mapping.
+
+### Notes for future Codex sessions
+Quick preset controls must stay transient UI affordances. Do not serialize
+them or create undo entries until the dialog returns a confirmed
+`ComponentPlacement`.

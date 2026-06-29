@@ -180,7 +180,9 @@ least one `ComponentTemplate`. The command is available from workspace,
 enclosure, surface, and component contexts. If a snap hint was clicked first,
 the dialog shows that snap label and starts from the snap target's coordinates.
 The selected component template's board width, height, and thickness are shown
-under the template selector.
+under the template selector. Quick position icons can move the dialog candidate
+to the center or near a side of the current enclosure inner space. These
+controls only update transient candidate state until placement is confirmed.
 The dialog validates its current candidate placement as X/Y/Z/template values
 change and shows whether it fits before commit.
 While the dialog is open, the shell also keeps a transient candidate footprint

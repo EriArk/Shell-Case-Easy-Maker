@@ -3501,6 +3501,21 @@ class _PlaceComponentDialogState extends State<_PlaceComponentDialog> {
     widget.onCandidateChanged(_candidatePlacement);
   }
 
+  void _applyQuickPreset(_PlacementQuickPreset preset) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    _updateCandidate(() {
+      final x = preset.x;
+      if (x != null) {
+        _x = x;
+      }
+
+      final y = preset.y;
+      if (y != null) {
+        _y = y;
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final candidatePlacement = _candidatePlacement;
@@ -3593,6 +3608,11 @@ class _PlaceComponentDialogState extends State<_PlaceComponentDialog> {
                   ),
                 ],
               ),
+              const SizedBox(height: 8),
+              _PlacementQuickActions(
+                presets: _quickPresets,
+                onSelected: _applyQuickPreset,
+              ),
               const SizedBox(height: 10),
               DropdownButtonFormField<String>(
                 key: const ValueKey('place-component-side'),
@@ -3669,6 +3689,62 @@ class _PlaceComponentDialogState extends State<_PlaceComponentDialog> {
         .where((template) => template.id == _templateId)
         .firstOrNull;
   }
+
+  List<_PlacementQuickPreset> get _quickPresets {
+    final template = _selectedTemplate;
+    final enclosure = widget.project.bodies.firstOrNull;
+    if (template == null || enclosure == null) {
+      return const [
+        _PlacementQuickPreset(
+          id: 'center',
+          tooltip: 'Поставить в центр',
+          icon: Icons.center_focus_strong_rounded,
+          x: 0,
+          y: 0,
+        ),
+      ];
+    }
+
+    final innerWidth = _innerEnclosureSize(enclosure, 0, 120);
+    final innerDepth = _innerEnclosureSize(enclosure, 1, 70);
+    final outline = template.board.outline;
+    final xEdge = _quickPlacementEdgeOffset(innerWidth, outline.width);
+    final yEdge = _quickPlacementEdgeOffset(innerDepth, outline.height);
+
+    return [
+      const _PlacementQuickPreset(
+        id: 'center',
+        tooltip: 'Поставить в центр',
+        icon: Icons.center_focus_strong_rounded,
+        x: 0,
+        y: 0,
+      ),
+      _PlacementQuickPreset(
+        id: 'left',
+        tooltip: 'Сдвинуть левее',
+        icon: Icons.keyboard_arrow_left_rounded,
+        x: -xEdge,
+      ),
+      _PlacementQuickPreset(
+        id: 'right',
+        tooltip: 'Сдвинуть правее',
+        icon: Icons.keyboard_arrow_right_rounded,
+        x: xEdge,
+      ),
+      _PlacementQuickPreset(
+        id: 'front',
+        tooltip: 'Сдвинуть к передней стенке',
+        icon: Icons.keyboard_arrow_down_rounded,
+        y: -yEdge,
+      ),
+      _PlacementQuickPreset(
+        id: 'back',
+        tooltip: 'Сдвинуть к задней стенке',
+        icon: Icons.keyboard_arrow_up_rounded,
+        y: yEdge,
+      ),
+    ];
+  }
 }
 
 class _ComponentTemplateSummary extends StatelessWidget {
@@ -3719,6 +3795,82 @@ class _ComponentTemplateSummary extends StatelessWidget {
       ),
     );
   }
+}
+
+class _PlacementQuickPreset {
+  const _PlacementQuickPreset({
+    required this.id,
+    required this.tooltip,
+    required this.icon,
+    this.x,
+    this.y,
+  });
+
+  final String id;
+  final String tooltip;
+  final IconData icon;
+  final double? x;
+  final double? y;
+}
+
+class _PlacementQuickActions extends StatelessWidget {
+  const _PlacementQuickActions({
+    required this.presets,
+    required this.onSelected,
+  });
+
+  final List<_PlacementQuickPreset> presets;
+  final ValueChanged<_PlacementQuickPreset> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Быстрая позиция',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final preset in presets)
+                IconButton.outlined(
+                  key: ValueKey('place-component-preset-${preset.id}'),
+                  tooltip: preset.tooltip,
+                  onPressed: () => onSelected(preset),
+                  icon: Icon(preset.icon, size: 18),
+                  constraints: const BoxConstraints.tightFor(
+                    width: 36,
+                    height: 36,
+                  ),
+                  padding: EdgeInsets.zero,
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+double _innerEnclosureSize(Enclosure enclosure, int index, double fallback) {
+  final size = enclosure.size.length > index ? enclosure.size[index] : fallback;
+  return math.max(0, size - enclosure.wallThickness * 2);
+}
+
+double _quickPlacementEdgeOffset(double innerSize, double footprintSize) {
+  const inset = 8.0;
+  final offset = (innerSize - footprintSize) / 2 - inset;
+  return math.max(0, offset);
 }
 
 class _PlacementDialogCheck extends StatelessWidget {
@@ -4453,7 +4605,7 @@ class _MountingSideOption {
   final String label;
 }
 
-class _DialogNumberField extends StatelessWidget {
+class _DialogNumberField extends StatefulWidget {
   const _DialogNumberField({
     super.key,
     required this.label,
@@ -4468,20 +4620,54 @@ class _DialogNumberField extends StatelessWidget {
   final String? suffixText;
 
   @override
+  State<_DialogNumberField> createState() => _DialogNumberFieldState();
+}
+
+class _DialogNumberFieldState extends State<_DialogNumberField> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: _formattedValue());
+    _focusNode = FocusNode();
+  }
+
+  @override
+  void didUpdateWidget(covariant _DialogNumberField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final nextText = _formattedValue();
+    if (!_focusNode.hasFocus && _controller.text != nextText) {
+      _controller.text = nextText;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  String _formattedValue() => _formatNumber(widget.value);
+
+  @override
   Widget build(BuildContext context) {
     return TextFormField(
-      initialValue: _formatNumber(value),
+      controller: _controller,
+      focusNode: _focusNode,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       textInputAction: TextInputAction.next,
       onChanged: (rawValue) {
         final parsed = double.tryParse(rawValue.trim().replaceAll(',', '.'));
         if (parsed != null) {
-          onChanged(parsed);
+          widget.onChanged(parsed);
         }
       },
       decoration: InputDecoration(
-        labelText: label,
-        suffixText: suffixText,
+        labelText: widget.label,
+        suffixText: widget.suffixText,
         isDense: true,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
         contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),

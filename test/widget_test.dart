@@ -879,6 +879,55 @@ void main() {
     expect(find.textContaining('Компонент выходит'), findsOneWidget);
   });
 
+  testWidgets(
+    'place component dialog quick presets update candidate position',
+    (tester) async {
+      await tester.pumpWidget(const CaseMakerApp());
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('rail-command-${CommandIds.placeComponent}')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('place-component-preset-right')),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('place-component-preset-right')),
+      );
+      await tester.pump();
+
+      final xField = tester.widget<TextFormField>(
+        find.descendant(
+          of: find.byKey(const ValueKey('place-component-x')),
+          matching: find.byType(TextFormField),
+        ),
+      );
+      expect(xField.controller?.text, '26');
+      expect(
+        find.byKey(const ValueKey('mock-placement-candidate-preview')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('place-component-fit-check')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('place-component-confirm')));
+      await _pumpAsyncUi(tester);
+
+      expect(find.text('custom_button_board_v1_placement_2'), findsWidgets);
+      expect(find.text('26 x 0 x 4 mm'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('mock-placement-candidate-preview')),
+        findsNothing,
+      );
+    },
+  );
+
   testWidgets('place component rail command can be cancelled', (tester) async {
     await tester.pumpWidget(const CaseMakerApp());
     await tester.pumpAndSettle();
