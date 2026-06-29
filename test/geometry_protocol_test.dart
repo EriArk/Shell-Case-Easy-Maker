@@ -109,4 +109,20 @@ void main() {
     expect(response.hasErrors, isTrue);
     expect(response.issues.single.code, 'mock.unsupported_operation');
   });
+
+  test('mock geometry validation returns semantic warnings', () async {
+    const service = MockGeometryService();
+    final initial = ProjectModel.initial();
+    final project = initial.replaceEnclosure(
+      initial.bodies.single.copyWith(wallThickness: 0.4),
+    );
+
+    final report = await service.validateGeometry(project);
+
+    expect(report.hasWarnings, isTrue);
+    expect(
+      report.messages.map((message) => message.code),
+      contains('enclosure.wall.thin'),
+    );
+  });
 }

@@ -100,6 +100,14 @@ The top toolbar now wires project open/save commands:
   persisted baseline,
 - generated preview data is refreshed after loading.
 
+## Validation Status
+
+The bottom status bar consumes `GeometryService.validateGeometry(project)`.
+The mock backend currently runs first-pass semantic validation before real
+geometry exists. Blocking errors are shown as errors; non-blocking semantic
+warnings, such as very thin enclosure walls, are shown as warning status with
+the first warning message.
+
 ## First Generator Command
 
 The left tool rail now executes the first semantic generator commands:

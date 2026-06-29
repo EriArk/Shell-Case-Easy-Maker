@@ -1,4 +1,5 @@
 import '../project/project_model.dart';
+import '../validation/project_semantic_validator.dart';
 import '../validation/validation_result.dart';
 import 'geometry_protocol.dart';
 
@@ -110,16 +111,7 @@ class MockGeometryService implements GeometryService {
 
   @override
   Future<ValidationReport> validateGeometry(ProjectModel project) async {
-    return const ValidationReport(
-      messages: [
-        ValidationMessage(
-          severity: ValidationSeverity.info,
-          code: 'mock.preview',
-          message: 'Mock backend returned semantic preview metadata.',
-          targetId: 'main_enclosure',
-        ),
-      ],
-    );
+    return ProjectSemanticValidator.validate(project);
   }
 
   PreviewMesh _samplePreviewMesh(ProjectModel project) {

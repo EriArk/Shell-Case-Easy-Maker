@@ -25,6 +25,31 @@ void main() {
     expect(find.text('120 x 70 x 28 mm'), findsOneWidget);
   });
 
+  testWidgets('semantic validation warnings are visible in status bar', (
+    tester,
+  ) async {
+    final initial = ProjectModel.initial();
+    final project = initial.replaceEnclosure(
+      initial.bodies.single.copyWith(wallThickness: 0.4),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkspaceShell(
+          project: project,
+          geometryService: const MockGeometryService(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Предупреждение'), findsOneWidget);
+    expect(
+      find.text('Стенка тоньше 0.8 mm может плохо печататься.'),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('selecting a feature updates contextual inspector', (
     tester,
   ) async {

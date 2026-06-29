@@ -42,6 +42,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M21 — Feature Group Parameter Inspector Editing
 - [x] M22 — Reusable Pattern Layout Engine
 - [x] M23 — Reusable Standoff Source Layout
+- [x] M24 — First Semantic Validation Warnings
 
 ---
 
@@ -941,3 +942,43 @@ shell and into the reusable pattern/layout module.
 - Generate `Крепёж` from the sample board.
 - Confirm four standoff markers still appear around the mock board.
 - Click one standoff marker and confirm the `Крепёж` inspector still opens.
+
+---
+
+## M24 — First Semantic Validation Warnings
+
+### Goal
+Add the first project-level semantic validation pass before real OCCT geometry
+exists, and surface warnings/errors in the shell status bar.
+
+### Tasks
+- [x] Add `ProjectSemanticValidator`.
+- [x] Validate enclosure size, wall thickness, and corner radius.
+- [x] Validate first-pass USB-C and glass recess dimensions against the main
+      enclosure.
+- [x] Validate first-pass standoff mount source positions and hole/diameter
+      safety.
+- [x] Wire `MockGeometryService.validateGeometry` to semantic validation.
+- [x] Show warning state in the status bar, not only blocking errors.
+- [x] Add unit, geometry-service, and widget coverage.
+
+### Done Criteria
+- The default sample project validates cleanly.
+- Thin walls produce a visible warning.
+- Oversized USB-C/glass recess data produces semantic errors.
+- Unsafe standoff hole/diameter data produces a semantic error.
+- Validation still does not rely on generated mesh, B-Rep, triangle IDs, or
+  OCCT topology.
+
+### Tests
+- `dart format --output=none --set-exit-if-changed lib test`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- Launch latest Windows app.
+- Select `main_enclosure`, set `Стенка` below `0.8`, press Enter.
+- Confirm the bottom status bar switches to `Предупреждение` and shows the
+  thin-wall message.
+- Undo and confirm the status returns to the normal ready state.

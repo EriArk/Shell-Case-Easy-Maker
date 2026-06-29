@@ -112,6 +112,13 @@ Semantic validation happens before geometry:
 - clearances,
 - keepout conflicts.
 
+The current first-pass implementation is `ProjectSemanticValidator` in
+`lib/validation/project_semantic_validator.dart`. It checks semantic project
+data such as enclosure dimensions, wall thickness, USB-C/glass feature sizes,
+and standoff mount item/source data before any generated mesh or OCCT topology
+exists. `GeometryService.validateGeometry(project)` exposes this pass to the
+Flutter shell.
+
 Geometry validation happens after generation:
 - failed boolean,
 - invalid body,

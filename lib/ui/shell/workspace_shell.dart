@@ -3669,6 +3669,13 @@ class _StatusBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final hasErrors = report?.hasErrors ?? false;
+    final hasWarnings = !hasErrors && (report?.hasWarnings ?? false);
+    final primaryIssue = report?.primaryIssue;
+    final statusColor = hasErrors
+        ? theme.colorScheme.error
+        : hasWarnings
+        ? Colors.amber
+        : theme.colorScheme.primary;
 
     return Container(
       height: 34,
@@ -3684,18 +3691,20 @@ class _StatusBar extends StatelessWidget {
           Icon(
             hasErrors
                 ? Icons.error_outline_rounded
+                : hasWarnings
+                ? Icons.warning_amber_rounded
                 : Icons.check_circle_rounded,
             size: 18,
-            color: hasErrors
-                ? theme.colorScheme.error
-                : theme.colorScheme.primary,
+            color: statusColor,
           ),
           const SizedBox(width: 8),
           Text(
             fileBusy
                 ? 'Файл...'
                 : hasErrors
-                ? 'Validation issue'
+                ? 'Ошибка'
+                : hasWarnings
+                ? 'Предупреждение'
                 : AppStrings.previewReady,
             style: theme.textTheme.labelMedium,
           ),
@@ -3703,7 +3712,9 @@ class _StatusBar extends StatelessWidget {
           Flexible(
             child: Text(
               hasErrors
-                  ? AppStrings.viewportHint
+                  ? primaryIssue?.message ?? AppStrings.viewportHint
+                  : hasWarnings
+                  ? primaryIssue?.message ?? AppStrings.viewportHint
                   : hasUnsavedChanges
                   ? 'Есть несохранённые изменения'
                   : fileStatusMessage ?? selectionDetails.status,

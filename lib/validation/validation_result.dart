@@ -7,6 +7,22 @@ class ValidationReport {
 
   bool get hasErrors =>
       messages.any((message) => message.severity == ValidationSeverity.error);
+
+  bool get hasWarnings =>
+      messages.any((message) => message.severity == ValidationSeverity.warning);
+
+  ValidationMessage? get primaryIssue {
+    final error = messages
+        .where((message) => message.severity == ValidationSeverity.error)
+        .firstOrNull;
+    if (error != null) {
+      return error;
+    }
+
+    return messages
+        .where((message) => message.severity == ValidationSeverity.warning)
+        .firstOrNull;
+  }
 }
 
 class ValidationMessage {

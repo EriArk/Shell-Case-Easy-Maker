@@ -10,6 +10,7 @@ If it changes geometry, serialization, validation, or UI state, test it.
 
 - Project model serialization.
 - Feature parameter validation.
+- Project semantic validation warnings/errors.
 - Pattern positions.
 - Clearance profile calculations.
 - Command system.

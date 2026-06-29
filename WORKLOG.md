@@ -2047,3 +2047,87 @@ slice.
 ### Notes for future Codex sessions
 Standoff mount positions should keep coming from semantic group/template data.
 Do not use generated mesh, triangle, or OCCT topology IDs for source anchors.
+
+---
+
+## 2026-06-28 - M24 First Semantic Validation Warnings
+
+### Goal
+Add the first project-level semantic validation pass before real OCCT geometry
+exists, and surface warnings/errors in the shell status bar.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, validation model, geometry service,
+workspace shell status bar, project semantic models, and geometry/widget tests.
+
+### Changes made
+- `lib/validation/project_semantic_validator.dart`:
+  - Added first-pass semantic project validation.
+  - Validates enclosure dimensions, thin walls, excessive wall thickness, and
+    large corner radius.
+  - Validates USB-C and glass recess dimensions/radii against the main
+    enclosure.
+  - Validates standoff mount source positions and hole/diameter safety.
+- `lib/validation/validation_result.dart`:
+  - Added warning detection and primary issue selection.
+- `lib/geometry/geometry_service.dart`:
+  - Wired mock `validateGeometry` to semantic validation instead of a static
+    info-only placeholder.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added visible warning status-bar state with the first warning message.
+- Tests:
+  - Added semantic validator unit coverage.
+  - Added geometry-service validation coverage.
+  - Added widget coverage for visible warning status.
+- Docs/tasks/roadmap:
+  - Documented M24 and the pre-geometry validation boundary.
+
+### Tests run
+- `flutter test test\project_semantic_validator_test.dart test\geometry_protocol_test.dart test\widget_test.dart`:
+  - Passed, 38 targeted tests.
+- `flutter pub get`:
+  - Passed; 4 packages have newer incompatible versions.
+- `dart format --output=none --set-exit-if-changed lib test`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test`:
+  - Passed, 94 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Validation is semantic/pre-geometry only; no generated B-Rep or mesh is
+    created.
+- Serialization checked?
+  - No schema change; validation messages are derived and not saved.
+- UI checked?
+  - Widget test confirms a thin-wall warning appears in the bottom status bar.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Semantic validation only checks the first-pass enclosure, USB-C, glass
+  recess, and standoff mount constraints.
+  - Severity: Expected for this slice.
+  - Next action: add placement/keepout/face-local validation as those workflows
+    become semantic.
+- Issue: Status bar shows only the first warning/error.
+  - Severity: Expected.
+  - Next action: add a validation popover/panel when multiple messages become
+    common.
+
+### Next step
+Commit and push M24, then continue toward the next safe validation/geometry
+preparation slice.
+
+### Notes for future Codex sessions
+Validation must remain semantic before geometry generation. Do not use preview
+triangle IDs, mesh IDs, or OCCT topology as validation targets in the default
+workflow.

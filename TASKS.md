@@ -92,6 +92,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [ ] Export STL.
 - [x] Define response issues/warnings model.
 - [x] Add protocol tests for known mock dimensions.
+- [x] First-pass semantic validation warnings/errors.
 - [ ] Add OCCT geometry tests for known dimensions.
 
 ## Phase 5 — Enclosure-first MVP
@@ -109,7 +110,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] First-pass USB-C inspector parameter editing.
 - [ ] USB-C placement polish with face-local picking/snapping.
 - [ ] Export STL/STEP.
-- [ ] Validate wall thickness and cutout placement.
+- [x] First-pass wall thickness and cutout size validation.
 
 ## Phase 6 — Component template MVP
 
