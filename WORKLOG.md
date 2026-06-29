@@ -42,6 +42,92 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-29 - M58 OCCT Windows dependency readiness
+
+### Goal
+Lock the first Windows OCCT dependency path and add a read-only readiness check
+before adding an OCCT-linked native worker target.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `README.md`,
+`docs/27_RESEARCH_AND_REFERENCES.md`, `docs/04_GEOMETRY_ENGINE_OCCT.md`,
+`docs/34_FIRST_GEOMETRY_SLICE.md`, and `occt_worker/README.md`.
+
+### Changes made
+- `docs/35_OCCT_WINDOWS_DEPENDENCY_PLAN.md`:
+  - Added the Windows OCCT dependency decision note.
+  - Records official OCCT build/licensing findings, vcpkg package status, local
+    environment snapshot, and the opt-in target strategy.
+- `tools/check_occt_windows_readiness.ps1`:
+  - Added read-only JSON readiness checker for CMake, vcpkg, `VCPKG_ROOT`,
+    `OpenCASCADE_DIR`, `CASROOT`, and common `OpenCASCADEConfig.cmake` paths.
+  - Exits `0` by default and exits `2` only when `-RequireOcct` is used and no
+    OCCT package config is found.
+- `test/occt_windows_readiness_test.dart`:
+  - Added tests that keep the checker read-only and keep the dependency note
+    explicit about the worker boundary.
+- Docs/tasks/roadmap:
+  - Added M58, linked the readiness command from README and worker/OCCT docs,
+    and appended the research decision to `docs/27_RESEARCH_AND_REFERENCES.md`.
+
+### Tests run
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_occt_windows_readiness.ps1`:
+  - Passed with `ready=false`; CMake was found, vcpkg/OCCT package config were
+    not found on this machine.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_occt_windows_readiness.ps1 -RequireOcct`:
+  - Returned expected exit code `2` with the same readiness JSON.
+- `flutter test test\occt_windows_readiness_test.dart`:
+  - Passed, 2 tests.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format lib test tool occt_worker`:
+  - Applied formatting to `test\occt_windows_readiness_test.dart`.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed after formatting was applied.
+- `dart run tool\native_worker_stub_smoke.dart --skip-build`:
+  - Passed; native stub still reports expected not-implemented response and
+    preserves request ID.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed, 171 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed; Git reported markdown line-ending normalization warnings only.
+
+### Validation
+- Geometry checked?
+  - Dependency/readiness planning only. No OCCT B-Rep generation, mesh output,
+    STL workflow, or editable generated geometry was introduced.
+- Serialization checked?
+  - Readiness checker emits structured JSON; focused tests cover the contract
+    textually and the command was run locally.
+- UI checked?
+  - Full widget suite passes and the latest Windows bundle was rebuilt. No
+    user-facing UI behavior changed in this chunk.
+- Export checked?
+  - Not implemented yet; unchanged.
+
+### Known issues
+- Issue: Local machine is not ready for OCCT linking yet.
+  - Severity: Expected.
+  - Next action: Install/configure vcpkg or set `OpenCASCADE_DIR` / `CASROOT`,
+    then rerun `tools\check_occt_windows_readiness.ps1 -RequireOcct`.
+
+### Next step
+After readiness is true, add a separate opt-in OCCT-linked native target while
+keeping `occt_worker_native_stub` buildable without OCCT.
+
+### Notes for future Codex sessions
+Do not make normal Flutter builds depend on OCCT. The first OCCT-linked worker
+target should be separate from the stub and should only be enabled when
+`OpenCASCADEConfig.cmake` is discoverable.
+
 ## 2026-06-29 - M57 Native worker request envelope
 
 ### Goal

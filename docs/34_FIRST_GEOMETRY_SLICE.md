@@ -88,6 +88,14 @@ and operation, and returns typed `worker.request.*` issues for invalid payloads.
 This is protocol hardening only; it does not make native generated geometry
 editable or replace the semantic project model.
 
+The Windows OCCT dependency plan is recorded in
+`docs/35_OCCT_WINDOWS_DEPENDENCY_PLAN.md`. Before adding an OCCT-linked target,
+run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_occt_windows_readiness.ps1
+```
+
 The scaffold smoke command wraps build, capability query, and request smoke:
 
 ```powershell

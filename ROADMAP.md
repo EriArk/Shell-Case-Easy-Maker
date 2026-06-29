@@ -76,6 +76,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M55 - Native Worker Build Scaffold
 - [x] M56 - Native Worker Stub Smoke Tool
 - [x] M57 - Native Worker Request Envelope
+- [x] M58 - OCCT Windows Dependency Readiness
 
 ---
 
@@ -2451,5 +2452,51 @@ envelope before returning the scaffold not-implemented response.
   change.
 - Optional developer poke: run `dart run tool\native_worker_stub_smoke.dart` and
   confirm `requestIdPreserved` is `true`.
+- Launch latest Windows app normally and confirm the default project still opens
+  with the mock preview and clean validation status.
+
+---
+
+## M58 - OCCT Windows Dependency Readiness
+
+### Goal
+Lock the first Windows OCCT dependency path and add a read-only readiness check
+before adding an OCCT-linked native target.
+
+### Tasks
+- [x] Research current official OCCT build/licensing guidance.
+- [x] Check current vcpkg package status for `opencascade`.
+- [x] Add `docs/35_OCCT_WINDOWS_DEPENDENCY_PLAN.md`.
+- [x] Append the dependency decision to `docs/27_RESEARCH_AND_REFERENCES.md`.
+- [x] Add `tools/check_occt_windows_readiness.ps1`.
+- [x] Make the checker report JSON without installing or deleting anything.
+- [x] Add tests that keep the checker read-only and the worker boundary
+      documented.
+- [x] Update README, OCCT docs, tasks, and worklog.
+
+### Done Criteria
+- The next native OCCT slice has an explicit dependency decision.
+- The readiness checker reports whether `OpenCASCADEConfig.cmake` is
+  discoverable through `OpenCASCADE_DIR`, `CASROOT`, or vcpkg-style paths.
+- Normal Flutter builds and `occt_worker_native_stub` remain independent of
+  OCCT.
+- No OCCT source, binary dependency, build output, or release artifact is
+  committed.
+
+### Tests
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_occt_windows_readiness.ps1`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_occt_windows_readiness.ps1 -RequireOcct`
+- `flutter test test\occt_windows_readiness_test.dart`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test`
+- `tools/build_latest_windows.ps1`
+
+### Poke Checklist
+- No meaningful manual UI poke for this chunk; it is dependency planning and
+  tooling.
+- Optional developer poke: run the readiness command and confirm `ready` is
+  currently `false` until vcpkg/OCCT is configured.
 - Launch latest Windows app normally and confirm the default project still opens
   with the mock preview and clean validation status.

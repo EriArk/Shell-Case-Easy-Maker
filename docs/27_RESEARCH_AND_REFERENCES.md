@@ -277,3 +277,56 @@ Use `file_selector` for native project open/save dialogs.
 - Add unsaved-changes prompts before opening another project.
 - Add "Save As" when the command system grows beyond the compact toolbar.
 - Bundle dependency license notices during packaging work.
+
+---
+
+## 2026-06-29 - OCCT Windows dependency path
+
+## Question
+
+What Windows dependency path should the native worker use before the first real
+OCCT-generated enclosure slice?
+
+## Sources checked
+
+- OpenCascade official documentation: [Build OCCT](https://dev.opencascade.org/doc/overview/html/build_upgrade__building_occt.html)
+- OpenCascade official licensing page: [Licensing](https://dev.opencascade.org/resources/licensing)
+- vcpkg package page: [opencascade](https://vcpkg.io/en/package/opencascade.html)
+- OpenCascade forum: [OCCT VCPKG Extended Package Support Now Available](https://dev.opencascade.org/content/occt-vcpkg-extended-package-support-now-available)
+
+## Findings
+
+- OCCT's official build path is CMake-based and requires C++17. Windows support
+  expects Visual Studio 2019 or later, with Visual Studio 2022 preferred.
+- Official OCCT docs call vcpkg the fastest path to a working OCCT build for
+  dependency provisioning.
+- The public vcpkg package page lists `opencascade` as available and currently
+  exposes version `8.0.0#1`.
+- OCCT 6.7.0 and later are LGPL 2.1 with the Open CASCADE additional exception.
+- Some OCCT developer tools such as DRAWEXE may need manual source/CMake paths,
+  but the first app worker slice does not need DRAWEXE.
+
+## License / compatibility notes
+
+- Do not vendor OCCT source into this repository.
+- Do not copy GPL/AGPL application code while studying OCCT integrations.
+- Before distributing OCCT-backed binaries, add third-party license notices and
+  document bundled DLLs.
+
+## Useful implementation references
+
+- Full task-specific note: `docs/35_OCCT_WINDOWS_DEPENDENCY_PLAN.md`.
+- Readiness command:
+  `powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_occt_windows_readiness.ps1`
+
+## Decision
+
+Use vcpkg as the first Windows developer acquisition path, but keep normal
+Flutter builds and the current native stub independent of OCCT. Add a separate
+opt-in OCCT-linked native target only after local readiness is true.
+
+## Follow-up tasks
+
+- Install/configure vcpkg locally or set `OpenCASCADE_DIR` / `CASROOT`.
+- Add an opt-in OCCT CMake target after readiness is true.
+- Keep generated B-Rep/mesh disposable and behind the worker protocol.

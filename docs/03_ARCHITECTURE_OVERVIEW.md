@@ -210,6 +210,11 @@ IDs, validates schema/operation, and reports invalid payloads through typed
 `tool/native_worker_stub_smoke.dart` wraps the native stub build, capability
 query, and preview request smoke into one developer command.
 
+The first OCCT dependency decision is documented in
+`docs/35_OCCT_WINDOWS_DEPENDENCY_PLAN.md`. Normal Flutter builds and the native
+stub stay independent of OCCT until `tools/check_occt_windows_readiness.ps1`
+finds a local `OpenCASCADEConfig.cmake`.
+
 ## Worker Process Client
 
 `GeometryWorkerProcessClient` is the first external-process adapter. It sends a

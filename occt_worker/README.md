@@ -86,6 +86,17 @@ The smoke command builds the native stub, queries capabilities through
 expects `worker.backend.native_not_implemented` while also verifying that the
 native response preserves the request ID.
 
+Windows OCCT readiness command:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_occt_windows_readiness.ps1
+```
+
+The command is read-only. It reports whether `OpenCASCADEConfig.cmake` is
+discoverable through `OpenCASCADE_DIR`, `CASROOT`, or a vcpkg-style install.
+The dependency decision is recorded in
+`docs/35_OCCT_WINDOWS_DEPENDENCY_PLAN.md`.
+
 Process-client smoke command:
 
 ```powershell

@@ -78,6 +78,12 @@ dart run tool/native_worker_stub_smoke.dart
 This verifies native capabilities, request ID preservation, and the expected
 `worker.backend.native_not_implemented` scaffold response.
 
+Check local Windows OCCT readiness with:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/check_occt_windows_readiness.ps1
+```
+
 Build the latest manual Windows bundle with:
 
 ```powershell

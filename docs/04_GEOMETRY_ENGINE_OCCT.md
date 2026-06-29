@@ -173,6 +173,18 @@ This scaffold intentionally does not link OCCT yet. It exists to prove the
 native worker build boundary, process invocation, and protocol-shaped error
 responses before B-Rep generation is added.
 
+The Windows dependency decision for the first OCCT-linked worker target is
+recorded in `docs/35_OCCT_WINDOWS_DEPENDENCY_PLAN.md`. The current decision is
+to keep the stub build independent of OCCT, use vcpkg or an explicit
+`OpenCASCADE_DIR`/`CASROOT` as the first developer acquisition path, and add a
+separate opt-in OCCT-linked target only after local readiness is true.
+
+Readiness command:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_occt_windows_readiness.ps1
+```
+
 Native scaffold smoke command:
 
 ```powershell
