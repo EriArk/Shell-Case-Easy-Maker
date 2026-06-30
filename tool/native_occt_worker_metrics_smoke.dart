@@ -98,12 +98,12 @@ Future<void> main(List<String> args) async {
       failures,
     );
     _expect(
-      previewMesh.vertexCount == 1594,
+      previewMesh.vertexCount == 1886,
       'previewMesh must contain the deterministic sample vertex count',
       failures,
     );
     _expect(
-      previewMesh.triangleCount == 1914,
+      previewMesh.triangleCount == 2210,
       'previewMesh must contain the deterministic sample triangle count',
       failures,
     );
@@ -125,8 +125,8 @@ Future<void> main(List<String> args) async {
       failures,
     );
     _expect(
-      previewMesh.surfaces.length == 5,
-      'previewMesh must expose body surfaces plus USB-C and glass feature mappings',
+      previewMesh.surfaces.length == 6,
+      'previewMesh must expose body surfaces plus USB-C, glass, and button feature mappings',
       failures,
     );
     final surfaceIds = previewMesh.surfaces
@@ -155,6 +155,11 @@ Future<void> main(List<String> args) async {
     _expect(
       surfaceIds.contains('front_glass_recess'),
       'previewMesh surfaces must include the sample glass recess feature range',
+      failures,
+    );
+    _expect(
+      surfaceIds.contains('front_buttons'),
+      'previewMesh surfaces must include the sample button group feature range',
       failures,
     );
     _expect(
@@ -242,13 +247,13 @@ Future<void> main(List<String> args) async {
     failures,
   );
   _expect(
-    metrics['featureIntentCount'] == 3,
+    metrics['featureIntentCount'] == 4,
     'featureIntentCount must match the sample request',
     failures,
   );
   _expect(
-    metrics['nativeFeatureCutCount'] == 2,
-    'nativeFeatureCutCount must include USB-C and glass recess cuts',
+    metrics['nativeFeatureCutCount'] == 4,
+    'nativeFeatureCutCount must include USB-C, glass, and button cuts',
     failures,
   );
   _expect(
@@ -274,6 +279,16 @@ Future<void> main(List<String> args) async {
   _expect(
     metrics['nativeGlassRecessFilletedEdgeCount'] == 8,
     'nativeGlassRecessFilletedEdgeCount must be deterministic',
+    failures,
+  );
+  _expect(
+    metrics['nativeButtonGroupCount'] == 1,
+    'nativeButtonGroupCount must include the sample button group',
+    failures,
+  );
+  _expect(
+    metrics['nativeButtonCutoutCount'] == 2,
+    'nativeButtonCutoutCount must include the sample button items',
     failures,
   );
   _expect(
@@ -373,14 +388,14 @@ Future<void> main(List<String> args) async {
   );
   _expectClose(
     _readNumber(metrics['surfaceArea']),
-    34797.533162,
+    34759.83405,
     0.001,
     'surfaceArea',
     failures,
   );
   _expectClose(
     _readNumber(metrics['volume']),
-    33427.951321,
+    33314.853997,
     0.001,
     'volume',
     failures,
@@ -425,6 +440,8 @@ Future<void> main(List<String> args) async {
       'nativeGlassRecessCount': metrics['nativeGlassRecessCount'],
       'nativeGlassRecessFilletedEdgeCount':
           metrics['nativeGlassRecessFilletedEdgeCount'],
+      'nativeButtonGroupCount': metrics['nativeButtonGroupCount'],
+      'nativeButtonCutoutCount': metrics['nativeButtonCutoutCount'],
       'bounds': metrics['bounds'],
       'dimensions': metrics['dimensions'],
       'surfaceArea': metrics['surfaceArea'],
@@ -455,26 +472,42 @@ Future<ProcessResult> _buildNativeOcct(String repoRoot, String configuration) {
 }
 
 ProjectModel _nativeSmokeProject() {
-  return ProjectModel.initial().replaceFeature(
-    const SemanticFeature(
-      id: 'front_glass_recess',
-      type: 'glass_recess',
-      targetSurface: 'main_enclosure.front_wall.outer',
-      operation: 'recess',
-      parameters: {
-        'width': 24.0,
-        'height': 10.0,
-        'recessDepth': 1.0,
-        'ledgeWidth': 1.5,
-        'cornerRadius': 2.0,
-        'insertThickness': 1.0,
-        'clearanceProfile': 'fdm_normal',
-      },
-      placement: {
-        'surfacePosition': [28.0, 16.0],
-      },
-    ),
-  );
+  return ProjectModel.initial()
+      .replaceFeature(
+        const SemanticFeature(
+          id: 'front_glass_recess',
+          type: 'glass_recess',
+          targetSurface: 'main_enclosure.front_wall.outer',
+          operation: 'recess',
+          parameters: {
+            'width': 24.0,
+            'height': 10.0,
+            'recessDepth': 1.0,
+            'ledgeWidth': 1.5,
+            'cornerRadius': 2.0,
+            'insertThickness': 1.0,
+            'clearanceProfile': 'fdm_normal',
+          },
+          placement: {
+            'surfacePosition': [28.0, 16.0],
+          },
+        ),
+      )
+      .replaceFeatureGroup(
+        const FeatureGroup(
+          id: 'front_buttons',
+          type: 'button_group',
+          targetSurface: 'main_enclosure.front_wall.outer',
+          pattern: {'layout': 'row', 'count': 2, 'spacing': 16.0},
+          itemPrototype: {
+            'type': 'button',
+            'shape': 'circle',
+            'diameter': 6.0,
+            'mode': 'plunger',
+          },
+          placement: {'anchor': 'center'},
+        ),
+      );
 }
 
 String _nativeOcctExecutablePath(String repoRoot, String configuration) {

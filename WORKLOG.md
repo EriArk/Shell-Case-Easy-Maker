@@ -42,6 +42,103 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-30 - M73 Native front button group cutouts
+
+### Goal
+Consume front-wall `button_group` feature-group intents in native OCCT and
+generate circular button cutouts while keeping the group one editable semantic
+object.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`docs/04_GEOMETRY_ENGINE_OCCT.md`, `docs/09_PATTERN_AND_LAYOUT_SYSTEM.md`,
+`docs/27_RESEARCH_AND_REFERENCES.md`, `docs/34_FIRST_GEOMETRY_SLICE.md`,
+`lib/geometry/geometry_protocol.dart`, `lib/patterns/pattern_layout.dart`,
+`lib/ui/shell/workspace_shell.dart`,
+`occt_worker/native/src/occt_main.cpp`,
+`occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepPrimAPI_MakeCylinder.hxx`,
+`occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/gp_Ax2.hxx`,
+`tool/native_occt_worker_metrics_smoke.dart`,
+`test/occt_native_target_scaffold_test.dart`, and `test/widget_test.dart`.
+
+### Changes made
+- `occt_worker/native/src/occt_main.cpp`:
+  - Added native parsing for front-wall `button_group` feature intents and
+    derived item positions.
+  - Builds cylindrical cut tools with `BRepPrimAPI_MakeCylinder` and subtracts
+    one generated cut per button item.
+  - Tracks semantic group support separately from physical cut operations with
+    `nativeButtonGroupCount` and `nativeButtonCutoutCount`.
+  - Emits one disposable preview mapping keyed by the group id, such as
+    `front_buttons`.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Allows selected `FeatureGroup` objects to use preview mesh triangle ranges
+    for display-only highlighting.
+- `tool/native_occt_worker_metrics_smoke.dart`:
+  - Adds a sample front-wall button group with two circular button cutouts.
+  - Updated deterministic native expectations to 1886 vertices, 2210
+    triangles, 6 mappings, 1092 mapped triangles, surface area `34759.83405`,
+    and volume `33314.853997`.
+- `test/occt_native_target_scaffold_test.dart` and `test/widget_test.dart`:
+  - Added source-contract coverage for the button-group native slice and a
+    widget test for selected feature-group preview range highlighting.
+- Docs/tasks/roadmap:
+  - Recorded M73, the OCCT cylinder research note, current smoke metrics, and
+    the manual poke checklist.
+
+### Tests run
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`:
+  - Passed.
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`:
+  - Passed; reports `nativeButtonGroupCount=1`,
+    `nativeButtonCutoutCount=2`, and `front_buttons` preview mapping.
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`:
+  - Passed, 5 tests.
+- `flutter test test\widget_test.dart --plain-name "selected feature group highlights mapped preview mesh range" --reporter compact`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed, 186 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `git diff --check`:
+  - Passed with CRLF normalization warnings for existing text files.
+
+### Validation
+- Geometry checked?
+  - Yes. Native smoke verifies shape validity, deterministic mesh counts,
+    button-group metrics, bounds, surface area, and volume.
+- Serialization checked?
+  - Yes. Full test suite passed; button groups remain semantic feature groups,
+    not saved generated geometry.
+- UI checked?
+  - Yes. Widget coverage verifies selecting a feature group can activate the
+    mapped preview highlight.
+- Export checked?
+  - No. STEP/STL export remains planned.
+
+### Known issues
+- Issue: Native button cutouts are front-wall only in this slice.
+  - Severity: Expected scope limit.
+  - Next action: Add top-lid button support after generated lid/body split.
+
+### Next step
+Continue toward the next native generation slice: standoff/mount geometry,
+screw-boss/lid-body split, or richer generated face mapping.
+
+### Notes for future Codex sessions
+Keep button holes generated from the semantic group. Do not save per-hole
+editable objects, OCCT topology IDs, or preview triangle IDs into the project
+model.
+
+---
+
 ## 2026-06-30 - M72 Native front glass recess slice
 
 ### Goal

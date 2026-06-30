@@ -6601,7 +6601,8 @@ bool _hasSelectedPreviewSurface(PreviewMesh? mesh, SelectionModel selection) {
 
 bool _selectionUsesPreviewSurfaceRanges(SelectionModel selection) {
   return selection.kind == SelectionKind.surface ||
-      selection.kind == SelectionKind.feature;
+      selection.kind == SelectionKind.feature ||
+      selection.kind == SelectionKind.featureGroup;
 }
 
 Set<int> _previewSurfaceTriangleIndices(PreviewMesh mesh, String? semanticId) {

@@ -57,6 +57,62 @@ Use `templates/RESEARCH_NOTE_TEMPLATE.md`.
 
 ---
 
+## 2026-06-30 - OCCT cylindrical button cutout tools
+
+## Question
+
+How should the first native button-group slice build simple circular front-wall
+cutouts without exposing low-level CAD operations in the default UX?
+
+## Sources checked
+
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepPrimAPI_MakeCylinder.hxx`
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/gp_Ax2.hxx`
+- Existing native worker slices in `occt_worker/native/src/occt_main.cpp` for
+  `BRepPrimAPI_MakeBox`, `BRepAlgoAPI_Cut`, and deterministic preview meshing.
+
+## Findings
+
+- `BRepPrimAPI_MakeCylinder` can build a complete cylinder from a `gp_Ax2`,
+  radius, and height.
+- The cylinder height is along the local Z/main direction of the `gp_Ax2`.
+- `gp_Ax2` provides an origin plus orthogonal directions, so a front-wall cut
+  can place the cylinder origin just outside the front face and set the main
+  direction to `+Y`.
+- The resulting cylinder is suitable as a disposable boolean cut tool. It should
+  not become editable project state.
+
+## License / compatibility notes
+
+- OCCT headers are from the project-local vcpkg dependency. They are LGPL 2.1
+  with OCCT exception / commercial alternative, matching the existing OCCT
+  dependency evaluation.
+- No external project code was copied.
+
+## Useful implementation references
+
+- Use `BRepPrimAPI_MakeCylinder(gp_Ax2(origin, gp_Dir(0, 1, 0)), radius, height)`
+  for front-wall circular button cut tools.
+- Continue validating generated shapes with `BRepCheck_Analyzer`.
+- Keep preview mesh triangle ranges disposable and keyed by the semantic
+  `button_group` id, not by raw topology or per-triangle IDs.
+
+## Decision
+
+Implement first native button cutouts as controlled semantic generator output
+for front-wall `button_group` feature intents. A group stays one editable
+semantic object; native button holes are generated B-Rep preview output.
+
+## Follow-up tasks
+
+- Add top-lid button cutouts after the lid/body split exists.
+- Add richer button geometry later: bevels, caps, support rings, and clearance
+  profiles.
+
+---
+
 ## 2026-06-27 — Flutter GitHub Actions CI
 
 ## Question

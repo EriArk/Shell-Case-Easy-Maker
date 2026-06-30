@@ -91,6 +91,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M70 - Native USB-C Cutout Slice
 - [x] M71 - Native USB-C Feature Range Highlight
 - [x] M72 - Native Front Glass Recess Slice
+- [x] M73 - Native Front Button Group Cutouts
 
 ---
 
@@ -3178,3 +3179,63 @@ semantic.
   a little because it is intentionally not a through-window yet.
 - Select the created `glass_recess_*` feature and confirm its semantic
   inspector still edits parameters.
+
+---
+
+## M73 - Native Front Button Group Cutouts
+
+### Goal
+Consume front-wall `button_group` feature-group intents in the native OCCT
+worker and generate circular button cutouts while keeping the group one
+editable semantic object.
+
+### Tasks
+- [x] Record OCCT cylinder-tool research before implementation.
+- [x] Add native `ButtonGroupCutoutRequest` and item parsing for derived group
+      items.
+- [x] Support `button_group` intents targeting
+      `main_enclosure.front_wall.outer` only in this slice.
+- [x] Build cylindrical cut tools with `BRepPrimAPI_MakeCylinder` and subtract
+      one tool per derived button item.
+- [x] Count supported semantic button groups separately from physical cut
+      operations.
+- [x] Emit one disposable preview range keyed by the group semantic ID.
+- [x] Allow selected `FeatureGroup` objects to use preview surface ranges for
+      highlighting.
+- [x] Update smoke tests, source-contract tests, widget coverage, docs, tasks,
+      roadmap, and worklog.
+
+### Done Criteria
+- Native smoke reports 1886 vertices, 2210 triangles, 6 preview surface
+  mappings, and 1092 mapped triangles.
+- Native smoke reports `featureIntentCount: 4`, `nativeFeatureCutCount: 4`,
+  `nativeIgnoredFeatureIntentCount: 1`, `nativeButtonGroupCount: 1`, and
+  `nativeButtonCutoutCount: 2`.
+- Surface mappings include `front_buttons` as one semantic group mapping, not
+  per-button editable objects.
+- Generated B-Rep, topology IDs, and preview triangle IDs stay out of editable
+  project JSON.
+
+### Tests
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "selected feature group highlights mapped preview mesh range" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open
+  `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- Confirm the viewport label still shows `occt_worker_native_occt`.
+- Orbit to the front wall and confirm the sample now has two round button
+  cutouts in addition to the USB-C opening and shallow glass recess.
+- Select/create a front-wall button group and confirm the inspector still edits
+  the group as one object.
+- Select the button group and confirm its generated holes highlight together.
+- Top-lid button holes are intentionally still pending until the lid/body split
+  exists.

@@ -217,6 +217,62 @@ void main() {
     expect(find.byKey(highlightKey), findsOneWidget);
   });
 
+  testWidgets('selected feature group highlights mapped preview mesh range', (
+    tester,
+  ) async {
+    final project = ProjectModel.initial().replaceFeatureGroup(
+      const FeatureGroup(
+        id: 'button_group_1',
+        type: 'button_group',
+        targetSurface: 'main_enclosure.front_wall.outer',
+        pattern: {'layout': 'row', 'count': 2, 'spacing': 14.0},
+        itemPrototype: {
+          'type': 'button',
+          'shape': 'circle',
+          'diameter': 8.0,
+          'mode': 'plunger',
+        },
+        placement: {'anchor': 'center'},
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkspaceShell(
+          project: project,
+          geometryService: const _PreviewMeshGeometryService(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    const highlightKey = ValueKey('geometry-preview-surface-highlight-active');
+    expect(find.byKey(highlightKey), findsNothing);
+
+    final canvasFinder = find.byKey(const ValueKey('mock-viewport-canvas'));
+    final canvasTopLeft = tester.getTopLeft(canvasFinder);
+    final canvasSize = tester.getSize(canvasFinder);
+    final layout = MockViewportLayout.fromSize(
+      canvasSize,
+      const ViewportState(),
+    );
+    const buttonGroup = MockViewportFeatureGroupPreview(
+      semanticId: 'button_group_1',
+      kind: MockViewportFeatureGroupKind.buttonGroup,
+      sourcePositions: [Offset(-7, 0), Offset(7, 0)],
+      referenceWidth: 120,
+      referenceHeight: 70,
+      itemDiameter: 8,
+    );
+
+    await tester.tapAt(
+      canvasTopLeft + layout.featureGroupCenters(buttonGroup).first,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(highlightKey), findsOneWidget);
+  });
+
   testWidgets('surface snap point seeds component placement dialog', (
     tester,
   ) async {
@@ -2221,6 +2277,11 @@ class _PreviewMeshGeometryService extends MockGeometryService {
             semanticId: 'front_usb_c',
             label: 'USB-C cutout',
             triangleRanges: [PreviewTriangleRange(start: 1, count: 2)],
+          ),
+          PreviewSurfaceMapping(
+            semanticId: 'button_group_1',
+            label: 'Button group',
+            triangleRanges: [PreviewTriangleRange(start: 3, count: 1)],
           ),
         ],
       ),

@@ -134,6 +134,13 @@ stored back into the project file, and the editable source remains the
 consume the same layout engine rather than reimplementing pattern math inside
 widgets or OCCT adapters.
 
+The first native OCCT geometry slice for button groups consumes front-wall
+`button_group` feature-group intents and derived circular item positions to
+subtract generated button holes from the preview B-Rep. The editable project
+still stores one `FeatureGroup`; the generated holes and preview triangle
+ranges are disposable worker output. Top-lid button holes wait for the lid/body
+split.
+
 When a `button_group` is selected, the contextual inspector currently supports
 editing layout, count, spacing, button diameter, and button mode. Layout/count/
 spacing are written back to `FeatureGroup.pattern`; diameter/mode are written

@@ -5,6 +5,7 @@
 #include <BRepGProp.hxx>
 #include <BRepMesh_IncrementalMesh.hxx>
 #include <BRepPrimAPI_MakeBox.hxx>
+#include <BRepPrimAPI_MakeCylinder.hxx>
 #include <BRep_Tool.hxx>
 #include <Bnd_Box.hxx>
 #include <GProp_GProps.hxx>
@@ -19,6 +20,8 @@
 #include <TopoDS_Edge.hxx>
 #include <TopoDS_Face.hxx>
 #include <TopoDS_Shape.hxx>
+#include <gp_Ax2.hxx>
+#include <gp_Dir.hxx>
 #include <gp_Pnt.hxx>
 
 #include <algorithm>
@@ -85,11 +88,24 @@ struct GlassRecessRequest {
   std::array<double, 2> surface_position = {0.0, 0.0};
 };
 
+struct ButtonCutoutItemRequest {
+  std::string id;
+  std::array<double, 2> position = {0.0, 0.0};
+  double diameter = 8.0;
+};
+
+struct ButtonGroupCutoutRequest {
+  std::string id;
+  std::string target_surface;
+  std::vector<ButtonCutoutItemRequest> items;
+};
+
 struct NativeRequestParseResult {
   NativeRequestEnvelope request;
   EnclosureRequest enclosure;
   std::vector<UsbCCutoutRequest> usb_c_cutouts;
   std::vector<GlassRecessRequest> glass_recesses;
+  std::vector<ButtonGroupCutoutRequest> button_groups;
   int feature_intent_count = 0;
   std::string issue_code;
   std::string issue_message;
@@ -115,6 +131,8 @@ struct ShapeMetrics {
   int native_usb_c_cutout_filleted_edge_count = 0;
   int native_glass_recess_count = 0;
   int native_glass_recess_filleted_edge_count = 0;
+  int native_button_group_count = 0;
+  int native_button_cutout_count = 0;
 };
 
 struct ShellBuildResult {
@@ -127,11 +145,14 @@ struct ShellBuildResult {
 struct NativeFeatureCutResult {
   TopoDS_Shape shape;
   int applied_cut_count = 0;
+  int applied_intent_count = 0;
   int ignored_intent_count = 0;
   int usb_c_cutout_count = 0;
   int usb_c_filleted_edge_count = 0;
   int glass_recess_count = 0;
   int glass_recess_filleted_edge_count = 0;
+  int button_group_count = 0;
+  int button_cutout_count = 0;
 };
 
 struct PreviewTriangleRangeData {
@@ -969,6 +990,84 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
       }
 
       result.glass_recesses.push_back(recess);
+      continue;
+    }
+
+    if (kind == "button_group") {
+      if (intent_operation != "composite") {
+        continue;
+      }
+
+      ButtonGroupCutoutRequest group;
+      group.id =
+          ExtractTopLevelStringField(intent, "id").value_or("button_group");
+      group.target_surface =
+          ExtractTopLevelStringField(intent, "targetSurface").value_or("");
+      if (group.target_surface != supported_front_surface) {
+        continue;
+      }
+
+      double default_diameter = 8.0;
+      if (parameters.has_value()) {
+        const std::optional<std::string> item_prototype =
+            ExtractTopLevelObjectField(*parameters, "itemPrototype");
+        if (item_prototype.has_value()) {
+          default_diameter =
+              ExtractTopLevelNumberField(*item_prototype, "diameter")
+                  .value_or(default_diameter);
+        }
+      }
+
+      const double inner_width =
+          result.enclosure.size[0] - result.enclosure.wall_thickness * 2.0;
+      const double min_z = result.enclosure.wall_thickness;
+      const double max_z =
+          result.enclosure.size[2] - result.enclosure.wall_thickness;
+      const std::vector<std::string> items =
+          ExtractTopLevelObjectArrayField(intent, "items");
+      for (const std::string& item : items) {
+        const std::optional<std::array<double, 2>> position =
+            ExtractTopLevelNumberArray2Field(item, "position");
+        if (!position.has_value()) {
+          continue;
+        }
+
+        ButtonCutoutItemRequest cutout;
+        cutout.id =
+            ExtractTopLevelStringField(item, "id").value_or(group.id);
+        cutout.position = *position;
+        const std::optional<std::string> item_parameters =
+            ExtractTopLevelObjectField(item, "parameters");
+        if (item_parameters.has_value()) {
+          cutout.diameter =
+              ExtractTopLevelNumberField(*item_parameters, "diameter")
+                  .value_or(default_diameter);
+        } else {
+          cutout.diameter = default_diameter;
+        }
+
+        const double radius = cutout.diameter / 2.0;
+        const double center_x = cutout.position[0];
+        const double center_z =
+            result.enclosure.size[2] / 2.0 + cutout.position[1];
+        if (!IsPositiveDimension(cutout.diameter) ||
+            cutout.diameter > std::min(inner_width, max_z - min_z) ||
+            center_x - radius < -inner_width / 2.0 ||
+            center_x + radius > inner_width / 2.0 ||
+            center_z - radius < min_z ||
+            center_z + radius > max_z) {
+          result.issue_code = "worker.geometry.invalid_button_cutout";
+          result.issue_message =
+              "Native OCCT worker button cutouts must fit the front wall.";
+          return result;
+        }
+
+        group.items.push_back(cutout);
+      }
+
+      if (!group.items.empty()) {
+        result.button_groups.push_back(group);
+      }
     }
   }
 
@@ -1063,6 +1162,8 @@ ShapeMetrics ComputeShapeMetrics(const TopoDS_Shape& shape,
   metrics.native_glass_recess_count = feature_cuts.glass_recess_count;
   metrics.native_glass_recess_filleted_edge_count =
       feature_cuts.glass_recess_filleted_edge_count;
+  metrics.native_button_group_count = feature_cuts.button_group_count;
+  metrics.native_button_cutout_count = feature_cuts.button_cutout_count;
 
   const FaceBounds bounds = ComputeTopoBounds(shape);
   metrics.bounds_min = bounds.min;
@@ -1241,6 +1342,47 @@ bool FaceIntersectsGlassRecess(const FaceBounds& face_bounds,
          (spans_recess_depth || is_recess_back_face);
 }
 
+std::array<double, 2> ButtonCutoutCenter(const EnclosureRequest& enclosure,
+                                         const ButtonCutoutItemRequest& cutout) {
+  return {cutout.position[0], enclosure.size[2] / 2.0 + cutout.position[1]};
+}
+
+bool FaceIntersectsButtonCutout(const FaceBounds& face_bounds,
+                                const ShapeMetrics& metrics,
+                                const EnclosureRequest& enclosure,
+                                const ButtonCutoutItemRequest& cutout) {
+  const std::array<double, 2> center =
+      ButtonCutoutCenter(enclosure, cutout);
+  const double tolerance = PreviewSurfaceTolerance(metrics);
+  const double radius = cutout.diameter / 2.0;
+  const double cutout_min_x = center[0] - radius - tolerance;
+  const double cutout_max_x = center[0] + radius + tolerance;
+  const double cutout_min_z = center[1] - radius - tolerance;
+  const double cutout_max_z = center[1] + radius + tolerance;
+  const double front_y = -enclosure.size[1] / 2.0;
+  const double cutout_min_y = front_y - tolerance;
+  const double cutout_max_y =
+      front_y + enclosure.wall_thickness + tolerance;
+
+  const bool overlaps_cutout_volume =
+      face_bounds.max[0] >= cutout_min_x &&
+      face_bounds.min[0] <= cutout_max_x &&
+      face_bounds.max[1] >= cutout_min_y &&
+      face_bounds.min[1] <= cutout_max_y &&
+      face_bounds.max[2] >= cutout_min_z &&
+      face_bounds.min[2] <= cutout_max_z;
+  const bool is_inside_cutout_outline =
+      face_bounds.min[0] >= cutout_min_x &&
+      face_bounds.max[0] <= cutout_max_x &&
+      face_bounds.min[2] >= cutout_min_z &&
+      face_bounds.max[2] <= cutout_max_z;
+  const bool spans_wall_depth =
+      face_bounds.max[1] - face_bounds.min[1] > tolerance;
+
+  return overlaps_cutout_volume && is_inside_cutout_outline &&
+         spans_wall_depth;
+}
+
 TopoDS_Shape BuildUsbCCutoutTool(const EnclosureRequest& enclosure,
                                  const UsbCCutoutRequest& cutout,
                                  int* filleted_edge_count) {
@@ -1288,6 +1430,18 @@ TopoDS_Shape BuildUsbCCutoutTool(const EnclosureRequest& enclosure,
   }
 
   return fillet.Shape();
+}
+
+TopoDS_Shape BuildButtonCutoutTool(const EnclosureRequest& enclosure,
+                                   const ButtonCutoutItemRequest& cutout) {
+  const std::array<double, 2> center =
+      ButtonCutoutCenter(enclosure, cutout);
+  const double overcut = 2.0;
+  const double height = enclosure.wall_thickness + overcut * 2.0;
+  const gp_Ax2 axis(
+      gp_Pnt(center[0], -enclosure.size[1] / 2.0 - overcut, center[1]),
+      gp_Dir(0.0, 1.0, 0.0));
+  return BRepPrimAPI_MakeCylinder(axis, cutout.diameter / 2.0, height).Shape();
 }
 
 TopoDS_Shape BuildGlassRecessTool(const EnclosureRequest& enclosure,
@@ -1344,6 +1498,7 @@ NativeFeatureCutResult ApplyNativeFeatureCutouts(
     const EnclosureRequest& enclosure,
     const std::vector<UsbCCutoutRequest>& usb_c_cutouts,
     const std::vector<GlassRecessRequest>& glass_recesses,
+    const std::vector<ButtonGroupCutoutRequest>& button_groups,
     int feature_intent_count) {
   NativeFeatureCutResult result;
   result.shape = base_shape;
@@ -1379,6 +1534,7 @@ NativeFeatureCutResult ApplyNativeFeatureCutouts(
     }
 
     ++result.applied_cut_count;
+    ++result.applied_intent_count;
     ++result.usb_c_cutout_count;
     result.usb_c_filleted_edge_count += tool_filleted_edge_count;
   }
@@ -1414,12 +1570,48 @@ NativeFeatureCutResult ApplyNativeFeatureCutouts(
     }
 
     ++result.applied_cut_count;
+    ++result.applied_intent_count;
     ++result.glass_recess_count;
     result.glass_recess_filleted_edge_count += tool_filleted_edge_count;
   }
 
+  for (const ButtonGroupCutoutRequest& group : button_groups) {
+    int group_cut_count = 0;
+    for (const ButtonCutoutItemRequest& cutout : group.items) {
+      const TopoDS_Shape tool = BuildButtonCutoutTool(enclosure, cutout);
+      if (tool.IsNull()) {
+        throw std::runtime_error("OCCT generated a null button cutout tool.");
+      }
+
+      BRepAlgoAPI_Cut cut(result.shape, tool);
+      cut.SimplifyResult(true, true);
+      if (!cut.IsDone() || cut.HasErrors()) {
+        throw std::runtime_error("OCCT button cutout did not complete.");
+      }
+
+      result.shape = cut.Shape();
+      if (result.shape.IsNull()) {
+        throw std::runtime_error("OCCT generated a null button cutout shape.");
+      }
+
+      BRepCheck_Analyzer analyzer(result.shape, false);
+      if (!analyzer.IsValid()) {
+        throw std::runtime_error("OCCT generated an invalid button cutout shape.");
+      }
+
+      ++result.applied_cut_count;
+      ++result.button_cutout_count;
+      ++group_cut_count;
+    }
+
+    if (group_cut_count > 0) {
+      ++result.applied_intent_count;
+      ++result.button_group_count;
+    }
+  }
+
   result.ignored_intent_count =
-      std::max(0, feature_intent_count - result.applied_cut_count);
+      std::max(0, feature_intent_count - result.applied_intent_count);
   return result;
 }
 
@@ -1489,7 +1681,8 @@ std::vector<std::pair<std::string, std::string>> ClassifyPreviewSurfaces(
     const std::string& body_id,
     const EnclosureRequest& enclosure,
     const std::vector<UsbCCutoutRequest>& usb_c_cutouts,
-    const std::vector<GlassRecessRequest>& glass_recesses) {
+    const std::vector<GlassRecessRequest>& glass_recesses,
+    const std::vector<ButtonGroupCutoutRequest>& button_groups) {
   std::vector<std::pair<std::string, std::string>> surfaces;
   const std::optional<std::pair<std::string, std::string>> body_surface =
       ClassifyPreviewSurface(face_bounds, metrics, body_id);
@@ -1506,6 +1699,15 @@ std::vector<std::pair<std::string, std::string>> ClassifyPreviewSurfaces(
   for (const GlassRecessRequest& recess : glass_recesses) {
     if (FaceIntersectsGlassRecess(face_bounds, metrics, enclosure, recess)) {
       surfaces.push_back(std::make_pair(recess.id, "Glass recess"));
+    }
+  }
+
+  for (const ButtonGroupCutoutRequest& group : button_groups) {
+    for (const ButtonCutoutItemRequest& cutout : group.items) {
+      if (FaceIntersectsButtonCutout(face_bounds, metrics, enclosure, cutout)) {
+        surfaces.push_back(std::make_pair(group.id, "Button group"));
+        break;
+      }
     }
   }
 
@@ -1549,7 +1751,9 @@ PreviewMeshData BuildPreviewMesh(const TopoDS_Shape& shape,
                                  const std::vector<UsbCCutoutRequest>&
                                      usb_c_cutouts,
                                  const std::vector<GlassRecessRequest>&
-                                     glass_recesses) {
+                                     glass_recesses,
+                                 const std::vector<ButtonGroupCutoutRequest>&
+                                     button_groups) {
   PreviewMeshData mesh;
   BRepMesh_IncrementalMesh mesher(shape,
                                   kPreviewLinearDeflection,
@@ -1576,7 +1780,8 @@ PreviewMeshData BuildPreviewMesh(const TopoDS_Shape& shape,
                                 enclosure.id,
                                 enclosure,
                                 usb_c_cutouts,
-                                glass_recesses);
+                                glass_recesses,
+                                button_groups);
     const int vertex_offset = mesh.vertex_count();
     const int triangle_start = mesh.triangle_count();
     for (int node_index = 1; node_index <= triangulation->NbNodes();
@@ -1861,6 +2066,10 @@ void WriteRoundedEnclosurePreviewResponse(const NativeRequestEnvelope& request,
             << metrics.native_glass_recess_count << ",\n"
             << "    \"nativeGlassRecessFilletedEdgeCount\": "
             << metrics.native_glass_recess_filleted_edge_count << ",\n"
+            << "    \"nativeButtonGroupCount\": "
+            << metrics.native_button_group_count << ",\n"
+            << "    \"nativeButtonCutoutCount\": "
+            << metrics.native_button_cutout_count << ",\n"
             << "    \"bounds\": {\n"
             << "      \"min\": ";
   WriteDoubleArray(metrics.bounds_min);
@@ -1962,6 +2171,7 @@ int main(int argc, char* argv[]) {
                                   parsed_request.enclosure,
                                   parsed_request.usb_c_cutouts,
                                   parsed_request.glass_recesses,
+                                  parsed_request.button_groups,
                                   parsed_request.feature_intent_count);
     if (feature_cuts.shape.IsNull()) {
       throw std::runtime_error("OCCT generated a null feature-cut shape.");
@@ -1981,7 +2191,8 @@ int main(int argc, char* argv[]) {
                          metrics,
                          parsed_request.enclosure,
                          parsed_request.usb_c_cutouts,
-                         parsed_request.glass_recesses);
+                         parsed_request.glass_recesses,
+                         parsed_request.button_groups);
     WriteRoundedEnclosurePreviewResponse(
         parsed_request.request, parsed_request.enclosure, metrics, mesh);
     return 0;
