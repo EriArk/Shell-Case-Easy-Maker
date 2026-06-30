@@ -289,7 +289,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [ ] Insert/glass definition.
 - [ ] Ledge/lip/bezel generation.
 - [ ] Protected islands inside recess.
-- [ ] Editable ring/bezel style controls.
+- [x] First-pass editable ring/bezel style controls.
 - [ ] Curved sides / GBA-like panel shapes.
 - [ ] DXF export of glass/acrylic/insert contour.
 - [ ] DXF layers and kerf/tool compensation.
@@ -300,6 +300,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [ ] Generate holes from switch centers.
 - [x] First-pass native top-lid button holes from semantic button groups.
 - [x] First-pass native button rings from semantic button groups.
+- [x] First-pass button ring width/protrusion inspector controls.
 - [x] First-pass semantic button group from switch centers.
 - [ ] Generate full button cap/plunger from switch centers.
 - [ ] U-cut button generator.

@@ -68,7 +68,13 @@ ProjectModel _fixtureProject() {
               },
             ],
           },
-          itemPrototype: {'type': 'button', 'diameter': 8.0, 'mode': 'plunger'},
+          itemPrototype: {
+            'type': 'button',
+            'diameter': 8.0,
+            'ringWidth': 1.2,
+            'ringProtrusion': 0.45,
+            'mode': 'plunger',
+          },
           placement: {'anchor': 'component_switch_centers'},
         ),
       )

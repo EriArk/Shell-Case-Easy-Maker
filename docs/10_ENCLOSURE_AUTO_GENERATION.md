@@ -38,7 +38,8 @@ front-wall and top-lid `glass_recess` features can cut a shallow generated
 seat plus an inner window, leaving a support ledge from semantic `ledgeWidth`.
 Front-wall and top-lid `button_group` features can cut generated circular holes
 and add small raised annular rings/bezels around those holes while staying one
-editable group. These are
+editable group. Ring width and protrusion are stored as semantic
+`itemPrototype` parameters. These are
 generated B-Rep output; the editable project still stores semantic groups and
 lid metadata rather than generated solids, per-boss bodies, per-hole editable
 features, editable lip geometry, editable groove geometry, or editable

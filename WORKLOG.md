@@ -42,6 +42,114 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-30 - M86 Semantic button ring controls
+
+### Goal
+Make first-pass button ring/bezel width and protrusion editable semantic
+`button_group` parameters, while keeping generated rings as disposable native
+B-Rep output.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`docs/09_PATTERN_AND_LAYOUT_SYSTEM.md`,
+`docs/10_ENCLOSURE_AUTO_GENERATION.md`,
+`docs/16_BUTTON_AND_PLUNGER_SYSTEM.md`,
+`docs/27_RESEARCH_AND_REFERENCES.md`,
+`lib/ui/shell/workspace_shell.dart`,
+`lib/geometry/geometry_protocol.dart`,
+`lib/validation/project_semantic_validator.dart`,
+`occt_worker/native/src/occt_main.cpp`,
+`tool/native_occt_worker_metrics_smoke.dart`, and related tests.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added `ringWidth` and `ringProtrusion` defaults to manual and
+    component-sourced button groups.
+  - Added contextual inspector controls for ring width and protrusion.
+  - Added ring width/protrusion fields to the button group creation dialog.
+  - Preserved `0.45` style values in number formatting without changing
+    integer field display.
+- `occt_worker/native/src/occt_main.cpp`:
+  - Parses `ringWidth` and `ringProtrusion` from button group item
+    parameters.
+  - Validates the outer ring diameter against the target surface.
+  - Uses semantic ring width/protrusion in native ring generation and preview
+    classification.
+- Protocol/sample/test files:
+  - Regenerated geometry protocol fixtures.
+  - Added ring values to the sample project and native smoke project.
+  - Added coverage for protocol propagation, operation plans, widget editing,
+    selection summaries, and native source contract.
+- Docs/tasks/roadmap:
+  - Recorded M86 and marked first-pass editable ring/bezel controls complete.
+
+### Tests run
+- `dart run tool\generate_geometry_protocol_fixtures.dart`:
+  - Passed; updated protocol fixtures.
+- `dart format lib\ui\shell\workspace_shell.dart lib\selection\project_selection_resolver.dart lib\validation\project_semantic_validator.dart test\geometry_protocol_test.dart test\occt_native_target_scaffold_test.dart test\widget_test.dart test\project_selection_resolver_test.dart tool\native_occt_worker_metrics_smoke.dart tool\generate_geometry_protocol_fixtures.dart`:
+  - Passed.
+- `flutter test test\geometry_protocol_test.dart test\project_selection_resolver_test.dart test\occt_native_target_scaffold_test.dart --reporter compact`:
+  - Passed, 23 tests.
+- `flutter test test\widget_test.dart --plain-name "selected button group inspector edits pattern through undo" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "component button command creates switch-sourced group" --reporter compact`:
+  - Passed.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`:
+  - Passed.
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`:
+  - Passed; default sample still reports 9502 vertices, 10136 triangles,
+    `nativeButtonRingCount=2`, and
+    `nativeGeneratedLidButtonRingCount=4`.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 0 files changed.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed, 187 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git diff --check`:
+  - Passed; Git printed a CRLF/LF normalization warning for `ROADMAP.md`
+    only.
+
+### Validation
+- Geometry checked?
+  - Yes. Native smoke verifies deterministic geometry and ring metrics with
+    semantic ring defaults.
+- Serialization checked?
+  - Yes. Protocol fixture tests, project JSON save tests, and full tests
+    passed.
+- UI checked?
+  - Yes. Widget tests cover inspector editing, undo, and component-sourced
+    button group creation with ring defaults.
+- Export checked?
+  - No. STEP/STL export is still future work.
+
+### Known issues
+- Issue:
+  - Ring controls are first-pass numeric parameters only; no shape/chamfer or
+    texture style controls yet.
+  - Severity: Low.
+  - Next action: Continue toward button cap/plunger semantics before adding
+    richer ring styling.
+
+### Next step
+Start the first safe cap/plunger planning or skeleton slice: cap/plunger
+semantic fields, validation, and native generation boundaries before making
+real moving-button geometry.
+
+### Notes for future Codex sessions
+`ringWidth` and `ringProtrusion` live in `FeatureGroup.itemPrototype` and are
+copied into every button item intent. Native defaults still match the M85
+geometry so existing projects without these fields remain compatible.
+
+---
+
 ## 2026-06-30 - M85 Native button rings
 
 ### Goal

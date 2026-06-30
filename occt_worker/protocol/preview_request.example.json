@@ -305,6 +305,8 @@
         "itemPrototype": {
           "type": "button",
           "diameter": 8.0,
+          "ringWidth": 1.2,
+          "ringProtrusion": 0.45,
           "mode": "plunger"
         },
         "placement": {
@@ -447,6 +449,8 @@
         "itemPrototype": {
           "type": "button",
           "diameter": 8.0,
+          "ringWidth": 1.2,
+          "ringProtrusion": 0.45,
           "mode": "plunger"
         }
       },
@@ -468,6 +472,8 @@
           "parameters": {
             "type": "button",
             "diameter": 8.0,
+            "ringWidth": 1.2,
+            "ringProtrusion": 0.45,
             "mode": "plunger"
           },
           "source": {
@@ -498,6 +504,8 @@
           "parameters": {
             "type": "button",
             "diameter": 8.0,
+            "ringWidth": 1.2,
+            "ringProtrusion": 0.45,
             "mode": "plunger"
           },
           "source": {
@@ -528,6 +536,8 @@
           "parameters": {
             "type": "button",
             "diameter": 8.0,
+            "ringWidth": 1.2,
+            "ringProtrusion": 0.45,
             "mode": "plunger"
           },
           "source": {
@@ -558,6 +568,8 @@
           "parameters": {
             "type": "button",
             "diameter": 8.0,
+            "ringWidth": 1.2,
+            "ringProtrusion": 0.45,
             "mode": "plunger"
           },
           "source": {

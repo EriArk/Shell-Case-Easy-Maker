@@ -408,6 +408,11 @@ class ProjectSemanticValidator {
     }
 
     final diameter = readDouble(group.itemPrototype['diameter'], fallback: 8);
+    final ringWidth = readDouble(
+      group.itemPrototype['ringWidth'],
+      fallback: 1.2,
+    );
+    final outerDiameter = diameter + (ringWidth + 0.05) * 2;
     for (final switchPosition in switchPositions) {
       final position = readDoubleList(
         switchPosition['position'],
@@ -436,8 +441,8 @@ class ProjectSemanticValidator {
         enclosure: enclosure,
         axes: axes,
         position: position,
-        sizeA: diameter,
-        sizeB: diameter,
+        sizeA: outerDiameter,
+        sizeB: outerDiameter,
       )) {
         messages.add(
           ValidationMessage(

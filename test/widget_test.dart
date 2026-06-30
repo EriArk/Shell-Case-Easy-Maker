@@ -230,6 +230,8 @@ void main() {
           'type': 'button',
           'shape': 'circle',
           'diameter': 8.0,
+          'ringWidth': 1.2,
+          'ringProtrusion': 0.45,
           'mode': 'plunger',
         },
         placement: {'anchor': 'center'},
@@ -620,7 +622,7 @@ void main() {
       await tester.testTextInput.receiveAction(TextInputAction.done);
       await tester.pumpAndSettle();
 
-      expect(find.text('14.0'), findsOneWidget);
+      expect(find.text('14.0'), findsWidgets);
       expect(tester.widget<IconButton>(undoButton).onPressed, isNotNull);
 
       await tester.tap(undoButton);
@@ -692,7 +694,7 @@ void main() {
       await tester.testTextInput.receiveAction(TextInputAction.done);
       await tester.pumpAndSettle();
 
-      expect(find.text('60.0'), findsOneWidget);
+      expect(find.text('60.0'), findsWidgets);
       expect(tester.widget<IconButton>(undoButton).onPressed, isNotNull);
 
       await tester.tap(undoButton);
@@ -776,6 +778,39 @@ void main() {
     await _pumpAsyncUi(tester);
 
     expect(tester.widget<TextFormField>(countField).controller?.text, '4');
+
+    final ringWidthField = find.byKey(
+      const ValueKey('feature-group-param-button_group_1-ringWidth'),
+    );
+    final ringProtrusionField = find.byKey(
+      const ValueKey('feature-group-param-button_group_1-ringProtrusion'),
+    );
+
+    expect(
+      tester.widget<TextFormField>(ringWidthField).controller?.text,
+      '1.2',
+    );
+    expect(
+      tester.widget<TextFormField>(ringProtrusionField).controller?.text,
+      '0.45',
+    );
+
+    await tester.enterText(ringWidthField, '2.4');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widget<TextFormField>(ringWidthField).controller?.text,
+      '2.4',
+    );
+
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+
+    expect(
+      tester.widget<TextFormField>(ringWidthField).controller?.text,
+      '1.2',
+    );
   });
 
   testWidgets(
@@ -1467,7 +1502,7 @@ void main() {
     await _pumpAsyncUi(tester);
 
     expect(find.text('usb_c_cutout_2'), findsWidgets);
-    expect(find.text('12.0'), findsOneWidget);
+    expect(find.text('12.0'), findsWidgets);
     expect(tester.widget<IconButton>(undoButton).onPressed, isNotNull);
 
     await tester.tap(find.text('main_enclosure').first);
@@ -1720,6 +1755,8 @@ void main() {
     expect(find.byKey(const ValueKey('button-group-confirm')), findsOneWidget);
     expect(_dialogNumberText(tester, 'button-group-count'), '4');
     expect(_dialogNumberText(tester, 'button-group-diameter'), '8');
+    expect(_dialogNumberText(tester, 'button-group-ring-width'), '1.2');
+    expect(_dialogNumberText(tester, 'button-group-ring-protrusion'), '0.45');
 
     await tester.tap(find.byKey(const ValueKey('button-group-confirm')));
     await _pumpAsyncUi(tester);
@@ -1742,6 +1779,8 @@ void main() {
     expect(created.pattern['count'], 4);
     expect(created.pattern['sourcePlacementId'], 'button_board_placement');
     expect(created.pattern['sourceTemplateId'], 'custom_button_board_v1');
+    expect(created.itemPrototype['ringWidth'], 1.2);
+    expect(created.itemPrototype['ringProtrusion'], 0.45);
     expect(switchPositions, hasLength(4));
     expect(
       switchPositions
@@ -1805,7 +1844,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('glass_recess_1'), findsWidgets);
-    expect(find.text('50.0'), findsOneWidget);
+    expect(find.text('50.0'), findsWidgets);
     expect(tester.widget<IconButton>(undoButton).onPressed, isNotNull);
 
     await tester.tap(find.text('main_enclosure').first);
@@ -1893,7 +1932,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('standoff_mounts_1'), findsWidgets);
-    expect(find.text('6.0'), findsOneWidget);
+    expect(find.text('6.0'), findsWidgets);
     expect(tester.widget<IconButton>(undoButton).onPressed, isNotNull);
 
     await tester.tap(find.text('main_enclosure').first);

@@ -54,9 +54,9 @@ constexpr const char* kBackend = "occt_worker_native_occt";
 constexpr const char* kInvalidRequestId = "invalid_request";
 constexpr double kPreviewLinearDeflection = 0.3;
 constexpr double kPreviewAngularDeflection = 0.35;
-constexpr double kButtonRingWidth = 1.2;
+constexpr double kDefaultButtonRingWidth = 1.2;
 constexpr double kButtonRingInnerClearance = 0.05;
-constexpr double kButtonRingProtrusion = 0.45;
+constexpr double kDefaultButtonRingProtrusion = 0.45;
 constexpr double kButtonRingSurfaceOverlap = 0.12;
 constexpr double kButtonRingCutOverrun = 0.1;
 
@@ -126,6 +126,8 @@ struct ButtonCutoutItemRequest {
   std::string id;
   std::array<double, 2> position = {0.0, 0.0};
   double diameter = 8.0;
+  double ring_width = kDefaultButtonRingWidth;
+  double ring_protrusion = kDefaultButtonRingProtrusion;
 };
 
 struct ButtonGroupCutoutRequest {
@@ -1224,6 +1226,8 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
       }
 
       double default_diameter = 8.0;
+      double default_ring_width = kDefaultButtonRingWidth;
+      double default_ring_protrusion = kDefaultButtonRingProtrusion;
       if (parameters.has_value()) {
         const std::optional<std::string> item_prototype =
             ExtractTopLevelObjectField(*parameters, "itemPrototype");
@@ -1231,6 +1235,12 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
           default_diameter =
               ExtractTopLevelNumberField(*item_prototype, "diameter")
                   .value_or(default_diameter);
+          default_ring_width =
+              ExtractTopLevelNumberField(*item_prototype, "ringWidth")
+                  .value_or(default_ring_width);
+          default_ring_protrusion =
+              ExtractTopLevelNumberField(*item_prototype, "ringProtrusion")
+                  .value_or(default_ring_protrusion);
         }
       }
 
@@ -1262,11 +1272,21 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
           cutout.diameter =
               ExtractTopLevelNumberField(*item_parameters, "diameter")
                   .value_or(default_diameter);
+          cutout.ring_width =
+              ExtractTopLevelNumberField(*item_parameters, "ringWidth")
+                  .value_or(default_ring_width);
+          cutout.ring_protrusion =
+              ExtractTopLevelNumberField(*item_parameters, "ringProtrusion")
+                  .value_or(default_ring_protrusion);
         } else {
           cutout.diameter = default_diameter;
+          cutout.ring_width = default_ring_width;
+          cutout.ring_protrusion = default_ring_protrusion;
         }
 
         const double radius = cutout.diameter / 2.0;
+        const double ring_outer_radius =
+            radius + kButtonRingInnerClearance + cutout.ring_width;
         const double center_x = cutout.position[0];
         const double center_secondary =
             targets_top_lid
@@ -1275,18 +1295,24 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
         const double available_secondary =
             targets_top_lid ? inner_depth : max_z - min_z;
         if (!IsPositiveDimension(cutout.diameter) ||
+            !IsPositiveDimension(cutout.ring_width) ||
+            !IsPositiveDimension(cutout.ring_protrusion) ||
+            cutout.ring_width > 8.0 ||
+            cutout.ring_protrusion > 6.0 ||
             cutout.diameter > std::min(inner_width, available_secondary) ||
-            center_x - radius < -inner_width / 2.0 ||
-            center_x + radius > inner_width / 2.0 ||
+            ring_outer_radius * 2.0 >
+                std::min(inner_width, available_secondary) ||
+            center_x - ring_outer_radius < -inner_width / 2.0 ||
+            center_x + ring_outer_radius > inner_width / 2.0 ||
             (targets_top_lid &&
-             (center_secondary - radius < -inner_depth / 2.0 ||
-              center_secondary + radius > inner_depth / 2.0)) ||
+             (center_secondary - ring_outer_radius < -inner_depth / 2.0 ||
+              center_secondary + ring_outer_radius > inner_depth / 2.0)) ||
             (!targets_top_lid &&
-             (center_secondary - radius < min_z ||
-              center_secondary + radius > max_z))) {
+             (center_secondary - ring_outer_radius < min_z ||
+              center_secondary + ring_outer_radius > max_z))) {
           result.issue_code = "worker.geometry.invalid_button_cutout";
           result.issue_message =
-              "Native OCCT worker button cutouts must fit the target surface.";
+              "Native OCCT worker button cutouts and rings must fit the target surface.";
           return result;
         }
 
@@ -2320,7 +2346,7 @@ double ButtonRingInnerRadius(const ButtonCutoutItemRequest& cutout) {
 }
 
 double ButtonRingOuterRadius(const ButtonCutoutItemRequest& cutout) {
-  return ButtonRingInnerRadius(cutout) + kButtonRingWidth;
+  return ButtonRingInnerRadius(cutout) + cutout.ring_width;
 }
 
 bool FaceIntersectsButtonCutout(const FaceBounds& face_bounds,
@@ -2372,7 +2398,7 @@ bool FaceIntersectsButtonRing(const FaceBounds& face_bounds,
   const double ring_min_z = center[1] - radius - tolerance;
   const double ring_max_z = center[1] + radius + tolerance;
   const double front_y = -enclosure.size[1] / 2.0;
-  const double ring_min_y = front_y - kButtonRingProtrusion - tolerance;
+  const double ring_min_y = front_y - cutout.ring_protrusion - tolerance;
   const double ring_max_y = front_y + kButtonRingSurfaceOverlap + tolerance;
 
   const bool overlaps_ring_volume =
@@ -2666,7 +2692,7 @@ bool FaceIntersectsGeneratedTopLidButtonRing(
       enclosure.size[2] + lid_plate.preview_gap + lid_plate.thickness;
   const double ring_min_z =
       lid_top_z - kButtonRingSurfaceOverlap - tolerance;
-  const double ring_max_z = lid_top_z + kButtonRingProtrusion + tolerance;
+  const double ring_max_z = lid_top_z + cutout.ring_protrusion + tolerance;
 
   const bool overlaps_ring_volume =
       face_bounds.max[0] >= ring_min_x &&
@@ -2792,9 +2818,9 @@ TopoDS_Shape BuildButtonRingShape(const EnclosureRequest& enclosure,
       ButtonCutoutCenter(enclosure, cutout);
   const double front_y = -enclosure.size[1] / 2.0;
   const double ring_height =
-      kButtonRingProtrusion + kButtonRingSurfaceOverlap;
+      cutout.ring_protrusion + kButtonRingSurfaceOverlap;
   const gp_Ax2 outer_axis(
-      gp_Pnt(center[0], front_y - kButtonRingProtrusion, center[1]),
+      gp_Pnt(center[0], front_y - cutout.ring_protrusion, center[1]),
       gp_Dir(0.0, 1.0, 0.0));
   const TopoDS_Shape outer =
       BRepPrimAPI_MakeCylinder(outer_axis,
@@ -2807,7 +2833,7 @@ TopoDS_Shape BuildButtonRingShape(const EnclosureRequest& enclosure,
 
   const gp_Ax2 inner_axis(
       gp_Pnt(center[0],
-             front_y - kButtonRingProtrusion - kButtonRingCutOverrun,
+             front_y - cutout.ring_protrusion - kButtonRingCutOverrun,
              center[1]),
       gp_Dir(0.0, 1.0, 0.0));
   const TopoDS_Shape inner =
@@ -2861,7 +2887,7 @@ TopoDS_Shape BuildGeneratedTopLidButtonRingShape(
   const double lid_top_z =
       enclosure.size[2] + lid_plate.preview_gap + lid_plate.thickness;
   const double ring_height =
-      kButtonRingProtrusion + kButtonRingSurfaceOverlap;
+      cutout.ring_protrusion + kButtonRingSurfaceOverlap;
   const gp_Ax2 outer_axis(
       gp_Pnt(cutout.position[0],
              cutout.position[1],

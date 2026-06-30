@@ -77,7 +77,12 @@ void main() {
         type: 'button_group',
         targetSurface: 'main_enclosure.top_lid.outer',
         pattern: {'layout': 'diamond', 'count': 4, 'spacing': 14.0},
-        itemPrototype: {'diameter': 8.0, 'mode': 'plunger'},
+        itemPrototype: {
+          'diameter': 8.0,
+          'ringWidth': 1.2,
+          'ringProtrusion': 0.45,
+          'mode': 'plunger',
+        },
       ),
     );
     final details = ProjectSelectionResolver(
@@ -88,6 +93,10 @@ void main() {
     expect(
       details.properties.map((property) => property.label),
       containsAll(['Раскладка', 'Кол-во', 'Диаметр']),
+    );
+    expect(
+      details.properties.map((property) => property.label),
+      containsAll(['Ободок', 'Выступ']),
     );
   });
 

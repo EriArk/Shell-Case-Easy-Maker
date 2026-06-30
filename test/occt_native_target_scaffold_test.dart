@@ -50,6 +50,8 @@ void main() {
       expect(source, contains('UsbCCutoutRequest'));
       expect(source, contains('GlassRecessRequest'));
       expect(source, contains('ButtonGroupCutoutRequest'));
+      expect(source, contains('ring_width'));
+      expect(source, contains('ring_protrusion'));
       expect(source, contains('StandoffMountGroupRequest'));
       expect(source, contains('GeneratedLidSeatRequest'));
       expect(source, contains('BuildLidScrewBossShape'));
@@ -59,6 +61,8 @@ void main() {
       expect(source, contains('BuildGlassWindowTool'));
       expect(source, contains('BuildButtonCutoutTool'));
       expect(source, contains('BuildButtonRingShape'));
+      expect(source, contains('ringWidth'));
+      expect(source, contains('ringProtrusion'));
       expect(source, contains('BuildStandoffMountShape'));
       expect(source, contains('ApplyNativeFeatureCutouts'));
       expect(source, contains('BuildPreviewMesh'));

@@ -1756,6 +1756,8 @@ FeatureGroup _defaultButtonGroup({
       'type': 'button',
       'shape': 'circle',
       'diameter': 8.0,
+      'ringWidth': 1.2,
+      'ringProtrusion': 0.45,
       'mode': 'plunger',
     },
     placement: const {'anchor': 'center'},
@@ -1801,6 +1803,8 @@ FeatureGroup _buttonGroupFromComponentSwitches({
       'type': 'button',
       'shape': 'circle',
       'diameter': 8.0,
+      'ringWidth': 1.2,
+      'ringProtrusion': 0.45,
       'mode': 'plunger',
     },
     placement: {
@@ -3582,7 +3586,10 @@ _FeatureGroupParameterTarget? _featureGroupParameterTarget(
   return switch (type) {
     'button_group' => switch (parameterId) {
       'layout' || 'count' || 'spacing' => _FeatureGroupParameterTarget.pattern,
-      'diameter' || 'mode' => _FeatureGroupParameterTarget.itemPrototype,
+      'diameter' ||
+      'ringWidth' ||
+      'ringProtrusion' ||
+      'mode' => _FeatureGroupParameterTarget.itemPrototype,
       _ => null,
     },
     'standoff_mounts' => switch (parameterId) {
@@ -3602,6 +3609,30 @@ _normalizeFeatureGroupParameterMaps(
   required Map<String, Object?> pattern,
   required Map<String, Object?> itemPrototype,
 }) {
+  if (type == 'button_group') {
+    final diameter = _featureDouble(itemPrototype, 'diameter', 8).clamp(2, 30);
+    final ringWidth = _featureDouble(
+      itemPrototype,
+      'ringWidth',
+      1.2,
+    ).clamp(0.2, 8);
+    final ringProtrusion = _featureDouble(
+      itemPrototype,
+      'ringProtrusion',
+      0.45,
+    ).clamp(0.1, 6);
+
+    return (
+      pattern: pattern,
+      itemPrototype: {
+        ...itemPrototype,
+        'diameter': diameter.toDouble(),
+        'ringWidth': ringWidth.toDouble(),
+        'ringProtrusion': ringProtrusion.toDouble(),
+      },
+    );
+  }
+
   if (type != 'standoff_mounts') {
     return (pattern: pattern, itemPrototype: itemPrototype);
   }
@@ -3662,6 +3693,22 @@ const _buttonGroupParameterSchema = ParameterSchema(
       unit: 'mm',
       defaultValue: 8.0,
       range: ParameterRange(min: 2, max: 30, step: 0.1),
+    ),
+    ParameterDefinition(
+      id: 'ringWidth',
+      label: 'Ободок',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 1.2,
+      range: ParameterRange(min: 0.2, max: 8, step: 0.1),
+    ),
+    ParameterDefinition(
+      id: 'ringProtrusion',
+      label: 'Выступ',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 0.45,
+      range: ParameterRange(min: 0.1, max: 6, step: 0.05),
     ),
     ParameterDefinition(
       id: 'mode',
@@ -4667,6 +4714,8 @@ class _ButtonGroupDialogState extends State<_ButtonGroupDialog> {
   late String _layout;
   late double _count;
   late double _diameter;
+  late double _ringWidth;
+  late double _ringProtrusion;
   late double _spacing;
   late String _mode;
 
@@ -4690,6 +4739,12 @@ class _ButtonGroupDialogState extends State<_ButtonGroupDialog> {
     _count = _featureDouble(group.pattern, 'count', 4);
     _spacing = _featureDouble(group.pattern, 'spacing', 14);
     _diameter = _featureDouble(group.itemPrototype, 'diameter', 8);
+    _ringWidth = _featureDouble(group.itemPrototype, 'ringWidth', 1.2);
+    _ringProtrusion = _featureDouble(
+      group.itemPrototype,
+      'ringProtrusion',
+      0.45,
+    );
     _mode = _featureString(group.itemPrototype, 'mode', 'plunger');
   }
 
@@ -4764,6 +4819,29 @@ class _ButtonGroupDialogState extends State<_ButtonGroupDialog> {
                 onChanged: (value) => setState(() => _spacing = value),
               ),
               const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: _DialogNumberField(
+                      key: const ValueKey('button-group-ring-width'),
+                      label: 'Ободок',
+                      value: _ringWidth,
+                      onChanged: (value) => setState(() => _ringWidth = value),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _DialogNumberField(
+                      key: const ValueKey('button-group-ring-protrusion'),
+                      label: 'Выступ',
+                      value: _ringProtrusion,
+                      onChanged: (value) =>
+                          setState(() => _ringProtrusion = value),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
               DropdownButtonFormField<String>(
                 key: const ValueKey('button-group-mode'),
                 initialValue: _mode,
@@ -4819,6 +4897,8 @@ class _ButtonGroupDialogState extends State<_ButtonGroupDialog> {
                 'type': 'button',
                 'shape': 'circle',
                 'diameter': _clampDouble(_diameter, 2, 30),
+                'ringWidth': _clampDouble(_ringWidth, 0.2, 8),
+                'ringProtrusion': _clampDouble(_ringProtrusion, 0.1, 6),
                 'mode': _mode,
               },
               placement: widget.initialGroup.placement,
@@ -5386,6 +5466,10 @@ class _ParameterNumberFieldState extends State<_ParameterNumberField> {
       if (value == value.roundToDouble()) {
         return value.toStringAsFixed(0);
       }
+      final step = widget.parameter.range?.step;
+      if (step != null && step > 0 && step < 0.1) {
+        return value.toStringAsFixed(2);
+      }
       return value.toStringAsFixed(1);
     }
 
@@ -5499,8 +5583,11 @@ String _formatNumber(num value) {
   if (normalized == normalized.roundToDouble()) {
     return normalized.toStringAsFixed(0);
   }
+  if ((normalized * 10).roundToDouble() == normalized * 10) {
+    return normalized.toStringAsFixed(1);
+  }
 
-  return normalized.toStringAsFixed(1);
+  return normalized.toStringAsFixed(2);
 }
 
 class _InspectorValue extends StatelessWidget {

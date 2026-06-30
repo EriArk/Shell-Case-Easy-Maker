@@ -52,7 +52,12 @@ void main() {
             },
           ],
         },
-        itemPrototype: {'type': 'button', 'diameter': 8.0},
+        itemPrototype: {
+          'type': 'button',
+          'diameter': 8.0,
+          'ringWidth': 1.4,
+          'ringProtrusion': 0.6,
+        },
         placement: {'anchor': 'component_switch_centers'},
       ),
     );
@@ -80,6 +85,16 @@ void main() {
     expect(buttonIntent.kind, 'button_group');
     expect(buttonIntent.operation, 'composite');
     expect(
+      (buttonIntent.parameters['itemPrototype']
+          as Map<String, Object?>)['ringWidth'],
+      1.4,
+    );
+    expect(
+      (buttonIntent.parameters['itemPrototype']
+          as Map<String, Object?>)['ringProtrusion'],
+      0.6,
+    );
+    expect(
       buttonIntent.source['componentPlacementId'],
       'button_board_placement',
     );
@@ -87,6 +102,8 @@ void main() {
     expect(buttonIntent.items.first.id, 'projected_buttons.sw_a');
     expect(buttonIntent.items.first.position, [7.0, 0.0]);
     expect(buttonIntent.items.first.parameters['diameter'], 8.0);
+    expect(buttonIntent.items.first.parameters['ringWidth'], 1.4);
+    expect(buttonIntent.items.first.parameters['ringProtrusion'], 0.6);
     expect(buttonIntent.items.first.source['direction'], 'top');
   });
 
@@ -160,7 +177,12 @@ void main() {
               },
             ],
           },
-          itemPrototype: {'diameter': 8.0, 'mode': 'plunger'},
+          itemPrototype: {
+            'diameter': 8.0,
+            'ringWidth': 1.2,
+            'ringProtrusion': 0.45,
+            'mode': 'plunger',
+          },
         ),
       ],
     );
@@ -185,6 +207,8 @@ void main() {
     expect(operations.last.operation, 'negative');
     expect(operations.last.parameters['position'], [7.0, 0.0]);
     expect(operations.last.parameters['diameter'], 8.0);
+    expect(operations.last.parameters['ringWidth'], 1.2);
+    expect(operations.last.parameters['ringProtrusion'], 0.45);
     expect(operations.last.source['direction'], 'top');
   });
 

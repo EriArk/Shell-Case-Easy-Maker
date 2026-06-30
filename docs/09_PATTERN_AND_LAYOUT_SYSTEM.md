@@ -85,6 +85,8 @@ The pattern system creates editable feature groups.
     "type": "button",
     "shape": "circle",
     "diameter": 8,
+    "ringWidth": 1.2,
+    "ringProtrusion": 0.45,
     "mode": "plunger"
   },
   "placement": {
@@ -101,7 +103,8 @@ When a semantic surface is selected, the `Кнопки` rail button opens a comp
 dialog and creates a `FeatureGroup` with:
 - `type: button_group`,
 - editable `pattern` data for layout, count, and spacing,
-- editable `itemPrototype` data for circular button diameter and mode,
+- editable `itemPrototype` data for circular button diameter, ring width,
+  ring protrusion, and mode,
 - centered placement metadata.
 
 The group is committed as one undoable semantic object. It is not flattened
@@ -148,10 +151,11 @@ still stores one `FeatureGroup`; the generated bosses and preview triangle
 ranges are disposable worker output.
 
 When a `button_group` is selected, the contextual inspector currently supports
-editing layout, count, spacing, button diameter, and button mode. Layout/count/
-spacing are written back to `FeatureGroup.pattern`; diameter/mode are written
-back to `FeatureGroup.itemPrototype`. The group remains one semantic object,
-and undo restores the previous pattern/item data.
+editing layout, count, spacing, button diameter, ring width, ring protrusion,
+and button mode. Layout/count/spacing are written back to
+`FeatureGroup.pattern`; diameter/ring/mode values are written back to
+`FeatureGroup.itemPrototype`. The group remains one semantic object, and undo
+restores the previous pattern/item data.
 
 ## Per-item overrides
 

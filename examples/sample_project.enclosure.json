@@ -73,6 +73,8 @@
         "mode": "plunger",
         "capShape": "round",
         "diameter": 8.0,
+        "ringWidth": 1.2,
+        "ringProtrusion": 0.45,
         "clearanceProfile": "fdm_normal",
         "travel": 1.2
       }

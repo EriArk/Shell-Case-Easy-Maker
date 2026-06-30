@@ -41,14 +41,17 @@ on the generated lid preview plate.
 The editable project still stores one `button_group`; ring solids are
 disposable generated geometry, and preview faces for holes/rings map back to
 the same semantic group ids such as `front_buttons` and `top_lid_buttons`.
-Full caps, plungers, stems, guide walls, travel stops, and editable ring style
-controls remain future work.
+First-pass ring style controls are semantic `itemPrototype` values:
+`ringWidth` and `ringProtrusion`. Full caps, plungers, stems, guide walls, and
+travel stops remain future work.
 
 ## Parameters
 
 - Cap shape: circle, rectangle, rounded rectangle, oval, custom.
 - Cap size.
 - Cap height/protrusion.
+- Ring/bezel width.
+- Ring/bezel protrusion.
 - Flush/protruding/recessed.
 - Stem width/diameter.
 - Stem target point.

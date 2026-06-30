@@ -3883,3 +3883,62 @@ or flattening `button_group` semantics.
 - Select/poke the front and top button groups and confirm the holes/rings read
   as one semantic group rather than separate CAD objects.
 - Confirm the front and top glass ledge windows still remain visible.
+
+---
+
+## M86 - Semantic Button Ring Controls
+
+### Goal
+Expose first-pass button ring/bezel sizing as semantic `button_group`
+parameters instead of fixed native constants, while keeping rings generated
+from `itemPrototype` rather than editable CAD solids.
+
+### Tasks
+- [x] Add `ringWidth` and `ringProtrusion` defaults to manual and
+      component-sourced button groups.
+- [x] Add contextual inspector controls for ring width and protrusion.
+- [x] Add ring width/protrusion fields to the button group creation dialog.
+- [x] Preserve ring parameters through geometry protocol feature intents and
+      operation plans.
+- [x] Parse and validate ring parameters in the native OCCT worker.
+- [x] Use semantic ring parameters in native ring generation and preview
+      classification.
+- [x] Update protocol fixtures, sample project, tests, docs, roadmap, and
+      worklog.
+
+### Done Criteria
+- Selecting a button group shows editable `ringWidth` and `ringProtrusion`
+  controls.
+- Creating a component-sourced button group writes `ringWidth: 1.2` and
+  `ringProtrusion: 0.45` into `FeatureGroup.itemPrototype`.
+- `GeometryFeatureIntent.items[*].parameters` carries the ring values.
+- Native smoke still reports 9502 vertices, 10136 triangles, 14 preview surface
+  mappings, and 16684 mapped triangles for the default sample.
+- Native smoke still reports `nativeButtonRingCount: 2` and
+  `nativeGeneratedLidButtonRingCount: 4`.
+
+### Tests
+- `dart run tool\generate_geometry_protocol_fixtures.dart`
+- `dart format lib\ui\shell\workspace_shell.dart lib\selection\project_selection_resolver.dart lib\validation\project_semantic_validator.dart test\geometry_protocol_test.dart test\occt_native_target_scaffold_test.dart test\widget_test.dart test\project_selection_resolver_test.dart tool\native_occt_worker_metrics_smoke.dart tool\generate_geometry_protocol_fixtures.dart`
+- `flutter test test\geometry_protocol_test.dart test\project_selection_resolver_test.dart test\occt_native_target_scaffold_test.dart --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "selected button group inspector edits pattern through undo" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "component button command creates switch-sourced group" --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open
+  `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- Select an existing or newly created button group.
+- In the inspector, change `Ободок` and `Выступ`; confirm undo returns the
+  previous values.
+- Rebuild/refresh preview if needed and confirm larger values make button
+  rings visibly wider/taller while the group remains one semantic object.
+- Create a component-sourced button group and confirm its defaults are
+  `Ободок 1.2` and `Выступ 0.45`.

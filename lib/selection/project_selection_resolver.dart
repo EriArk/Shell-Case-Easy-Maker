@@ -317,6 +317,16 @@ List<ProjectSelectionProperty> _featureGroupProperties(FeatureGroup group) {
         label: 'Диаметр',
         value: _formatValue(group.itemPrototype['diameter']),
       ),
+    if (group.itemPrototype.containsKey('ringWidth'))
+      ProjectSelectionProperty(
+        label: 'Ободок',
+        value: _formatValue(group.itemPrototype['ringWidth']),
+      ),
+    if (group.itemPrototype.containsKey('ringProtrusion'))
+      ProjectSelectionProperty(
+        label: 'Выступ',
+        value: _formatValue(group.itemPrototype['ringProtrusion']),
+      ),
     if (group.itemPrototype.containsKey('holeDiameter'))
       ProjectSelectionProperty(
         label: 'Отверстие',
