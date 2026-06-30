@@ -3232,10 +3232,12 @@ editable semantic object.
 - Open
   `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
 - Confirm the viewport label still shows `occt_worker_native_occt`.
-- Orbit to the front wall and confirm the sample now has two round button
-  cutouts in addition to the USB-C opening and shallow glass recess.
-- Select/create a front-wall button group and confirm the inspector still edits
-  the group as one object.
+- Select `Front wall`, click the button-group tool, create a small row group
+  such as count `2`, spacing `14`, and diameter `8`.
+- Orbit to the front wall and confirm the new group creates round button
+  cutouts in addition to the USB-C opening.
+- Select the created front-wall button group and confirm the inspector still
+  edits the group as one object.
 - Select the button group and confirm its generated holes highlight together.
 - Top-lid button holes are intentionally still pending until the lid/body split
   exists.
