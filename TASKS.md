@@ -48,7 +48,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Theme system foundation.
 - [ ] Context popover foundation.
 - [ ] Command palette foundation.
-- [ ] Navigation presets foundation.
+- [x] Navigation presets foundation.
 - [x] Compact semantic project browser.
 - [x] Enclosure parameter controls in contextual inspector.
 - [x] Toolbar undo/redo for inspector parameter edits.

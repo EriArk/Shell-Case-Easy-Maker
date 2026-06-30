@@ -178,6 +178,27 @@ void main() {
     expect(find.textContaining('fake_worker_preview'), findsOneWidget);
   });
 
+  testWidgets('viewport preset controls switch standard camera views', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const CaseMakerApp(geometryService: _PreviewMeshGeometryService()),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('viewport-preset-top')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('TOP · 1.00x · 0° / 70°'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('viewport-preset-right')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('RGT · 1.00x · 90° / 0°'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('viewport-fit-view')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('ISO · 1.00x · -24° / 18°'), findsOneWidget);
+  });
+
   testWidgets('selected surface highlights mapped preview mesh range', (
     tester,
   ) async {

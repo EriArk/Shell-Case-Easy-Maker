@@ -107,6 +107,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M86 - Semantic Button Ring Controls
 - [x] M87 - Native Button Cap/Stem Preview
 - [x] M88 - Native Viewport Readability Pass
+- [x] M89 - Viewport Navigation Presets
 
 ---
 
@@ -4065,3 +4066,48 @@ annotations instead of a heavy 2D mock drawing over the generated geometry.
   reads with a warmer accent over the generated lid/body preview.
 - Orbit, pan, and zoom; confirm semantic handles remain useful without hiding
   the native preview mesh.
+
+---
+
+## M89 - Viewport Navigation Presets
+
+### Goal
+Make manual inspection faster by adding compact standard camera presets to the
+viewport while keeping camera state transient and separate from editable
+project data.
+
+### Tasks
+- [x] Add typed viewport view presets for ISO, top, front, left, and right.
+- [x] Add a controller method that applies a preset, resets pan/zoom, and keeps
+      current semantic selection/ghost overlays intact.
+- [x] Replace the single ISO fit square with compact preset buttons plus a fit
+      icon button.
+- [x] Surface the active preset in the viewport label.
+- [x] Add controller and widget tests for standard view switching.
+- [x] Update navigation/viewport docs, tasks, roadmap, and worklog.
+
+### Done Criteria
+- Presets change only transient `ViewportState`; they do not write to
+  `ProjectModel`, undo history, geometry requests, or saved project JSON.
+- Viewport selection and ghost previews survive preset switching.
+- The top-right viewport controls expose TOP, FRT, RGT, LFT, ISO, and fit.
+- The viewport label reports the active preset when yaw/pitch match it.
+- No mesh, B-Rep, triangle id, or OCCT topology is used for view switching.
+
+### Tests
+- `flutter test test\viewport_controller_test.dart --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "viewport preset controls switch standard camera views" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open
+  `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- Click TOP, FRT, RGT, LFT, and ISO in the top-right viewport controls.
+- Confirm the viewport label changes to the clicked preset and the model recenters.
+- Select `Top lid` or `Группа кнопок` and switch presets; confirm selection
+  and semantic overlays stay active.

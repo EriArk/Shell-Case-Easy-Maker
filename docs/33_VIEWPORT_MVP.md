@@ -130,7 +130,9 @@ whole feature group, not an individual mesh primitive or flattened hole.
 - Active snap target: show a transient component footprint preview.
 - Open placement dialog: show a transient candidate footprint until cancel or
   confirm.
-- Click the view cube: fit view.
+- Click TOP, FRT, RGT, LFT, or ISO in the viewport navigation controls: switch
+  to that standard view and recenter the model.
+- Click the fit icon in the viewport navigation controls: fit view.
 - Select a supported surface or visible component placement: show the local
   workplane overlay and snap hints.
 - Select a supported surface with mapped preview ranges: show a generated mesh

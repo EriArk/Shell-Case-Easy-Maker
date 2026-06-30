@@ -78,16 +78,24 @@ Default suggestion:
 - F: focus selection.
 - Home: fit whole model.
 - Double click: select/focus.
-- View cube for standard views.
+- Compact viewport preset controls for standard views and fit.
 
 Add navigation presets:
-- app default,
+- app default: implemented as ISO, TOP, FRT, LFT, RGT, and fit controls,
 - Blender-like,
 - Fusion-like,
 - FreeCAD-like,
 - touchpad-friendly.
 
 ## View cube
+
+Current first pass:
+- TOP,
+- FRT,
+- LFT,
+- RGT,
+- ISO,
+- fit.
 
 Required:
 - top,

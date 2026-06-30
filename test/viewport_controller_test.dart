@@ -32,6 +32,37 @@ void main() {
     expect(controller.state.selectedSemanticId, isNull);
   });
 
+  test('view presets reset camera while preserving semantic overlays', () {
+    final controller = ViewportController();
+    const ghost = GhostPreview(
+      kind: GhostPreviewKind.buttonGroup,
+      semanticId: 'ghost_button_group',
+      targetSurfaceId: 'main_enclosure.top_lid.outer',
+      label: 'Buttons',
+    );
+
+    controller.setSelectedSemanticId('main_enclosure.top_lid.outer');
+    controller.setGhostPreview(ghost);
+    controller.pan(const Offset(18, 12));
+    controller.zoomByFactor(1.7);
+
+    controller.applyViewPreset(ViewportViewPreset.top);
+    expect(controller.state.yawDegrees, 0);
+    expect(controller.state.pitchDegrees, 70);
+    expect(controller.state.zoom, 1);
+    expect(controller.state.panOffset, Offset.zero);
+    expect(controller.state.selectedSemanticId, 'main_enclosure.top_lid.outer');
+    expect(controller.state.ghostPreview, ghost);
+    expect(controller.state.activePreset, ViewportViewPreset.top);
+    expect(controller.state.viewLabel, contains('TOP'));
+
+    controller.applyViewPreset(ViewportViewPreset.right);
+    expect(controller.state.yawDegrees, 90);
+    expect(controller.state.pitchDegrees, 0);
+    expect(controller.state.activePreset, ViewportViewPreset.right);
+    expect(controller.state.viewLabel, contains('RGT'));
+  });
+
   test('zoom is clamped to usable bounds', () {
     final controller = ViewportController();
 

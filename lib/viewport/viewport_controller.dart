@@ -12,6 +12,50 @@ enum ViewportHitKind {
 
 enum GhostPreviewKind { usbC, buttonGroup }
 
+enum ViewportViewPreset { iso, top, front, left, right }
+
+extension ViewportViewPresetProperties on ViewportViewPreset {
+  String get shortLabel {
+    return switch (this) {
+      ViewportViewPreset.iso => 'ISO',
+      ViewportViewPreset.top => 'TOP',
+      ViewportViewPreset.front => 'FRT',
+      ViewportViewPreset.left => 'LFT',
+      ViewportViewPreset.right => 'RGT',
+    };
+  }
+
+  String get tooltip {
+    return switch (this) {
+      ViewportViewPreset.iso => 'Iso view',
+      ViewportViewPreset.top => 'Top view',
+      ViewportViewPreset.front => 'Front view',
+      ViewportViewPreset.left => 'Left view',
+      ViewportViewPreset.right => 'Right view',
+    };
+  }
+
+  double get yawDegrees {
+    return switch (this) {
+      ViewportViewPreset.iso => -24,
+      ViewportViewPreset.top => 0,
+      ViewportViewPreset.front => 0,
+      ViewportViewPreset.left => -90,
+      ViewportViewPreset.right => 90,
+    };
+  }
+
+  double get pitchDegrees {
+    return switch (this) {
+      ViewportViewPreset.iso => 18,
+      ViewportViewPreset.top => 70,
+      ViewportViewPreset.front ||
+      ViewportViewPreset.left ||
+      ViewportViewPreset.right => 0,
+    };
+  }
+}
+
 enum MockViewportFeatureKind { usbC, glassRecess }
 
 enum MockViewportFeatureGroupKind { buttonGroup, standoffMounts }
@@ -50,6 +94,15 @@ class ViewportController {
     _state = const ViewportState();
   }
 
+  void applyViewPreset(ViewportViewPreset preset) {
+    _state = _state.copyWith(
+      yawDegrees: preset.yawDegrees,
+      pitchDegrees: preset.pitchDegrees,
+      zoom: 1,
+      panOffset: Offset.zero,
+    );
+  }
+
   void setSelectedSemanticId(String? semanticId) {
     _state = _state.copyWith(selectedSemanticId: semanticId);
   }
@@ -76,8 +129,25 @@ class ViewportState {
   final String? selectedSemanticId;
   final GhostPreview? ghostPreview;
 
+  ViewportViewPreset? get activePreset {
+    for (final preset in ViewportViewPreset.values) {
+      if (isAtPreset(preset)) {
+        return preset;
+      }
+    }
+
+    return null;
+  }
+
+  bool isAtPreset(ViewportViewPreset preset) {
+    return _angleDistance(yawDegrees, preset.yawDegrees) <= 0.5 &&
+        (pitchDegrees - preset.pitchDegrees).abs() <= 0.5;
+  }
+
   String get viewLabel {
-    return '${zoom.toStringAsFixed(2)}x · '
+    final preset = activePreset;
+    final presetLabel = preset == null ? '' : '${preset.shortLabel} · ';
+    return '$presetLabel${zoom.toStringAsFixed(2)}x · '
         '${yawDegrees.toStringAsFixed(0)}° / '
         '${pitchDegrees.toStringAsFixed(0)}°';
   }
@@ -830,6 +900,10 @@ double _wrapDegrees(double value) {
     wrapped += 360;
   }
   return wrapped;
+}
+
+double _angleDistance(double left, double right) {
+  return _wrapDegrees(left - right).abs();
 }
 
 Offset _rotateOffset({

@@ -42,6 +42,82 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-30 - M89 Viewport navigation presets
+
+### Goal
+Make manual viewport inspection faster by adding standard camera presets
+without saving camera state into the semantic project or coupling selection to
+generated mesh data.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`docs/22_UI_NAVIGATION_LAYOUT.md`, `docs/33_VIEWPORT_MVP.md`,
+`lib/viewport/viewport_controller.dart`,
+`lib/ui/shell/workspace_shell.dart`,
+`test/viewport_controller_test.dart`, and `test/widget_test.dart`.
+
+### Changes made
+- `lib/viewport/viewport_controller.dart`:
+  - Added typed `ViewportViewPreset` values for ISO, top, front, left, and
+    right.
+  - Added preset yaw/pitch metadata, active-preset detection, and a controller
+    method that resets pan/zoom while preserving semantic selection and ghost
+    overlays.
+  - Shows the active preset label in `ViewportState.viewLabel`.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Replaced the single ISO/fit square with compact TOP, FRT, RGT, LFT, ISO,
+    and fit controls.
+  - Kept the controls as fixed-size transient viewport UI, not saved project
+    data.
+- Tests:
+  - Added controller coverage for preset state and overlay preservation.
+  - Added widget coverage for clicking presets and fit.
+- Docs/tasks/roadmap:
+  - Added M89 to `ROADMAP.md`.
+  - Marked `Navigation presets foundation` complete in `TASKS.md`.
+  - Updated viewport and navigation docs.
+
+### Tests run
+- `flutter test test\viewport_controller_test.dart --reporter compact`:
+  - Passed, 14 tests.
+- `flutter test test\widget_test.dart --plain-name "viewport preset controls switch standard camera views" --reporter compact`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed, 67 files checked with no changes.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed, 190 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+
+### Validation
+- Geometry generation not changed; no OCCT rebuild was needed.
+- Serialization checked indirectly through the full test suite; camera presets
+  remain transient and are not written to project JSON.
+- UI checked with widget coverage and full shell tests.
+- Export not checked; STEP/STL export is still future work.
+
+### Known issues
+- Issue: Presets are instant jumps, not animated camera transitions, and there
+  are no back/bottom views yet.
+  - Severity: Low.
+  - Next action: Add back/bottom or animated transitions later if manual
+    inspection needs them.
+
+### Next step
+Use the new presets to inspect button/lid geometry quickly, then continue with
+the next semantic plunger/guide/travel validation slice.
+
+### Notes for future Codex sessions
+Keep camera presets in `ViewportState` only. They must not enter undo history,
+project JSON, geometry requests, or generated mesh selection.
+
+---
+
 ## 2026-06-30 - M88 Native viewport readability pass
 
 ### Goal

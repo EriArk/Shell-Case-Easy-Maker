@@ -120,6 +120,14 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     });
   }
 
+  void _applyViewportPreset(ViewportViewPreset preset) {
+    setState(() {
+      _viewportController.applyViewPreset(preset);
+      _viewportController.setSelectedSemanticId(_selection.id);
+      _viewportController.setGhostPreview(_ghostPreviewFor(_selection));
+    });
+  }
+
   void _clearActiveSnapTarget() {
     if (_activeSnapTarget == null) {
       return;
@@ -1079,6 +1087,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                           onPan: _panViewport,
                           onZoom: _zoomViewport,
                           onFit: _fitViewport,
+                          onViewPreset: _applyViewportPreset,
                           onHit: _selectViewportHit,
                         ),
                       ),
@@ -2465,6 +2474,7 @@ class _ViewportArea extends StatefulWidget {
     required this.onPan,
     required this.onZoom,
     required this.onFit,
+    required this.onViewPreset,
     required this.onHit,
   });
 
@@ -2481,6 +2491,7 @@ class _ViewportArea extends StatefulWidget {
   final ValueChanged<Offset> onPan;
   final ValueChanged<double> onZoom;
   final VoidCallback onFit;
+  final ValueChanged<ViewportViewPreset> onViewPreset;
   final ValueChanged<ViewportHitResult?> onHit;
 
   @override
@@ -2692,9 +2703,10 @@ class _ViewportAreaState extends State<_ViewportArea> {
                   Positioned(
                     right: 18,
                     top: 16,
-                    child: _ViewCube(
+                    child: _ViewPresetControls(
                       viewportState: widget.viewportState,
                       onFit: widget.onFit,
+                      onPreset: widget.onViewPreset,
                     ),
                   ),
                   Positioned(
@@ -2773,40 +2785,128 @@ class _ViewportLabel extends StatelessWidget {
   }
 }
 
-class _ViewCube extends StatelessWidget {
-  const _ViewCube({required this.viewportState, required this.onFit});
+class _ViewPresetControls extends StatelessWidget {
+  const _ViewPresetControls({
+    required this.viewportState,
+    required this.onFit,
+    required this.onPreset,
+  });
 
   final ViewportState viewportState;
   final VoidCallback onFit;
+  final ValueChanged<ViewportViewPreset> onPreset;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final presets = [
+      ViewportViewPreset.top,
+      ViewportViewPreset.front,
+      ViewportViewPreset.right,
+      ViewportViewPreset.left,
+      ViewportViewPreset.iso,
+    ];
 
-    return SizedBox.square(
-      dimension: 64,
-      child: Tooltip(
-        message: 'Вписать вид',
-        child: Material(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(8),
-            onTap: onFit,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                border: Border.all(color: theme.colorScheme.primary),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Center(
-                child: Transform.rotate(
-                  angle: viewportState.yawDegrees * math.pi / 720,
-                  child: Text(
-                    'ISO',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.w700,
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xCC1E2226),
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.22)),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(6),
+        child: SizedBox(
+          width: 104,
+          child: Wrap(
+            spacing: 4,
+            runSpacing: 4,
+            children: [
+              for (final preset in presets)
+                _ViewPresetButton(
+                  preset: preset,
+                  selected: viewportState.isAtPreset(preset),
+                  onPressed: () => onPreset(preset),
+                ),
+              Tooltip(
+                message: 'Fit view',
+                child: Material(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(6),
+                  child: InkWell(
+                    key: const ValueKey('viewport-fit-view'),
+                    borderRadius: BorderRadius.circular(6),
+                    onTap: onFit,
+                    child: SizedBox.square(
+                      dimension: 32,
+                      child: Center(
+                        child: Icon(
+                          Icons.fit_screen_rounded,
+                          size: 16,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                     ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ViewPresetButton extends StatelessWidget {
+  const _ViewPresetButton({
+    required this.preset,
+    required this.selected,
+    required this.onPressed,
+  });
+
+  final ViewportViewPreset preset;
+  final bool selected;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final foreground = selected
+        ? theme.colorScheme.primary
+        : theme.colorScheme.onSurfaceVariant;
+
+    return Tooltip(
+      message: preset.tooltip,
+      child: Material(
+        color: selected
+            ? theme.colorScheme.primary.withValues(alpha: 0.14)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(6),
+        child: InkWell(
+          key: ValueKey('viewport-preset-${preset.name}'),
+          borderRadius: BorderRadius.circular(6),
+          onTap: onPressed,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: selected
+                    ? theme.colorScheme.primary.withValues(alpha: 0.82)
+                    : theme.dividerColor.withValues(alpha: 0.26),
+              ),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: SizedBox(
+              width: 32,
+              height: 26,
+              child: Center(
+                child: Text(
+                  preset.shortLabel,
+                  maxLines: 1,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: foreground,
+                    fontSize: 10,
+                    fontWeight: selected ? FontWeight.w800 : FontWeight.w700,
+                    letterSpacing: 0,
                   ),
                 ),
               ),
