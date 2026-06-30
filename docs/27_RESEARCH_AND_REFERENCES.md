@@ -1090,3 +1090,54 @@ USB-C feature intent. The worker builds a rounded rectangular cut tool from
 semantic USB-C dimensions and optional `placement.surfacePosition`, cuts only
 the supported front-wall surface slice, and reports unsupported button/glass
 intents as ignored metrics instead of exposing Boolean tools in the default UI.
+
+---
+
+## 2026-06-30 - Native plunger guide and travel-stop preview
+
+## Question
+
+Which OCCT primitives should the worker use for first-pass generated plunger
+guide sleeves and travel-stop collars without exposing low-level CAD operations
+in the default Flutter UX?
+
+## Sources checked
+
+- OpenCascade reference:
+  [BRepPrimAPI_MakeCylinder](https://dev.opencascade.org/doc/refman/html/class_b_rep_prim_a_p_i___make_cylinder.html)
+- OpenCascade reference:
+  [BRepAlgoAPI_Cut](https://dev.opencascade.org/doc/refman/html/class_b_rep_algo_a_p_i___cut.html)
+- OpenCascade reference:
+  [BRep_Builder](https://dev.opencascade.org/doc/refman/html/class_b_rep___builder.html)
+- OpenCascade overview:
+  [Modeling Algorithms](https://dev.opencascade.org/doc/overview/html/occt_user_guides__modeling_algos.html)
+
+## Findings
+
+- `BRepPrimAPI_MakeCylinder` is sufficient for deterministic circular cap,
+  stem, guide, and stop preview solids when the semantic generator provides the
+  local axis and dimensions.
+- `BRepAlgoAPI_Cut` can make the guide sleeve annular by subtracting an inner
+  cylinder tool from an outer cylinder. This keeps the operation generator-owned
+  rather than user-facing Boolean editing.
+- `BRep_Builder`/`TopoDS_Compound` remains the right assembly mechanism for
+  grouping generated disposable preview parts while preserving the original
+  semantic button-group ids in preview mappings and metrics.
+- No GPL/AGPL code was copied; only official API documentation was used.
+
+## Decision
+
+Generate first-pass guide sleeves as annular cylinders and first-pass travel
+stops as short collar cylinders inside the native worker. The worker consumes
+semantic `button_group.itemPrototype` values (`travel`, `switchClearance`, and
+`guideClearance`) and returns only disposable preview mesh/metrics through the
+existing `GeometryService` boundary.
+
+## Follow-up tasks
+
+- Add chamfers/fillets and material-aware clearances after the preview shapes
+  are readable.
+- Add richer anti-wobble variants and switch-contact/collision checks before
+  treating these as printable final button mechanics.
+- Keep guide/stop geometry generated from semantic groups; do not flatten them
+  into editable per-button solids.

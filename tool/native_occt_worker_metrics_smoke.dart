@@ -98,12 +98,12 @@ Future<void> main(List<String> args) async {
       failures,
     );
     _expect(
-      previewMesh.vertexCount == 11254,
+      previewMesh.vertexCount == 13882,
       'previewMesh must contain the deterministic sample vertex count',
       failures,
     );
     _expect(
-      previewMesh.triangleCount == 11816,
+      previewMesh.triangleCount == 14384,
       'previewMesh must contain the deterministic sample triangle count',
       failures,
     );
@@ -374,6 +374,16 @@ Future<void> main(List<String> args) async {
     failures,
   );
   _expect(
+    metrics['nativeGeneratedLidButtonGuideCount'] == 4,
+    'nativeGeneratedLidButtonGuideCount must include generated top lid button guides',
+    failures,
+  );
+  _expect(
+    metrics['nativeGeneratedLidButtonTravelStopCount'] == 4,
+    'nativeGeneratedLidButtonTravelStopCount must include generated top lid button travel stops',
+    failures,
+  );
+  _expect(
     metrics['featureIntentCount'] == 7,
     'featureIntentCount must match the sample request',
     failures,
@@ -441,6 +451,16 @@ Future<void> main(List<String> args) async {
   _expect(
     metrics['nativeButtonStemCount'] == 2,
     'nativeButtonStemCount must include the sample front button stems',
+    failures,
+  );
+  _expect(
+    metrics['nativeButtonGuideCount'] == 2,
+    'nativeButtonGuideCount must include the sample front button guides',
+    failures,
+  );
+  _expect(
+    metrics['nativeButtonTravelStopCount'] == 2,
+    'nativeButtonTravelStopCount must include the sample front button travel stops',
     failures,
   );
   _expect(
@@ -550,14 +570,14 @@ Future<void> main(List<String> args) async {
   _expectDoubleList(bounds['max'], const [60, 35, 32], 'bounds.max', failures);
   _expectClose(
     _readNumber(metrics['surfaceArea']),
-    55539.19378,
+    56020.328695,
     0.001,
     'surfaceArea',
     failures,
   );
   _expectClose(
     _readNumber(metrics['volume']),
-    53150.290056,
+    53230.754103,
     0.001,
     'volume',
     failures,
@@ -621,6 +641,10 @@ Future<void> main(List<String> args) async {
           metrics['nativeGeneratedLidButtonCapCount'],
       'nativeGeneratedLidButtonStemCount':
           metrics['nativeGeneratedLidButtonStemCount'],
+      'nativeGeneratedLidButtonGuideCount':
+          metrics['nativeGeneratedLidButtonGuideCount'],
+      'nativeGeneratedLidButtonTravelStopCount':
+          metrics['nativeGeneratedLidButtonTravelStopCount'],
       'featureIntentCount': metrics['featureIntentCount'],
       'nativeFeatureCutCount': metrics['nativeFeatureCutCount'],
       'nativeIgnoredFeatureIntentCount':
@@ -639,6 +663,8 @@ Future<void> main(List<String> args) async {
       'nativeButtonRingCount': metrics['nativeButtonRingCount'],
       'nativeButtonCapCount': metrics['nativeButtonCapCount'],
       'nativeButtonStemCount': metrics['nativeButtonStemCount'],
+      'nativeButtonGuideCount': metrics['nativeButtonGuideCount'],
+      'nativeButtonTravelStopCount': metrics['nativeButtonTravelStopCount'],
       'nativeStandoffGroupCount': metrics['nativeStandoffGroupCount'],
       'nativeStandoffMountCount': metrics['nativeStandoffMountCount'],
       'bounds': metrics['bounds'],

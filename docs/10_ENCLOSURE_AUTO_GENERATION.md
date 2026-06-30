@@ -39,13 +39,13 @@ seat plus an inner window, leaving a support ledge from semantic `ledgeWidth`.
 Front-wall and top-lid `button_group` features can cut generated circular holes
 and add small raised annular rings/bezels around those holes while staying one
 editable group. Plunger-style groups also get first-pass separate generated
-cap/stem preview solids. Ring, cap, and stem dimensions are stored as semantic
-`itemPrototype` parameters, alongside first-pass plunger travel and clearance
-values used by semantic validation. These are generated B-Rep output; the
-editable project still stores semantic groups and lid metadata rather than
-generated solids, per-boss bodies, per-hole editable features, editable lip
-geometry, editable groove geometry, editable assembly state, or
-per-ring/cap/stem editable solids.
+cap/stem preview solids, guide sleeves, and travel-stop collars. Ring, cap,
+stem, travel, and clearance dimensions are stored as semantic `itemPrototype`
+parameters and consumed by semantic validation plus the native preview worker.
+These are generated B-Rep output; the editable project still stores semantic
+groups and lid metadata rather than generated solids, per-boss bodies, per-hole
+editable features, editable lip geometry, editable groove geometry, editable
+assembly state, or per-ring/cap/stem/guide/stop editable solids.
 
 ## Port cutouts
 

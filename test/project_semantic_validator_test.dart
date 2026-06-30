@@ -334,6 +334,7 @@ void main() {
     expect(report.hasErrors, isTrue);
     expect(codes, contains('group.button_plunger.travel.too_deep'));
     expect(codes, contains('group.button_plunger.guide.too_wide'));
+    expect(codes, contains('group.button_plunger.guide_wall.too_wide'));
   });
 
   test('button plunger negative guide clearance is an error', () {

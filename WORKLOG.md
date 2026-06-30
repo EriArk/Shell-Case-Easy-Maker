@@ -42,6 +42,107 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-30 - M91 Native plunger guide/stop preview
+
+### Goal
+Generate first-pass native guide sleeve and travel-stop preview geometry for
+plunger-style semantic button groups, using the M90 travel/clearance values.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`docs/04_GEOMETRY_ENGINE_OCCT.md`,
+`docs/10_ENCLOSURE_AUTO_GENERATION.md`,
+`docs/16_BUTTON_AND_PLUNGER_SYSTEM.md`,
+`docs/27_RESEARCH_AND_REFERENCES.md`,
+`docs/34_FIRST_GEOMETRY_SLICE.md`,
+`occt_worker/native/src/occt_main.cpp`,
+`lib/validation/project_semantic_validator.dart`,
+`test/project_semantic_validator_test.dart`,
+`test/occt_native_target_scaffold_test.dart`, and
+`tool/native_occt_worker_metrics_smoke.dart`.
+
+Official OCCT references checked before the geometry change:
+`BRepPrimAPI_MakeCylinder`, `BRepAlgoAPI_Cut`, `BRep_Builder`, and the
+Modeling Algorithms overview.
+
+### Changes made
+- `occt_worker/native/src/occt_main.cpp`:
+  - Parses `travel`, `switchClearance`, and `guideClearance` into native
+    button item requests.
+  - Adds annular guide-sleeve preview geometry and short travel-stop collar
+    preview geometry for front-wall and generated top-lid plunger buttons.
+  - Adds validation for impossible guide/travel combinations before generating
+    the native shapes.
+  - Emits native guide/stop metrics for front and generated top-lid buttons.
+- `lib/validation/project_semantic_validator.dart`:
+  - Adds a semantic guide-wall fit check using the native guide wall thickness.
+- Tests:
+  - Adds scaffold/smoke assertions for new request fields, helper names, and
+    native guide/stop metric names.
+  - Updates native smoke deterministic mesh, area, volume, and guide/stop count
+    expectations.
+- Docs/tasks:
+  - Marks M91 complete in `ROADMAP.md` and `TASKS.md`.
+  - Updates button/plunger, enclosure generation, OCCT architecture, geometry
+    slice, and research notes.
+
+### Tests run
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - First run reformatted `tool/native_occt_worker_metrics_smoke.dart`; rerun
+    passed with 0 changes.
+- `flutter analyze`:
+  - Passed, no issues found.
+- `flutter test --reporter compact`:
+  - Passed, 193 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`:
+  - Passed; rebuilt `occt_worker_native_occt.exe`.
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`:
+  - Passed; preview mesh reports 13882 vertices, 14384 triangles, 14 mappings,
+    20758 mapped triangles, front guide/stop counts 2/2, generated top-lid
+    guide/stop counts 4/4, surface area 56020.328695, and volume 53230.754103.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with constraints.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed; refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git diff --check`:
+  - Passed; only line-ending warnings for existing text files.
+
+### Validation
+- Geometry checked?
+  - Native OCCT worker build and metrics smoke passed with deterministic
+    guide/stop geometry counts.
+- Serialization checked?
+  - Full test suite passed; the new values still flow through semantic
+    `button_group.itemPrototype` and worker request data rather than editable
+    generated solids.
+- UI checked?
+  - Existing widget suite passed; no new visible controls were added in this
+    slice.
+- Export checked?
+  - Not touched.
+
+### Known issues
+- Issue: Guide sleeves and travel stops are first-pass preview solids without
+  chamfers, material-aware tolerances, anti-wobble variants, or switch-contact
+  collision checks.
+  - Severity: Medium.
+  - Next action: Add printable mechanical polish and richer validation after
+    manual inspection confirms the basic generated detail is readable.
+
+### Next step
+Inspect the latest app manually, then continue toward printable button
+mechanics: chamfers/fillets, anti-wobble variants, or switch-contact checks.
+
+### Notes for future Codex sessions
+Guide sleeves and travel stops are generated output owned by the native worker.
+Do not expose them as separate editable solids, and do not make Flutter depend
+on OCCT topology or generated triangle IDs.
+
+---
+
 ## 2026-06-30 - M90 Semantic plunger travel controls
 
 ### Goal

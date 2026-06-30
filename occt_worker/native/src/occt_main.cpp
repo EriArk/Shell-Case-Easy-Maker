@@ -26,6 +26,7 @@
 #include <gp_Ax2.hxx>
 #include <gp_Dir.hxx>
 #include <gp_Pnt.hxx>
+#include <gp_Vec.hxx>
 
 #include <algorithm>
 #include <array>
@@ -62,7 +63,14 @@ constexpr double kButtonRingCutOverrun = 0.1;
 constexpr double kDefaultButtonCapClearance = 0.6;
 constexpr double kDefaultButtonCapHeight = 1.2;
 constexpr double kDefaultButtonStemDepth = 2.8;
+constexpr double kDefaultButtonTravel = 0.8;
+constexpr double kDefaultButtonSwitchClearance = 0.3;
+constexpr double kDefaultButtonGuideClearance = 0.25;
 constexpr double kButtonCapStemOverlap = 0.05;
+constexpr double kButtonGuideWallThickness = 0.45;
+constexpr double kButtonGuideMinLength = 0.2;
+constexpr double kButtonTravelStopThickness = 0.35;
+constexpr double kButtonTravelStopShoulder = 0.35;
 
 struct NativeRequestEnvelope {
   std::string request_id = kInvalidRequestId;
@@ -136,6 +144,9 @@ struct ButtonCutoutItemRequest {
   double cap_height = kDefaultButtonCapHeight;
   double stem_diameter = 3.0;
   double stem_depth = kDefaultButtonStemDepth;
+  double travel = kDefaultButtonTravel;
+  double switch_clearance = kDefaultButtonSwitchClearance;
+  double guide_clearance = kDefaultButtonGuideClearance;
   bool generate_plunger = true;
 };
 
@@ -201,6 +212,8 @@ struct ShapeMetrics {
   int native_button_ring_count = 0;
   int native_button_cap_count = 0;
   int native_button_stem_count = 0;
+  int native_button_guide_count = 0;
+  int native_button_travel_stop_count = 0;
   int native_standoff_group_count = 0;
   int native_standoff_mount_count = 0;
   int native_lid_screw_boss_count = 0;
@@ -220,6 +233,8 @@ struct ShapeMetrics {
   int native_generated_lid_button_ring_count = 0;
   int native_generated_lid_button_cap_count = 0;
   int native_generated_lid_button_stem_count = 0;
+  int native_generated_lid_button_guide_count = 0;
+  int native_generated_lid_button_travel_stop_count = 0;
 };
 
 struct ShellBuildResult {
@@ -239,6 +254,8 @@ struct NativePreviewAssemblyResult {
   TopoDS_Shape shape;
   int button_cap_count = 0;
   int button_stem_count = 0;
+  int button_guide_count = 0;
+  int button_travel_stop_count = 0;
   int generated_lid_plate_count = 0;
   int generated_lid_lip_count = 0;
   int generated_lid_screw_hole_count = 0;
@@ -252,6 +269,8 @@ struct NativePreviewAssemblyResult {
   int generated_lid_button_ring_count = 0;
   int generated_lid_button_cap_count = 0;
   int generated_lid_button_stem_count = 0;
+  int generated_lid_button_guide_count = 0;
+  int generated_lid_button_travel_stop_count = 0;
   int applied_feature_intent_count = 0;
 };
 
@@ -1268,6 +1287,9 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
       double default_stem_diameter =
           DefaultButtonStemDiameter(default_diameter, default_cap_diameter);
       double default_stem_depth = kDefaultButtonStemDepth;
+      double default_travel = kDefaultButtonTravel;
+      double default_switch_clearance = kDefaultButtonSwitchClearance;
+      double default_guide_clearance = kDefaultButtonGuideClearance;
       std::string default_mode = "plunger";
       if (parameters.has_value()) {
         const std::optional<std::string> item_prototype =
@@ -1301,6 +1323,15 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
           default_stem_depth =
               ExtractTopLevelNumberField(*item_prototype, "stemDepth")
                   .value_or(default_stem_depth);
+          default_travel =
+              ExtractTopLevelNumberField(*item_prototype, "travel")
+                  .value_or(default_travel);
+          default_switch_clearance =
+              ExtractTopLevelNumberField(*item_prototype, "switchClearance")
+                  .value_or(default_switch_clearance);
+          default_guide_clearance =
+              ExtractTopLevelNumberField(*item_prototype, "guideClearance")
+                  .value_or(default_guide_clearance);
           default_mode =
               ExtractTopLevelStringField(*item_prototype, "mode")
                   .value_or(default_mode);
@@ -1353,6 +1384,15 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
           cutout.stem_depth =
               ExtractTopLevelNumberField(*item_parameters, "stemDepth")
                   .value_or(default_stem_depth);
+          cutout.travel =
+              ExtractTopLevelNumberField(*item_parameters, "travel")
+                  .value_or(default_travel);
+          cutout.switch_clearance =
+              ExtractTopLevelNumberField(*item_parameters, "switchClearance")
+                  .value_or(default_switch_clearance);
+          cutout.guide_clearance =
+              ExtractTopLevelNumberField(*item_parameters, "guideClearance")
+                  .value_or(default_guide_clearance);
           const std::string mode =
               ExtractTopLevelStringField(*item_parameters, "mode")
                   .value_or(default_mode);
@@ -1365,6 +1405,9 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
           cutout.cap_height = default_cap_height;
           cutout.stem_diameter = default_stem_diameter;
           cutout.stem_depth = default_stem_depth;
+          cutout.travel = default_travel;
+          cutout.switch_clearance = default_switch_clearance;
+          cutout.guide_clearance = default_guide_clearance;
           cutout.generate_plunger = default_mode == "plunger";
         }
 
@@ -1373,7 +1416,22 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
             radius + kButtonRingInnerClearance + cutout.ring_width;
         const double cap_radius =
             cutout.generate_plunger ? cutout.cap_diameter / 2.0 : 0.0;
-        const double fit_radius = std::max(ring_outer_radius, cap_radius);
+        const double guide_inner_radius =
+            cutout.stem_diameter / 2.0 + cutout.guide_clearance;
+        const double guide_outer_radius =
+            guide_inner_radius + kButtonGuideWallThickness;
+        const double travel_stop_outer_radius =
+            std::min(cutout.cap_diameter / 2.0,
+                     guide_inner_radius + kButtonTravelStopShoulder);
+        const double guide_length =
+            cutout.stem_depth - cutout.travel - cutout.switch_clearance;
+        const double plunger_fit_radius =
+            cutout.generate_plunger
+                ? std::max(cap_radius,
+                           std::max(guide_outer_radius,
+                                    travel_stop_outer_radius))
+                : 0.0;
+        const double fit_radius = std::max(ring_outer_radius, plunger_fit_radius);
         const double center_x = cutout.position[0];
         const double center_secondary =
             targets_top_lid
@@ -1386,14 +1444,22 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
             !IsPositiveDimension(cutout.ring_protrusion) ||
             (cutout.generate_plunger &&
              (!IsPositiveDimension(cutout.cap_diameter) ||
-              !IsPositiveDimension(cutout.cap_height) ||
-              !IsPositiveDimension(cutout.stem_diameter) ||
-              !IsPositiveDimension(cutout.stem_depth))) ||
+               !IsPositiveDimension(cutout.cap_height) ||
+               !IsPositiveDimension(cutout.stem_diameter) ||
+               !IsPositiveDimension(cutout.stem_depth) ||
+               !IsPositiveDimension(cutout.travel) ||
+               !std::isfinite(cutout.switch_clearance) ||
+               cutout.switch_clearance < 0.0 ||
+               !std::isfinite(cutout.guide_clearance) ||
+               cutout.guide_clearance < 0.0)) ||
             cutout.ring_width > 8.0 ||
             cutout.ring_protrusion > 6.0 ||
             (cutout.generate_plunger &&
              (cutout.cap_height > 8.0 ||
               cutout.stem_depth > 12.0 ||
+              guide_length < kButtonGuideMinLength ||
+              guide_outer_radius >= cutout.diameter / 2.0 ||
+              travel_stop_outer_radius <= cutout.stem_diameter / 2.0 ||
               cutout.cap_diameter >= cutout.diameter ||
               cutout.stem_diameter >= cutout.diameter ||
               cutout.stem_diameter > cutout.cap_diameter)) ||
@@ -1995,6 +2061,8 @@ NativePreviewAssemblyResult BuildPreviewAssembly(
       builder.Add(compound, plunger);
       ++result.button_cap_count;
       ++result.button_stem_count;
+      ++result.button_guide_count;
+      ++result.button_travel_stop_count;
     }
   }
 
@@ -2043,6 +2111,8 @@ NativePreviewAssemblyResult BuildPreviewAssembly(
         builder.Add(compound, plunger);
         ++result.generated_lid_button_cap_count;
         ++result.generated_lid_button_stem_count;
+        ++result.generated_lid_button_guide_count;
+        ++result.generated_lid_button_travel_stop_count;
       }
     }
   }
@@ -2187,6 +2257,8 @@ ShapeMetrics ComputeShapeMetrics(const TopoDS_Shape& shape,
                                  int lid_screw_pilot_count,
                                  int button_cap_count,
                                  int button_stem_count,
+                                 int button_guide_count,
+                                 int button_travel_stop_count,
                                  int generated_lid_seat_count,
                                  int generated_lid_plate_count,
                                  double generated_lid_fit_preview_gap,
@@ -2202,6 +2274,8 @@ ShapeMetrics ComputeShapeMetrics(const TopoDS_Shape& shape,
                                  int generated_lid_button_ring_count,
                                  int generated_lid_button_cap_count,
                                  int generated_lid_button_stem_count,
+                                 int generated_lid_button_guide_count,
+                                 int generated_lid_button_travel_stop_count,
                                  int generated_lid_applied_intent_count,
                                  int feature_intent_count,
                                  const NativeFeatureCutResult& feature_cuts) {
@@ -2215,6 +2289,8 @@ ShapeMetrics ComputeShapeMetrics(const TopoDS_Shape& shape,
   metrics.native_lid_screw_pilot_count = lid_screw_pilot_count;
   metrics.native_button_cap_count = button_cap_count;
   metrics.native_button_stem_count = button_stem_count;
+  metrics.native_button_guide_count = button_guide_count;
+  metrics.native_button_travel_stop_count = button_travel_stop_count;
   metrics.native_generated_lid_seat_count = generated_lid_seat_count;
   metrics.native_generated_lid_plate_count = generated_lid_plate_count;
   metrics.native_generated_lid_fit_preview_gap =
@@ -2242,6 +2318,10 @@ ShapeMetrics ComputeShapeMetrics(const TopoDS_Shape& shape,
       generated_lid_button_cap_count;
   metrics.native_generated_lid_button_stem_count =
       generated_lid_button_stem_count;
+  metrics.native_generated_lid_button_guide_count =
+      generated_lid_button_guide_count;
+  metrics.native_generated_lid_button_travel_stop_count =
+      generated_lid_button_travel_stop_count;
   metrics.feature_intent_count = feature_intent_count;
   metrics.native_feature_cut_count = feature_cuts.applied_cut_count;
   metrics.native_ignored_feature_intent_count =
@@ -2508,8 +2588,27 @@ double ButtonRingOuterRadius(const ButtonCutoutItemRequest& cutout) {
   return ButtonRingInnerRadius(cutout) + cutout.ring_width;
 }
 
+double ButtonGuideInnerRadius(const ButtonCutoutItemRequest& cutout) {
+  return cutout.stem_diameter / 2.0 + cutout.guide_clearance;
+}
+
+double ButtonGuideOuterRadius(const ButtonCutoutItemRequest& cutout) {
+  return ButtonGuideInnerRadius(cutout) + kButtonGuideWallThickness;
+}
+
+double ButtonTravelStopOuterRadius(const ButtonCutoutItemRequest& cutout) {
+  return std::min(cutout.cap_diameter / 2.0,
+                  ButtonGuideInnerRadius(cutout) + kButtonTravelStopShoulder);
+}
+
+double ButtonGuideLength(const ButtonCutoutItemRequest& cutout) {
+  return cutout.stem_depth - cutout.travel - cutout.switch_clearance;
+}
+
 double ButtonPlungerOuterRadius(const ButtonCutoutItemRequest& cutout) {
-  return std::max(cutout.cap_diameter, cutout.stem_diameter) / 2.0;
+  return std::max(cutout.cap_diameter / 2.0,
+                  std::max(ButtonGuideOuterRadius(cutout),
+                           ButtonTravelStopOuterRadius(cutout)));
 }
 
 bool FaceIntersectsButtonCutout(const FaceBounds& face_bounds,
@@ -3103,6 +3202,50 @@ TopoDS_Shape BuildButtonRingShape(const EnclosureRequest& enclosure,
   return ring;
 }
 
+TopoDS_Shape BuildAnnularCylinderShape(const gp_Ax2& axis,
+                                       double outer_radius,
+                                       double inner_radius,
+                                       double height,
+                                       const std::string& label) {
+  const TopoDS_Shape outer =
+      BRepPrimAPI_MakeCylinder(axis, outer_radius, height).Shape();
+  if (outer.IsNull()) {
+    throw std::runtime_error("OCCT generated a null " + label +
+                             " outer shape.");
+  }
+
+  const gp_Vec backwards(axis.Direction());
+  const gp_Ax2 inner_axis(
+      axis.Location().Translated(backwards.Multiplied(-kButtonRingCutOverrun)),
+      axis.Direction());
+  const TopoDS_Shape inner =
+      BRepPrimAPI_MakeCylinder(inner_axis,
+                               inner_radius,
+                               height + kButtonRingCutOverrun * 2.0)
+          .Shape();
+  if (inner.IsNull()) {
+    throw std::runtime_error("OCCT generated a null " + label + " inner tool.");
+  }
+
+  BRepAlgoAPI_Cut cut(outer, inner);
+  cut.SimplifyResult(true, true);
+  if (!cut.IsDone() || cut.HasErrors()) {
+    throw std::runtime_error("OCCT " + label + " cut did not complete.");
+  }
+
+  const TopoDS_Shape shape = cut.Shape();
+  if (shape.IsNull()) {
+    throw std::runtime_error("OCCT generated a null " + label + ".");
+  }
+
+  BRepCheck_Analyzer analyzer(shape, false);
+  if (!analyzer.IsValid()) {
+    throw std::runtime_error("OCCT generated an invalid " + label + ".");
+  }
+
+  return shape;
+}
+
 TopoDS_Shape BuildButtonPlungerShape(const EnclosureRequest& enclosure,
                                      const ButtonCutoutItemRequest& cutout) {
   if (!cutout.generate_plunger) {
@@ -3140,11 +3283,39 @@ TopoDS_Shape BuildButtonPlungerShape(const EnclosureRequest& enclosure,
     throw std::runtime_error("OCCT generated a null button stem shape.");
   }
 
+  const double guide_length = ButtonGuideLength(cutout);
+  const gp_Ax2 guide_axis(
+      gp_Pnt(center[0], front_y + cutout.switch_clearance, center[1]),
+      gp_Dir(0.0, 1.0, 0.0));
+  const TopoDS_Shape guide =
+      BuildAnnularCylinderShape(guide_axis,
+                                ButtonGuideOuterRadius(cutout),
+                                ButtonGuideInnerRadius(cutout),
+                                guide_length,
+                                "front button guide sleeve");
+
+  const gp_Ax2 stop_axis(
+      gp_Pnt(center[0],
+             front_y + cutout.switch_clearance + guide_length,
+             center[1]),
+      gp_Dir(0.0, 1.0, 0.0));
+  const TopoDS_Shape travel_stop =
+      BRepPrimAPI_MakeCylinder(stop_axis,
+                               ButtonTravelStopOuterRadius(cutout),
+                               kButtonTravelStopThickness)
+          .Shape();
+  if (travel_stop.IsNull()) {
+    throw std::runtime_error(
+        "OCCT generated a null button travel stop shape.");
+  }
+
   BRep_Builder builder;
   TopoDS_Compound compound;
   builder.MakeCompound(compound);
   builder.Add(compound, cap);
   builder.Add(compound, stem);
+  builder.Add(compound, guide);
+  builder.Add(compound, travel_stop);
 
   BRepCheck_Analyzer analyzer(compound, false);
   if (!analyzer.IsValid()) {
@@ -3268,11 +3439,41 @@ TopoDS_Shape BuildGeneratedTopLidButtonPlungerShape(
         "OCCT generated a null top lid button stem shape.");
   }
 
+  const double guide_length = ButtonGuideLength(cutout);
+  const double guide_start_z =
+      cap_bottom_z - cutout.stem_depth + cutout.switch_clearance;
+  const gp_Ax2 guide_axis(gp_Pnt(cutout.position[0],
+                                 cutout.position[1],
+                                 guide_start_z),
+                          gp_Dir(0.0, 0.0, 1.0));
+  const TopoDS_Shape guide =
+      BuildAnnularCylinderShape(guide_axis,
+                                ButtonGuideOuterRadius(cutout),
+                                ButtonGuideInnerRadius(cutout),
+                                guide_length,
+                                "top lid button guide sleeve");
+
+  const gp_Ax2 stop_axis(gp_Pnt(cutout.position[0],
+                                cutout.position[1],
+                                guide_start_z + guide_length),
+                         gp_Dir(0.0, 0.0, 1.0));
+  const TopoDS_Shape travel_stop =
+      BRepPrimAPI_MakeCylinder(stop_axis,
+                               ButtonTravelStopOuterRadius(cutout),
+                               kButtonTravelStopThickness)
+          .Shape();
+  if (travel_stop.IsNull()) {
+    throw std::runtime_error(
+        "OCCT generated a null top lid button travel stop shape.");
+  }
+
   BRep_Builder builder;
   TopoDS_Compound compound;
   builder.MakeCompound(compound);
   builder.Add(compound, cap);
   builder.Add(compound, stem);
+  builder.Add(compound, guide);
+  builder.Add(compound, travel_stop);
 
   BRepCheck_Analyzer analyzer(compound, false);
   if (!analyzer.IsValid()) {
@@ -4480,6 +4681,10 @@ void WriteRoundedEnclosurePreviewResponse(const NativeRequestEnvelope& request,
             << metrics.native_generated_lid_button_cap_count << ",\n"
             << "    \"nativeGeneratedLidButtonStemCount\": "
             << metrics.native_generated_lid_button_stem_count << ",\n"
+            << "    \"nativeGeneratedLidButtonGuideCount\": "
+            << metrics.native_generated_lid_button_guide_count << ",\n"
+            << "    \"nativeGeneratedLidButtonTravelStopCount\": "
+            << metrics.native_generated_lid_button_travel_stop_count << ",\n"
             << "    \"featureIntentCount\": "
             << metrics.feature_intent_count << ",\n"
             << "    \"nativeFeatureCutCount\": "
@@ -4508,6 +4713,10 @@ void WriteRoundedEnclosurePreviewResponse(const NativeRequestEnvelope& request,
             << metrics.native_button_cap_count << ",\n"
             << "    \"nativeButtonStemCount\": "
             << metrics.native_button_stem_count << ",\n"
+            << "    \"nativeButtonGuideCount\": "
+            << metrics.native_button_guide_count << ",\n"
+            << "    \"nativeButtonTravelStopCount\": "
+            << metrics.native_button_travel_stop_count << ",\n"
             << "    \"nativeStandoffGroupCount\": "
             << metrics.native_standoff_group_count << ",\n"
             << "    \"nativeStandoffMountCount\": "
@@ -4658,6 +4867,8 @@ int main(int argc, char* argv[]) {
                             lid_bosses.pilot_hole_count,
                             preview_assembly.button_cap_count,
                             preview_assembly.button_stem_count,
+                            preview_assembly.button_guide_count,
+                            preview_assembly.button_travel_stop_count,
                             lid_seats.seat_count,
                             preview_assembly.generated_lid_plate_count,
                             parsed_request.generated_lid_plates.empty()
@@ -4678,6 +4889,9 @@ int main(int argc, char* argv[]) {
                             preview_assembly.generated_lid_button_ring_count,
                             preview_assembly.generated_lid_button_cap_count,
                             preview_assembly.generated_lid_button_stem_count,
+                            preview_assembly.generated_lid_button_guide_count,
+                            preview_assembly
+                                .generated_lid_button_travel_stop_count,
                             preview_assembly.applied_feature_intent_count,
                             parsed_request.feature_intent_count,
                             feature_cuts);

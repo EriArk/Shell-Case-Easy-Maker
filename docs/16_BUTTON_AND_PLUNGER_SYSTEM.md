@@ -37,20 +37,20 @@ small raised rings/bezels from semantic `button_group` data. It also generates
 first-pass plunger-style preview caps and stems for groups whose
 `itemPrototype.mode` is `plunger`. Front-wall groups produce a through-hole
 cut, a fused annular ring on the outside face, and separate disposable cap/stem
-preview solids. Top-lid groups do the same against the generated lid preview
-plate.
+preview solids with first-pass guide sleeves and travel-stop collars. Top-lid
+groups do the same against the generated lid preview plate.
 
 The editable project still stores one `button_group`; ring, cap, and stem
 solids are disposable generated geometry, and preview faces for holes/rings
-and cap/stem parts map back to the same semantic group ids such as
+and cap/stem/guide/stop parts map back to the same semantic group ids such as
 `front_buttons` and `top_lid_buttons`. First-pass style controls are semantic
 `itemPrototype` values: `ringWidth`, `ringProtrusion`, `capDiameter`,
 `capHeight`, `stemDiameter`, `stemDepth`, `travel`, `switchClearance`, and
 `guideClearance`. The Flutter semantic validator now checks that plunger travel
 plus switch clearance fits the stem depth and that guide clearance is not too
-tight, too loose, or wider than the cap opening. Guide-wall geometry,
-anti-wobble features, travel stops, tactile top textures, and richer cap shapes
-remain future work.
+tight, too loose, or wider than the cap opening, including the first native
+guide-wall thickness. Rich anti-wobble features, tactile top textures, chamfers,
+material-specific fit rules, and richer cap shapes remain future work.
 
 ## Parameters
 

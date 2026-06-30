@@ -132,9 +132,10 @@ dart run tool\native_occt_worker_metrics_smoke.dart --skip-build
 The current native response returns deterministic bounds, dimensions, surface
 area, volume, disposable preview mesh data, and first-pass semantic surface
 ranges for the first semantic enclosure. For the sample enclosure it emits a
-top-open rounded shell/cavity with one native USB-C front-wall cutout, 1418
-vertices, 1754 triangles, 3 surface mappings, and 538 mapped triangles. It still
-does not return STL, B-Rep, OCCT topology IDs, or triangle IDs as stable editable
+top-open rounded shell/cavity with native USB-C, glass, button, standoff, lid,
+plunger cap/stem, guide, and travel-stop preview detail: 13882 vertices, 14384
+triangles, 14 surface mappings, and 20758 mapped triangles. It still does not
+return STL, B-Rep, OCCT topology IDs, or triangle IDs as stable editable
 references.
 
 The scaffold smoke command wraps build, capability query, and request smoke:
@@ -316,6 +317,9 @@ The first native OCCT slices now:
 27. Add first-pass separate preview cap/stem solids for semantic
     `button_group` items whose `itemPrototype.mode` is `plunger`, while keeping
     those solids mapped to the original group ids.
+28. Add first-pass generated guide sleeves and travel-stop collars from
+    semantic plunger travel/clearance values, while keeping those generated
+    parts mapped to the original group ids.
 
 The next native geometry slices should:
 
@@ -333,17 +337,20 @@ Expected sample dimensions:
 - corner radius: `4 mm`,
 - native preview assembly bounds: `[-60, -36.65, 0]` to `[60, 35, 32]`,
 - native preview volume after lid screw bosses, USB-C, front glass
-  recess/window, front button cutouts/rings/caps/stems, bottom standoff bosses,
-  generated lid plate, lid screw holes, underside locating lip, body-side lid
-  seat, fit-preview positioning, top-lid button holes/rings/caps/stems,
-  top-lid glass recess, and top-lid glass window: `53150.290056 mm^3`,
+  recess/window, front button cutouts/rings/caps/stems/guides/stops, bottom
+  standoff bosses, generated lid plate, lid screw holes, underside locating lip,
+  body-side lid seat, fit-preview positioning, top-lid button
+  holes/rings/caps/stems/guides/stops, top-lid glass recess, and top-lid glass
+  window: `53230.754103 mm^3`,
 - native preview surface area after lid screw bosses, USB-C, front glass
-  recess/window, front button cutouts/rings/caps/stems, bottom standoff bosses,
-  generated lid plate, lid screw holes, underside locating lip, body-side lid
-  seat, fit-preview positioning, top-lid button holes/rings/caps/stems,
-  top-lid glass recess, and top-lid glass window: `55539.19378 mm^2`,
+  recess/window, front button cutouts/rings/caps/stems/guides/stops, bottom
+  standoff bosses, generated lid plate, lid screw holes, underside locating lip,
+  body-side lid seat, fit-preview positioning, top-lid button
+  holes/rings/caps/stems/guides/stops, top-lid glass recess, and top-lid glass
+  window: `56020.328695 mm^2`,
 - native preview surface mappings after feature ranges: `14`,
-- native preview mapped triangles after feature ranges: `16478`,
+- native preview mesh size: `13882` vertices, `14384` triangles,
+- native preview mapped triangles after feature ranges: `20758`,
 - native feature metrics: `featureIntentCount=7`,
   `nativeFeatureCutCount=9`, `nativeIgnoredFeatureIntentCount=1`,
   `nativeLidScrewBossCount=4`, `nativeLidScrewPilotCount=4`,
@@ -361,12 +368,16 @@ Expected sample dimensions:
   `nativeGeneratedLidButtonCutoutCount=4`,
   `nativeGeneratedLidButtonRingCount=4`,
   `nativeGeneratedLidButtonCapCount=4`,
-  `nativeGeneratedLidButtonStemCount=4`, `nativeUsbCCutoutCount=1`,
+  `nativeGeneratedLidButtonStemCount=4`,
+  `nativeGeneratedLidButtonGuideCount=4`,
+  `nativeGeneratedLidButtonTravelStopCount=4`,
+  `nativeUsbCCutoutCount=1`,
   `nativeGlassRecessCount=1`, `nativeGlassRecessFilletedEdgeCount=8`,
   `nativeGlassWindowCount=1`, `nativeGlassWindowFilletedEdgeCount=8`,
   `nativeButtonGroupCount=1`,
   `nativeButtonCutoutCount=2`, `nativeButtonRingCount=2`,
   `nativeButtonCapCount=2`, `nativeButtonStemCount=2`,
+  `nativeButtonGuideCount=2`, `nativeButtonTravelStopCount=2`,
   `nativeStandoffGroupCount=1`,
   `nativeStandoffMountCount=4`.
 
@@ -412,7 +423,9 @@ Expected sample dimensions:
   first-pass fit-preview state with a small inspection gap, and semantic
   top-lid glass recesses can cut a shallow support ledge plus inner window
   through that lid; top-lid button groups can cut generated hole faces into the
-  same lid. A real separable lid/body split with full mating geometry,
+  same lid, and plunger-style groups now add first-pass generated cap/stem,
+  guide-sleeve, and travel-stop preview detail. A real separable lid/body split
+  with full mating geometry,
   protected recess islands, richer mount variants, and richer face mapping are
   still planned.
 - STEP/STL export operations intentionally return unsupported in the mock

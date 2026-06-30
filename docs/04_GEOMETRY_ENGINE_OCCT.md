@@ -133,13 +133,14 @@ generated lid plate, and front-wall
 `button_group` intents remain body cutouts. Button and standoff groups remain
 one editable semantic object; lid screw bosses, lid plate, lid screw holes,
 lid locating lip, body lid seat, lid fit preview, generated top-lid recesses,
-generated front/top glass windows, and generated top-lid button holes remain
-generated enclosure detail, not separate editable solids. The native worker
-only consumes semantic parameters and derived item positions as disposable
-generator input. A real mating lid/body split, protected recess islands,
-richer mount variants, and export operations remain next slices. The plan is
-disposable backend input. It must not be saved as the editable project model
-and must not contain OCCT topology IDs.
+generated front/top glass windows, generated top-lid button holes, and
+plunger-style cap/stem/guide/stop preview parts remain generated enclosure
+detail, not separate editable solids. The native worker only consumes semantic
+parameters and derived item positions as disposable generator input. A real
+mating lid/body split, protected recess islands, richer mount variants, and
+export operations remain next slices. The plan is disposable backend input. It
+must not be saved as the editable project model and must not contain OCCT
+topology IDs.
 
 ## Generated protocol fixtures
 
@@ -262,7 +263,8 @@ The smoke checks capabilities, request ID preservation, sample bounds,
 dimensions, surface area, volume, preview mesh counts, generated button-ring
 metrics, and the `editableGeneratedGeometry=false` contract. The current
 sample includes front and top-lid button holes plus small raised rings/bezels
-that are generated from semantic `button_group` data.
+that are generated from semantic `button_group` data, plus first-pass plunger
+cap/stem/guide/stop preview metrics for plunger-style groups.
 
 Native scaffold smoke command:
 

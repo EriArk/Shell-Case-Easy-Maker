@@ -8,6 +8,8 @@ import 'validation_result.dart';
 class ProjectSemanticValidator {
   const ProjectSemanticValidator._();
 
+  static const _buttonGuideWallThickness = 0.45;
+
   static ValidationReport validate(ProjectModel project) {
     final messages = <ValidationMessage>[];
     final enclosure = project.bodies.firstOrNull;
@@ -547,6 +549,20 @@ class ProjectSemanticValidator {
           code: 'group.button_plunger.guide.too_wide',
           message:
               'Ножка с направляющим зазором не помещается в отверстие кнопки.',
+          targetId: group.id,
+        ),
+      );
+    }
+
+    if (guideClearanceValid &&
+        stemDiameter + (guideClearance + _buttonGuideWallThickness) * 2 >
+            diameter) {
+      messages.add(
+        ValidationMessage(
+          severity: ValidationSeverity.error,
+          code: 'group.button_plunger.guide_wall.too_wide',
+          message:
+              'Направляющая стенка плунжера не помещается в отверстие кнопки.',
           targetId: group.id,
         ),
       );

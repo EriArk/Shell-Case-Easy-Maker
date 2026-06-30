@@ -109,6 +109,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M88 - Native Viewport Readability Pass
 - [x] M89 - Viewport Navigation Presets
 - [x] M90 - Semantic Plunger Travel Controls
+- [x] M91 - Native Plunger Guide/Stop Preview
 
 ---
 
@@ -4164,3 +4165,61 @@ guide-wall/travel-stop geometry is generated.
 - Edit `Ход`, press Enter, then click undo and confirm it returns.
 - From the board placement, create a component-sourced button group and confirm
   the dialog also shows the same travel/clearance defaults.
+
+---
+
+## M91 - Native Plunger Guide/Stop Preview
+
+### Goal
+Generate first-pass native preview geometry for plunger guide sleeves and
+travel-stop collars from semantic button-group travel/clearance values, while
+keeping editable project state semantic and generator-first.
+
+### Tasks
+- [x] Review official OCCT cylinder, Boolean cut, and compound-builder docs
+      before adding the generated guide/stop geometry.
+- [x] Parse `travel`, `switchClearance`, and `guideClearance` in the native
+      button-group item request.
+- [x] Add annular guide sleeve generation for front-wall and generated top-lid
+      plunger buttons.
+- [x] Add first-pass travel-stop collar preview geometry for the same plunger
+      buttons.
+- [x] Add native metrics for front and generated top-lid guide/stop counts.
+- [x] Add semantic validation for guide-wall fit against the button opening.
+- [x] Update native smoke expectations, docs, tasks, roadmap, and worklog.
+
+### Done Criteria
+- `button_group` remains one editable semantic group; guide sleeves and travel
+  stops are disposable generated preview geometry.
+- Native smoke reports `nativeButtonGuideCount: 2`,
+  `nativeButtonTravelStopCount: 2`,
+  `nativeGeneratedLidButtonGuideCount: 4`, and
+  `nativeGeneratedLidButtonTravelStopCount: 4` for the sample project.
+- Semantic validation catches guide-wall setups that cannot fit inside the
+  button opening.
+- Flutter still talks through `GeometryService`/worker protocol and receives
+  preview mesh/metrics only, not OCCT topology or editable B-Rep.
+
+### Tests
+- `dart format lib\validation\project_semantic_validator.dart test\project_semantic_validator_test.dart tool\native_occt_worker_metrics_smoke.dart test\occt_native_target_scaffold_test.dart`
+- `flutter test test\project_semantic_validator_test.dart test\occt_native_target_scaffold_test.dart --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open
+  `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- Select `abxy_buttons` or another plunger-style button group.
+- Orbit/zoom around the front buttons and top-lid buttons; each plunger preview
+  should now have a small extra sleeve/collar shape around the cap/stem area.
+- Edit `Ход`, `Зазор до свитча`, or `Зазор направл.` and confirm undo still
+  restores the previous semantic value.
+- Treat the center model as a first-pass mechanical preview, not polished CAD:
+  the important check is that the added guide/stop detail is visible and remains
+  tied to one semantic button group.
