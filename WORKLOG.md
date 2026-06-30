@@ -42,6 +42,109 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-30 - M87 Native button cap/stem preview
+
+### Goal
+Generate first-pass plunger-style button cap and stem preview geometry from
+semantic `button_group.itemPrototype` data, while keeping the editable project
+as one semantic group instead of generated CAD solids.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`docs/09_PATTERN_AND_LAYOUT_SYSTEM.md`,
+`docs/10_ENCLOSURE_AUTO_GENERATION.md`,
+`docs/16_BUTTON_AND_PLUNGER_SYSTEM.md`,
+`docs/27_RESEARCH_AND_REFERENCES.md`,
+`docs/34_FIRST_GEOMETRY_SLICE.md`,
+`lib/ui/shell/workspace_shell.dart`,
+`lib/selection/project_selection_resolver.dart`,
+`lib/validation/project_semantic_validator.dart`,
+`test/widget_test.dart`,
+`test/geometry_protocol_test.dart`,
+`test/project_semantic_validator_test.dart`,
+`test/occt_native_target_scaffold_test.dart`,
+`tool/native_occt_worker_metrics_smoke.dart`, and
+`occt_worker/native/src/occt_main.cpp`.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added semantic `capDiameter`, `capHeight`, `stemDiameter`, and
+    `stemDepth` defaults to manual and component-sourced button groups.
+  - Added inspector and creation-dialog controls for cap/stem sizing.
+  - Normalizes cap/stem values through the same undoable feature-group
+    parameter path as button diameter and ring controls.
+- `occt_worker/native/src/occt_main.cpp`:
+  - Parses and validates cap/stem values from button group item parameters.
+  - Builds front-wall and generated top-lid cap/stem preview compounds with
+    OCCT cylinders when `mode` is `plunger`.
+  - Maps cap/stem preview faces back to the original semantic button group ids.
+  - Emits cap/stem metrics for front-wall and generated top-lid buttons.
+- Tests/fixtures/samples:
+  - Regenerated geometry protocol fixtures.
+  - Added cap/stem fields to the sample project, protocol tests, widget tests,
+    selection summary tests, semantic validator tests, native source-contract
+    tests, and native smoke project.
+- Docs/tasks/roadmap:
+  - Added M87 to `ROADMAP.md`.
+  - Updated button/plunger, pattern, enclosure generation, first geometry slice,
+    research/reference notes, and task tracker.
+
+### Tests run
+- `dart run tool\generate_geometry_protocol_fixtures.dart`:
+  - Passed; protocol fixtures updated.
+- `flutter test test\geometry_protocol_test.dart test\project_selection_resolver_test.dart test\occt_native_target_scaffold_test.dart --reporter compact`:
+  - Passed, 23 tests.
+- `flutter test test\widget_test.dart --plain-name "selected button group inspector edits pattern through undo" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "component button command creates switch-sourced group" --reporter compact`:
+  - Passed.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`:
+  - Passed.
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`:
+  - Passed; sample reports 11254 vertices, 11816 triangles, 14 mappings,
+    16478 mapped triangles, `nativeButtonCapCount=2`,
+    `nativeButtonStemCount=2`, `nativeGeneratedLidButtonCapCount=4`, and
+    `nativeGeneratedLidButtonStemCount=4`.
+- `flutter test test\project_semantic_validator_test.dart --reporter compact`:
+  - Passed, 12 tests.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed after formatting `tool\native_occt_worker_metrics_smoke.dart`.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed, 188 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+
+### Validation
+- Geometry checked with native OCCT build and deterministic smoke metrics.
+- Serialization/protocol checked with regenerated fixtures and protocol tests.
+- UI checked with widget coverage for inspector edit/undo and component-sourced
+  button group creation.
+- Export not checked; STEP/STL export is still future work.
+
+### Known issues
+- Issue: Cap/stem geometry is first-pass preview only and has no guide walls,
+  travel stop, anti-wobble clearance, switch-contact validation, chamfers, or
+  textures yet.
+  - Severity: Medium.
+  - Next action: Add real plunger mechanics and validation after the cap/stem
+    preview is visually accepted.
+
+### Next step
+Poke the latest app around front and top-lid button groups, then continue with
+guide/travel validation or another semantic generator slice.
+
+### Notes for future Codex sessions
+Cap/stem preview solids are intentionally separate compound members, not fused
+into the body or generated lid. Keep them mapped to the parent
+`button_group` id and keep generated OCCT solids out of editable project state.
+
+---
+
 ## 2026-06-30 - M86 Semantic button ring controls
 
 ### Goal

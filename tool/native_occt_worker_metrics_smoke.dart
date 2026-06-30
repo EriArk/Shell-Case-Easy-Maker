@@ -98,12 +98,12 @@ Future<void> main(List<String> args) async {
       failures,
     );
     _expect(
-      previewMesh.vertexCount == 9502,
+      previewMesh.vertexCount == 11254,
       'previewMesh must contain the deterministic sample vertex count',
       failures,
     );
     _expect(
-      previewMesh.triangleCount == 10136,
+      previewMesh.triangleCount == 11816,
       'previewMesh must contain the deterministic sample triangle count',
       failures,
     );
@@ -228,13 +228,13 @@ Future<void> main(List<String> args) async {
     );
     _expectDoubleList(
       previewMesh.bounds.min,
-      const [-60, -35.45, 0],
+      const [-60, -36.65, 0],
       'previewMesh.bounds.min',
       failures,
     );
     _expectDoubleList(
       previewMesh.bounds.max,
-      const [60, 35, 30.8],
+      const [60, 35, 32],
       'previewMesh.bounds.max',
       failures,
     );
@@ -364,6 +364,16 @@ Future<void> main(List<String> args) async {
     failures,
   );
   _expect(
+    metrics['nativeGeneratedLidButtonCapCount'] == 4,
+    'nativeGeneratedLidButtonCapCount must include generated top lid button caps',
+    failures,
+  );
+  _expect(
+    metrics['nativeGeneratedLidButtonStemCount'] == 4,
+    'nativeGeneratedLidButtonStemCount must include generated top lid button stems',
+    failures,
+  );
+  _expect(
     metrics['featureIntentCount'] == 7,
     'featureIntentCount must match the sample request',
     failures,
@@ -421,6 +431,16 @@ Future<void> main(List<String> args) async {
   _expect(
     metrics['nativeButtonRingCount'] == 2,
     'nativeButtonRingCount must include the sample front button rings',
+    failures,
+  );
+  _expect(
+    metrics['nativeButtonCapCount'] == 2,
+    'nativeButtonCapCount must include the sample front button caps',
+    failures,
+  );
+  _expect(
+    metrics['nativeButtonStemCount'] == 2,
+    'nativeButtonStemCount must include the sample front button stems',
     failures,
   );
   _expect(
@@ -515,7 +535,7 @@ Future<void> main(List<String> args) async {
   );
   _expectDoubleList(
     metrics['dimensions'],
-    const [120, 70.45, 30.8],
+    const [120, 71.65, 32],
     'dimensions',
     failures,
   );
@@ -523,26 +543,21 @@ Future<void> main(List<String> args) async {
   final bounds = _readMap(metrics['bounds']);
   _expectDoubleList(
     bounds['min'],
-    const [-60, -35.45, 0],
+    const [-60, -36.65, 0],
     'bounds.min',
     failures,
   );
-  _expectDoubleList(
-    bounds['max'],
-    const [60, 35, 30.8],
-    'bounds.max',
-    failures,
-  );
+  _expectDoubleList(bounds['max'], const [60, 35, 32], 'bounds.max', failures);
   _expectClose(
     _readNumber(metrics['surfaceArea']),
-    54964.596483,
+    55539.19378,
     0.001,
     'surfaceArea',
     failures,
   );
   _expectClose(
     _readNumber(metrics['volume']),
-    52901.661268,
+    53150.290056,
     0.001,
     'volume',
     failures,
@@ -602,6 +617,10 @@ Future<void> main(List<String> args) async {
           metrics['nativeGeneratedLidButtonCutoutCount'],
       'nativeGeneratedLidButtonRingCount':
           metrics['nativeGeneratedLidButtonRingCount'],
+      'nativeGeneratedLidButtonCapCount':
+          metrics['nativeGeneratedLidButtonCapCount'],
+      'nativeGeneratedLidButtonStemCount':
+          metrics['nativeGeneratedLidButtonStemCount'],
       'featureIntentCount': metrics['featureIntentCount'],
       'nativeFeatureCutCount': metrics['nativeFeatureCutCount'],
       'nativeIgnoredFeatureIntentCount':
@@ -618,6 +637,8 @@ Future<void> main(List<String> args) async {
       'nativeButtonGroupCount': metrics['nativeButtonGroupCount'],
       'nativeButtonCutoutCount': metrics['nativeButtonCutoutCount'],
       'nativeButtonRingCount': metrics['nativeButtonRingCount'],
+      'nativeButtonCapCount': metrics['nativeButtonCapCount'],
+      'nativeButtonStemCount': metrics['nativeButtonStemCount'],
       'nativeStandoffGroupCount': metrics['nativeStandoffGroupCount'],
       'nativeStandoffMountCount': metrics['nativeStandoffMountCount'],
       'bounds': metrics['bounds'],
@@ -703,6 +724,10 @@ ProjectModel _nativeSmokeProject() {
             'diameter': 6.0,
             'ringWidth': 1.2,
             'ringProtrusion': 0.45,
+            'capDiameter': 5.0,
+            'capHeight': 1.2,
+            'stemDiameter': 2.8,
+            'stemDepth': 2.8,
             'mode': 'plunger',
           },
           placement: {'anchor': 'center'},
@@ -720,6 +745,10 @@ ProjectModel _nativeSmokeProject() {
             'diameter': 6.0,
             'ringWidth': 1.2,
             'ringProtrusion': 0.45,
+            'capDiameter': 5.0,
+            'capHeight': 1.2,
+            'stemDiameter': 2.8,
+            'stemDepth': 2.8,
             'mode': 'plunger',
           },
           placement: {'anchor': 'center'},

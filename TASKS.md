@@ -139,6 +139,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Position first native top lid in fit-preview state.
 - [x] Generate first native top lid button group cutouts.
 - [x] Generate first native button rings/bezels.
+- [x] Generate first native button cap/stem previews.
 - [x] Generate first native top lid glass recess.
 - [ ] Export STEP.
 - [ ] Export STL.
@@ -301,6 +302,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] First-pass native top-lid button holes from semantic button groups.
 - [x] First-pass native button rings from semantic button groups.
 - [x] First-pass button ring width/protrusion inspector controls.
+- [x] First-pass native button cap/stem previews.
 - [x] First-pass semantic button group from switch centers.
 - [ ] Generate full button cap/plunger from switch centers.
 - [ ] U-cut button generator.

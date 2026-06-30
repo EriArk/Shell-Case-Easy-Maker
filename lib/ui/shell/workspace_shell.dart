@@ -1758,6 +1758,10 @@ FeatureGroup _defaultButtonGroup({
       'diameter': 8.0,
       'ringWidth': 1.2,
       'ringProtrusion': 0.45,
+      'capDiameter': 7.4,
+      'capHeight': 1.2,
+      'stemDiameter': 3.0,
+      'stemDepth': 2.8,
       'mode': 'plunger',
     },
     placement: const {'anchor': 'center'},
@@ -1805,6 +1809,10 @@ FeatureGroup _buttonGroupFromComponentSwitches({
       'diameter': 8.0,
       'ringWidth': 1.2,
       'ringProtrusion': 0.45,
+      'capDiameter': 7.4,
+      'capHeight': 1.2,
+      'stemDiameter': 3.0,
+      'stemDepth': 2.8,
       'mode': 'plunger',
     },
     placement: {
@@ -3589,6 +3597,10 @@ _FeatureGroupParameterTarget? _featureGroupParameterTarget(
       'diameter' ||
       'ringWidth' ||
       'ringProtrusion' ||
+      'capDiameter' ||
+      'capHeight' ||
+      'stemDiameter' ||
+      'stemDepth' ||
       'mode' => _FeatureGroupParameterTarget.itemPrototype,
       _ => null,
     },
@@ -3621,6 +3633,28 @@ _normalizeFeatureGroupParameterMaps(
       'ringProtrusion',
       0.45,
     ).clamp(0.1, 6);
+    final maxCapDiameter = math.max(0.8, diameter.toDouble() - 0.2);
+    final capDiameter = _featureDouble(
+      itemPrototype,
+      'capDiameter',
+      math.max(0.8, diameter.toDouble() - 0.6),
+    ).clamp(0.8, maxCapDiameter);
+    final capHeight = _featureDouble(
+      itemPrototype,
+      'capHeight',
+      1.2,
+    ).clamp(0.2, 8);
+    final maxStemDiameter = math.max(0.8, capDiameter.toDouble());
+    final stemDiameter = _featureDouble(
+      itemPrototype,
+      'stemDiameter',
+      math.min(3.0, maxStemDiameter),
+    ).clamp(0.8, maxStemDiameter);
+    final stemDepth = _featureDouble(
+      itemPrototype,
+      'stemDepth',
+      2.8,
+    ).clamp(0.5, 12);
 
     return (
       pattern: pattern,
@@ -3629,6 +3663,10 @@ _normalizeFeatureGroupParameterMaps(
         'diameter': diameter.toDouble(),
         'ringWidth': ringWidth.toDouble(),
         'ringProtrusion': ringProtrusion.toDouble(),
+        'capDiameter': capDiameter.toDouble(),
+        'capHeight': capHeight.toDouble(),
+        'stemDiameter': stemDiameter.toDouble(),
+        'stemDepth': stemDepth.toDouble(),
       },
     );
   }
@@ -3709,6 +3747,38 @@ const _buttonGroupParameterSchema = ParameterSchema(
       unit: 'mm',
       defaultValue: 0.45,
       range: ParameterRange(min: 0.1, max: 6, step: 0.05),
+    ),
+    ParameterDefinition(
+      id: 'capDiameter',
+      label: 'Колпачок',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 7.4,
+      range: ParameterRange(min: 0.8, max: 29.8, step: 0.1),
+    ),
+    ParameterDefinition(
+      id: 'capHeight',
+      label: 'Высота кнопки',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 1.2,
+      range: ParameterRange(min: 0.2, max: 8, step: 0.1),
+    ),
+    ParameterDefinition(
+      id: 'stemDiameter',
+      label: 'Ножка',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 3.0,
+      range: ParameterRange(min: 0.8, max: 20, step: 0.1),
+    ),
+    ParameterDefinition(
+      id: 'stemDepth',
+      label: 'Глубина ножки',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 2.8,
+      range: ParameterRange(min: 0.5, max: 12, step: 0.1),
     ),
     ParameterDefinition(
       id: 'mode',
@@ -4716,6 +4786,10 @@ class _ButtonGroupDialogState extends State<_ButtonGroupDialog> {
   late double _diameter;
   late double _ringWidth;
   late double _ringProtrusion;
+  late double _capDiameter;
+  late double _capHeight;
+  late double _stemDiameter;
+  late double _stemDepth;
   late double _spacing;
   late String _mode;
 
@@ -4745,6 +4819,10 @@ class _ButtonGroupDialogState extends State<_ButtonGroupDialog> {
       'ringProtrusion',
       0.45,
     );
+    _capDiameter = _featureDouble(group.itemPrototype, 'capDiameter', 7.4);
+    _capHeight = _featureDouble(group.itemPrototype, 'capHeight', 1.2);
+    _stemDiameter = _featureDouble(group.itemPrototype, 'stemDiameter', 3.0);
+    _stemDepth = _featureDouble(group.itemPrototype, 'stemDepth', 2.8);
     _mode = _featureString(group.itemPrototype, 'mode', 'plunger');
   }
 
@@ -4842,6 +4920,52 @@ class _ButtonGroupDialogState extends State<_ButtonGroupDialog> {
                 ],
               ),
               const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: _DialogNumberField(
+                      key: const ValueKey('button-group-cap-diameter'),
+                      label: 'Колпачок',
+                      value: _capDiameter,
+                      onChanged: (value) =>
+                          setState(() => _capDiameter = value),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _DialogNumberField(
+                      key: const ValueKey('button-group-cap-height'),
+                      label: 'Высота',
+                      value: _capHeight,
+                      onChanged: (value) => setState(() => _capHeight = value),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: _DialogNumberField(
+                      key: const ValueKey('button-group-stem-diameter'),
+                      label: 'Ножка',
+                      value: _stemDiameter,
+                      onChanged: (value) =>
+                          setState(() => _stemDiameter = value),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _DialogNumberField(
+                      key: const ValueKey('button-group-stem-depth'),
+                      label: 'Глубина',
+                      value: _stemDepth,
+                      onChanged: (value) => setState(() => _stemDepth = value),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
               DropdownButtonFormField<String>(
                 key: const ValueKey('button-group-mode'),
                 initialValue: _mode,
@@ -4899,6 +5023,18 @@ class _ButtonGroupDialogState extends State<_ButtonGroupDialog> {
                 'diameter': _clampDouble(_diameter, 2, 30),
                 'ringWidth': _clampDouble(_ringWidth, 0.2, 8),
                 'ringProtrusion': _clampDouble(_ringProtrusion, 0.1, 6),
+                'capDiameter': _clampDouble(
+                  _capDiameter,
+                  0.8,
+                  math.max(0.8, _diameter - 0.2),
+                ),
+                'capHeight': _clampDouble(_capHeight, 0.2, 8),
+                'stemDiameter': _clampDouble(
+                  _stemDiameter,
+                  0.8,
+                  math.max(0.8, math.min(_capDiameter, _diameter - 0.2)),
+                ),
+                'stemDepth': _clampDouble(_stemDepth, 0.5, 12),
                 'mode': _mode,
               },
               placement: widget.initialGroup.placement,

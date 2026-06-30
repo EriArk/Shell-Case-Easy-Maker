@@ -307,6 +307,10 @@
           "diameter": 8.0,
           "ringWidth": 1.2,
           "ringProtrusion": 0.45,
+          "capDiameter": 7.4,
+          "capHeight": 1.2,
+          "stemDiameter": 3.0,
+          "stemDepth": 2.8,
           "mode": "plunger"
         },
         "placement": {
@@ -451,6 +455,10 @@
           "diameter": 8.0,
           "ringWidth": 1.2,
           "ringProtrusion": 0.45,
+          "capDiameter": 7.4,
+          "capHeight": 1.2,
+          "stemDiameter": 3.0,
+          "stemDepth": 2.8,
           "mode": "plunger"
         }
       },
@@ -474,6 +482,10 @@
             "diameter": 8.0,
             "ringWidth": 1.2,
             "ringProtrusion": 0.45,
+            "capDiameter": 7.4,
+            "capHeight": 1.2,
+            "stemDiameter": 3.0,
+            "stemDepth": 2.8,
             "mode": "plunger"
           },
           "source": {
@@ -506,6 +518,10 @@
             "diameter": 8.0,
             "ringWidth": 1.2,
             "ringProtrusion": 0.45,
+            "capDiameter": 7.4,
+            "capHeight": 1.2,
+            "stemDiameter": 3.0,
+            "stemDepth": 2.8,
             "mode": "plunger"
           },
           "source": {
@@ -538,6 +554,10 @@
             "diameter": 8.0,
             "ringWidth": 1.2,
             "ringProtrusion": 0.45,
+            "capDiameter": 7.4,
+            "capHeight": 1.2,
+            "stemDiameter": 3.0,
+            "stemDepth": 2.8,
             "mode": "plunger"
           },
           "source": {
@@ -570,6 +590,10 @@
             "diameter": 8.0,
             "ringWidth": 1.2,
             "ringProtrusion": 0.45,
+            "capDiameter": 7.4,
+            "capHeight": 1.2,
+            "stemDiameter": 3.0,
+            "stemDepth": 2.8,
             "mode": "plunger"
           },
           "source": {

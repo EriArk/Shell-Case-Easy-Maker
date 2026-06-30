@@ -313,6 +313,9 @@ The first native OCCT slices now:
 26. Cut the top-lid glass inner window through the generated lid plate from
     the same semantic `glass_recess` using `ledgeWidth`, leaving a generated
     support ledge.
+27. Add first-pass separate preview cap/stem solids for semantic
+    `button_group` items whose `itemPrototype.mode` is `plunger`, while keeping
+    those solids mapped to the original group ids.
 
 The next native geometry slices should:
 
@@ -328,19 +331,19 @@ Expected sample dimensions:
 - size: `120 x 70 x 28 mm`,
 - wall thickness: `2 mm`,
 - corner radius: `4 mm`,
-- native preview assembly bounds: `[-60, -35.45, 0]` to `[60, 35, 30.8]`,
+- native preview assembly bounds: `[-60, -36.65, 0]` to `[60, 35, 32]`,
 - native preview volume after lid screw bosses, USB-C, front glass
-  recess/window, front button cutouts/rings, bottom standoff bosses, generated
-  lid plate, lid screw holes, underside locating lip, body-side lid seat,
-  fit-preview positioning, top-lid button holes/rings, top-lid glass recess,
-  and top-lid glass window: `52901.661268 mm^3`,
+  recess/window, front button cutouts/rings/caps/stems, bottom standoff bosses,
+  generated lid plate, lid screw holes, underside locating lip, body-side lid
+  seat, fit-preview positioning, top-lid button holes/rings/caps/stems,
+  top-lid glass recess, and top-lid glass window: `53150.290056 mm^3`,
 - native preview surface area after lid screw bosses, USB-C, front glass
-  recess/window, front button cutouts/rings, bottom standoff bosses, generated
-  lid plate, lid screw holes, underside locating lip, body-side lid seat,
-  fit-preview positioning, top-lid button holes/rings, top-lid glass recess,
-  and top-lid glass window: `54964.596483 mm^2`,
+  recess/window, front button cutouts/rings/caps/stems, bottom standoff bosses,
+  generated lid plate, lid screw holes, underside locating lip, body-side lid
+  seat, fit-preview positioning, top-lid button holes/rings/caps/stems,
+  top-lid glass recess, and top-lid glass window: `55539.19378 mm^2`,
 - native preview surface mappings after feature ranges: `14`,
-- native preview mapped triangles after feature ranges: `16684`,
+- native preview mapped triangles after feature ranges: `16478`,
 - native feature metrics: `featureIntentCount=7`,
   `nativeFeatureCutCount=9`, `nativeIgnoredFeatureIntentCount=1`,
   `nativeLidScrewBossCount=4`, `nativeLidScrewPilotCount=4`,
@@ -356,11 +359,14 @@ Expected sample dimensions:
   `nativeGeneratedLidGlassWindowFilletedEdgeCount=8`,
   `nativeGeneratedLidButtonGroupCount=1`,
   `nativeGeneratedLidButtonCutoutCount=4`,
-  `nativeGeneratedLidButtonRingCount=4`, `nativeUsbCCutoutCount=1`,
+  `nativeGeneratedLidButtonRingCount=4`,
+  `nativeGeneratedLidButtonCapCount=4`,
+  `nativeGeneratedLidButtonStemCount=4`, `nativeUsbCCutoutCount=1`,
   `nativeGlassRecessCount=1`, `nativeGlassRecessFilletedEdgeCount=8`,
   `nativeGlassWindowCount=1`, `nativeGlassWindowFilletedEdgeCount=8`,
   `nativeButtonGroupCount=1`,
   `nativeButtonCutoutCount=2`, `nativeButtonRingCount=2`,
+  `nativeButtonCapCount=2`, `nativeButtonStemCount=2`,
   `nativeStandoffGroupCount=1`,
   `nativeStandoffMountCount=4`.
 

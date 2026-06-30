@@ -296,10 +296,32 @@ Smoke metrics now include `nativeButtonRingCount` and
 copied; this slice uses project-local OCCT headers and existing worker
 patterns.
 
+## Update - first native button cap/stem previews
+
+M87 keeps using the same OCCT primitive family already researched for button
+holes and rings. The worker builds first-pass cap and stem preview solids with
+`BRepPrimAPI_MakeCylinder`, stores them in the preview compound with
+`BRep_Builder`, and validates the resulting compound with `BRepCheck_Analyzer`.
+The caps/stems are deliberately not fused into the body or generated lid,
+because button plungers are separate generated parts in the product model.
+
+The cap/stem dimensions are semantic `button_group.itemPrototype` parameters:
+`capDiameter`, `capHeight`, `stemDiameter`, and `stemDepth`. Native validation
+requires plunger caps and stems to fit inside the button cutout and target
+surface safe area. Preview classification maps cap/stem faces back to the
+original button group id, so selection still behaves like one semantic group.
+
+Smoke metrics now include `nativeButtonCapCount`, `nativeButtonStemCount`,
+`nativeGeneratedLidButtonCapCount`, and
+`nativeGeneratedLidButtonStemCount`; the sample reports 2 front-wall caps/stems
+and 4 generated top-lid caps/stems. No GPL/AGPL code or external project
+snippets were copied.
+
 ## Follow-up tasks
 
-- Add button-cap/plunger generation after holes are stable.
-- Expand ring/bezel style parameters later if caps/plungers need shape,
+- Add guide walls, travel stops, anti-wobble clearance, and switch-contact
+  validation for real printable plungers.
+- Expand ring/bezel/cap style parameters later if caps/plungers need shape,
   chamfer, or texture controls.
 - Add lid/body assembly semantics before exposing generated lid parts as
   independently inspectable objects.

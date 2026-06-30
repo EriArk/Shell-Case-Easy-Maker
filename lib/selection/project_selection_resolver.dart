@@ -327,6 +327,26 @@ List<ProjectSelectionProperty> _featureGroupProperties(FeatureGroup group) {
         label: 'Выступ',
         value: _formatValue(group.itemPrototype['ringProtrusion']),
       ),
+    if (group.itemPrototype.containsKey('capDiameter'))
+      ProjectSelectionProperty(
+        label: 'Колпачок',
+        value: _formatValue(group.itemPrototype['capDiameter']),
+      ),
+    if (group.itemPrototype.containsKey('capHeight'))
+      ProjectSelectionProperty(
+        label: 'Высота кнопки',
+        value: _formatValue(group.itemPrototype['capHeight']),
+      ),
+    if (group.itemPrototype.containsKey('stemDiameter'))
+      ProjectSelectionProperty(
+        label: 'Ножка',
+        value: _formatValue(group.itemPrototype['stemDiameter']),
+      ),
+    if (group.itemPrototype.containsKey('stemDepth'))
+      ProjectSelectionProperty(
+        label: 'Глубина ножки',
+        value: _formatValue(group.itemPrototype['stemDepth']),
+      ),
     if (group.itemPrototype.containsKey('holeDiameter'))
       ProjectSelectionProperty(
         label: 'Отверстие',

@@ -232,6 +232,10 @@ void main() {
           'diameter': 8.0,
           'ringWidth': 1.2,
           'ringProtrusion': 0.45,
+          'capDiameter': 7.4,
+          'capHeight': 1.2,
+          'stemDiameter': 3.0,
+          'stemDepth': 2.8,
           'mode': 'plunger',
         },
         placement: {'anchor': 'center'},
@@ -717,6 +721,10 @@ void main() {
           'type': 'button',
           'shape': 'circle',
           'diameter': 8.0,
+          'capDiameter': 7.4,
+          'capHeight': 1.2,
+          'stemDiameter': 3.0,
+          'stemDepth': 2.8,
           'mode': 'plunger',
         },
         placement: {'anchor': 'center'},
@@ -785,6 +793,12 @@ void main() {
     final ringProtrusionField = find.byKey(
       const ValueKey('feature-group-param-button_group_1-ringProtrusion'),
     );
+    final capDiameterField = find.byKey(
+      const ValueKey('feature-group-param-button_group_1-capDiameter'),
+    );
+    final stemDepthField = find.byKey(
+      const ValueKey('feature-group-param-button_group_1-stemDepth'),
+    );
 
     expect(
       tester.widget<TextFormField>(ringWidthField).controller?.text,
@@ -793,6 +807,14 @@ void main() {
     expect(
       tester.widget<TextFormField>(ringProtrusionField).controller?.text,
       '0.45',
+    );
+    expect(
+      tester.widget<TextFormField>(capDiameterField).controller?.text,
+      '7.4',
+    );
+    expect(
+      tester.widget<TextFormField>(stemDepthField).controller?.text,
+      '2.8',
     );
 
     await tester.enterText(ringWidthField, '2.4');
@@ -810,6 +832,23 @@ void main() {
     expect(
       tester.widget<TextFormField>(ringWidthField).controller?.text,
       '1.2',
+    );
+
+    await tester.enterText(capDiameterField, '6.4');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widget<TextFormField>(capDiameterField).controller?.text,
+      '6.4',
+    );
+
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+
+    expect(
+      tester.widget<TextFormField>(capDiameterField).controller?.text,
+      '7.4',
     );
   });
 
@@ -1757,6 +1796,10 @@ void main() {
     expect(_dialogNumberText(tester, 'button-group-diameter'), '8');
     expect(_dialogNumberText(tester, 'button-group-ring-width'), '1.2');
     expect(_dialogNumberText(tester, 'button-group-ring-protrusion'), '0.45');
+    expect(_dialogNumberText(tester, 'button-group-cap-diameter'), '7.4');
+    expect(_dialogNumberText(tester, 'button-group-cap-height'), '1.2');
+    expect(_dialogNumberText(tester, 'button-group-stem-diameter'), '3');
+    expect(_dialogNumberText(tester, 'button-group-stem-depth'), '2.8');
 
     await tester.tap(find.byKey(const ValueKey('button-group-confirm')));
     await _pumpAsyncUi(tester);
@@ -1781,6 +1824,10 @@ void main() {
     expect(created.pattern['sourceTemplateId'], 'custom_button_board_v1');
     expect(created.itemPrototype['ringWidth'], 1.2);
     expect(created.itemPrototype['ringProtrusion'], 0.45);
+    expect(created.itemPrototype['capDiameter'], 7.4);
+    expect(created.itemPrototype['capHeight'], 1.2);
+    expect(created.itemPrototype['stemDiameter'], 3.0);
+    expect(created.itemPrototype['stemDepth'], 2.8);
     expect(switchPositions, hasLength(4));
     expect(
       switchPositions

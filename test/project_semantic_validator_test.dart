@@ -266,6 +266,46 @@ void main() {
     );
   });
 
+  test('projected button cap diameter is included in surface fit', () {
+    final project = ProjectModel.initial().copyWith(
+      features: const [],
+      featureGroups: const [
+        FeatureGroup(
+          id: 'projected_buttons',
+          type: 'button_group',
+          targetSurface: 'main_enclosure.top_lid.outer',
+          pattern: {
+            'layout': 'from_component_switches',
+            'count': 1,
+            'sourcePlacementId': 'button_board_placement',
+            'sourceTemplateId': 'custom_button_board_v1',
+            'switchPositions': [
+              {
+                'id': 'sw_near_edge',
+                'position': [50.0, 0.0],
+                'surfaceAxes': ['x', 'y'],
+                'componentFeaturePosition': [50.0, 0.0, 0.0],
+              },
+            ],
+          },
+          itemPrototype: {
+            'diameter': 2.0,
+            'ringWidth': 0.2,
+            'capDiameter': 20.0,
+          },
+        ),
+      ],
+    );
+
+    final report = ProjectSemanticValidator.validate(project);
+
+    expect(report.hasErrors, isTrue);
+    expect(
+      report.messages.map((message) => message.code),
+      contains('group.projected_anchor.outside_surface'),
+    );
+  });
+
   test('projected feature with missing source reports a warning', () {
     final project = ProjectModel.initial().copyWith(
       componentPlacements: const [],

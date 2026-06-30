@@ -59,6 +59,10 @@ constexpr double kButtonRingInnerClearance = 0.05;
 constexpr double kDefaultButtonRingProtrusion = 0.45;
 constexpr double kButtonRingSurfaceOverlap = 0.12;
 constexpr double kButtonRingCutOverrun = 0.1;
+constexpr double kDefaultButtonCapClearance = 0.6;
+constexpr double kDefaultButtonCapHeight = 1.2;
+constexpr double kDefaultButtonStemDepth = 2.8;
+constexpr double kButtonCapStemOverlap = 0.05;
 
 struct NativeRequestEnvelope {
   std::string request_id = kInvalidRequestId;
@@ -128,6 +132,11 @@ struct ButtonCutoutItemRequest {
   double diameter = 8.0;
   double ring_width = kDefaultButtonRingWidth;
   double ring_protrusion = kDefaultButtonRingProtrusion;
+  double cap_diameter = 7.4;
+  double cap_height = kDefaultButtonCapHeight;
+  double stem_diameter = 3.0;
+  double stem_depth = kDefaultButtonStemDepth;
+  bool generate_plunger = true;
 };
 
 struct ButtonGroupCutoutRequest {
@@ -190,6 +199,8 @@ struct ShapeMetrics {
   int native_button_group_count = 0;
   int native_button_cutout_count = 0;
   int native_button_ring_count = 0;
+  int native_button_cap_count = 0;
+  int native_button_stem_count = 0;
   int native_standoff_group_count = 0;
   int native_standoff_mount_count = 0;
   int native_lid_screw_boss_count = 0;
@@ -207,6 +218,8 @@ struct ShapeMetrics {
   int native_generated_lid_button_group_count = 0;
   int native_generated_lid_button_cutout_count = 0;
   int native_generated_lid_button_ring_count = 0;
+  int native_generated_lid_button_cap_count = 0;
+  int native_generated_lid_button_stem_count = 0;
 };
 
 struct ShellBuildResult {
@@ -224,6 +237,8 @@ struct NativeLidBossResult {
 
 struct NativePreviewAssemblyResult {
   TopoDS_Shape shape;
+  int button_cap_count = 0;
+  int button_stem_count = 0;
   int generated_lid_plate_count = 0;
   int generated_lid_lip_count = 0;
   int generated_lid_screw_hole_count = 0;
@@ -235,6 +250,8 @@ struct NativePreviewAssemblyResult {
   int generated_lid_button_group_count = 0;
   int generated_lid_button_cutout_count = 0;
   int generated_lid_button_ring_count = 0;
+  int generated_lid_button_cap_count = 0;
+  int generated_lid_button_stem_count = 0;
   int applied_feature_intent_count = 0;
 };
 
@@ -250,6 +267,8 @@ struct NativeGeneratedLidPlateResult {
   int button_group_count = 0;
   int button_cutout_count = 0;
   int button_ring_count = 0;
+  int button_cap_count = 0;
+  int button_stem_count = 0;
   int applied_feature_intent_count = 0;
 };
 
@@ -272,6 +291,8 @@ struct NativeFeatureCutResult {
   int button_group_count = 0;
   int button_cutout_count = 0;
   int button_ring_count = 0;
+  int button_cap_count = 0;
+  int button_stem_count = 0;
   int standoff_group_count = 0;
   int standoff_mount_count = 0;
 };
@@ -850,6 +871,19 @@ bool IsPositiveDimension(double value) {
   return std::isfinite(value) && value > 0.0;
 }
 
+double DefaultButtonCapDiameter(double cutout_diameter) {
+  return std::max(0.8, cutout_diameter - kDefaultButtonCapClearance);
+}
+
+double DefaultButtonStemDiameter(double cutout_diameter,
+                                 double cap_diameter) {
+  return std::max(
+      0.8,
+      std::min(cap_diameter * 0.55,
+               std::max(0.8,
+                        cutout_diameter - kDefaultButtonCapClearance * 2.0)));
+}
+
 double GeneratedTopLidLipHeight(const EnclosureRequest& enclosure) {
   return std::min(1.2, std::max(0.6, enclosure.wall_thickness * 0.6));
 }
@@ -1228,6 +1262,13 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
       double default_diameter = 8.0;
       double default_ring_width = kDefaultButtonRingWidth;
       double default_ring_protrusion = kDefaultButtonRingProtrusion;
+      double default_cap_diameter =
+          DefaultButtonCapDiameter(default_diameter);
+      double default_cap_height = kDefaultButtonCapHeight;
+      double default_stem_diameter =
+          DefaultButtonStemDiameter(default_diameter, default_cap_diameter);
+      double default_stem_depth = kDefaultButtonStemDepth;
+      std::string default_mode = "plunger";
       if (parameters.has_value()) {
         const std::optional<std::string> item_prototype =
             ExtractTopLevelObjectField(*parameters, "itemPrototype");
@@ -1235,12 +1276,34 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
           default_diameter =
               ExtractTopLevelNumberField(*item_prototype, "diameter")
                   .value_or(default_diameter);
+          default_cap_diameter =
+              DefaultButtonCapDiameter(default_diameter);
+          default_stem_diameter =
+              DefaultButtonStemDiameter(default_diameter,
+                                        default_cap_diameter);
           default_ring_width =
               ExtractTopLevelNumberField(*item_prototype, "ringWidth")
                   .value_or(default_ring_width);
           default_ring_protrusion =
               ExtractTopLevelNumberField(*item_prototype, "ringProtrusion")
                   .value_or(default_ring_protrusion);
+          default_cap_diameter =
+              ExtractTopLevelNumberField(*item_prototype, "capDiameter")
+                  .value_or(default_cap_diameter);
+          default_cap_height =
+              ExtractTopLevelNumberField(*item_prototype, "capHeight")
+                  .value_or(default_cap_height);
+          default_stem_diameter =
+              ExtractTopLevelNumberField(*item_prototype, "stemDiameter")
+                  .value_or(
+                      DefaultButtonStemDiameter(default_diameter,
+                                                default_cap_diameter));
+          default_stem_depth =
+              ExtractTopLevelNumberField(*item_prototype, "stemDepth")
+                  .value_or(default_stem_depth);
+          default_mode =
+              ExtractTopLevelStringField(*item_prototype, "mode")
+                  .value_or(default_mode);
         }
       }
 
@@ -1278,15 +1341,39 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
           cutout.ring_protrusion =
               ExtractTopLevelNumberField(*item_parameters, "ringProtrusion")
                   .value_or(default_ring_protrusion);
+          cutout.cap_diameter =
+              ExtractTopLevelNumberField(*item_parameters, "capDiameter")
+                  .value_or(default_cap_diameter);
+          cutout.cap_height =
+              ExtractTopLevelNumberField(*item_parameters, "capHeight")
+                  .value_or(default_cap_height);
+          cutout.stem_diameter =
+              ExtractTopLevelNumberField(*item_parameters, "stemDiameter")
+                  .value_or(default_stem_diameter);
+          cutout.stem_depth =
+              ExtractTopLevelNumberField(*item_parameters, "stemDepth")
+                  .value_or(default_stem_depth);
+          const std::string mode =
+              ExtractTopLevelStringField(*item_parameters, "mode")
+                  .value_or(default_mode);
+          cutout.generate_plunger = mode == "plunger";
         } else {
           cutout.diameter = default_diameter;
           cutout.ring_width = default_ring_width;
           cutout.ring_protrusion = default_ring_protrusion;
+          cutout.cap_diameter = default_cap_diameter;
+          cutout.cap_height = default_cap_height;
+          cutout.stem_diameter = default_stem_diameter;
+          cutout.stem_depth = default_stem_depth;
+          cutout.generate_plunger = default_mode == "plunger";
         }
 
         const double radius = cutout.diameter / 2.0;
         const double ring_outer_radius =
             radius + kButtonRingInnerClearance + cutout.ring_width;
+        const double cap_radius =
+            cutout.generate_plunger ? cutout.cap_diameter / 2.0 : 0.0;
+        const double fit_radius = std::max(ring_outer_radius, cap_radius);
         const double center_x = cutout.position[0];
         const double center_secondary =
             targets_top_lid
@@ -1297,22 +1384,34 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
         if (!IsPositiveDimension(cutout.diameter) ||
             !IsPositiveDimension(cutout.ring_width) ||
             !IsPositiveDimension(cutout.ring_protrusion) ||
+            (cutout.generate_plunger &&
+             (!IsPositiveDimension(cutout.cap_diameter) ||
+              !IsPositiveDimension(cutout.cap_height) ||
+              !IsPositiveDimension(cutout.stem_diameter) ||
+              !IsPositiveDimension(cutout.stem_depth))) ||
             cutout.ring_width > 8.0 ||
             cutout.ring_protrusion > 6.0 ||
+            (cutout.generate_plunger &&
+             (cutout.cap_height > 8.0 ||
+              cutout.stem_depth > 12.0 ||
+              cutout.cap_diameter >= cutout.diameter ||
+              cutout.stem_diameter >= cutout.diameter ||
+              cutout.stem_diameter > cutout.cap_diameter)) ||
             cutout.diameter > std::min(inner_width, available_secondary) ||
             ring_outer_radius * 2.0 >
                 std::min(inner_width, available_secondary) ||
-            center_x - ring_outer_radius < -inner_width / 2.0 ||
-            center_x + ring_outer_radius > inner_width / 2.0 ||
+            fit_radius * 2.0 > std::min(inner_width, available_secondary) ||
+            center_x - fit_radius < -inner_width / 2.0 ||
+            center_x + fit_radius > inner_width / 2.0 ||
             (targets_top_lid &&
-             (center_secondary - ring_outer_radius < -inner_depth / 2.0 ||
-              center_secondary + ring_outer_radius > inner_depth / 2.0)) ||
+             (center_secondary - fit_radius < -inner_depth / 2.0 ||
+              center_secondary + fit_radius > inner_depth / 2.0)) ||
             (!targets_top_lid &&
-             (center_secondary - ring_outer_radius < min_z ||
-              center_secondary + ring_outer_radius > max_z))) {
+             (center_secondary - fit_radius < min_z ||
+              center_secondary + fit_radius > max_z))) {
           result.issue_code = "worker.geometry.invalid_button_cutout";
           result.issue_message =
-              "Native OCCT worker button cutouts and rings must fit the target surface.";
+              "Native OCCT worker button cutouts, rings, and caps must fit the target surface.";
           return result;
         }
 
@@ -1602,6 +1701,14 @@ TopoDS_Shape BuildGeneratedTopLidButtonRingShape(
     const GeneratedLidPlateRequest& lid_plate,
     const ButtonCutoutItemRequest& cutout);
 
+TopoDS_Shape BuildButtonPlungerShape(const EnclosureRequest& enclosure,
+                                     const ButtonCutoutItemRequest& cutout);
+
+TopoDS_Shape BuildGeneratedTopLidButtonPlungerShape(
+    const EnclosureRequest& enclosure,
+    const GeneratedLidPlateRequest& lid_plate,
+    const ButtonCutoutItemRequest& cutout);
+
 TopoDS_Shape BuildGeneratedTopLidGlassRecessTool(
     const EnclosureRequest& enclosure,
     const GeneratedLidPlateRequest& lid_plate,
@@ -1864,14 +1971,32 @@ NativePreviewAssemblyResult BuildPreviewAssembly(
     const std::vector<ButtonGroupCutoutRequest>& button_groups) {
   NativePreviewAssemblyResult result;
   result.shape = body_shape;
-  if (lid_plates.empty()) {
-    return result;
-  }
 
   BRep_Builder builder;
   TopoDS_Compound compound;
   builder.MakeCompound(compound);
   builder.Add(compound, body_shape);
+
+  for (const ButtonGroupCutoutRequest& group : button_groups) {
+    if (group.target_surface != enclosure.id + ".front_wall.outer") {
+      continue;
+    }
+
+    for (const ButtonCutoutItemRequest& cutout : group.items) {
+      if (!cutout.generate_plunger) {
+        continue;
+      }
+
+      const TopoDS_Shape plunger = BuildButtonPlungerShape(enclosure, cutout);
+      if (plunger.IsNull()) {
+        throw std::runtime_error(
+            "OCCT generated a null front button plunger preview shape.");
+      }
+      builder.Add(compound, plunger);
+      ++result.button_cap_count;
+      ++result.button_stem_count;
+    }
+  }
 
   for (const GeneratedLidPlateRequest& lid_plate : lid_plates) {
     const NativeGeneratedLidPlateResult lid_result =
@@ -1896,6 +2021,30 @@ NativePreviewAssemblyResult BuildPreviewAssembly(
     result.generated_lid_button_ring_count += lid_result.button_ring_count;
     result.applied_feature_intent_count +=
         lid_result.applied_feature_intent_count;
+
+    for (const ButtonGroupCutoutRequest& group : button_groups) {
+      if (group.target_surface != enclosure.id + ".top_lid.outer") {
+        continue;
+      }
+
+      for (const ButtonCutoutItemRequest& cutout : group.items) {
+        if (!cutout.generate_plunger) {
+          continue;
+        }
+
+        const TopoDS_Shape plunger =
+            BuildGeneratedTopLidButtonPlungerShape(enclosure,
+                                                   lid_plate,
+                                                   cutout);
+        if (plunger.IsNull()) {
+          throw std::runtime_error(
+              "OCCT generated a null top lid button plunger preview shape.");
+        }
+        builder.Add(compound, plunger);
+        ++result.generated_lid_button_cap_count;
+        ++result.generated_lid_button_stem_count;
+      }
+    }
   }
 
   BRepCheck_Analyzer analyzer(compound, false);
@@ -2036,6 +2185,8 @@ ShapeMetrics ComputeShapeMetrics(const TopoDS_Shape& shape,
                                  int shell_cavity_tool_count,
                                  int lid_screw_boss_count,
                                  int lid_screw_pilot_count,
+                                 int button_cap_count,
+                                 int button_stem_count,
                                  int generated_lid_seat_count,
                                  int generated_lid_plate_count,
                                  double generated_lid_fit_preview_gap,
@@ -2049,6 +2200,8 @@ ShapeMetrics ComputeShapeMetrics(const TopoDS_Shape& shape,
                                  int generated_lid_button_group_count,
                                  int generated_lid_button_cutout_count,
                                  int generated_lid_button_ring_count,
+                                 int generated_lid_button_cap_count,
+                                 int generated_lid_button_stem_count,
                                  int generated_lid_applied_intent_count,
                                  int feature_intent_count,
                                  const NativeFeatureCutResult& feature_cuts) {
@@ -2060,6 +2213,8 @@ ShapeMetrics ComputeShapeMetrics(const TopoDS_Shape& shape,
   metrics.shell_cavity_tool_count = shell_cavity_tool_count;
   metrics.native_lid_screw_boss_count = lid_screw_boss_count;
   metrics.native_lid_screw_pilot_count = lid_screw_pilot_count;
+  metrics.native_button_cap_count = button_cap_count;
+  metrics.native_button_stem_count = button_stem_count;
   metrics.native_generated_lid_seat_count = generated_lid_seat_count;
   metrics.native_generated_lid_plate_count = generated_lid_plate_count;
   metrics.native_generated_lid_fit_preview_gap =
@@ -2083,6 +2238,10 @@ ShapeMetrics ComputeShapeMetrics(const TopoDS_Shape& shape,
       generated_lid_button_cutout_count;
   metrics.native_generated_lid_button_ring_count =
       generated_lid_button_ring_count;
+  metrics.native_generated_lid_button_cap_count =
+      generated_lid_button_cap_count;
+  metrics.native_generated_lid_button_stem_count =
+      generated_lid_button_stem_count;
   metrics.feature_intent_count = feature_intent_count;
   metrics.native_feature_cut_count = feature_cuts.applied_cut_count;
   metrics.native_ignored_feature_intent_count =
@@ -2349,6 +2508,10 @@ double ButtonRingOuterRadius(const ButtonCutoutItemRequest& cutout) {
   return ButtonRingInnerRadius(cutout) + cutout.ring_width;
 }
 
+double ButtonPlungerOuterRadius(const ButtonCutoutItemRequest& cutout) {
+  return std::max(cutout.cap_diameter, cutout.stem_diameter) / 2.0;
+}
+
 bool FaceIntersectsButtonCutout(const FaceBounds& face_bounds,
                                 const ShapeMetrics& metrics,
                                 const EnclosureRequest& enclosure,
@@ -2415,6 +2578,43 @@ bool FaceIntersectsButtonRing(const FaceBounds& face_bounds,
       face_bounds.max[2] <= ring_max_z;
 
   return overlaps_ring_volume && is_inside_ring_outline;
+}
+
+bool FaceIntersectsButtonPlunger(const FaceBounds& face_bounds,
+                                 const ShapeMetrics& metrics,
+                                 const EnclosureRequest& enclosure,
+                                 const ButtonCutoutItemRequest& cutout) {
+  if (!cutout.generate_plunger) {
+    return false;
+  }
+
+  const std::array<double, 2> center =
+      ButtonCutoutCenter(enclosure, cutout);
+  const double tolerance = PreviewSurfaceTolerance(metrics);
+  const double radius = ButtonPlungerOuterRadius(cutout);
+  const double min_x = center[0] - radius - tolerance;
+  const double max_x = center[0] + radius + tolerance;
+  const double min_z = center[1] - radius - tolerance;
+  const double max_z = center[1] + radius + tolerance;
+  const double front_y = -enclosure.size[1] / 2.0;
+  const double min_y =
+      front_y - cutout.ring_protrusion - cutout.cap_height - tolerance;
+  const double max_y = front_y + cutout.stem_depth + tolerance;
+
+  const bool overlaps_volume =
+      face_bounds.max[0] >= min_x &&
+      face_bounds.min[0] <= max_x &&
+      face_bounds.max[1] >= min_y &&
+      face_bounds.min[1] <= max_y &&
+      face_bounds.max[2] >= min_z &&
+      face_bounds.min[2] <= max_z;
+  const bool is_inside_outline =
+      face_bounds.min[0] >= min_x &&
+      face_bounds.max[0] <= max_x &&
+      face_bounds.min[2] >= min_z &&
+      face_bounds.max[2] <= max_z;
+
+  return overlaps_volume && is_inside_outline;
 }
 
 bool FaceIntersectsStandoffMount(const FaceBounds& face_bounds,
@@ -2710,6 +2910,45 @@ bool FaceIntersectsGeneratedTopLidButtonRing(
   return overlaps_ring_volume && is_inside_ring_outline;
 }
 
+bool FaceIntersectsGeneratedTopLidButtonPlunger(
+    const FaceBounds& face_bounds,
+    const ShapeMetrics& metrics,
+    const EnclosureRequest& enclosure,
+    const GeneratedLidPlateRequest& lid_plate,
+    const ButtonCutoutItemRequest& cutout) {
+  if (!cutout.generate_plunger) {
+    return false;
+  }
+
+  const double tolerance = PreviewSurfaceTolerance(metrics);
+  const double radius = ButtonPlungerOuterRadius(cutout);
+  const double min_x = cutout.position[0] - radius - tolerance;
+  const double max_x = cutout.position[0] + radius + tolerance;
+  const double min_y = cutout.position[1] - radius - tolerance;
+  const double max_y = cutout.position[1] + radius + tolerance;
+  const double lid_top_z =
+      enclosure.size[2] + lid_plate.preview_gap + lid_plate.thickness;
+  const double min_z =
+      lid_top_z + cutout.ring_protrusion - cutout.stem_depth - tolerance;
+  const double max_z =
+      lid_top_z + cutout.ring_protrusion + cutout.cap_height + tolerance;
+
+  const bool overlaps_volume =
+      face_bounds.max[0] >= min_x &&
+      face_bounds.min[0] <= max_x &&
+      face_bounds.max[1] >= min_y &&
+      face_bounds.min[1] <= max_y &&
+      face_bounds.max[2] >= min_z &&
+      face_bounds.min[2] <= max_z;
+  const bool is_inside_outline =
+      face_bounds.min[0] >= min_x &&
+      face_bounds.max[0] <= max_x &&
+      face_bounds.min[1] >= min_y &&
+      face_bounds.max[1] <= max_y;
+
+  return overlaps_volume && is_inside_outline;
+}
+
 bool FaceIntersectsGeneratedTopLidGlassRecess(
     const FaceBounds& face_bounds,
     const ShapeMetrics& metrics,
@@ -2864,6 +3103,57 @@ TopoDS_Shape BuildButtonRingShape(const EnclosureRequest& enclosure,
   return ring;
 }
 
+TopoDS_Shape BuildButtonPlungerShape(const EnclosureRequest& enclosure,
+                                     const ButtonCutoutItemRequest& cutout) {
+  if (!cutout.generate_plunger) {
+    return TopoDS_Shape();
+  }
+
+  const std::array<double, 2> center =
+      ButtonCutoutCenter(enclosure, cutout);
+  const double front_y = -enclosure.size[1] / 2.0;
+  const gp_Ax2 cap_axis(
+      gp_Pnt(center[0],
+             front_y - cutout.ring_protrusion - cutout.cap_height,
+             center[1]),
+      gp_Dir(0.0, 1.0, 0.0));
+  const TopoDS_Shape cap =
+      BRepPrimAPI_MakeCylinder(cap_axis,
+                               cutout.cap_diameter / 2.0,
+                               cutout.cap_height + kButtonCapStemOverlap)
+          .Shape();
+  if (cap.IsNull()) {
+    throw std::runtime_error("OCCT generated a null button cap shape.");
+  }
+
+  const gp_Ax2 stem_axis(
+      gp_Pnt(center[0],
+             front_y - cutout.ring_protrusion - kButtonCapStemOverlap,
+             center[1]),
+      gp_Dir(0.0, 1.0, 0.0));
+  const TopoDS_Shape stem =
+      BRepPrimAPI_MakeCylinder(stem_axis,
+                               cutout.stem_diameter / 2.0,
+                               cutout.stem_depth + kButtonCapStemOverlap)
+          .Shape();
+  if (stem.IsNull()) {
+    throw std::runtime_error("OCCT generated a null button stem shape.");
+  }
+
+  BRep_Builder builder;
+  TopoDS_Compound compound;
+  builder.MakeCompound(compound);
+  builder.Add(compound, cap);
+  builder.Add(compound, stem);
+
+  BRepCheck_Analyzer analyzer(compound, false);
+  if (!analyzer.IsValid()) {
+    throw std::runtime_error("OCCT generated an invalid button plunger shape.");
+  }
+
+  return compound;
+}
+
 TopoDS_Shape BuildGeneratedTopLidButtonCutoutTool(
     const EnclosureRequest& enclosure,
     const GeneratedLidPlateRequest& lid_plate,
@@ -2936,6 +3226,61 @@ TopoDS_Shape BuildGeneratedTopLidButtonRingShape(
   }
 
   return ring;
+}
+
+TopoDS_Shape BuildGeneratedTopLidButtonPlungerShape(
+    const EnclosureRequest& enclosure,
+    const GeneratedLidPlateRequest& lid_plate,
+    const ButtonCutoutItemRequest& cutout) {
+  if (!cutout.generate_plunger) {
+    return TopoDS_Shape();
+  }
+
+  const double lid_top_z =
+      enclosure.size[2] + lid_plate.preview_gap + lid_plate.thickness;
+  const double cap_bottom_z = lid_top_z + cutout.ring_protrusion;
+  const gp_Ax2 cap_axis(gp_Pnt(cutout.position[0],
+                               cutout.position[1],
+                               cap_bottom_z),
+                        gp_Dir(0.0, 0.0, 1.0));
+  const TopoDS_Shape cap =
+      BRepPrimAPI_MakeCylinder(cap_axis,
+                               cutout.cap_diameter / 2.0,
+                               cutout.cap_height)
+          .Shape();
+  if (cap.IsNull()) {
+    throw std::runtime_error(
+        "OCCT generated a null top lid button cap shape.");
+  }
+
+  const gp_Ax2 stem_axis(
+      gp_Pnt(cutout.position[0],
+             cutout.position[1],
+             cap_bottom_z - cutout.stem_depth),
+      gp_Dir(0.0, 0.0, 1.0));
+  const TopoDS_Shape stem =
+      BRepPrimAPI_MakeCylinder(stem_axis,
+                               cutout.stem_diameter / 2.0,
+                               cutout.stem_depth + kButtonCapStemOverlap)
+          .Shape();
+  if (stem.IsNull()) {
+    throw std::runtime_error(
+        "OCCT generated a null top lid button stem shape.");
+  }
+
+  BRep_Builder builder;
+  TopoDS_Compound compound;
+  builder.MakeCompound(compound);
+  builder.Add(compound, cap);
+  builder.Add(compound, stem);
+
+  BRepCheck_Analyzer analyzer(compound, false);
+  if (!analyzer.IsValid()) {
+    throw std::runtime_error(
+        "OCCT generated an invalid top lid button plunger shape.");
+  }
+
+  return compound;
 }
 
 TopoDS_Shape BuildStandoffMountShape(const EnclosureRequest& enclosure,
@@ -3661,13 +4006,39 @@ std::vector<std::pair<std::string, std::string>> ClassifyPreviewSurfaces(
                                                      metrics,
                                                      enclosure,
                                                      lid_plate,
-                                                     cutout)) {
+                                                     cutout) ||
+              FaceIntersectsGeneratedTopLidButtonPlunger(face_bounds,
+                                                        metrics,
+                                                        enclosure,
+                                                        lid_plate,
+                                                        cutout)) {
             surfaces.push_back(std::make_pair(group.id, "Top lid buttons"));
             break;
           }
         }
       }
       break;
+    }
+  }
+
+  if (!is_generated_lid_plate) {
+    for (const GeneratedLidPlateRequest& lid_plate : generated_lid_plates) {
+      for (const ButtonGroupCutoutRequest& group : button_groups) {
+        if (group.target_surface != enclosure.id + ".top_lid.outer") {
+          continue;
+        }
+
+        for (const ButtonCutoutItemRequest& cutout : group.items) {
+          if (FaceIntersectsGeneratedTopLidButtonPlunger(face_bounds,
+                                                        metrics,
+                                                        enclosure,
+                                                        lid_plate,
+                                                        cutout)) {
+            surfaces.push_back(std::make_pair(group.id, "Top lid buttons"));
+            break;
+          }
+        }
+      }
     }
   }
 
@@ -3702,7 +4073,8 @@ std::vector<std::pair<std::string, std::string>> ClassifyPreviewSurfaces(
   for (const ButtonGroupCutoutRequest& group : button_groups) {
     for (const ButtonCutoutItemRequest& cutout : group.items) {
       if (FaceIntersectsButtonCutout(face_bounds, metrics, enclosure, cutout) ||
-          FaceIntersectsButtonRing(face_bounds, metrics, enclosure, cutout)) {
+          FaceIntersectsButtonRing(face_bounds, metrics, enclosure, cutout) ||
+          FaceIntersectsButtonPlunger(face_bounds, metrics, enclosure, cutout)) {
         surfaces.push_back(std::make_pair(group.id, "Button group"));
         break;
       }
@@ -4104,6 +4476,10 @@ void WriteRoundedEnclosurePreviewResponse(const NativeRequestEnvelope& request,
             << metrics.native_generated_lid_button_cutout_count << ",\n"
             << "    \"nativeGeneratedLidButtonRingCount\": "
             << metrics.native_generated_lid_button_ring_count << ",\n"
+            << "    \"nativeGeneratedLidButtonCapCount\": "
+            << metrics.native_generated_lid_button_cap_count << ",\n"
+            << "    \"nativeGeneratedLidButtonStemCount\": "
+            << metrics.native_generated_lid_button_stem_count << ",\n"
             << "    \"featureIntentCount\": "
             << metrics.feature_intent_count << ",\n"
             << "    \"nativeFeatureCutCount\": "
@@ -4128,6 +4504,10 @@ void WriteRoundedEnclosurePreviewResponse(const NativeRequestEnvelope& request,
             << metrics.native_button_cutout_count << ",\n"
             << "    \"nativeButtonRingCount\": "
             << metrics.native_button_ring_count << ",\n"
+            << "    \"nativeButtonCapCount\": "
+            << metrics.native_button_cap_count << ",\n"
+            << "    \"nativeButtonStemCount\": "
+            << metrics.native_button_stem_count << ",\n"
             << "    \"nativeStandoffGroupCount\": "
             << metrics.native_standoff_group_count << ",\n"
             << "    \"nativeStandoffMountCount\": "
@@ -4276,6 +4656,8 @@ int main(int argc, char* argv[]) {
                             shell.cavity_tool_count,
                             lid_bosses.boss_count,
                             lid_bosses.pilot_hole_count,
+                            preview_assembly.button_cap_count,
+                            preview_assembly.button_stem_count,
                             lid_seats.seat_count,
                             preview_assembly.generated_lid_plate_count,
                             parsed_request.generated_lid_plates.empty()
@@ -4294,6 +4676,8 @@ int main(int argc, char* argv[]) {
                             preview_assembly.generated_lid_button_group_count,
                             preview_assembly.generated_lid_button_cutout_count,
                             preview_assembly.generated_lid_button_ring_count,
+                            preview_assembly.generated_lid_button_cap_count,
+                            preview_assembly.generated_lid_button_stem_count,
                             preview_assembly.applied_feature_intent_count,
                             parsed_request.feature_intent_count,
                             feature_cuts);

@@ -412,7 +412,14 @@ class ProjectSemanticValidator {
       group.itemPrototype['ringWidth'],
       fallback: 1.2,
     );
-    final outerDiameter = diameter + (ringWidth + 0.05) * 2;
+    final capDiameter = readDouble(
+      group.itemPrototype['capDiameter'],
+      fallback: math.max(0.8, diameter - 0.6),
+    );
+    final outerDiameter = math.max(
+      diameter + (ringWidth + 0.05) * 2,
+      capDiameter,
+    );
     for (final switchPosition in switchPositions) {
       final position = readDoubleList(
         switchPosition['position'],

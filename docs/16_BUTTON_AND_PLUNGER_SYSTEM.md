@@ -33,17 +33,21 @@ TPU/hard case button cap presses original device button.
 ## Current native slice
 
 The native OCCT worker now generates first-pass circular button openings and
-small raised rings/bezels from semantic `button_group` data. Front-wall groups
-produce two operations per item in the generated B-Rep output: a through-hole
-cut and a fused annular ring on the outside face. Top-lid groups do the same
-on the generated lid preview plate.
+small raised rings/bezels from semantic `button_group` data. It also generates
+first-pass plunger-style preview caps and stems for groups whose
+`itemPrototype.mode` is `plunger`. Front-wall groups produce a through-hole
+cut, a fused annular ring on the outside face, and separate disposable cap/stem
+preview solids. Top-lid groups do the same against the generated lid preview
+plate.
 
-The editable project still stores one `button_group`; ring solids are
-disposable generated geometry, and preview faces for holes/rings map back to
-the same semantic group ids such as `front_buttons` and `top_lid_buttons`.
-First-pass ring style controls are semantic `itemPrototype` values:
-`ringWidth` and `ringProtrusion`. Full caps, plungers, stems, guide walls, and
-travel stops remain future work.
+The editable project still stores one `button_group`; ring, cap, and stem
+solids are disposable generated geometry, and preview faces for holes/rings
+and cap/stem parts map back to the same semantic group ids such as
+`front_buttons` and `top_lid_buttons`. First-pass style controls are semantic
+`itemPrototype` values: `ringWidth`, `ringProtrusion`, `capDiameter`,
+`capHeight`, `stemDiameter`, and `stemDepth`. Guide walls, anti-wobble
+features, travel stops, tactile top textures, and richer cap shapes remain
+future work.
 
 ## Parameters
 

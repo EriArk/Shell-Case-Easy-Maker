@@ -52,6 +52,10 @@ void main() {
       expect(source, contains('ButtonGroupCutoutRequest'));
       expect(source, contains('ring_width'));
       expect(source, contains('ring_protrusion'));
+      expect(source, contains('cap_diameter'));
+      expect(source, contains('cap_height'));
+      expect(source, contains('stem_diameter'));
+      expect(source, contains('stem_depth'));
       expect(source, contains('StandoffMountGroupRequest'));
       expect(source, contains('GeneratedLidSeatRequest'));
       expect(source, contains('BuildLidScrewBossShape'));
@@ -61,8 +65,13 @@ void main() {
       expect(source, contains('BuildGlassWindowTool'));
       expect(source, contains('BuildButtonCutoutTool'));
       expect(source, contains('BuildButtonRingShape'));
+      expect(source, contains('BuildButtonPlungerShape'));
       expect(source, contains('ringWidth'));
       expect(source, contains('ringProtrusion'));
+      expect(source, contains('capDiameter'));
+      expect(source, contains('capHeight'));
+      expect(source, contains('stemDiameter'));
+      expect(source, contains('stemDepth'));
       expect(source, contains('BuildStandoffMountShape'));
       expect(source, contains('ApplyNativeFeatureCutouts'));
       expect(source, contains('BuildPreviewMesh'));
@@ -75,6 +84,7 @@ void main() {
       expect(source, contains('FaceIntersectsGlassRecess'));
       expect(source, contains('FaceIntersectsButtonCutout'));
       expect(source, contains('FaceIntersectsButtonRing'));
+      expect(source, contains('FaceIntersectsButtonPlunger'));
       expect(source, contains('FaceIntersectsStandoffMount'));
       expect(source, contains('BRepPrimAPI_MakeCylinder'));
       expect(source, contains('BRepAlgoAPI_Fuse'));
@@ -93,6 +103,7 @@ void main() {
       expect(source, contains('BuildGeneratedTopLidGlassWindowTool'));
       expect(source, contains('BuildGeneratedTopLidButtonCutoutTool'));
       expect(source, contains('BuildGeneratedTopLidButtonRingShape'));
+      expect(source, contains('BuildGeneratedTopLidButtonPlungerShape'));
       expect(source, contains('GlassRecessTopLidCenter'));
       expect(source, contains('GlassRecessFitsTopLidSurface'));
       expect(source, contains('ButtonRingOuterRadius'));
@@ -136,6 +147,8 @@ void main() {
       expect(source, contains('nativeGeneratedLidButtonGroupCount'));
       expect(source, contains('nativeGeneratedLidButtonCutoutCount'));
       expect(source, contains('nativeGeneratedLidButtonRingCount'));
+      expect(source, contains('nativeGeneratedLidButtonCapCount'));
+      expect(source, contains('nativeGeneratedLidButtonStemCount'));
       expect(source, contains('nativeUsbCCutoutCount'));
       expect(source, contains('nativeUsbCCutoutFilletedEdgeCount'));
       expect(source, contains('nativeGlassRecessCount'));
@@ -145,6 +158,8 @@ void main() {
       expect(source, contains('nativeButtonGroupCount'));
       expect(source, contains('nativeButtonCutoutCount'));
       expect(source, contains('nativeButtonRingCount'));
+      expect(source, contains('nativeButtonCapCount'));
+      expect(source, contains('nativeButtonStemCount'));
       expect(source, contains('nativeStandoffGroupCount'));
       expect(source, contains('nativeStandoffMountCount'));
       expect(source, contains('bounds'));
@@ -167,6 +182,7 @@ void main() {
       expect(source, contains('FaceIntersectsGeneratedTopLidGlassRecess'));
       expect(source, contains('FaceIntersectsGeneratedTopLidButtonCutout'));
       expect(source, contains('FaceIntersectsGeneratedTopLidButtonRing'));
+      expect(source, contains('FaceIntersectsGeneratedTopLidButtonPlunger'));
       expect(source, contains('Lid screw bosses'));
       expect(source, contains('Generated lid'));
       expect(source, contains('Lid seat'));
@@ -279,6 +295,8 @@ void main() {
       expect(tool, contains('nativeGeneratedLidButtonGroupCount'));
       expect(tool, contains('nativeGeneratedLidButtonCutoutCount'));
       expect(tool, contains('nativeGeneratedLidButtonRingCount'));
+      expect(tool, contains('nativeGeneratedLidButtonCapCount'));
+      expect(tool, contains('nativeGeneratedLidButtonStemCount'));
       expect(tool, contains('nativeUsbCCutoutCount'));
       expect(tool, contains('nativeUsbCCutoutFilletedEdgeCount'));
       expect(tool, contains('nativeGlassRecessCount'));
@@ -288,6 +306,8 @@ void main() {
       expect(tool, contains('nativeButtonGroupCount'));
       expect(tool, contains('nativeButtonCutoutCount'));
       expect(tool, contains('nativeButtonRingCount'));
+      expect(tool, contains('nativeButtonCapCount'));
+      expect(tool, contains('nativeButtonStemCount'));
       expect(tool, contains('nativeStandoffGroupCount'));
       expect(tool, contains('nativeStandoffMountCount'));
       expect(tool, contains('semantic_face_ranges_v1'));

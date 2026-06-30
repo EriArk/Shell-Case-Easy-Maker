@@ -103,6 +103,9 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M82 - Native Top Lid Glass Recess
 - [x] M83 - Native Top Lid Glass Ledge Window
 - [x] M84 - Native Front Glass Ledge Window
+- [x] M85 - Native Button Rings
+- [x] M86 - Semantic Button Ring Controls
+- [x] M87 - Native Button Cap/Stem Preview
 
 ---
 
@@ -3942,3 +3945,66 @@ from `itemPrototype` rather than editable CAD solids.
   rings visibly wider/taller while the group remains one semantic object.
 - Create a component-sourced button group and confirm its defaults are
   `Ободок 1.2` and `Выступ 0.45`.
+
+---
+
+## M87 - Native Button Cap/Stem Preview
+
+### Goal
+Generate first-pass native preview geometry for semantic plunger-style
+button caps and stems from `button_group.itemPrototype`, without converting
+the group into editable CAD solids.
+
+### Tasks
+- [x] Add semantic cap/stem defaults to manual and component-sourced button
+      groups.
+- [x] Add contextual inspector and creation-dialog controls for cap diameter,
+      cap height, stem diameter, and stem depth.
+- [x] Preserve cap/stem values through geometry feature intents and operation
+      plans.
+- [x] Parse and validate cap/stem values in the native OCCT worker.
+- [x] Generate separate disposable cap/stem preview solids for front-wall and
+      generated top-lid button groups when `mode` is `plunger`.
+- [x] Keep cap/stem preview faces mapped to the original semantic button
+      group ids.
+- [x] Update protocol fixtures, native smoke expectations, docs, tests,
+      roadmap, and worklog.
+
+### Done Criteria
+- Selecting a button group shows editable cap/stem controls.
+- Creating a component-sourced button group writes `capDiameter`,
+  `capHeight`, `stemDiameter`, and `stemDepth` into `FeatureGroup.itemPrototype`.
+- Native smoke reports 11254 vertices, 11816 triangles, 14 preview surface
+  mappings, and 16478 mapped triangles.
+- Native smoke reports `nativeButtonCapCount: 2`,
+  `nativeButtonStemCount: 2`, `nativeGeneratedLidButtonCapCount: 4`, and
+  `nativeGeneratedLidButtonStemCount: 4`.
+- The editable project still stores one semantic `button_group`, not
+  generated button cap or stem solids.
+
+### Tests
+- `dart run tool\generate_geometry_protocol_fixtures.dart`
+- `dart format lib\ui\shell\workspace_shell.dart lib\selection\project_selection_resolver.dart lib\validation\project_semantic_validator.dart test\geometry_protocol_test.dart test\project_selection_resolver_test.dart test\project_semantic_validator_test.dart test\occt_native_target_scaffold_test.dart test\widget_test.dart tool\generate_geometry_protocol_fixtures.dart tool\native_occt_worker_metrics_smoke.dart`
+- `flutter test test\geometry_protocol_test.dart test\project_selection_resolver_test.dart test\project_semantic_validator_test.dart test\occt_native_target_scaffold_test.dart --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "selected button group inspector edits pattern through undo" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "component button command creates switch-sourced group" --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open
+  `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- Orbit to the front wall and confirm the two front buttons now show small
+  raised caps/stems inside the existing rings.
+- Orbit above the generated lid and confirm four top-lid buttons now show
+  matching cap/stem previews.
+- Select a button group and change `Колпачок`, `Высота кнопки`, `Ножка`, or
+  `Глубина ножки`; confirm undo returns the previous values.
+- Switch a button group to `Только отверстия` and confirm cap/stem preview
+  generation is disabled after the preview refresh.

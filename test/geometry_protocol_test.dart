@@ -57,6 +57,10 @@ void main() {
           'diameter': 8.0,
           'ringWidth': 1.4,
           'ringProtrusion': 0.6,
+          'capDiameter': 7.2,
+          'capHeight': 1.4,
+          'stemDiameter': 3.2,
+          'stemDepth': 3.0,
         },
         placement: {'anchor': 'component_switch_centers'},
       ),
@@ -95,6 +99,16 @@ void main() {
       0.6,
     );
     expect(
+      (buttonIntent.parameters['itemPrototype']
+          as Map<String, Object?>)['capDiameter'],
+      7.2,
+    );
+    expect(
+      (buttonIntent.parameters['itemPrototype']
+          as Map<String, Object?>)['stemDepth'],
+      3.0,
+    );
+    expect(
       buttonIntent.source['componentPlacementId'],
       'button_board_placement',
     );
@@ -104,6 +118,10 @@ void main() {
     expect(buttonIntent.items.first.parameters['diameter'], 8.0);
     expect(buttonIntent.items.first.parameters['ringWidth'], 1.4);
     expect(buttonIntent.items.first.parameters['ringProtrusion'], 0.6);
+    expect(buttonIntent.items.first.parameters['capDiameter'], 7.2);
+    expect(buttonIntent.items.first.parameters['capHeight'], 1.4);
+    expect(buttonIntent.items.first.parameters['stemDiameter'], 3.2);
+    expect(buttonIntent.items.first.parameters['stemDepth'], 3.0);
     expect(buttonIntent.items.first.source['direction'], 'top');
   });
 
@@ -181,6 +199,10 @@ void main() {
             'diameter': 8.0,
             'ringWidth': 1.2,
             'ringProtrusion': 0.45,
+            'capDiameter': 7.4,
+            'capHeight': 1.2,
+            'stemDiameter': 3.0,
+            'stemDepth': 2.8,
             'mode': 'plunger',
           },
         ),
@@ -209,6 +231,10 @@ void main() {
     expect(operations.last.parameters['diameter'], 8.0);
     expect(operations.last.parameters['ringWidth'], 1.2);
     expect(operations.last.parameters['ringProtrusion'], 0.45);
+    expect(operations.last.parameters['capDiameter'], 7.4);
+    expect(operations.last.parameters['capHeight'], 1.2);
+    expect(operations.last.parameters['stemDiameter'], 3.0);
+    expect(operations.last.parameters['stemDepth'], 2.8);
     expect(operations.last.source['direction'], 'top');
   });
 

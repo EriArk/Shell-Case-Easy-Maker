@@ -81,6 +81,10 @@ void main() {
           'diameter': 8.0,
           'ringWidth': 1.2,
           'ringProtrusion': 0.45,
+          'capDiameter': 7.4,
+          'capHeight': 1.2,
+          'stemDiameter': 3.0,
+          'stemDepth': 2.8,
           'mode': 'plunger',
         },
       ),
@@ -97,6 +101,10 @@ void main() {
     expect(
       details.properties.map((property) => property.label),
       containsAll(['Ободок', 'Выступ']),
+    );
+    expect(
+      details.properties.map((property) => property.label),
+      containsAll(['Колпачок', 'Высота кнопки', 'Ножка', 'Глубина ножки']),
     );
   });
 
