@@ -271,7 +271,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.byKey(const ValueKey('native-workplane-overlay-muted')),
+      find.byKey(const ValueKey('native-workplane-overlay-hidden')),
       findsOneWidget,
     );
     expect(
@@ -283,7 +283,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.byKey(const ValueKey('native-workplane-overlay-muted')),
+      find.byKey(const ValueKey('native-workplane-overlay-hidden')),
       findsNothing,
     );
     expect(
@@ -309,6 +309,24 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     await tester.tap(find.text('USB-C').first);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(highlightKey), findsOneWidget);
+  });
+
+  testWidgets('native preview mesh click selects mapped semantic feature', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const CaseMakerApp(geometryService: _SingleFeaturePreviewMeshService()),
+    );
+    await tester.pumpAndSettle();
+
+    const highlightKey = ValueKey('geometry-preview-surface-highlight-active');
+    expect(find.byKey(highlightKey), findsNothing);
+
+    final canvasFinder = find.byKey(const ValueKey('mock-viewport-canvas'));
+    await tester.tapAt(tester.getCenter(canvasFinder));
     await tester.pumpAndSettle();
 
     expect(find.byKey(highlightKey), findsOneWidget);
@@ -2557,6 +2575,38 @@ class _PreviewMeshGeometryService extends MockGeometryService {
         'source': 'fake_worker_preview',
         'previewVertices': 4,
         'previewTriangles': 4,
+      },
+    );
+  }
+}
+
+class _SingleFeaturePreviewMeshService extends MockGeometryService {
+  const _SingleFeaturePreviewMeshService();
+
+  @override
+  Future<GeometryPreview> generatePreview(ProjectModel project) async {
+    return GeometryPreview(
+      backendLabel: 'fake_worker_preview',
+      projectName: project.projectName,
+      surfaces: await getSelectableSurfaces(project),
+      previewMesh: const PreviewMesh(
+        units: 'mm',
+        vertices: [-10, -10, 0, 10, -10, 0, 0, 10, 0],
+        triangles: [0, 1, 2],
+        bounds: GeometryBounds(min: [-10, -10, 0], max: [10, 10, 0]),
+        metadata: {'source': 'occt_brep'},
+        surfaces: [
+          PreviewSurfaceMapping(
+            semanticId: 'front_usb_c',
+            label: 'USB-C cutout',
+            triangleRanges: [PreviewTriangleRange(start: 0, count: 1)],
+          ),
+        ],
+      ),
+      stats: const {
+        'source': 'fake_worker_preview',
+        'previewVertices': 3,
+        'previewTriangles': 1,
       },
     );
   }

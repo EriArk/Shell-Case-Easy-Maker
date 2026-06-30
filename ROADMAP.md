@@ -112,6 +112,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M91 - Native Plunger Guide/Stop Preview
 - [x] M92 - Native Viewport De-Clutter
 - [x] M93 - Native Surface Workplane Softening
+- [x] M94 - Native Mesh Semantic Picking
 
 ---
 
@@ -4320,3 +4321,56 @@ actively working with a snap target or component placement.
   still be visible enough for placement work.
 - Click a snap point and confirm the active snap/placement preview still becomes
   noticeable.
+
+---
+
+## M94 - Native Mesh Semantic Picking
+
+### Goal
+Remove the confusing passive 2D surface workplane from normal native preview
+inspection and make direct clicks on the generated preview mesh select mapped
+semantic parts.
+
+### Tasks
+- [x] Explain why the old 2D overlay existed and why native parts were not
+      selectable yet.
+- [x] Make snap points keep priority, then run native preview mesh hit-testing,
+      then fall back to old mock hit zones.
+- [x] Project preview mesh vertices with the same math used by the painter.
+- [x] Hit-test disposable preview triangle ranges and map the hit back to a
+      semantic surface, feature, feature group, component placement, or
+      enclosure.
+- [x] Hide passive native surface workplanes unless a snap/placement workflow is
+      active.
+- [x] Add widget coverage for native mesh click selection.
+- [x] Update viewport docs, task tracker, roadmap, and worklog.
+
+### Done Criteria
+- Clicking a mapped native preview triangle selects the semantic object behind
+  that mapped range.
+- Triangle IDs remain transient preview implementation details and are not saved
+  into `ProjectModel`.
+- Snap points still have priority when the user clicks an explicit snap target.
+- Passive `Top lid` selection no longer draws the large 2D workplane overlay
+  over the generated mesh.
+
+### Tests
+- `flutter test test\widget_test.dart --plain-name "native preview mesh click selects mapped semantic feature" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "selected surface highlights mapped preview mesh range" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "native preview softens surface workplane overlay" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open
+  `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- Click directly on visible native model areas: lid/body/detail ranges should
+  select their mapped semantic item when a mapping exists.
+- Select `Top lid`; the old large 2D workplane rectangle should not sit on top
+  of the model during passive inspection.
+- Click explicit snap points only when you want the snap workflow; those should
+  still work.

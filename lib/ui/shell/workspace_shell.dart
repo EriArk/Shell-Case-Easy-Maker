@@ -1028,6 +1028,10 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
             final surfaceLabels = {
               for (final surface in preview?.surfaces ?? <SelectableSurface>[])
                 surface.id: surface.label,
+              for (final surface
+                  in preview?.previewMesh?.surfaces ??
+                      <PreviewSurfaceMapping>[])
+                surface.semanticId: surface.label,
             };
             final details = ProjectSelectionResolver(
               _project,
@@ -2545,20 +2549,35 @@ class _ViewportAreaState extends State<_ViewportArea> {
     _lastPointerPosition = null;
 
     if (!_movedSincePointerDown) {
+      final bodyDimensions = _mockViewportBodyDimensions(widget.project);
+      final workplaneOverlay = _mockWorkplaneOverlay(
+        widget.project,
+        widget.selection,
+      );
+      final mockHit = _hitTester.hitTest(
+        position: event.localPosition,
+        size: viewportSize,
+        state: widget.viewportState,
+        bodyDimensions: bodyDimensions,
+        componentPlacements: _mockComponentPlacementPreviews(widget.project),
+        workplaneOverlay: workplaneOverlay,
+        features: _mockFeaturePreviews(widget.project),
+        featureGroups: _mockFeatureGroupPreviews(widget.project),
+      );
+      final nativeHit = mockHit?.kind == ViewportHitKind.snapPoint
+          ? null
+          : _hitTestPreviewMesh(
+              previewMesh: widget.preview?.previewMesh,
+              position: event.localPosition,
+              size: viewportSize,
+              state: widget.viewportState,
+              project: widget.project,
+              bodyDimensions: bodyDimensions,
+            );
       widget.onHit(
-        _hitTester.hitTest(
-          position: event.localPosition,
-          size: viewportSize,
-          state: widget.viewportState,
-          bodyDimensions: _mockViewportBodyDimensions(widget.project),
-          componentPlacements: _mockComponentPlacementPreviews(widget.project),
-          workplaneOverlay: _mockWorkplaneOverlay(
-            widget.project,
-            widget.selection,
-          ),
-          features: _mockFeaturePreviews(widget.project),
-          featureGroups: _mockFeatureGroupPreviews(widget.project),
-        ),
+        mockHit?.kind == ViewportHitKind.snapPoint
+            ? mockHit
+            : nativeHit ?? mockHit,
       );
     }
 
@@ -2707,7 +2726,7 @@ class _ViewportAreaState extends State<_ViewportArea> {
                       left: 0,
                       top: 0,
                       child: SizedBox(
-                        key: ValueKey('native-workplane-overlay-muted'),
+                        key: ValueKey('native-workplane-overlay-hidden'),
                       ),
                     ),
                   if (hasPreviewMesh &&
@@ -6574,65 +6593,14 @@ class _ViewportPainter extends CustomPainter {
       return false;
     }
 
-    final bounds = _PreviewMeshBounds.fromMesh(mesh!);
-    if (!bounds.isUsable) {
-      return false;
-    }
-
-    final rawVertices = <_PreviewMeshVertex>[];
-    var minX = double.infinity;
-    var minY = double.infinity;
-    var maxX = -double.infinity;
-    var maxY = -double.infinity;
-
-    final yaw = viewportState.yawDegrees * math.pi / 180;
-    final pitch = viewportState.pitchDegrees * math.pi / 180;
-    final cosYaw = math.cos(yaw);
-    final sinYaw = math.sin(yaw);
-    final cosPitch = math.cos(pitch);
-    final sinPitch = math.sin(pitch);
-
-    for (var index = 0; index < mesh.vertexCount; index++) {
-      final base = index * 3;
-      final x = mesh.vertices[base] - bounds.centerX;
-      final y = mesh.vertices[base + 1] - bounds.centerY;
-      final z = mesh.vertices[base + 2] - bounds.centerZ;
-      final yawX = x * cosYaw - y * sinYaw;
-      final yawY = x * sinYaw + y * cosYaw;
-      final pitchY = yawY * cosPitch - z * sinPitch;
-      final depth = yawY * sinPitch + z * cosPitch;
-      final point = Offset(yawX, -pitchY);
-
-      minX = math.min(minX, point.dx);
-      minY = math.min(minY, point.dy);
-      maxX = math.max(maxX, point.dx);
-      maxY = math.max(maxY, point.dy);
-      rawVertices.add(_PreviewMeshVertex(point: point, depth: depth));
-    }
-
-    final projectedWidth = maxX - minX;
-    final projectedHeight = maxY - minY;
-    if (projectedWidth <= 0 || projectedHeight <= 0) {
-      return false;
-    }
-
-    final targetRect = layout.bodyRect.inflate(18 * layout.zoom);
-    final scale = math.min(
-      targetRect.width / projectedWidth,
-      targetRect.height / projectedHeight,
+    final vertices = _projectPreviewMeshVertices(
+      mesh: mesh!,
+      viewportState: viewportState,
+      layout: layout,
     );
-    if (!scale.isFinite || scale <= 0) {
+    if (vertices == null) {
       return false;
     }
-
-    final rawCenter = Offset((minX + maxX) / 2, (minY + maxY) / 2);
-    final vertices = [
-      for (final vertex in rawVertices)
-        _PreviewMeshVertex(
-          point: targetRect.center + (vertex.point - rawCenter) * scale,
-          depth: vertex.depth,
-        ),
-    ];
 
     final selectedTriangleIndices =
         _selectionUsesPreviewSurfaceRanges(selection)
@@ -6763,6 +6731,9 @@ class _ViewportPainter extends CustomPainter {
           workplane: workplane,
           activeSnapTarget: activeSnapTarget,
         );
+    if (annotationMode && !focused) {
+      return;
+    }
     final rect = layout.workplaneRect(workplane);
     final rotation =
         workplane.kind == MockViewportWorkplaneKind.componentPlacement
@@ -6775,35 +6746,29 @@ class _ViewportPainter extends CustomPainter {
     );
     final fill = Paint()
       ..color = colorScheme.primary.withValues(
-        alpha: annotationMode ? (focused ? 0.035 : 0.0) : 0.08,
+        alpha: annotationMode ? 0.035 : 0.08,
       )
       ..style = PaintingStyle.fill;
     final outline = Paint()
       ..color = colorScheme.primary.withValues(
-        alpha: annotationMode ? (focused ? 0.44 : 0.16) : 0.62,
+        alpha: annotationMode ? 0.44 : 0.62,
       )
       ..style = PaintingStyle.stroke
-      ..strokeWidth = annotationMode ? (focused ? 1.4 : 0.85) : 2;
+      ..strokeWidth = annotationMode ? 1.4 : 2;
     final gridPaint = Paint()
-      ..color = Colors.white.withValues(
-        alpha: annotationMode ? (focused ? 0.07 : 0.0) : 0.16,
-      )
+      ..color = Colors.white.withValues(alpha: annotationMode ? 0.07 : 0.16)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
     final snapFill = Paint()
-      ..color = colorScheme.primary.withValues(
-        alpha: annotationMode ? (focused ? 0.70 : 0.22) : 1,
-      )
+      ..color = colorScheme.primary.withValues(alpha: annotationMode ? 0.70 : 1)
       ..style = PaintingStyle.fill;
     final activeSnapFill = Paint()
       ..color = colorScheme.secondary
       ..style = PaintingStyle.fill;
     final snapStroke = Paint()
-      ..color = const Color(
-        0xFF151719,
-      ).withValues(alpha: annotationMode ? (focused ? 0.72 : 0.24) : 0.72)
+      ..color = const Color(0xFF151719).withValues(alpha: 0.72)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = annotationMode ? (focused ? 1.5 : 0.8) : 1.5;
+      ..strokeWidth = 1.5;
 
     canvas.save();
     canvas.translate(rect.center.dx, rect.center.dy);
@@ -6812,25 +6777,15 @@ class _ViewportPainter extends CustomPainter {
 
     final rrect = RRect.fromRectAndRadius(rect, radius);
     canvas.drawRRect(rrect, fill);
-    if (focused || !annotationMode) {
-      canvas.save();
-      canvas.clipRRect(rrect);
-      for (var index = 1; index < 4; index++) {
-        final dx = rect.left + rect.width * index / 4;
-        final dy = rect.top + rect.height * index / 4;
-        canvas.drawLine(
-          Offset(dx, rect.top),
-          Offset(dx, rect.bottom),
-          gridPaint,
-        );
-        canvas.drawLine(
-          Offset(rect.left, dy),
-          Offset(rect.right, dy),
-          gridPaint,
-        );
-      }
-      canvas.restore();
+    canvas.save();
+    canvas.clipRRect(rrect);
+    for (var index = 1; index < 4; index++) {
+      final dx = rect.left + rect.width * index / 4;
+      final dy = rect.top + rect.height * index / 4;
+      canvas.drawLine(Offset(dx, rect.top), Offset(dx, rect.bottom), gridPaint);
+      canvas.drawLine(Offset(rect.left, dy), Offset(rect.right, dy), gridPaint);
     }
+    canvas.restore();
     canvas.drawRRect(rrect, outline);
     canvas.restore();
 
@@ -6843,8 +6798,7 @@ class _ViewportPainter extends CustomPainter {
         localPoints[index],
       );
       final radius =
-          (active ? 7.0 : (annotationMode ? (focused ? 3.6 : 2.2) : 4.5)) *
-          layout.zoom;
+          (active ? 7.0 : (annotationMode ? 3.6 : 4.5)) * layout.zoom;
       canvas.drawCircle(
         snapPoints[index],
         radius,
@@ -7328,6 +7282,206 @@ class _PreviewMeshSelectionTone {
 
 bool _hasPreviewMesh(PreviewMesh? mesh) {
   return mesh != null && mesh.vertexCount > 0 && mesh.triangleCount > 0;
+}
+
+List<_PreviewMeshVertex>? _projectPreviewMeshVertices({
+  required PreviewMesh mesh,
+  required ViewportState viewportState,
+  required MockViewportLayout layout,
+}) {
+  final bounds = _PreviewMeshBounds.fromMesh(mesh);
+  if (!bounds.isUsable) {
+    return null;
+  }
+
+  final rawVertices = <_PreviewMeshVertex>[];
+  var minX = double.infinity;
+  var minY = double.infinity;
+  var maxX = -double.infinity;
+  var maxY = -double.infinity;
+
+  final yaw = viewportState.yawDegrees * math.pi / 180;
+  final pitch = viewportState.pitchDegrees * math.pi / 180;
+  final cosYaw = math.cos(yaw);
+  final sinYaw = math.sin(yaw);
+  final cosPitch = math.cos(pitch);
+  final sinPitch = math.sin(pitch);
+
+  for (var index = 0; index < mesh.vertexCount; index++) {
+    final base = index * 3;
+    final x = mesh.vertices[base] - bounds.centerX;
+    final y = mesh.vertices[base + 1] - bounds.centerY;
+    final z = mesh.vertices[base + 2] - bounds.centerZ;
+    final yawX = x * cosYaw - y * sinYaw;
+    final yawY = x * sinYaw + y * cosYaw;
+    final pitchY = yawY * cosPitch - z * sinPitch;
+    final depth = yawY * sinPitch + z * cosPitch;
+    final point = Offset(yawX, -pitchY);
+
+    minX = math.min(minX, point.dx);
+    minY = math.min(minY, point.dy);
+    maxX = math.max(maxX, point.dx);
+    maxY = math.max(maxY, point.dy);
+    rawVertices.add(_PreviewMeshVertex(point: point, depth: depth));
+  }
+
+  final projectedWidth = maxX - minX;
+  final projectedHeight = maxY - minY;
+  if (projectedWidth <= 0 || projectedHeight <= 0) {
+    return null;
+  }
+
+  final targetRect = layout.bodyRect.inflate(18 * layout.zoom);
+  final scale = math.min(
+    targetRect.width / projectedWidth,
+    targetRect.height / projectedHeight,
+  );
+  if (!scale.isFinite || scale <= 0) {
+    return null;
+  }
+
+  final rawCenter = Offset((minX + maxX) / 2, (minY + maxY) / 2);
+  return [
+    for (final vertex in rawVertices)
+      _PreviewMeshVertex(
+        point: targetRect.center + (vertex.point - rawCenter) * scale,
+        depth: vertex.depth,
+      ),
+  ];
+}
+
+ViewportHitResult? _hitTestPreviewMesh({
+  required PreviewMesh? previewMesh,
+  required Offset position,
+  required Size size,
+  required ViewportState state,
+  required ProjectModel project,
+  required MockViewportBodyDimensions bodyDimensions,
+}) {
+  final mesh = previewMesh;
+  if (!_hasPreviewMesh(mesh) || mesh?.metadata['source'] != 'occt_brep') {
+    return null;
+  }
+
+  final layout = MockViewportLayout.fromSize(
+    size,
+    state,
+    bodyDimensions: bodyDimensions,
+  );
+  final vertices = _projectPreviewMeshVertices(
+    mesh: mesh!,
+    viewportState: state,
+    layout: layout,
+  );
+  if (vertices == null) {
+    return null;
+  }
+
+  String? bestSemanticId;
+  var bestDepth = -double.infinity;
+  for (final surface in mesh.surfaces) {
+    for (final range in surface.triangleRanges) {
+      final start = range.start.clamp(0, mesh.triangleCount).toInt();
+      final end = (range.start + range.count)
+          .clamp(0, mesh.triangleCount)
+          .toInt();
+      for (var index = start; index < end; index++) {
+        final base = index * 3;
+        final a = mesh.triangles[base];
+        final b = mesh.triangles[base + 1];
+        final c = mesh.triangles[base + 2];
+        if (!_validPreviewMeshIndex(a, mesh.vertexCount) ||
+            !_validPreviewMeshIndex(b, mesh.vertexCount) ||
+            !_validPreviewMeshIndex(c, mesh.vertexCount)) {
+          continue;
+        }
+
+        final aPoint = vertices[a].point;
+        final bPoint = vertices[b].point;
+        final cPoint = vertices[c].point;
+        if (!_pointInPreviewTriangle(position, aPoint, bPoint, cPoint)) {
+          continue;
+        }
+
+        final depth =
+            (vertices[a].depth + vertices[b].depth + vertices[c].depth) / 3;
+        if (depth >= bestDepth) {
+          bestDepth = depth;
+          bestSemanticId = surface.semanticId;
+        }
+      }
+    }
+  }
+
+  return _previewMeshHitResult(project, bestSemanticId);
+}
+
+ViewportHitResult? _previewMeshHitResult(
+  ProjectModel project,
+  String? semanticId,
+) {
+  if (semanticId == null || semanticId.isEmpty) {
+    return null;
+  }
+
+  if (project.features.any((feature) => feature.id == semanticId)) {
+    return ViewportHitResult(
+      kind: ViewportHitKind.feature,
+      semanticId: semanticId,
+    );
+  }
+
+  if (project.featureGroups.any((group) => group.id == semanticId)) {
+    return ViewportHitResult(
+      kind: ViewportHitKind.featureGroup,
+      semanticId: semanticId,
+    );
+  }
+
+  if (project.componentPlacements.any(
+    (placement) => placement.id == semanticId,
+  )) {
+    return ViewportHitResult(
+      kind: ViewportHitKind.componentPlacement,
+      semanticId: semanticId,
+    );
+  }
+
+  for (final body in project.bodies) {
+    if (semanticId == body.id) {
+      return ViewportHitResult(
+        kind: ViewportHitKind.enclosure,
+        semanticId: semanticId,
+      );
+    }
+    if (semanticId.startsWith('${body.id}.')) {
+      return ViewportHitResult(
+        kind: ViewportHitKind.surface,
+        semanticId: semanticId,
+        parentId: body.id,
+      );
+    }
+  }
+
+  return null;
+}
+
+bool _pointInPreviewTriangle(Offset point, Offset a, Offset b, Offset c) {
+  final denominator =
+      (b.dy - c.dy) * (a.dx - c.dx) + (c.dx - b.dx) * (a.dy - c.dy);
+  if (denominator.abs() < 0.000001) {
+    return false;
+  }
+
+  final alpha =
+      ((b.dy - c.dy) * (point.dx - c.dx) + (c.dx - b.dx) * (point.dy - c.dy)) /
+      denominator;
+  final beta =
+      ((c.dy - a.dy) * (point.dx - c.dx) + (a.dx - c.dx) * (point.dy - c.dy)) /
+      denominator;
+  final gamma = 1 - alpha - beta;
+  const tolerance = -0.001;
+  return alpha >= tolerance && beta >= tolerance && gamma >= tolerance;
 }
 
 bool _nativeSemanticAnnotationsFocused(SelectionModel selection) {

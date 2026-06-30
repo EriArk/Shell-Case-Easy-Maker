@@ -50,7 +50,11 @@ never hit-tested as the editable source of truth. Native preview meshes may
 include disposable semantic surface ranges. When the current selection is a
 matching semantic surface, feature, or feature group, the viewport can tint
 those mapped preview triangles and draw a screen-space halo as a display-only
-highlight. It still does not use generated triangles for picking.
+highlight. First-pass native mesh picking uses those same disposable triangle
+ranges only inside the viewport event handler: a click is projected against the
+current preview mesh, the hit range is translated immediately back to a
+semantic id, and selection stores only that semantic id. Triangle IDs remain
+preview implementation details and are not written into `ProjectModel`.
 
 Component placement hit zones are now supplied as
 `MockViewportComponentPlacementPreview` values derived from semantic
@@ -73,12 +77,11 @@ local point so shell commands can seed semantic actions. Snap hints are
 transient interaction affordances only; they do not create sketch constraints,
 change placement data by themselves, or expose generated topology.
 
-When a native preview mesh is visible, selected surface workplanes use a passive
-annotation style: no fill, no local grid, a very light outline, and smaller snap
-points. Component-placement workplanes and active snap targets remain focused
-so placement actions are still easy to inspect. This keeps surface selection
-useful without letting a large rectangular workplane dominate the generated
-mesh.
+When a native preview mesh is visible, selected surface workplanes are hidden
+during passive inspection. Component-placement workplanes and active snap
+targets remain focused so placement actions are still easy to inspect. This
+keeps surface selection useful without letting a large rectangular 2D workplane
+dominate the generated mesh.
 
 Hit-test priority keeps visible semantic objects above overlapping snap hints,
 then places snap hints above bare surface selection. This lets a visible board
@@ -150,7 +153,9 @@ whole feature group, not an individual mesh primitive or flattened hole.
 - In native preview mode, unselected schematic annotations stay muted; selecting
   a feature, feature group, or component placement brings that semantic helper
   forward.
-- Selected surface workplanes are passive in native preview mode; component
+- Click a mapped native preview mesh range: select the semantic part behind
+  that range, then show the generated mesh highlight.
+- Selected surface workplanes are hidden in native preview mode; component
   placement workplanes and active snap targets remain focused.
 
 These controls are deliberately simple and can be refined after manual testing.
@@ -181,13 +186,15 @@ mapping, desktop stability, license, and packaging complexity.
   surface highlights when a backend provides them. Other semantic overlays are
   still first-pass schematic affordances, now muted by default in native preview
   mode and focused only when their semantic item is selected.
-- Hit zones are deterministic mock zones, not mesh picking.
+- Native preview mesh picking is first-pass semantic picking from mapped
+  preview ranges. It is not raw triangle editing, and it falls back to mock hit
+  zones when no mapped mesh range is hit.
 - Component placement previews are semantic mock rectangles, not generated
   board meshes or OCCT bodies.
 - Workplane overlays and snap hints are mock interaction affordances. They can
   seed the component placement dialog, but they are not a saved sketch/workplane
-  subsystem yet. In native preview mode, passive surface workplanes are softened
-  for readability rather than projected onto real generated faces.
+  subsystem yet. In native preview mode, passive surface workplanes are hidden
+  because they are not projected onto real generated faces.
 - Snap placement footprints are schematic rectangles derived from component
   template board outlines, not generated board meshes or collision-aware
   previews. Current feedback checks the same coarse semantic placement bounds as

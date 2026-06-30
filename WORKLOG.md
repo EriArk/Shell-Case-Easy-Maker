@@ -42,6 +42,94 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-30 - M94 Native mesh semantic picking
+
+### Goal
+Remove the confusing passive 2D surface workplane during native model
+inspection and make direct clicks on the generated preview mesh select mapped
+semantic parts.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`docs/33_VIEWPORT_MVP.md`, `lib/ui/shell/workspace_shell.dart`,
+`lib/viewport/viewport_controller.dart`, and `test/widget_test.dart`.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added first-pass native preview mesh hit-testing before old mock hit zones.
+  - Keeps explicit snap-point hits ahead of mesh picking so snap workflows still
+    work.
+  - Reuses the same preview projection math for painting and mesh hit-testing.
+  - Converts a hit preview triangle range immediately back to a semantic id and
+    then discards the triangle index.
+  - Feeds native preview mesh mapping labels into the selection resolver so
+    mapped surface picks can show human labels when the worker provides them.
+  - Hides passive native surface workplanes instead of drawing a 2D rectangle
+    over the generated model.
+- `test/widget_test.dart`:
+  - Added coverage that clicking a mapped preview mesh triangle selects the
+    mapped semantic feature and enables mesh highlighting.
+  - Updated native workplane expectations to track hidden/focused states.
+- Docs/tasks:
+  - Added M94 to `ROADMAP.md`, marked native mesh picking in `TASKS.md`, and
+    updated viewport docs to explain semantic mesh picking versus raw triangle
+    editing.
+
+### Tests run
+- `dart format lib\ui\shell\workspace_shell.dart test\widget_test.dart`:
+  - Passed; formatted `lib/ui/shell/workspace_shell.dart`.
+- `flutter pub get`:
+  - Passed.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 67 files checked, 0 changed.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test test\widget_test.dart --plain-name "native preview mesh click selects mapped semantic feature" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "selected surface highlights mapped preview mesh range" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "native preview softens surface workplane overlay" --reporter compact`:
+  - Passed.
+- `flutter test --reporter compact`:
+  - Passed; all tests passed.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed; latest Windows bundle rebuilt at
+    `releases/latest/windows/shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git diff --check`:
+  - Passed; only the existing `ROADMAP.md` line-ending warning was reported.
+
+### Validation
+- Geometry checked?
+  - Not changed; picking consumes existing preview mesh mappings.
+- Serialization checked?
+  - No project/protocol serialization changed.
+- UI checked?
+  - Targeted widget tests and full suite passed.
+- Export checked?
+  - Latest Windows bundle was rebuilt; export flows were not changed.
+
+### Known issues
+- Issue: Mesh picking is first-pass and depends on available
+  `PreviewSurfaceMapping` ranges. Unmapped generated triangles still fall back
+  to old mock hit zones or workspace selection.
+  - Severity: Medium.
+  - Next action: Expand native worker mappings and consider a true 3D renderer
+    when preview complexity grows.
+
+### Next step
+Manually check that clicking visible mapped model details selects semantic parts
+without the old passive 2D workplane covering the model, then expand native
+worker mappings for more individual generated surfaces.
+
+### Notes for future Codex sessions
+Do not store triangle IDs, OCCT face IDs, or generated mesh IDs in
+`ProjectModel`. Native mesh picking should only be a display-time route back to
+semantic ids.
+
+---
+
 ## 2026-06-30 - M93 Native surface workplane softening
 
 ### Goal
