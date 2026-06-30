@@ -137,6 +137,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Generate first native top lid locating lip.
 - [x] Generate first native top lid body seat/groove.
 - [x] Position first native top lid in fit-preview state.
+- [x] Generate first native top lid button group cutouts.
 - [ ] Export STEP.
 - [ ] Export STL.
 - [x] Define response issues/warnings model.
@@ -165,6 +166,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Add first-pass generated top lid locating lip.
 - [x] Add first-pass generated top lid body seat/groove.
 - [x] Add first-pass generated top lid fit-preview positioning.
+- [x] Add first-pass generated top lid button cutouts.
 - [ ] Add generic circular cutout.
 - [ ] Add generic rectangular rounded cutout.
 - [x] First-pass USB-C cutout command.
@@ -214,6 +216,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Feed semantic feature/group intents into geometry requests.
 - [x] Build request-time operation plan from feature/group intents.
 - [ ] Generate top/lid cutouts from switches/buttons.
+- [x] First-pass native top-lid button group cutouts.
 - [x] First-pass semantic button group from component switch centers.
 - [x] First-pass keepout warnings.
 - [ ] Generate support ribs from drawn line.
@@ -288,6 +291,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 
 - [ ] Switch center overlay.
 - [ ] Generate holes from switch centers.
+- [x] First-pass native top-lid button holes from semantic button groups.
 - [x] First-pass semantic button group from switch centers.
 - [ ] Generate full button cap/plunger from switch centers.
 - [ ] U-cut button generator.

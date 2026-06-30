@@ -124,10 +124,12 @@ through that plate from the same screw-boss positions, and fuses a first-pass
 underside locating lip into the generated lid. It also cuts a shallow
 body-side locating seat around the top opening from the same semantic lid
 spec and positions the generated lid in a small fit-preview gap so the
-lip/seat relationship is readable. Button and standoff groups
-remain one editable semantic object; lid screw bosses, lid plate, lid screw
-holes, lid locating lip, body lid seat, and lid fit preview remain generated
-enclosure detail, not separate editable solids. The native worker only consumes semantic parameters and
+lip/seat relationship is readable. Top-lid `button_group` intents are cut
+through the generated lid plate, while front-wall `button_group` intents remain
+body cutouts. Button and standoff groups remain one editable semantic object;
+lid screw bosses, lid plate, lid screw holes, lid locating lip, body lid seat,
+lid fit preview, and generated top-lid button holes remain generated enclosure
+detail, not separate editable solids. The native worker only consumes semantic parameters and
 derived item positions as disposable generator input. A real mating lid/body
 split, top-lid button/recess support, richer mount variants, and export
 operations remain next slices. The plan is disposable backend input. It must

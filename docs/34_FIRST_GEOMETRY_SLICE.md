@@ -256,6 +256,8 @@ from one semantic button group, and `standoff_mounts_1` for generated bottom
 standoff bosses. Enclosures with `top_screw_lid` also expose
 `main_enclosure.lid_screw_bosses` for generated lid screw bosses and
 `main_enclosure.generated_top_lid_seat` for the generated body-side lid seat.
+Top-lid `button_group` features expose one semantic group mapping such as
+`top_lid_buttons` after their generated holes are cut through the lid.
 `main_enclosure.front_wall.outer` remains the front wall surface mapping.
 
 ## Initial Rounded Enclosure Plan
@@ -301,12 +303,15 @@ The first native OCCT slices now:
     keyed by `main_enclosure.generated_top_lid_seat`.
 23. Position the generated top lid in a first-pass fit-preview state with a
     small inspection gap, reported by `nativeGeneratedLidFitPreviewGap`.
+24. Cut first-pass circular top-lid button group holes through the generated
+    lid plate when a semantic `button_group` targets
+    `main_enclosure.top_lid.outer`.
 
 The next native geometry slices should:
 
 1. Turn the fit-preview lid into a real lid/body split when assembly semantics
    are explicit.
-2. Add top-lid glass/button support after lid/body targeting is explicit.
+2. Add top-lid glass recess support after lid/body targeting is explicit.
 3. Add screw boss, lid, and standoff fillets/chamfers plus richer mount
    variants.
 4. Expand semantic face mapping beyond the first top/front/bottom ranges.
@@ -318,23 +323,25 @@ Expected sample dimensions:
 - native preview assembly bounds: `[-60, -35, 0]` to `[60, 35, 30.35]`,
 - native preview volume after lid screw bosses, USB-C, front glass recess,
   front button cutouts, bottom standoff bosses, generated lid plate, lid screw
-  holes, underside locating lip, body-side lid seat, and fit-preview
-  positioning: `53593.074428 mm^3`,
+  holes, underside locating lip, body-side lid seat, fit-preview positioning,
+  and top-lid button holes: `53366.879754 mm^3`,
 - native preview surface area after lid screw bosses, USB-C, front glass
   recess, front button cutouts, bottom standoff bosses, generated lid plate,
   lid screw holes, underside locating lip, body-side lid seat, and
-  fit-preview positioning:
-  `55400.529232 mm^2`,
-- native preview surface mappings after feature ranges: `12`,
-- native preview mapped triangles after feature ranges: `9694`,
-- native feature metrics: `featureIntentCount=5`,
+  fit-preview positioning, and top-lid button holes: `55325.131008 mm^2`,
+- native preview surface mappings after feature ranges: `13`,
+- native preview mapped triangles after feature ranges: `11166`,
+- native feature metrics: `featureIntentCount=6`,
   `nativeFeatureCutCount=8`, `nativeIgnoredFeatureIntentCount=1`,
   `nativeLidScrewBossCount=4`, `nativeLidScrewPilotCount=4`,
   `nativeGeneratedLidPlateCount=1`,
   `nativeGeneratedLidSeatCount=1`,
   `nativeGeneratedLidFitPreviewGap=0.35`,
   `nativeGeneratedLidLipCount=1`,
-  `nativeGeneratedLidScrewHoleCount=4`, `nativeUsbCCutoutCount=1`,
+  `nativeGeneratedLidScrewHoleCount=4`,
+  `nativeGeneratedLidFeatureCutCount=4`,
+  `nativeGeneratedLidButtonGroupCount=1`,
+  `nativeGeneratedLidButtonCutoutCount=4`, `nativeUsbCCutoutCount=1`,
   `nativeGlassRecessCount=1`, `nativeButtonGroupCount=1`,
   `nativeButtonCutoutCount=2`, `nativeStandoffGroupCount=1`,
   `nativeStandoffMountCount=4`.
@@ -377,8 +384,9 @@ Expected sample dimensions:
   enclosures generate first-pass screw bosses plus a separate generated top lid
   preview plate with screw clearance holes, an underside locating lip, and a
   body-side shallow locating seat. The generated lid is now positioned in a
-  first-pass fit-preview state with a small inspection gap. A real separable
-  lid/body split with full mating geometry, top-lid feature cuts, richer mount
-  variants, and richer face mapping are still planned.
+  first-pass fit-preview state with a small inspection gap, and semantic
+  top-lid button groups can cut circular holes through that generated lid. A
+  real separable lid/body split with full mating geometry, top-lid glass
+  recesses, richer mount variants, and richer face mapping are still planned.
 - STEP/STL export operations intentionally return unsupported in the mock
   backend.

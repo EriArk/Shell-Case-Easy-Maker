@@ -57,6 +57,61 @@ Use `templates/RESEARCH_NOTE_TEMPLATE.md`.
 
 ---
 
+## 2026-06-30 - OCCT generated top lid button cutouts
+
+## Question
+
+How should semantic top-lid button groups become generated lid holes without
+flattening the group into editable per-hole solids?
+
+## Sources checked
+
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepPrimAPI_MakeCylinder.hxx`
+- Existing native worker slices in `occt_worker/native/src/occt_main.cpp` for
+  front-wall button cutouts, generated lid plate assembly, screw-hole cuts,
+  preview surface mapping, and generated-output metrics.
+
+## Findings
+
+- `BRepPrimAPI_MakeCylinder` already supports cylinder tools with an explicit
+  `gp_Ax2`, so the same primitive used for front-wall buttons can cut top-lid
+  holes by switching the axis to Z.
+- Top-lid button groups should be routed by `targetSurface` to the generated
+  lid branch instead of the body feature-cut branch.
+- The editable group should remain one semantic `button_group`; generated
+  holes are disposable B-Rep output and preview ranges can still be keyed by
+  the group id.
+- Counting generated-lid feature cuts separately from body cuts keeps smoke
+  metrics readable while preserving the existing body feature metrics.
+
+## License / compatibility notes
+
+- OCCT headers are from the project-local vcpkg dependency. They are LGPL 2.1
+  with OCCT exception / commercial alternative, matching the existing OCCT
+  dependency evaluation.
+- No external project code was copied.
+
+## Decision
+
+Parse `button_group` intents targeting `main_enclosure.top_lid.outer`, validate
+their positions against the lid safe area, and cut vertical cylinder tools
+through the generated top lid plate. Report
+`nativeGeneratedLidFeatureCutCount`,
+`nativeGeneratedLidButtonGroupCount`, and
+`nativeGeneratedLidButtonCutoutCount`, and map preview triangles by the
+semantic group id such as `top_lid_buttons`.
+
+## Follow-up tasks
+
+- Add top-lid glass recess support after recess depth/ledge behavior is defined
+  for the generated lid plate.
+- Add button-cap/plunger generation after holes are stable.
+- Add lid/body assembly semantics before exposing generated lid parts as
+  independently inspectable objects.
+
+---
+
 ## 2026-06-30 - OCCT generated top lid fit preview
 
 ## Question

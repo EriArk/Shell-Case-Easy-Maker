@@ -99,6 +99,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M78 - Native Top Lid Locating Lip
 - [x] M79 - Native Top Lid Body Seat
 - [x] M80 - Native Top Lid Fit Preview
+- [x] M81 - Native Top Lid Button Cutouts
 
 ---
 
@@ -3614,3 +3615,55 @@ locating lip now visually enters the body-side seat.
 - Orbit around the top opening and confirm the lid lip reads as entering the
   body-side seat.
 - Confirm screw holes still align over the four body screw bosses.
+
+---
+
+## M81 - Native Top Lid Button Cutouts
+
+### Goal
+Generate first native circular button cutouts through the generated
+`top_screw_lid` preview lid when a semantic `button_group` targets
+`main_enclosure.top_lid.outer`, while keeping the group editable as one
+semantic object.
+
+### Tasks
+- [x] Record OCCT cylinder-cut research for generated top-lid button holes.
+- [x] Parse `button_group` intents targeting `main_enclosure.top_lid.outer`.
+- [x] Validate top-lid button positions against the lid safe inner area.
+- [x] Cut vertical cylindrical button holes through the generated lid plate.
+- [x] Keep front-wall button cutouts on the body path and top-lid button
+      cutouts on the generated lid path.
+- [x] Emit generated-lid button metrics and preview surface mapping.
+- [x] Update native smoke expectations, source-contract tests, docs, tasks,
+      roadmap, and worklog.
+
+### Done Criteria
+- Native smoke reports 7222 vertices, 7920 triangles, 13 preview surface
+  mappings, and 11166 mapped triangles.
+- Native smoke reports `nativeGeneratedLidFeatureCutCount: 4`,
+  `nativeGeneratedLidButtonGroupCount: 1`, and
+  `nativeGeneratedLidButtonCutoutCount: 4`.
+- Surface mappings include `top_lid_buttons`.
+- The editable project still stores one semantic button group, not generated
+  lid hole solids or per-hole topology.
+
+### Tests
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open
+  `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- Orbit above the lid and confirm four round button holes are cut through the
+  generated top lid.
+- Confirm the lid still sits close to the body with the small fit-preview gap.
+- Confirm screw holes still align over the four body screw bosses.
+- Select/create a top-lid button group and confirm it remains one editable
+  semantic group in the inspector.

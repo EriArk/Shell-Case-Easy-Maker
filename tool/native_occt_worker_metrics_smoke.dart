@@ -98,12 +98,12 @@ Future<void> main(List<String> args) async {
       failures,
     );
     _expect(
-      previewMesh.vertexCount == 6638,
+      previewMesh.vertexCount == 7222,
       'previewMesh must contain the deterministic sample vertex count',
       failures,
     );
     _expect(
-      previewMesh.triangleCount == 7328,
+      previewMesh.triangleCount == 7920,
       'previewMesh must contain the deterministic sample triangle count',
       failures,
     );
@@ -125,8 +125,8 @@ Future<void> main(List<String> args) async {
       failures,
     );
     _expect(
-      previewMesh.surfaces.length == 12,
-      'previewMesh must expose body surfaces plus generated lid, body lid seat, locating lip, lid screw holes, lid bosses, USB-C, glass, button, and standoff feature mappings',
+      previewMesh.surfaces.length == 13,
+      'previewMesh must expose body surfaces plus generated lid, body lid seat, locating lip, lid screw holes, top-lid buttons, lid bosses, USB-C, glass, front button, and standoff feature mappings',
       failures,
     );
     final surfaceIds = previewMesh.surfaces
@@ -170,6 +170,11 @@ Future<void> main(List<String> args) async {
     _expect(
       surfaceIds.contains('main_enclosure.generated_top_lid_screw_holes'),
       'previewMesh surfaces must include the generated top lid screw hole range',
+      failures,
+    );
+    _expect(
+      surfaceIds.contains('top_lid_buttons'),
+      'previewMesh surfaces must include the generated top lid button group range',
       failures,
     );
     _expect(
@@ -314,7 +319,22 @@ Future<void> main(List<String> args) async {
     failures,
   );
   _expect(
-    metrics['featureIntentCount'] == 5,
+    metrics['nativeGeneratedLidFeatureCutCount'] == 4,
+    'nativeGeneratedLidFeatureCutCount must include generated top lid button holes',
+    failures,
+  );
+  _expect(
+    metrics['nativeGeneratedLidButtonGroupCount'] == 1,
+    'nativeGeneratedLidButtonGroupCount must include the semantic top lid button group',
+    failures,
+  );
+  _expect(
+    metrics['nativeGeneratedLidButtonCutoutCount'] == 4,
+    'nativeGeneratedLidButtonCutoutCount must include generated top lid button items',
+    failures,
+  );
+  _expect(
+    metrics['featureIntentCount'] == 6,
     'featureIntentCount must match the sample request',
     failures,
   );
@@ -465,14 +485,14 @@ Future<void> main(List<String> args) async {
   );
   _expectClose(
     _readNumber(metrics['surfaceArea']),
-    55400.529232,
+    55325.131008,
     0.001,
     'surfaceArea',
     failures,
   );
   _expectClose(
     _readNumber(metrics['volume']),
-    53593.074428,
+    53366.879754,
     0.001,
     'volume',
     failures,
@@ -516,6 +536,12 @@ Future<void> main(List<String> args) async {
       'nativeGeneratedLidLipCount': metrics['nativeGeneratedLidLipCount'],
       'nativeGeneratedLidScrewHoleCount':
           metrics['nativeGeneratedLidScrewHoleCount'],
+      'nativeGeneratedLidFeatureCutCount':
+          metrics['nativeGeneratedLidFeatureCutCount'],
+      'nativeGeneratedLidButtonGroupCount':
+          metrics['nativeGeneratedLidButtonGroupCount'],
+      'nativeGeneratedLidButtonCutoutCount':
+          metrics['nativeGeneratedLidButtonCutoutCount'],
       'featureIntentCount': metrics['featureIntentCount'],
       'nativeFeatureCutCount': metrics['nativeFeatureCutCount'],
       'nativeIgnoredFeatureIntentCount':
@@ -587,6 +613,21 @@ ProjectModel _nativeSmokeProject() {
           type: 'button_group',
           targetSurface: 'main_enclosure.front_wall.outer',
           pattern: {'layout': 'row', 'count': 2, 'spacing': 16.0},
+          itemPrototype: {
+            'type': 'button',
+            'shape': 'circle',
+            'diameter': 6.0,
+            'mode': 'plunger',
+          },
+          placement: {'anchor': 'center'},
+        ),
+      )
+      .replaceFeatureGroup(
+        const FeatureGroup(
+          id: 'top_lid_buttons',
+          type: 'button_group',
+          targetSurface: 'main_enclosure.top_lid.outer',
+          pattern: {'layout': 'diamond', 'count': 4, 'spacing': 14.0},
           itemPrototype: {
             'type': 'button',
             'shape': 'circle',

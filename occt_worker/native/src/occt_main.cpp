@@ -189,6 +189,9 @@ struct ShapeMetrics {
   double native_generated_lid_fit_preview_gap = 0.0;
   int native_generated_lid_lip_count = 0;
   int native_generated_lid_screw_hole_count = 0;
+  int native_generated_lid_feature_cut_count = 0;
+  int native_generated_lid_button_group_count = 0;
+  int native_generated_lid_button_cutout_count = 0;
 };
 
 struct ShellBuildResult {
@@ -209,12 +212,20 @@ struct NativePreviewAssemblyResult {
   int generated_lid_plate_count = 0;
   int generated_lid_lip_count = 0;
   int generated_lid_screw_hole_count = 0;
+  int generated_lid_feature_cut_count = 0;
+  int generated_lid_button_group_count = 0;
+  int generated_lid_button_cutout_count = 0;
+  int applied_feature_intent_count = 0;
 };
 
 struct NativeGeneratedLidPlateResult {
   TopoDS_Shape shape;
   int locating_lip_count = 0;
   int screw_hole_count = 0;
+  int feature_cut_count = 0;
+  int button_group_count = 0;
+  int button_cutout_count = 0;
+  int applied_feature_intent_count = 0;
 };
 
 struct NativeGeneratedLidSeatResult {
@@ -1030,6 +1041,8 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
       static_cast<int>(feature_intents.size());
   const std::string supported_front_surface =
       result.enclosure.id + ".front_wall.outer";
+  const std::string supported_top_surface =
+      result.enclosure.id + ".top_lid.outer";
   const std::string supported_bottom_surface =
       result.enclosure.id + ".bottom_inside";
   for (const std::string& intent : feature_intents) {
@@ -1167,7 +1180,8 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
           ExtractTopLevelStringField(intent, "id").value_or("button_group");
       group.target_surface =
           ExtractTopLevelStringField(intent, "targetSurface").value_or("");
-      if (group.target_surface != supported_front_surface) {
+      if (group.target_surface != supported_front_surface &&
+          group.target_surface != supported_top_surface) {
         continue;
       }
 
@@ -1182,8 +1196,12 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
         }
       }
 
+      const bool targets_top_lid =
+          group.target_surface == supported_top_surface;
       const double inner_width =
           result.enclosure.size[0] - result.enclosure.wall_thickness * 2.0;
+      const double inner_depth =
+          result.enclosure.size[1] - result.enclosure.wall_thickness * 2.0;
       const double min_z = result.enclosure.wall_thickness;
       const double max_z =
           result.enclosure.size[2] - result.enclosure.wall_thickness;
@@ -1212,17 +1230,25 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
 
         const double radius = cutout.diameter / 2.0;
         const double center_x = cutout.position[0];
-        const double center_z =
-            result.enclosure.size[2] / 2.0 + cutout.position[1];
+        const double center_secondary =
+            targets_top_lid
+                ? cutout.position[1]
+                : result.enclosure.size[2] / 2.0 + cutout.position[1];
+        const double available_secondary =
+            targets_top_lid ? inner_depth : max_z - min_z;
         if (!IsPositiveDimension(cutout.diameter) ||
-            cutout.diameter > std::min(inner_width, max_z - min_z) ||
+            cutout.diameter > std::min(inner_width, available_secondary) ||
             center_x - radius < -inner_width / 2.0 ||
             center_x + radius > inner_width / 2.0 ||
-            center_z - radius < min_z ||
-            center_z + radius > max_z) {
+            (targets_top_lid &&
+             (center_secondary - radius < -inner_depth / 2.0 ||
+              center_secondary + radius > inner_depth / 2.0)) ||
+            (!targets_top_lid &&
+             (center_secondary - radius < min_z ||
+              center_secondary + radius > max_z))) {
           result.issue_code = "worker.geometry.invalid_button_cutout";
           result.issue_message =
-              "Native OCCT worker button cutouts must fit the front wall.";
+              "Native OCCT worker button cutouts must fit the target surface.";
           return result;
         }
 
@@ -1502,10 +1528,16 @@ TopoDS_Shape BuildGeneratedTopLidScrewHoleTool(
   return tool;
 }
 
+TopoDS_Shape BuildGeneratedTopLidButtonCutoutTool(
+    const EnclosureRequest& enclosure,
+    const GeneratedLidPlateRequest& lid_plate,
+    const ButtonCutoutItemRequest& cutout);
+
 NativeGeneratedLidPlateResult BuildGeneratedTopLidPlateShape(
     const EnclosureRequest& enclosure,
     const GeneratedLidPlateRequest& lid_plate,
-    const std::vector<LidScrewBossRequest>& lid_screw_bosses) {
+    const std::vector<LidScrewBossRequest>& lid_screw_bosses,
+    const std::vector<ButtonGroupCutoutRequest>& button_groups) {
   NativeGeneratedLidPlateResult result;
   const std::array<double, 3> lid_size = {
       enclosure.size[0],
@@ -1576,6 +1608,50 @@ NativeGeneratedLidPlateResult BuildGeneratedTopLidPlateShape(
     ++result.screw_hole_count;
   }
 
+  for (const ButtonGroupCutoutRequest& group : button_groups) {
+    if (group.target_surface != enclosure.id + ".top_lid.outer") {
+      continue;
+    }
+
+    int group_cut_count = 0;
+    for (const ButtonCutoutItemRequest& cutout : group.items) {
+      const TopoDS_Shape tool =
+          BuildGeneratedTopLidButtonCutoutTool(enclosure, lid_plate, cutout);
+      if (tool.IsNull()) {
+        throw std::runtime_error(
+            "OCCT generated a null top lid button cutout tool.");
+      }
+
+      BRepAlgoAPI_Cut cut(result.shape, tool);
+      cut.SimplifyResult(true, true);
+      if (!cut.IsDone() || cut.HasErrors()) {
+        throw std::runtime_error(
+            "OCCT top lid button cutout did not complete.");
+      }
+
+      result.shape = cut.Shape();
+      if (result.shape.IsNull()) {
+        throw std::runtime_error(
+            "OCCT generated a null top lid button cutout shape.");
+      }
+
+      BRepCheck_Analyzer cut_analyzer(result.shape, false);
+      if (!cut_analyzer.IsValid()) {
+        throw std::runtime_error(
+            "OCCT generated an invalid top lid button cutout shape.");
+      }
+
+      ++result.feature_cut_count;
+      ++result.button_cutout_count;
+      ++group_cut_count;
+    }
+
+    if (group_cut_count > 0) {
+      ++result.button_group_count;
+      ++result.applied_feature_intent_count;
+    }
+  }
+
   BRepCheck_Analyzer analyzer(result.shape, false);
   if (!analyzer.IsValid()) {
     throw std::runtime_error("OCCT generated an invalid top lid plate.");
@@ -1588,7 +1664,8 @@ NativePreviewAssemblyResult BuildPreviewAssembly(
     const TopoDS_Shape& body_shape,
     const EnclosureRequest& enclosure,
     const std::vector<GeneratedLidPlateRequest>& lid_plates,
-    const std::vector<LidScrewBossRequest>& lid_screw_bosses) {
+    const std::vector<LidScrewBossRequest>& lid_screw_bosses,
+    const std::vector<ButtonGroupCutoutRequest>& button_groups) {
   NativePreviewAssemblyResult result;
   result.shape = body_shape;
   if (lid_plates.empty()) {
@@ -1602,11 +1679,19 @@ NativePreviewAssemblyResult BuildPreviewAssembly(
 
   for (const GeneratedLidPlateRequest& lid_plate : lid_plates) {
     const NativeGeneratedLidPlateResult lid_result =
-        BuildGeneratedTopLidPlateShape(enclosure, lid_plate, lid_screw_bosses);
+        BuildGeneratedTopLidPlateShape(enclosure,
+                                       lid_plate,
+                                       lid_screw_bosses,
+                                       button_groups);
     builder.Add(compound, lid_result.shape);
     ++result.generated_lid_plate_count;
     result.generated_lid_lip_count += lid_result.locating_lip_count;
     result.generated_lid_screw_hole_count += lid_result.screw_hole_count;
+    result.generated_lid_feature_cut_count += lid_result.feature_cut_count;
+    result.generated_lid_button_group_count += lid_result.button_group_count;
+    result.generated_lid_button_cutout_count += lid_result.button_cutout_count;
+    result.applied_feature_intent_count +=
+        lid_result.applied_feature_intent_count;
   }
 
   BRepCheck_Analyzer analyzer(compound, false);
@@ -1752,6 +1837,10 @@ ShapeMetrics ComputeShapeMetrics(const TopoDS_Shape& shape,
                                  double generated_lid_fit_preview_gap,
                                  int generated_lid_lip_count,
                                  int generated_lid_screw_hole_count,
+                                 int generated_lid_feature_cut_count,
+                                 int generated_lid_button_group_count,
+                                 int generated_lid_button_cutout_count,
+                                 int generated_lid_applied_intent_count,
                                  int feature_intent_count,
                                  const NativeFeatureCutResult& feature_cuts) {
   ShapeMetrics metrics;
@@ -1769,10 +1858,18 @@ ShapeMetrics ComputeShapeMetrics(const TopoDS_Shape& shape,
   metrics.native_generated_lid_lip_count = generated_lid_lip_count;
   metrics.native_generated_lid_screw_hole_count =
       generated_lid_screw_hole_count;
+  metrics.native_generated_lid_feature_cut_count =
+      generated_lid_feature_cut_count;
+  metrics.native_generated_lid_button_group_count =
+      generated_lid_button_group_count;
+  metrics.native_generated_lid_button_cutout_count =
+      generated_lid_button_cutout_count;
   metrics.feature_intent_count = feature_intent_count;
   metrics.native_feature_cut_count = feature_cuts.applied_cut_count;
   metrics.native_ignored_feature_intent_count =
-      feature_cuts.ignored_intent_count;
+      std::max(0,
+               feature_intent_count - feature_cuts.applied_intent_count -
+                   generated_lid_applied_intent_count);
   metrics.native_usb_c_cutout_count = feature_cuts.usb_c_cutout_count;
   metrics.native_usb_c_cutout_filleted_edge_count =
       feature_cuts.usb_c_filleted_edge_count;
@@ -2223,6 +2320,44 @@ bool FaceIntersectsGeneratedLidScrewHole(
          spans_lid_thickness;
 }
 
+bool FaceIntersectsGeneratedTopLidButtonCutout(
+    const FaceBounds& face_bounds,
+    const ShapeMetrics& metrics,
+    const EnclosureRequest& enclosure,
+    const GeneratedLidPlateRequest& lid_plate,
+    const ButtonCutoutItemRequest& cutout) {
+  const double tolerance = PreviewSurfaceTolerance(metrics);
+  const double radius = cutout.diameter / 2.0;
+  const double cutout_min_x = cutout.position[0] - radius - tolerance;
+  const double cutout_max_x = cutout.position[0] + radius + tolerance;
+  const double cutout_min_y = cutout.position[1] - radius - tolerance;
+  const double cutout_max_y = cutout.position[1] + radius + tolerance;
+  const double lid_min_z =
+      enclosure.size[2] + lid_plate.preview_gap - tolerance;
+  const double lid_max_z =
+      enclosure.size[2] + lid_plate.preview_gap + lid_plate.thickness +
+      tolerance;
+
+  const bool overlaps_cutout_volume =
+      face_bounds.max[0] >= cutout_min_x &&
+      face_bounds.min[0] <= cutout_max_x &&
+      face_bounds.max[1] >= cutout_min_y &&
+      face_bounds.min[1] <= cutout_max_y &&
+      face_bounds.max[2] >= lid_min_z &&
+      face_bounds.min[2] <= lid_max_z;
+  const bool stays_near_cutout_outline =
+      face_bounds.max[0] - face_bounds.min[0] <=
+          cutout.diameter + tolerance * 2.0 &&
+      face_bounds.max[1] - face_bounds.min[1] <=
+          cutout.diameter + tolerance * 2.0;
+  const bool spans_lid_thickness =
+      face_bounds.max[2] - face_bounds.min[2] >=
+      lid_plate.thickness - tolerance * 2.0;
+
+  return overlaps_cutout_volume && stays_near_cutout_outline &&
+         spans_lid_thickness;
+}
+
 TopoDS_Shape BuildUsbCCutoutTool(const EnclosureRequest& enclosure,
                                  const UsbCCutoutRequest& cutout,
                                  int* filleted_edge_count) {
@@ -2282,6 +2417,22 @@ TopoDS_Shape BuildButtonCutoutTool(const EnclosureRequest& enclosure,
       gp_Pnt(center[0], -enclosure.size[1] / 2.0 - overcut, center[1]),
       gp_Dir(0.0, 1.0, 0.0));
   return BRepPrimAPI_MakeCylinder(axis, cutout.diameter / 2.0, height).Shape();
+}
+
+TopoDS_Shape BuildGeneratedTopLidButtonCutoutTool(
+    const EnclosureRequest& enclosure,
+    const GeneratedLidPlateRequest& lid_plate,
+    const ButtonCutoutItemRequest& cutout) {
+  const double overcut = 0.5;
+  const gp_Ax2 axis(
+      gp_Pnt(cutout.position[0],
+             cutout.position[1],
+             enclosure.size[2] + lid_plate.preview_gap - overcut),
+      gp_Dir(0.0, 0.0, 1.0));
+  return BRepPrimAPI_MakeCylinder(axis,
+                                  cutout.diameter / 2.0,
+                                  lid_plate.thickness + overcut * 2.0)
+      .Shape();
 }
 
 TopoDS_Shape BuildStandoffMountShape(const EnclosureRequest& enclosure,
@@ -2555,6 +2706,10 @@ NativeFeatureCutResult ApplyNativeFeatureCutouts(
   }
 
   for (const ButtonGroupCutoutRequest& group : button_groups) {
+    if (group.target_surface != enclosure.id + ".front_wall.outer") {
+      continue;
+    }
+
     int group_cut_count = 0;
     for (const ButtonCutoutItemRequest& cutout : group.items) {
       const TopoDS_Shape tool = BuildButtonCutoutTool(enclosure, cutout);
@@ -2743,6 +2898,22 @@ std::vector<std::pair<std::string, std::string>> ClassifyPreviewSurfaces(
           surfaces.push_back(
               std::make_pair(lid_plate.screw_holes_id, "Lid screw holes"));
           break;
+        }
+      }
+      for (const ButtonGroupCutoutRequest& group : button_groups) {
+        if (group.target_surface != enclosure.id + ".top_lid.outer") {
+          continue;
+        }
+
+        for (const ButtonCutoutItemRequest& cutout : group.items) {
+          if (FaceIntersectsGeneratedTopLidButtonCutout(face_bounds,
+                                                       metrics,
+                                                       enclosure,
+                                                       lid_plate,
+                                                       cutout)) {
+            surfaces.push_back(std::make_pair(group.id, "Top lid buttons"));
+            break;
+          }
         }
       }
       break;
@@ -3163,6 +3334,12 @@ void WriteRoundedEnclosurePreviewResponse(const NativeRequestEnvelope& request,
             << metrics.native_generated_lid_lip_count << ",\n"
             << "    \"nativeGeneratedLidScrewHoleCount\": "
             << metrics.native_generated_lid_screw_hole_count << ",\n"
+            << "    \"nativeGeneratedLidFeatureCutCount\": "
+            << metrics.native_generated_lid_feature_cut_count << ",\n"
+            << "    \"nativeGeneratedLidButtonGroupCount\": "
+            << metrics.native_generated_lid_button_group_count << ",\n"
+            << "    \"nativeGeneratedLidButtonCutoutCount\": "
+            << metrics.native_generated_lid_button_cutout_count << ",\n"
             << "    \"featureIntentCount\": "
             << metrics.feature_intent_count << ",\n"
             << "    \"nativeFeatureCutCount\": "
@@ -3313,7 +3490,8 @@ int main(int argc, char* argv[]) {
         BuildPreviewAssembly(lid_seats.shape,
                              parsed_request.enclosure,
                              parsed_request.generated_lid_plates,
-                             parsed_request.lid_screw_bosses);
+                             parsed_request.lid_screw_bosses,
+                             parsed_request.button_groups);
     if (preview_assembly.shape.IsNull()) {
       throw std::runtime_error("OCCT generated a null preview assembly.");
     }
@@ -3335,6 +3513,10 @@ int main(int argc, char* argv[]) {
                                       .preview_gap,
                             preview_assembly.generated_lid_lip_count,
                             preview_assembly.generated_lid_screw_hole_count,
+                            preview_assembly.generated_lid_feature_cut_count,
+                            preview_assembly.generated_lid_button_group_count,
+                            preview_assembly.generated_lid_button_cutout_count,
+                            preview_assembly.applied_feature_intent_count,
                             parsed_request.feature_intent_count,
                             feature_cuts);
     const PreviewMeshData mesh =

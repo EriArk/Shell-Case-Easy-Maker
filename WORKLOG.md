@@ -42,6 +42,107 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-30 - M81 Native top lid button cutouts
+
+### Goal
+Generate first native circular button holes through the generated
+`top_screw_lid` preview lid when a semantic `button_group` targets
+`main_enclosure.top_lid.outer`, while keeping the group as one editable
+semantic object.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`docs/04_GEOMETRY_ENGINE_OCCT.md`, `docs/10_ENCLOSURE_AUTO_GENERATION.md`,
+`docs/27_RESEARCH_AND_REFERENCES.md`, `docs/34_FIRST_GEOMETRY_SLICE.md`,
+`occt_worker/native/src/occt_main.cpp`,
+`occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepPrimAPI_MakeCylinder.hxx`,
+`tool/native_occt_worker_metrics_smoke.dart`, and
+`test/occt_native_target_scaffold_test.dart`.
+
+### Changes made
+- `occt_worker/native/src/occt_main.cpp`:
+  - Parses `button_group` intents targeting both front wall and top lid.
+  - Keeps front-wall button holes in the body feature-cut path.
+  - Routes top-lid button holes through the generated lid plate path.
+  - Cuts vertical cylinder tools through the generated lid plate.
+  - Emits generated-lid feature/button metrics.
+  - Maps top-lid button hole faces by the semantic group id, such as
+    `top_lid_buttons`.
+- `tool/native_occt_worker_metrics_smoke.dart`:
+  - Added a `top_lid_buttons` semantic `FeatureGroup` to the native smoke
+    project.
+  - Updated deterministic native expectations to 7222 vertices, 7920
+    triangles, 13 mappings, 11166 mapped triangles, surface area
+    `55325.131008`, and volume `53366.879754`.
+  - Added assertions and summary output for generated-lid button metrics.
+- `test/occt_native_target_scaffold_test.dart`:
+  - Added source-contract coverage for top-lid button parsing, cut tool,
+    classifier, metrics, smoke expectations, and semantic preview mapping.
+- Docs/tasks/roadmap:
+  - Recorded M81, OCCT cylinder-cut research, current native metrics, and the
+    manual poke checklist.
+
+### Tests run
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`:
+  - Passed.
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`:
+  - Passed; reports `nativeGeneratedLidFeatureCutCount=4`,
+    `nativeGeneratedLidButtonGroupCount=1`,
+    `nativeGeneratedLidButtonCutoutCount=4`, 13 preview mappings, and
+    `top_lid_buttons`.
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`:
+  - Passed, 5 tests.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 0 files changed.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed, 187 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git diff --check`:
+  - Passed; Git printed CRLF/LF normalization warnings for existing markdown
+    line endings only.
+
+### Validation
+- Geometry checked?
+  - Yes. Native smoke verifies deterministic mesh counts, top-lid button
+    metrics, preview mappings, bounds, surface area, and volume.
+- Serialization checked?
+  - Yes. Full test suite passed; top-lid button holes are derived from a
+    semantic group and are not saved as generated B-Rep or per-hole geometry.
+- UI checked?
+  - Not manually in this session. Latest exe was rebuilt for user poke testing.
+- Export checked?
+  - No. STEP/STL export remains planned.
+
+### Known issues
+- Issue: Top-lid button holes are simple through-holes only; no cap, plunger,
+  travel stop, or guide geometry is generated yet.
+  - Severity: Expected first native slice.
+  - Next action: Add button cap/plunger generation after hole placement is
+    stable.
+- Issue: Top-lid glass recess support is still pending.
+  - Severity: Expected next-slice limitation.
+  - Next action: Add generated lid glass recess once lid recess depth/ledge
+    rules are explicit.
+
+### Next step
+Commit and push M81, then continue toward top-lid glass recesses or button
+cap/plunger semantics.
+
+### Notes for future Codex sessions
+Keep top-lid buttons routed by semantic `targetSurface`. Do not flatten the
+group into per-hole editable objects or persist generated lid B-Rep, OCCT
+topology IDs, or preview triangle IDs.
+
+---
+
 ## 2026-06-30 - M80 Native top lid fit preview
 
 ### Goal
