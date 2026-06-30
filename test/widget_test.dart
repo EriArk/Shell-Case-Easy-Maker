@@ -255,6 +255,43 @@ void main() {
     );
   });
 
+  testWidgets('native preview softens surface workplane overlay', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const CaseMakerApp(geometryService: _PreviewMeshGeometryService()),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Top lid').first);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('mock-workplane-overlay-active')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('native-workplane-overlay-muted')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('native-workplane-overlay-focused')),
+      findsNothing,
+    );
+
+    await tester.tap(find.text('button_board_placement').first);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('native-workplane-overlay-muted')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('native-workplane-overlay-focused')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('selected feature highlights mapped preview mesh range', (
     tester,
   ) async {

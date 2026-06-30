@@ -111,6 +111,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M90 - Semantic Plunger Travel Controls
 - [x] M91 - Native Plunger Guide/Stop Preview
 - [x] M92 - Native Viewport De-Clutter
+- [x] M93 - Native Surface Workplane Softening
 
 ---
 
@@ -4273,3 +4274,49 @@ semantic selection and hit targets.
   semantic item should still become visible enough to inspect.
 - Orbit/pan/zoom and confirm the body has fewer distracting internal triangle
   lines than in the screenshot.
+
+---
+
+## M93 - Native Surface Workplane Softening
+
+### Goal
+Make selected surface inspection calmer in native preview mode by turning the
+large surface workplane/grid/snap overlay into a passive hint unless the user is
+actively working with a snap target or component placement.
+
+### Tasks
+- [x] Analyze the latest `Top lid` screenshot after M92.
+- [x] Add native workplane muted/focused state sentinels for widget coverage.
+- [x] Keep selected native surface mesh highlighting active.
+- [x] Reduce passive surface workplane fill, outline, grid, snap point radius,
+      and snap point stroke strength in native preview mode.
+- [x] Keep component-placement workplanes and active snap targets focused.
+- [x] Update viewport docs, task tracker, roadmap, and worklog.
+
+### Done Criteria
+- Selecting `Top lid` in native preview mode no longer draws a dominant cyan
+  workplane rectangle/grid over the generated model.
+- The selected surface can still highlight mapped preview mesh ranges.
+- Selecting a component placement still shows a focused workplane.
+- No project model, geometry protocol, mesh picking, or OCCT topology behavior
+  changes.
+
+### Tests
+- `flutter test test\widget_test.dart --plain-name "native preview softens surface workplane overlay" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "selected surface highlights mapped preview mesh range" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open
+  `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- Select `Top lid`; the big workplane rectangle/snap grid should be much less
+  dominant than in the screenshot.
+- Select `Custom Button Board` / `button_board_placement`; its workplane should
+  still be visible enough for placement work.
+- Click a snap point and confirm the active snap/placement preview still becomes
+  noticeable.

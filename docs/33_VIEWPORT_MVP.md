@@ -73,6 +73,13 @@ local point so shell commands can seed semantic actions. Snap hints are
 transient interaction affordances only; they do not create sketch constraints,
 change placement data by themselves, or expose generated topology.
 
+When a native preview mesh is visible, selected surface workplanes use a passive
+annotation style: no fill, no local grid, a very light outline, and smaller snap
+points. Component-placement workplanes and active snap targets remain focused
+so placement actions are still easy to inspect. This keeps surface selection
+useful without letting a large rectangular workplane dominate the generated
+mesh.
+
 Hit-test priority keeps visible semantic objects above overlapping snap hints,
 then places snap hints above bare surface selection. This lets a visible board
 remain selectable even when a surface workplane has a center snap point.
@@ -143,6 +150,8 @@ whole feature group, not an individual mesh primitive or flattened hole.
 - In native preview mode, unselected schematic annotations stay muted; selecting
   a feature, feature group, or component placement brings that semantic helper
   forward.
+- Selected surface workplanes are passive in native preview mode; component
+  placement workplanes and active snap targets remain focused.
 
 These controls are deliberately simple and can be refined after manual testing.
 
@@ -177,7 +186,8 @@ mapping, desktop stability, license, and packaging complexity.
   board meshes or OCCT bodies.
 - Workplane overlays and snap hints are mock interaction affordances. They can
   seed the component placement dialog, but they are not a saved sketch/workplane
-  subsystem yet.
+  subsystem yet. In native preview mode, passive surface workplanes are softened
+  for readability rather than projected onto real generated faces.
 - Snap placement footprints are schematic rectangles derived from component
   template board outlines, not generated board meshes or collision-aware
   previews. Current feedback checks the same coarse semantic placement bounds as

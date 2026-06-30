@@ -42,6 +42,80 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-30 - M93 Native surface workplane softening
+
+### Goal
+Respond to the latest `Top lid` screenshot by reducing the dominance of the
+surface workplane/grid/snap overlay in native preview mode while preserving
+selection highlighting and placement-oriented focused workplanes.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`docs/33_VIEWPORT_MVP.md`, `lib/ui/shell/workspace_shell.dart`, and
+`test/widget_test.dart`.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added native workplane muted/focused sentinels for widget coverage.
+  - Makes native surface workplanes passive unless an active snap target is
+    selected.
+  - Keeps component-placement workplanes focused in native preview mode.
+  - Removes the passive native surface workplane grid, lowers outline/fill
+    strength, and shrinks/dims passive snap points.
+- `test/widget_test.dart`:
+  - Added coverage for `Top lid` using the muted native workplane state and
+    component placement using the focused native workplane state.
+- Docs/tasks:
+  - Added M93 to `ROADMAP.md`, marked the task in `TASKS.md`, and documented
+    passive/focused workplanes in `docs/33_VIEWPORT_MVP.md`.
+
+### Tests run
+- `dart format lib\ui\shell\workspace_shell.dart test\widget_test.dart`:
+  - Passed, no changes required.
+- `flutter test test\widget_test.dart --plain-name "native preview softens surface workplane overlay" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "selected surface highlights mapped preview mesh range" --reporter compact`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed, 0 changes.
+- `flutter analyze`:
+  - Passed, no issues found.
+- `flutter test --reporter compact`:
+  - Passed, 195 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed; refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+
+### Validation
+- Geometry checked?
+  - Not changed; this is viewport rendering style only.
+- Serialization checked?
+  - No project or protocol data changed.
+- UI checked?
+  - Targeted widget tests and full widget suite passed.
+- Export checked?
+  - Not touched.
+
+### Known issues
+- Issue: The native preview still uses a `CustomPaint` mesh projection and mock
+  workplane rectangles rather than a true 3D face-projected workplane.
+  - Severity: Medium.
+  - Next action: Revisit after the semantic geometry MVP or when moving to a
+    real 3D renderer.
+
+### Next step
+Run full validation, refresh the latest Windows bundle, then continue with
+geometry/readability work based on manual inspection.
+
+### Notes for future Codex sessions
+Surface selection should help inspection first. In native mesh mode, keep
+surface workplanes passive unless the user starts an explicit placement/snap
+workflow.
+
+---
+
 ## 2026-06-30 - M92 Native viewport de-clutter
 
 ### Goal

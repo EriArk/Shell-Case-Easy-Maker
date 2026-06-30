@@ -2696,6 +2696,34 @@ class _ViewportAreaState extends State<_ViewportArea> {
                         key: ValueKey('mock-workplane-overlay-active'),
                       ),
                     ),
+                  if (hasPreviewMesh &&
+                      workplaneOverlay != null &&
+                      !_nativeWorkplaneOverlayFocused(
+                        selection: widget.selection,
+                        workplane: workplaneOverlay,
+                        activeSnapTarget: widget.activeSnapTarget,
+                      ))
+                    const Positioned(
+                      left: 0,
+                      top: 0,
+                      child: SizedBox(
+                        key: ValueKey('native-workplane-overlay-muted'),
+                      ),
+                    ),
+                  if (hasPreviewMesh &&
+                      workplaneOverlay != null &&
+                      _nativeWorkplaneOverlayFocused(
+                        selection: widget.selection,
+                        workplane: workplaneOverlay,
+                        activeSnapTarget: widget.activeSnapTarget,
+                      ))
+                    const Positioned(
+                      left: 0,
+                      top: 0,
+                      child: SizedBox(
+                        key: ValueKey('native-workplane-overlay-focused'),
+                      ),
+                    ),
                   if (placementCandidatePreview != null)
                     const Positioned(
                       left: 0,
@@ -6728,6 +6756,13 @@ class _ViewportPainter extends CustomPainter {
       return;
     }
 
+    final focused =
+        !annotationMode ||
+        _nativeWorkplaneOverlayFocused(
+          selection: selection,
+          workplane: workplane,
+          activeSnapTarget: activeSnapTarget,
+        );
     final rect = layout.workplaneRect(workplane);
     final rotation =
         workplane.kind == MockViewportWorkplaneKind.componentPlacement
@@ -6740,29 +6775,35 @@ class _ViewportPainter extends CustomPainter {
     );
     final fill = Paint()
       ..color = colorScheme.primary.withValues(
-        alpha: annotationMode ? 0.035 : 0.08,
+        alpha: annotationMode ? (focused ? 0.035 : 0.0) : 0.08,
       )
       ..style = PaintingStyle.fill;
     final outline = Paint()
       ..color = colorScheme.primary.withValues(
-        alpha: annotationMode ? 0.44 : 0.62,
+        alpha: annotationMode ? (focused ? 0.44 : 0.16) : 0.62,
       )
       ..style = PaintingStyle.stroke
-      ..strokeWidth = annotationMode ? 1.4 : 2;
+      ..strokeWidth = annotationMode ? (focused ? 1.4 : 0.85) : 2;
     final gridPaint = Paint()
-      ..color = Colors.white.withValues(alpha: annotationMode ? 0.07 : 0.16)
+      ..color = Colors.white.withValues(
+        alpha: annotationMode ? (focused ? 0.07 : 0.0) : 0.16,
+      )
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
     final snapFill = Paint()
-      ..color = colorScheme.primary.withValues(alpha: annotationMode ? 0.70 : 1)
+      ..color = colorScheme.primary.withValues(
+        alpha: annotationMode ? (focused ? 0.70 : 0.22) : 1,
+      )
       ..style = PaintingStyle.fill;
     final activeSnapFill = Paint()
       ..color = colorScheme.secondary
       ..style = PaintingStyle.fill;
     final snapStroke = Paint()
-      ..color = const Color(0xFF151719).withValues(alpha: 0.72)
+      ..color = const Color(
+        0xFF151719,
+      ).withValues(alpha: annotationMode ? (focused ? 0.72 : 0.24) : 0.72)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
+      ..strokeWidth = annotationMode ? (focused ? 1.5 : 0.8) : 1.5;
 
     canvas.save();
     canvas.translate(rect.center.dx, rect.center.dy);
@@ -6771,15 +6812,25 @@ class _ViewportPainter extends CustomPainter {
 
     final rrect = RRect.fromRectAndRadius(rect, radius);
     canvas.drawRRect(rrect, fill);
-    canvas.save();
-    canvas.clipRRect(rrect);
-    for (var index = 1; index < 4; index++) {
-      final dx = rect.left + rect.width * index / 4;
-      final dy = rect.top + rect.height * index / 4;
-      canvas.drawLine(Offset(dx, rect.top), Offset(dx, rect.bottom), gridPaint);
-      canvas.drawLine(Offset(rect.left, dy), Offset(rect.right, dy), gridPaint);
+    if (focused || !annotationMode) {
+      canvas.save();
+      canvas.clipRRect(rrect);
+      for (var index = 1; index < 4; index++) {
+        final dx = rect.left + rect.width * index / 4;
+        final dy = rect.top + rect.height * index / 4;
+        canvas.drawLine(
+          Offset(dx, rect.top),
+          Offset(dx, rect.bottom),
+          gridPaint,
+        );
+        canvas.drawLine(
+          Offset(rect.left, dy),
+          Offset(rect.right, dy),
+          gridPaint,
+        );
+      }
+      canvas.restore();
     }
-    canvas.restore();
     canvas.drawRRect(rrect, outline);
     canvas.restore();
 
@@ -6792,7 +6843,8 @@ class _ViewportPainter extends CustomPainter {
         localPoints[index],
       );
       final radius =
-          (active ? 7.0 : (annotationMode ? 3.6 : 4.5)) * layout.zoom;
+          (active ? 7.0 : (annotationMode ? (focused ? 3.6 : 2.2) : 4.5)) *
+          layout.zoom;
       canvas.drawCircle(
         snapPoints[index],
         radius,
@@ -7283,6 +7335,21 @@ bool _nativeSemanticAnnotationsFocused(SelectionModel selection) {
       selection.kind == SelectionKind.componentTemplate ||
       selection.kind == SelectionKind.feature ||
       selection.kind == SelectionKind.featureGroup;
+}
+
+bool _nativeWorkplaneOverlayFocused({
+  required SelectionModel selection,
+  required MockViewportWorkplaneOverlay workplane,
+  required _ActiveSnapTarget? activeSnapTarget,
+}) {
+  if (selection.kind == SelectionKind.componentPlacement &&
+      selection.id == workplane.semanticId) {
+    return true;
+  }
+
+  return activeSnapTarget != null &&
+      activeSnapTarget.workplaneId == workplane.semanticId &&
+      activeSnapTarget.workplaneKind == workplane.kind;
 }
 
 bool _hasSelectedPreviewSurface(PreviewMesh? mesh, SelectionModel selection) {

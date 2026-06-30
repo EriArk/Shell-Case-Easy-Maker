@@ -99,6 +99,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Highlight selected semantic surface ranges on generated preview mesh.
 - [x] Highlight selected semantic feature ranges on generated preview mesh.
 - [x] Add native preview overlay de-clutter pass.
+- [x] Add native preview passive surface workplane state.
 
 ## Phase 4 — OCCT worker MVP
 
@@ -356,6 +357,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [ ] Focused parameter workflow.
 - [ ] Parameter banks and diamond slots.
 - [x] Native preview overlay mute/focus states.
+- [x] Native preview surface workplane softening.
 - [ ] Keyboard-emulated controller support.
 - [ ] Step configuration.
 - [ ] Right-click quick popovers.
