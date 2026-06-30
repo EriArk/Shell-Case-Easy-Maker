@@ -42,6 +42,114 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-30 - M82 Native top lid glass recess
+
+### Goal
+Generate a first shallow rounded glass/insert recess in the generated
+`top_screw_lid` preview lid when a semantic `glass_recess` targets
+`main_enclosure.top_lid.outer`, while keeping the editable project semantic.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`docs/04_GEOMETRY_ENGINE_OCCT.md`, `docs/10_ENCLOSURE_AUTO_GENERATION.md`,
+`docs/27_RESEARCH_AND_REFERENCES.md`, `docs/34_FIRST_GEOMETRY_SLICE.md`,
+`occt_worker/native/src/occt_main.cpp`,
+`occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepPrimAPI_MakeBox.hxx`,
+`occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepFilletAPI_MakeFillet.hxx`,
+`occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepAlgoAPI_Cut.hxx`,
+`tool/native_occt_worker_metrics_smoke.dart`, and
+`test/occt_native_target_scaffold_test.dart`.
+
+### Changes made
+- `occt_worker/native/src/occt_main.cpp`:
+  - Parses `glass_recess` intents targeting both front wall and top lid.
+  - Keeps front-wall recesses in the body feature-cut path.
+  - Routes top-lid recesses through the generated lid plate path.
+  - Cuts shallow rounded rectangular recess tools into the generated lid plate.
+  - Emits generated-lid glass-recess metrics.
+  - Maps top-lid recess faces by semantic feature id, such as
+    `top_lid_glass_recess`.
+- `tool/native_occt_worker_metrics_smoke.dart`:
+  - Added a `top_lid_glass_recess` semantic feature to the native smoke
+    project.
+  - Updated deterministic native expectations to 7398 vertices, 8080
+    triangles, 14 mappings, 11604 mapped triangles, surface area
+    `55361.470831`, and volume `53224.939925`.
+  - Added assertions and summary output for generated-lid glass-recess metrics.
+- `test/occt_native_target_scaffold_test.dart`:
+  - Added source-contract coverage for top-lid glass recess parsing, cut tool,
+    classifier, metrics, smoke expectations, and semantic preview mapping.
+- Docs/tasks/roadmap:
+  - Recorded M82, OCCT box/fillet/cut research, current native metrics, and
+    the manual poke checklist.
+
+### Tests run
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with constraints.
+- `dart format test\occt_native_target_scaffold_test.dart`:
+  - Passed; formatted the updated scaffold test.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 0 files changed after formatting.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`:
+  - Passed.
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`:
+  - Passed; reports `nativeGeneratedLidFeatureCutCount=5`,
+    `nativeGeneratedLidGlassRecessCount=1`,
+    `nativeGeneratedLidGlassRecessFilletedEdgeCount=8`,
+    `nativeGeneratedLidButtonGroupCount=1`,
+    `nativeGeneratedLidButtonCutoutCount=4`, 14 preview mappings, and
+    `top_lid_glass_recess`.
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`:
+  - Passed, 5 tests.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed, 187 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git diff --check`:
+  - Passed; Git printed CRLF/LF normalization warnings for existing markdown
+    line endings only.
+
+### Validation
+- Geometry checked?
+  - Yes. Native smoke verifies deterministic mesh counts, top-lid glass
+    recess metrics, preview mappings, bounds, surface area, and volume.
+- Serialization checked?
+  - Yes. Full test suite passed; the recess remains a semantic feature and
+    generated B-Rep/topology is not saved as editable project state.
+- UI checked?
+  - Not manually in this session. Latest exe was rebuilt for user poke testing.
+- Export checked?
+  - No. STEP/STL/DXF export remains planned.
+
+### Known issues
+- Issue: Top-lid glass recesses are shallow generated recess cuts only; no
+  protected islands, glass/acrylic contour export, or retaining lip semantics
+  are generated yet.
+  - Severity: Expected first native slice.
+  - Next action: Add insert/glass semantics and DXF/acrylic contour generation
+    after the lid/body split is more explicit.
+- Issue: The lid is still a generated fit-preview member, not a real editable
+  assembly component.
+  - Severity: Expected current architecture boundary.
+  - Next action: Add real lid/body assembly semantics before exposing generated
+    lid parts as independently inspectable objects.
+
+### Next step
+Commit and push M82, then continue toward protected recess/insert semantics or
+button cap/plunger geometry.
+
+### Notes for future Codex sessions
+Keep top-lid glass recesses routed by semantic `targetSurface`. Do not flatten
+the recess into editable generated lid solids, raw OCCT topology IDs, or
+preview triangle IDs.
+
+---
+
 ## 2026-06-30 - M81 Native top lid button cutouts
 
 ### Goal

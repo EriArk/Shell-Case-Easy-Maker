@@ -138,6 +138,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Generate first native top lid body seat/groove.
 - [x] Position first native top lid in fit-preview state.
 - [x] Generate first native top lid button group cutouts.
+- [x] Generate first native top lid glass recess.
 - [ ] Export STEP.
 - [ ] Export STL.
 - [x] Define response issues/warnings model.
@@ -167,6 +168,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Add first-pass generated top lid body seat/groove.
 - [x] Add first-pass generated top lid fit-preview positioning.
 - [x] Add first-pass generated top lid button cutouts.
+- [x] Add first-pass generated top lid glass recess.
 - [ ] Add generic circular cutout.
 - [ ] Add generic rectangular rounded cutout.
 - [x] First-pass USB-C cutout command.
@@ -277,6 +279,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] First-pass manual glass recess command.
 - [x] First-pass glass recess viewport marker.
 - [x] First-pass glass recess inspector parameter editing.
+- [x] First-pass native top-lid glass recess.
 - [ ] Recess from screen/window feature.
 - [ ] Free recessed panel.
 - [ ] Insert/glass definition.

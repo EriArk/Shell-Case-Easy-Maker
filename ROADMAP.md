@@ -100,6 +100,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M79 - Native Top Lid Body Seat
 - [x] M80 - Native Top Lid Fit Preview
 - [x] M81 - Native Top Lid Button Cutouts
+- [x] M82 - Native Top Lid Glass Recess
 
 ---
 
@@ -3667,3 +3668,58 @@ semantic object.
 - Confirm screw holes still align over the four body screw bosses.
 - Select/create a top-lid button group and confirm it remains one editable
   semantic group in the inspector.
+
+---
+
+## M82 - Native Top Lid Glass Recess
+
+### Goal
+Generate a first shallow rounded glass/insert recess in the generated
+`top_screw_lid` preview lid when a semantic `glass_recess` targets
+`main_enclosure.top_lid.outer`, while keeping the feature as semantic project
+data.
+
+### Tasks
+- [x] Record OCCT box-cut/fillet/cut research for generated top-lid recesses.
+- [x] Parse `glass_recess` intents for both front wall and top lid target
+      surfaces.
+- [x] Validate top-lid recess size, depth, corner radius, and face-local
+      position against the generated lid safe area.
+- [x] Cut a shallow rounded rectangular recess from the generated lid plate
+      without cutting through the lid.
+- [x] Keep front-wall glass recesses on the body path and top-lid glass
+      recesses on the generated lid path.
+- [x] Emit generated-lid glass-recess metrics and preview surface mapping.
+- [x] Update native smoke expectations, source-contract tests, docs, tasks,
+      roadmap, and worklog.
+
+### Done Criteria
+- Native smoke reports 7398 vertices, 8080 triangles, 14 preview surface
+  mappings, and 11604 mapped triangles.
+- Native smoke reports `nativeGeneratedLidFeatureCutCount: 5`,
+  `nativeGeneratedLidGlassRecessCount: 1`,
+  `nativeGeneratedLidGlassRecessFilletedEdgeCount: 8`,
+  `nativeGeneratedLidButtonGroupCount: 1`, and
+  `nativeGeneratedLidButtonCutoutCount: 4`.
+- Surface mappings include `top_lid_glass_recess` and `top_lid_buttons`.
+- The editable project still stores semantic `glass_recess` and
+  `button_group` data, not generated lid recess solids or raw topology IDs.
+
+### Tests
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open
+  `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- Orbit above the lid and confirm a shallow rounded rectangular recess appears
+  on the generated top lid.
+- Confirm the four round top-lid button holes are still cut through the lid.
+- Confirm the lid still sits close to the body with the small fit-preview gap.
+- Confirm screw holes still align over the four body screw bosses.

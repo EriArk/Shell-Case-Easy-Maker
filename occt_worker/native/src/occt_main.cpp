@@ -190,6 +190,8 @@ struct ShapeMetrics {
   int native_generated_lid_lip_count = 0;
   int native_generated_lid_screw_hole_count = 0;
   int native_generated_lid_feature_cut_count = 0;
+  int native_generated_lid_glass_recess_count = 0;
+  int native_generated_lid_glass_recess_filleted_edge_count = 0;
   int native_generated_lid_button_group_count = 0;
   int native_generated_lid_button_cutout_count = 0;
 };
@@ -213,6 +215,8 @@ struct NativePreviewAssemblyResult {
   int generated_lid_lip_count = 0;
   int generated_lid_screw_hole_count = 0;
   int generated_lid_feature_cut_count = 0;
+  int generated_lid_glass_recess_count = 0;
+  int generated_lid_glass_recess_filleted_edge_count = 0;
   int generated_lid_button_group_count = 0;
   int generated_lid_button_cutout_count = 0;
   int applied_feature_intent_count = 0;
@@ -223,6 +227,8 @@ struct NativeGeneratedLidPlateResult {
   int locating_lip_count = 0;
   int screw_hole_count = 0;
   int feature_cut_count = 0;
+  int glass_recess_count = 0;
+  int glass_recess_filleted_edge_count = 0;
   int button_group_count = 0;
   int button_cutout_count = 0;
   int applied_feature_intent_count = 0;
@@ -1140,14 +1146,24 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
         }
       }
 
-      if (recess.target_surface != supported_front_surface) {
+      if (recess.target_surface != supported_front_surface &&
+          recess.target_surface != supported_top_surface) {
         continue;
       }
 
+      const bool targets_top_lid =
+          recess.target_surface == supported_top_surface;
       const double available_width =
           result.enclosure.size[0] - result.enclosure.wall_thickness * 2.0;
       const double available_height =
-          result.enclosure.size[2] - result.enclosure.wall_thickness * 2.0;
+          targets_top_lid
+              ? result.enclosure.size[1] -
+                    result.enclosure.wall_thickness * 2.0
+              : result.enclosure.size[2] -
+                    result.enclosure.wall_thickness * 2.0;
+      const double max_recess_depth =
+          targets_top_lid ? std::max(1.0, result.enclosure.wall_thickness)
+                          : result.enclosure.wall_thickness;
       if (!IsPositiveDimension(recess.width) ||
           !IsPositiveDimension(recess.height) ||
           !IsPositiveDimension(recess.recess_depth) ||
@@ -1159,10 +1175,10 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
               std::min(recess.width, recess.height) ||
           recess.width > available_width ||
           recess.height > available_height ||
-          recess.recess_depth >= result.enclosure.wall_thickness) {
+          recess.recess_depth >= max_recess_depth) {
         result.issue_code = "worker.geometry.invalid_glass_recess";
         result.issue_message =
-            "Native OCCT worker glass recess dimensions must fit the front wall.";
+            "Native OCCT worker glass recess dimensions must fit the target surface.";
         return result;
       }
 
@@ -1533,10 +1549,24 @@ TopoDS_Shape BuildGeneratedTopLidButtonCutoutTool(
     const GeneratedLidPlateRequest& lid_plate,
     const ButtonCutoutItemRequest& cutout);
 
+TopoDS_Shape BuildGeneratedTopLidGlassRecessTool(
+    const EnclosureRequest& enclosure,
+    const GeneratedLidPlateRequest& lid_plate,
+    const GlassRecessRequest& recess,
+    int* filleted_edge_count);
+
+std::array<double, 2> GlassRecessTopLidCenter(
+    const GlassRecessRequest& recess);
+
+bool GlassRecessFitsTopLidSurface(const EnclosureRequest& enclosure,
+                                  const GlassRecessRequest& recess,
+                                  const std::array<double, 2>& center);
+
 NativeGeneratedLidPlateResult BuildGeneratedTopLidPlateShape(
     const EnclosureRequest& enclosure,
     const GeneratedLidPlateRequest& lid_plate,
     const std::vector<LidScrewBossRequest>& lid_screw_bosses,
+    const std::vector<GlassRecessRequest>& glass_recesses,
     const std::vector<ButtonGroupCutoutRequest>& button_groups) {
   NativeGeneratedLidPlateResult result;
   const std::array<double, 3> lid_size = {
@@ -1582,6 +1612,51 @@ NativeGeneratedLidPlateResult BuildGeneratedTopLidPlateShape(
     }
 
     ++result.locating_lip_count;
+  }
+
+  for (const GlassRecessRequest& recess : glass_recesses) {
+    if (recess.target_surface != enclosure.id + ".top_lid.outer") {
+      continue;
+    }
+
+    const std::array<double, 2> center = GlassRecessTopLidCenter(recess);
+    if (!GlassRecessFitsTopLidSurface(enclosure, recess, center)) {
+      continue;
+    }
+
+    int tool_filleted_edge_count = 0;
+    const TopoDS_Shape tool =
+        BuildGeneratedTopLidGlassRecessTool(enclosure,
+                                            lid_plate,
+                                            recess,
+                                            &tool_filleted_edge_count);
+    if (tool.IsNull()) {
+      throw std::runtime_error(
+          "OCCT generated a null top lid glass recess tool.");
+    }
+
+    BRepAlgoAPI_Cut cut(result.shape, tool);
+    cut.SimplifyResult(true, true);
+    if (!cut.IsDone() || cut.HasErrors()) {
+      throw std::runtime_error("OCCT top lid glass recess cut did not complete.");
+    }
+
+    result.shape = cut.Shape();
+    if (result.shape.IsNull()) {
+      throw std::runtime_error(
+          "OCCT generated a null top lid glass recess shape.");
+    }
+
+    BRepCheck_Analyzer cut_analyzer(result.shape, false);
+    if (!cut_analyzer.IsValid()) {
+      throw std::runtime_error(
+          "OCCT generated an invalid top lid glass recess shape.");
+    }
+
+    ++result.feature_cut_count;
+    ++result.glass_recess_count;
+    result.glass_recess_filleted_edge_count += tool_filleted_edge_count;
+    ++result.applied_feature_intent_count;
   }
 
   for (const LidScrewBossRequest& boss : lid_screw_bosses) {
@@ -1665,6 +1740,7 @@ NativePreviewAssemblyResult BuildPreviewAssembly(
     const EnclosureRequest& enclosure,
     const std::vector<GeneratedLidPlateRequest>& lid_plates,
     const std::vector<LidScrewBossRequest>& lid_screw_bosses,
+    const std::vector<GlassRecessRequest>& glass_recesses,
     const std::vector<ButtonGroupCutoutRequest>& button_groups) {
   NativePreviewAssemblyResult result;
   result.shape = body_shape;
@@ -1682,12 +1758,16 @@ NativePreviewAssemblyResult BuildPreviewAssembly(
         BuildGeneratedTopLidPlateShape(enclosure,
                                        lid_plate,
                                        lid_screw_bosses,
+                                       glass_recesses,
                                        button_groups);
     builder.Add(compound, lid_result.shape);
     ++result.generated_lid_plate_count;
     result.generated_lid_lip_count += lid_result.locating_lip_count;
     result.generated_lid_screw_hole_count += lid_result.screw_hole_count;
     result.generated_lid_feature_cut_count += lid_result.feature_cut_count;
+    result.generated_lid_glass_recess_count += lid_result.glass_recess_count;
+    result.generated_lid_glass_recess_filleted_edge_count +=
+        lid_result.glass_recess_filleted_edge_count;
     result.generated_lid_button_group_count += lid_result.button_group_count;
     result.generated_lid_button_cutout_count += lid_result.button_cutout_count;
     result.applied_feature_intent_count +=
@@ -1838,6 +1918,8 @@ ShapeMetrics ComputeShapeMetrics(const TopoDS_Shape& shape,
                                  int generated_lid_lip_count,
                                  int generated_lid_screw_hole_count,
                                  int generated_lid_feature_cut_count,
+                                 int generated_lid_glass_recess_count,
+                                 int generated_lid_glass_recess_filleted_edge_count,
                                  int generated_lid_button_group_count,
                                  int generated_lid_button_cutout_count,
                                  int generated_lid_applied_intent_count,
@@ -1860,6 +1942,10 @@ ShapeMetrics ComputeShapeMetrics(const TopoDS_Shape& shape,
       generated_lid_screw_hole_count;
   metrics.native_generated_lid_feature_cut_count =
       generated_lid_feature_cut_count;
+  metrics.native_generated_lid_glass_recess_count =
+      generated_lid_glass_recess_count;
+  metrics.native_generated_lid_glass_recess_filleted_edge_count =
+      generated_lid_glass_recess_filleted_edge_count;
   metrics.native_generated_lid_button_group_count =
       generated_lid_button_group_count;
   metrics.native_generated_lid_button_cutout_count =
@@ -1984,6 +2070,29 @@ bool GlassRecessFitsFrontSurface(const EnclosureRequest& enclosure,
          center[0] + recess.width / 2.0 <= inner_width / 2.0 + tolerance &&
          center[1] - recess.height / 2.0 >= min_z - tolerance &&
          center[1] + recess.height / 2.0 <= max_z + tolerance;
+}
+
+std::array<double, 2> GlassRecessTopLidCenter(
+    const GlassRecessRequest& recess) {
+  if (recess.has_surface_position) {
+    return recess.surface_position;
+  }
+
+  return {0.0, 0.0};
+}
+
+bool GlassRecessFitsTopLidSurface(const EnclosureRequest& enclosure,
+                                  const GlassRecessRequest& recess,
+                                  const std::array<double, 2>& center) {
+  const double inner_width =
+      enclosure.size[0] - enclosure.wall_thickness * 2.0;
+  const double inner_depth =
+      enclosure.size[1] - enclosure.wall_thickness * 2.0;
+  const double tolerance = 0.000001;
+  return center[0] - recess.width / 2.0 >= -inner_width / 2.0 - tolerance &&
+         center[0] + recess.width / 2.0 <= inner_width / 2.0 + tolerance &&
+         center[1] - recess.height / 2.0 >= -inner_depth / 2.0 - tolerance &&
+         center[1] + recess.height / 2.0 <= inner_depth / 2.0 + tolerance;
 }
 
 bool FaceIntersectsUsbCCutout(const FaceBounds& face_bounds,
@@ -2358,6 +2467,47 @@ bool FaceIntersectsGeneratedTopLidButtonCutout(
          spans_lid_thickness;
 }
 
+bool FaceIntersectsGeneratedTopLidGlassRecess(
+    const FaceBounds& face_bounds,
+    const ShapeMetrics& metrics,
+    const EnclosureRequest& enclosure,
+    const GeneratedLidPlateRequest& lid_plate,
+    const GlassRecessRequest& recess) {
+  const std::array<double, 2> center = GlassRecessTopLidCenter(recess);
+  const double tolerance = PreviewSurfaceTolerance(metrics);
+  const double recess_min_x = center[0] - recess.width / 2.0 - tolerance;
+  const double recess_max_x = center[0] + recess.width / 2.0 + tolerance;
+  const double recess_min_y = center[1] - recess.height / 2.0 - tolerance;
+  const double recess_max_y = center[1] + recess.height / 2.0 + tolerance;
+  const double lid_top_z =
+      enclosure.size[2] + lid_plate.preview_gap + lid_plate.thickness;
+  const double recess_min_z = lid_top_z - recess.recess_depth - tolerance;
+  const double recess_max_z = lid_top_z + tolerance;
+
+  const bool overlaps_recess_volume =
+      face_bounds.max[0] >= recess_min_x &&
+      face_bounds.min[0] <= recess_max_x &&
+      face_bounds.max[1] >= recess_min_y &&
+      face_bounds.min[1] <= recess_max_y &&
+      face_bounds.max[2] >= recess_min_z &&
+      face_bounds.min[2] <= recess_max_z;
+  const bool is_inside_recess_outline =
+      face_bounds.min[0] >= recess_min_x &&
+      face_bounds.max[0] <= recess_max_x &&
+      face_bounds.min[1] >= recess_min_y &&
+      face_bounds.max[1] <= recess_max_y;
+  const bool spans_recess_depth =
+      face_bounds.max[2] - face_bounds.min[2] > tolerance;
+  const bool is_recess_floor =
+      FaceIsOnPlane(face_bounds.min[2],
+                    face_bounds.max[2],
+                    lid_top_z - recess.recess_depth,
+                    tolerance);
+
+  return overlaps_recess_volume && is_inside_recess_outline &&
+         (spans_recess_depth || is_recess_floor);
+}
+
 TopoDS_Shape BuildUsbCCutoutTool(const EnclosureRequest& enclosure,
                                  const UsbCCutoutRequest& cutout,
                                  int* filleted_edge_count) {
@@ -2622,6 +2772,59 @@ TopoDS_Shape BuildGlassRecessTool(const EnclosureRequest& enclosure,
   return fillet.Shape();
 }
 
+TopoDS_Shape BuildGeneratedTopLidGlassRecessTool(
+    const EnclosureRequest& enclosure,
+    const GeneratedLidPlateRequest& lid_plate,
+    const GlassRecessRequest& recess,
+    int* filleted_edge_count) {
+  const std::array<double, 2> center = GlassRecessTopLidCenter(recess);
+  const double overcut = 0.2;
+  const double lid_top_z =
+      enclosure.size[2] + lid_plate.preview_gap + lid_plate.thickness;
+  const std::array<double, 3> tool_size = {
+      recess.width,
+      recess.height,
+      recess.recess_depth + overcut};
+  const gp_Pnt tool_origin(center[0] - recess.width / 2.0,
+                           center[1] - recess.height / 2.0,
+                           lid_top_z - recess.recess_depth);
+  const TopoDS_Shape box =
+      BRepPrimAPI_MakeBox(tool_origin,
+                          tool_size[0],
+                          tool_size[1],
+                          tool_size[2])
+          .Shape();
+
+  *filleted_edge_count = 0;
+  const double safe_radius =
+      std::min(recess.corner_radius,
+               std::min(recess.width, recess.height) / 2.0 - 0.001);
+  if (safe_radius <= 0.0) {
+    return box;
+  }
+
+  BRepFilletAPI_MakeFillet fillet(box);
+  for (TopExp_Explorer explorer(box, TopAbs_EDGE); explorer.More();
+       explorer.Next()) {
+    const TopoDS_Edge edge = TopoDS::Edge(explorer.Current());
+    const std::array<double, 3> edge_dimensions =
+        DimensionsFromBounds(ComputeTopoBounds(edge));
+    if (edge_dimensions[0] <= 0.001 && edge_dimensions[1] <= 0.001 &&
+        edge_dimensions[2] > 0.001) {
+      fillet.Add(safe_radius, edge);
+      ++(*filleted_edge_count);
+    }
+  }
+
+  fillet.Build();
+  if (!fillet.IsDone()) {
+    throw std::runtime_error(
+        "OCCT generated top lid glass recess fillet did not complete.");
+  }
+
+  return fillet.Shape();
+}
+
 NativeFeatureCutResult ApplyNativeFeatureCutouts(
     const TopoDS_Shape& base_shape,
     const EnclosureRequest& enclosure,
@@ -2670,6 +2873,10 @@ NativeFeatureCutResult ApplyNativeFeatureCutouts(
   }
 
   for (const GlassRecessRequest& recess : glass_recesses) {
+    if (recess.target_surface != enclosure.id + ".front_wall.outer") {
+      continue;
+    }
+
     const std::array<double, 2> center =
         GlassRecessCenter(enclosure, recess);
     if (!GlassRecessFitsFrontSurface(enclosure, recess, center)) {
@@ -2897,6 +3104,20 @@ std::vector<std::pair<std::string, std::string>> ClassifyPreviewSurfaces(
                                                boss)) {
           surfaces.push_back(
               std::make_pair(lid_plate.screw_holes_id, "Lid screw holes"));
+          break;
+        }
+      }
+      for (const GlassRecessRequest& recess : glass_recesses) {
+        if (recess.target_surface != enclosure.id + ".top_lid.outer") {
+          continue;
+        }
+
+        if (FaceIntersectsGeneratedTopLidGlassRecess(face_bounds,
+                                                    metrics,
+                                                    enclosure,
+                                                    lid_plate,
+                                                    recess)) {
+          surfaces.push_back(std::make_pair(recess.id, "Top lid glass recess"));
           break;
         }
       }
@@ -3336,6 +3557,11 @@ void WriteRoundedEnclosurePreviewResponse(const NativeRequestEnvelope& request,
             << metrics.native_generated_lid_screw_hole_count << ",\n"
             << "    \"nativeGeneratedLidFeatureCutCount\": "
             << metrics.native_generated_lid_feature_cut_count << ",\n"
+            << "    \"nativeGeneratedLidGlassRecessCount\": "
+            << metrics.native_generated_lid_glass_recess_count << ",\n"
+            << "    \"nativeGeneratedLidGlassRecessFilletedEdgeCount\": "
+            << metrics.native_generated_lid_glass_recess_filleted_edge_count
+            << ",\n"
             << "    \"nativeGeneratedLidButtonGroupCount\": "
             << metrics.native_generated_lid_button_group_count << ",\n"
             << "    \"nativeGeneratedLidButtonCutoutCount\": "
@@ -3491,6 +3717,7 @@ int main(int argc, char* argv[]) {
                              parsed_request.enclosure,
                              parsed_request.generated_lid_plates,
                              parsed_request.lid_screw_bosses,
+                             parsed_request.glass_recesses,
                              parsed_request.button_groups);
     if (preview_assembly.shape.IsNull()) {
       throw std::runtime_error("OCCT generated a null preview assembly.");
@@ -3514,6 +3741,9 @@ int main(int argc, char* argv[]) {
                             preview_assembly.generated_lid_lip_count,
                             preview_assembly.generated_lid_screw_hole_count,
                             preview_assembly.generated_lid_feature_cut_count,
+                            preview_assembly.generated_lid_glass_recess_count,
+                            preview_assembly
+                                .generated_lid_glass_recess_filleted_edge_count,
                             preview_assembly.generated_lid_button_group_count,
                             preview_assembly.generated_lid_button_cutout_count,
                             preview_assembly.applied_feature_intent_count,

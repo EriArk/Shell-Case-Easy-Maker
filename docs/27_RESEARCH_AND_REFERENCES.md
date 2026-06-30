@@ -57,6 +57,65 @@ Use `templates/RESEARCH_NOTE_TEMPLATE.md`.
 
 ---
 
+## 2026-06-30 - OCCT generated top lid glass recess
+
+## Question
+
+How should semantic top-lid glass recesses become shallow generated lid
+features without turning the lid into editable B-Rep state?
+
+## Sources checked
+
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepPrimAPI_MakeBox.hxx`
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepFilletAPI_MakeFillet.hxx`
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepAlgoAPI_Cut.hxx`
+- Existing native worker slices in `occt_worker/native/src/occt_main.cpp` for
+  front-wall glass recesses, generated lid plate assembly, generated lid
+  button cuts, preview surface mapping, and generated-output metrics.
+
+## Findings
+
+- A top-lid recess can reuse the rounded box tool pattern from front-wall glass
+  recesses, but its cutting axis is Z and its depth is clamped to remain a
+  shallow lid feature.
+- `BRepFilletAPI_MakeFillet` supports adding fillets by edge and radius, so
+  the recess tool can fillet the vertical rounded-rectangle edges before the
+  boolean cut.
+- `BRepAlgoAPI_Cut` is the appropriate boolean subtraction path already used
+  for body feature cuts and generated lid screw/button holes.
+- Routing by semantic `targetSurface` keeps front-wall recesses on the body
+  path and top-lid recesses on the generated lid path.
+
+## License / compatibility notes
+
+- OCCT headers are from the project-local vcpkg dependency. They are LGPL 2.1
+  with OCCT exception / commercial alternative, matching the existing OCCT
+  dependency evaluation.
+- No external project code was copied.
+
+## Decision
+
+Parse `glass_recess` intents targeting `main_enclosure.top_lid.outer`,
+validate their face-local size/depth/radius against the generated lid safe
+area, cut a shallow rounded rectangular tool into the generated lid plate, and
+map resulting preview triangles by semantic feature id such as
+`top_lid_glass_recess`. Report
+`nativeGeneratedLidFeatureCutCount`,
+`nativeGeneratedLidGlassRecessCount`, and
+`nativeGeneratedLidGlassRecessFilletedEdgeCount`.
+
+## Follow-up tasks
+
+- Add protected islands, retaining lips, and glass/acrylic contour export once
+  insert semantics are explicit.
+- Add real lid/body assembly semantics before exposing generated lid parts as
+  independently inspectable objects.
+
+---
+
 ## 2026-06-30 - OCCT generated top lid button cutouts
 
 ## Question
@@ -104,8 +163,6 @@ semantic group id such as `top_lid_buttons`.
 
 ## Follow-up tasks
 
-- Add top-lid glass recess support after recess depth/ledge behavior is defined
-  for the generated lid plate.
 - Add button-cap/plunger generation after holes are stable.
 - Add lid/body assembly semantics before exposing generated lid parts as
   independently inspectable objects.

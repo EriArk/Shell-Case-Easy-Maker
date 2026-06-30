@@ -98,12 +98,12 @@ Future<void> main(List<String> args) async {
       failures,
     );
     _expect(
-      previewMesh.vertexCount == 7222,
+      previewMesh.vertexCount == 7398,
       'previewMesh must contain the deterministic sample vertex count',
       failures,
     );
     _expect(
-      previewMesh.triangleCount == 7920,
+      previewMesh.triangleCount == 8080,
       'previewMesh must contain the deterministic sample triangle count',
       failures,
     );
@@ -125,8 +125,8 @@ Future<void> main(List<String> args) async {
       failures,
     );
     _expect(
-      previewMesh.surfaces.length == 13,
-      'previewMesh must expose body surfaces plus generated lid, body lid seat, locating lip, lid screw holes, top-lid buttons, lid bosses, USB-C, glass, front button, and standoff feature mappings',
+      previewMesh.surfaces.length == 14,
+      'previewMesh must expose body surfaces plus generated lid, body lid seat, locating lip, lid screw holes, top-lid glass, top-lid buttons, lid bosses, USB-C, glass, front button, and standoff feature mappings',
       failures,
     );
     final surfaceIds = previewMesh.surfaces
@@ -175,6 +175,11 @@ Future<void> main(List<String> args) async {
     _expect(
       surfaceIds.contains('top_lid_buttons'),
       'previewMesh surfaces must include the generated top lid button group range',
+      failures,
+    );
+    _expect(
+      surfaceIds.contains('top_lid_glass_recess'),
+      'previewMesh surfaces must include the generated top lid glass recess range',
       failures,
     );
     _expect(
@@ -319,8 +324,18 @@ Future<void> main(List<String> args) async {
     failures,
   );
   _expect(
-    metrics['nativeGeneratedLidFeatureCutCount'] == 4,
-    'nativeGeneratedLidFeatureCutCount must include generated top lid button holes',
+    metrics['nativeGeneratedLidFeatureCutCount'] == 5,
+    'nativeGeneratedLidFeatureCutCount must include generated top lid recess and button holes',
+    failures,
+  );
+  _expect(
+    metrics['nativeGeneratedLidGlassRecessCount'] == 1,
+    'nativeGeneratedLidGlassRecessCount must include the generated top lid glass recess',
+    failures,
+  );
+  _expect(
+    metrics['nativeGeneratedLidGlassRecessFilletedEdgeCount'] == 8,
+    'nativeGeneratedLidGlassRecessFilletedEdgeCount must be deterministic',
     failures,
   );
   _expect(
@@ -334,7 +349,7 @@ Future<void> main(List<String> args) async {
     failures,
   );
   _expect(
-    metrics['featureIntentCount'] == 6,
+    metrics['featureIntentCount'] == 7,
     'featureIntentCount must match the sample request',
     failures,
   );
@@ -485,14 +500,14 @@ Future<void> main(List<String> args) async {
   );
   _expectClose(
     _readNumber(metrics['surfaceArea']),
-    55325.131008,
+    55361.470831,
     0.001,
     'surfaceArea',
     failures,
   );
   _expectClose(
     _readNumber(metrics['volume']),
-    53366.879754,
+    53224.939925,
     0.001,
     'volume',
     failures,
@@ -538,6 +553,10 @@ Future<void> main(List<String> args) async {
           metrics['nativeGeneratedLidScrewHoleCount'],
       'nativeGeneratedLidFeatureCutCount':
           metrics['nativeGeneratedLidFeatureCutCount'],
+      'nativeGeneratedLidGlassRecessCount':
+          metrics['nativeGeneratedLidGlassRecessCount'],
+      'nativeGeneratedLidGlassRecessFilletedEdgeCount':
+          metrics['nativeGeneratedLidGlassRecessFilletedEdgeCount'],
       'nativeGeneratedLidButtonGroupCount':
           metrics['nativeGeneratedLidButtonGroupCount'],
       'nativeGeneratedLidButtonCutoutCount':
@@ -604,6 +623,26 @@ ProjectModel _nativeSmokeProject() {
           },
           placement: {
             'surfacePosition': [28.0, 16.0],
+          },
+        ),
+      )
+      .replaceFeature(
+        const SemanticFeature(
+          id: 'top_lid_glass_recess',
+          type: 'glass_recess',
+          targetSurface: 'main_enclosure.top_lid.outer',
+          operation: 'recess',
+          parameters: {
+            'width': 20.0,
+            'height': 12.0,
+            'recessDepth': 0.6,
+            'ledgeWidth': 1.0,
+            'cornerRadius': 2.0,
+            'insertThickness': 1.0,
+            'clearanceProfile': 'fdm_normal',
+          },
+          placement: {
+            'surfacePosition': [36.0, 0.0],
           },
         ),
       )

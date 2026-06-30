@@ -256,8 +256,9 @@ from one semantic button group, and `standoff_mounts_1` for generated bottom
 standoff bosses. Enclosures with `top_screw_lid` also expose
 `main_enclosure.lid_screw_bosses` for generated lid screw bosses and
 `main_enclosure.generated_top_lid_seat` for the generated body-side lid seat.
-Top-lid `button_group` features expose one semantic group mapping such as
-`top_lid_buttons` after their generated holes are cut through the lid.
+Top-lid `glass_recess` and `button_group` features expose semantic feature or
+group mappings such as `top_lid_glass_recess` and `top_lid_buttons` after
+their generated recess/hole faces are cut into the lid.
 `main_enclosure.front_wall.outer` remains the front wall surface mapping.
 
 ## Initial Rounded Enclosure Plan
@@ -306,14 +307,18 @@ The first native OCCT slices now:
 24. Cut first-pass circular top-lid button group holes through the generated
     lid plate when a semantic `button_group` targets
     `main_enclosure.top_lid.outer`.
+25. Cut first-pass shallow rounded top-lid glass recesses into the generated
+    lid plate when a semantic `glass_recess` targets
+    `main_enclosure.top_lid.outer`.
 
 The next native geometry slices should:
 
 1. Turn the fit-preview lid into a real lid/body split when assembly semantics
    are explicit.
-2. Add top-lid glass recess support after lid/body targeting is explicit.
-3. Add screw boss, lid, and standoff fillets/chamfers plus richer mount
+2. Add screw boss, lid, and standoff fillets/chamfers plus richer mount
    variants.
+3. Add protected islands, acrylic/DXF contour output, and richer insert
+   semantics for glass recesses.
 4. Expand semantic face mapping beyond the first top/front/bottom ranges.
 
 Expected sample dimensions:
@@ -324,14 +329,15 @@ Expected sample dimensions:
 - native preview volume after lid screw bosses, USB-C, front glass recess,
   front button cutouts, bottom standoff bosses, generated lid plate, lid screw
   holes, underside locating lip, body-side lid seat, fit-preview positioning,
-  and top-lid button holes: `53366.879754 mm^3`,
+  top-lid button holes, and top-lid glass recess: `53224.939925 mm^3`,
 - native preview surface area after lid screw bosses, USB-C, front glass
   recess, front button cutouts, bottom standoff bosses, generated lid plate,
-  lid screw holes, underside locating lip, body-side lid seat, and
-  fit-preview positioning, and top-lid button holes: `55325.131008 mm^2`,
-- native preview surface mappings after feature ranges: `13`,
-- native preview mapped triangles after feature ranges: `11166`,
-- native feature metrics: `featureIntentCount=6`,
+  lid screw holes, underside locating lip, body-side lid seat,
+  fit-preview positioning, top-lid button holes, and top-lid glass recess:
+  `55361.470831 mm^2`,
+- native preview surface mappings after feature ranges: `14`,
+- native preview mapped triangles after feature ranges: `11604`,
+- native feature metrics: `featureIntentCount=7`,
   `nativeFeatureCutCount=8`, `nativeIgnoredFeatureIntentCount=1`,
   `nativeLidScrewBossCount=4`, `nativeLidScrewPilotCount=4`,
   `nativeGeneratedLidPlateCount=1`,
@@ -339,7 +345,9 @@ Expected sample dimensions:
   `nativeGeneratedLidFitPreviewGap=0.35`,
   `nativeGeneratedLidLipCount=1`,
   `nativeGeneratedLidScrewHoleCount=4`,
-  `nativeGeneratedLidFeatureCutCount=4`,
+  `nativeGeneratedLidFeatureCutCount=5`,
+  `nativeGeneratedLidGlassRecessCount=1`,
+  `nativeGeneratedLidGlassRecessFilletedEdgeCount=8`,
   `nativeGeneratedLidButtonGroupCount=1`,
   `nativeGeneratedLidButtonCutoutCount=4`, `nativeUsbCCutoutCount=1`,
   `nativeGlassRecessCount=1`, `nativeButtonGroupCount=1`,
@@ -385,8 +393,9 @@ Expected sample dimensions:
   preview plate with screw clearance holes, an underside locating lip, and a
   body-side shallow locating seat. The generated lid is now positioned in a
   first-pass fit-preview state with a small inspection gap, and semantic
-  top-lid button groups can cut circular holes through that generated lid. A
-  real separable lid/body split with full mating geometry, top-lid glass
-  recesses, richer mount variants, and richer face mapping are still planned.
+  top-lid glass recesses and button groups can cut generated recess/hole faces
+  into that lid. A real separable lid/body split with full mating geometry,
+  protected recess islands, richer mount variants, and richer face mapping are
+  still planned.
 - STEP/STL export operations intentionally return unsupported in the mock
   backend.
