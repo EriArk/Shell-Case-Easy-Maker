@@ -108,6 +108,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M87 - Native Button Cap/Stem Preview
 - [x] M88 - Native Viewport Readability Pass
 - [x] M89 - Viewport Navigation Presets
+- [x] M90 - Semantic Plunger Travel Controls
 
 ---
 
@@ -4111,3 +4112,55 @@ project data.
 - Confirm the viewport label changes to the clicked preset and the model recenters.
 - Select `Top lid` or `Группа кнопок` and switch presets; confirm selection
   and semantic overlays stay active.
+
+---
+
+## M90 - Semantic Plunger Travel Controls
+
+### Goal
+Make button plunger motion safer to iterate by storing travel and clearance as
+semantic `button_group.itemPrototype` data, exposing the values in the
+contextual UI, and validating obvious impossible plunger setups before real
+guide-wall/travel-stop geometry is generated.
+
+### Tasks
+- [x] Add default `travel`, `switchClearance`, and `guideClearance` values to
+      manual and component-sourced button groups.
+- [x] Expose `Ход`, `Зазор до свитча`, and `Зазор направл.` controls in the
+      button-group dialog and selected-group inspector.
+- [x] Serialize the new semantic fields through geometry protocol requests and
+      operation plans without turning them into editable generated solids.
+- [x] Add semantic validation for plunger travel depth and guide clearance.
+- [x] Keep `mode: cutout` button groups quiet for plunger-only validation.
+- [x] Update docs, tasks, roadmap, worklog, sample project, and fixtures.
+
+### Done Criteria
+- `button_group` remains one editable semantic group; generated caps/stems stay
+  disposable preview geometry.
+- New parameters live in `FeatureGroup.itemPrototype` and round-trip through
+  geometry request fixtures.
+- Undo restores edited travel/clearance values from the inspector.
+- Plunger validation catches over-deep travel and guide clearance wider than
+  the button opening.
+- No OCCT worker semantics, raw topology IDs, or editable mesh/STL workflow are
+  exposed to Flutter.
+
+### Tests
+- `flutter test test\geometry_protocol_test.dart test\project_selection_resolver_test.dart test\project_semantic_validator_test.dart --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "selected button group inspector edits pattern through undo" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "component button command creates switch-sourced group" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open
+  `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- Select `Группа кнопок` / `abxy_buttons` in the left feature list.
+- Confirm the inspector shows `Ход`, `Зазор до свитча`, and `Зазор направл.`.
+- Edit `Ход`, press Enter, then click undo and confirm it returns.
+- From the board placement, create a component-sourced button group and confirm
+  the dialog also shows the same travel/clearance defaults.

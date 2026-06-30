@@ -387,6 +387,8 @@ class ProjectSemanticValidator {
     FeatureGroup group,
     List<ValidationMessage> messages,
   ) {
+    _validateButtonPlunger(group, messages);
+
     final layout = readString(group.pattern['layout'], fallback: '');
     if (layout != 'from_component_switches') {
       return;
@@ -461,6 +463,116 @@ class ProjectSemanticValidator {
         );
         return;
       }
+    }
+  }
+
+  static void _validateButtonPlunger(
+    FeatureGroup group,
+    List<ValidationMessage> messages,
+  ) {
+    final mode = readString(group.itemPrototype['mode'], fallback: 'plunger');
+    if (mode != 'plunger') {
+      return;
+    }
+
+    final diameter = readDouble(group.itemPrototype['diameter'], fallback: 8);
+    final stemDiameter = readDouble(
+      group.itemPrototype['stemDiameter'],
+      fallback: 3,
+    );
+    final stemDepth = readDouble(
+      group.itemPrototype['stemDepth'],
+      fallback: 2.8,
+    );
+    final travel = readDouble(group.itemPrototype['travel'], fallback: 0.8);
+    final switchClearance = readDouble(
+      group.itemPrototype['switchClearance'],
+      fallback: 0.3,
+    );
+    final guideClearance = readDouble(
+      group.itemPrototype['guideClearance'],
+      fallback: 0.25,
+    );
+
+    if (travel <= 0 || !travel.isFinite) {
+      messages.add(
+        ValidationMessage(
+          severity: ValidationSeverity.error,
+          code: 'group.button_plunger.travel.invalid',
+          message: 'Ход плунжера должен быть больше нуля.',
+          targetId: group.id,
+        ),
+      );
+    }
+
+    if (switchClearance < 0 || !switchClearance.isFinite) {
+      messages.add(
+        ValidationMessage(
+          severity: ValidationSeverity.error,
+          code: 'group.button_plunger.switch_clearance.invalid',
+          message: 'Зазор до свитча не может быть отрицательным.',
+          targetId: group.id,
+        ),
+      );
+    }
+
+    final guideClearanceValid = guideClearance >= 0 && guideClearance.isFinite;
+    if (!guideClearanceValid) {
+      messages.add(
+        ValidationMessage(
+          severity: ValidationSeverity.error,
+          code: 'group.button_plunger.guide_clearance.invalid',
+          message: 'Направляющий зазор не может быть отрицательным.',
+          targetId: group.id,
+        ),
+      );
+    }
+
+    if (travel + switchClearance + 0.2 > stemDepth) {
+      messages.add(
+        ValidationMessage(
+          severity: ValidationSeverity.error,
+          code: 'group.button_plunger.travel.too_deep',
+          message:
+              'Ход плунжера и зазор до свитча больше доступной глубины ножки.',
+          targetId: group.id,
+        ),
+      );
+    }
+
+    if (guideClearanceValid && stemDiameter + guideClearance * 2 > diameter) {
+      messages.add(
+        ValidationMessage(
+          severity: ValidationSeverity.error,
+          code: 'group.button_plunger.guide.too_wide',
+          message:
+              'Ножка с направляющим зазором не помещается в отверстие кнопки.',
+          targetId: group.id,
+        ),
+      );
+    }
+
+    if (guideClearanceValid && guideClearance < 0.15) {
+      messages.add(
+        ValidationMessage(
+          severity: ValidationSeverity.warning,
+          code: 'group.button_plunger.guide_clearance.tight',
+          message:
+              'Направляющий зазор меньше 0.15 mm может заедать после печати.',
+          targetId: group.id,
+        ),
+      );
+    }
+
+    if (guideClearanceValid && guideClearance > 1.2) {
+      messages.add(
+        ValidationMessage(
+          severity: ValidationSeverity.warning,
+          code: 'group.button_plunger.guide_clearance.loose',
+          message: 'Большой направляющий зазор может сделать кнопку шаткой.',
+          targetId: group.id,
+        ),
+      );
     }
   }
 

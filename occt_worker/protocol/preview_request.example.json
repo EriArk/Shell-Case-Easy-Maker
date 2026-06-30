@@ -217,6 +217,9 @@
           "pattern": "diamond",
           "count": 4,
           "diameter": 8.0,
+          "travel": 0.8,
+          "switchClearance": 0.3,
+          "guideClearance": 0.25,
           "mode": "plunger"
         }
       }
@@ -311,6 +314,9 @@
           "capHeight": 1.2,
           "stemDiameter": 3.0,
           "stemDepth": 2.8,
+          "travel": 0.8,
+          "switchClearance": 0.3,
+          "guideClearance": 0.25,
           "mode": "plunger"
         },
         "placement": {
@@ -364,6 +370,9 @@
         "pattern": "diamond",
         "count": 4,
         "diameter": 8.0,
+        "travel": 0.8,
+        "switchClearance": 0.3,
+        "guideClearance": 0.25,
         "mode": "plunger"
       }
     },
@@ -459,6 +468,9 @@
           "capHeight": 1.2,
           "stemDiameter": 3.0,
           "stemDepth": 2.8,
+          "travel": 0.8,
+          "switchClearance": 0.3,
+          "guideClearance": 0.25,
           "mode": "plunger"
         }
       },
@@ -486,6 +498,9 @@
             "capHeight": 1.2,
             "stemDiameter": 3.0,
             "stemDepth": 2.8,
+            "travel": 0.8,
+            "switchClearance": 0.3,
+            "guideClearance": 0.25,
             "mode": "plunger"
           },
           "source": {
@@ -522,6 +537,9 @@
             "capHeight": 1.2,
             "stemDiameter": 3.0,
             "stemDepth": 2.8,
+            "travel": 0.8,
+            "switchClearance": 0.3,
+            "guideClearance": 0.25,
             "mode": "plunger"
           },
           "source": {
@@ -558,6 +576,9 @@
             "capHeight": 1.2,
             "stemDiameter": 3.0,
             "stemDepth": 2.8,
+            "travel": 0.8,
+            "switchClearance": 0.3,
+            "guideClearance": 0.25,
             "mode": "plunger"
           },
           "source": {
@@ -594,6 +615,9 @@
             "capHeight": 1.2,
             "stemDiameter": 3.0,
             "stemDepth": 2.8,
+            "travel": 0.8,
+            "switchClearance": 0.3,
+            "guideClearance": 0.25,
             "mode": "plunger"
           },
           "source": {

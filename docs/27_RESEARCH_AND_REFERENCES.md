@@ -317,10 +317,25 @@ Smoke metrics now include `nativeButtonCapCount`, `nativeButtonStemCount`,
 and 4 generated top-lid caps/stems. No GPL/AGPL code or external project
 snippets were copied.
 
+## Update - semantic plunger travel/clearance controls
+
+M90 adds semantic `button_group.itemPrototype` parameters for `travel`,
+`switchClearance`, and `guideClearance`. This slice does not add a new OCCT
+operation or copy external geometry code; it extends the editable semantic
+schema, Flutter inspector/dialog controls, geometry request serialization, and
+project-level validation before guide-wall or travel-stop B-Rep is generated.
+
+The validator checks plunger-mode groups only. Cutout-mode button groups stay
+quiet. For plungers, `travel + switchClearance` must fit within `stemDepth`
+with a small generator reserve, and `stemDiameter + guideClearance * 2` must
+fit inside the button opening. Very tight or very loose guide clearance is
+reported as a warning so the user can still continue while the real printable
+guide-wall generator is pending.
+
 ## Follow-up tasks
 
-- Add guide walls, travel stops, anti-wobble clearance, and switch-contact
-  validation for real printable plungers.
+- Add guide walls, travel stops, anti-wobble geometry, and richer
+  switch-contact/collision validation for real printable plungers.
 - Expand ring/bezel/cap style parameters later if caps/plungers need shape,
   chamfer, or texture controls.
 - Add lid/body assembly semantics before exposing generated lid parts as

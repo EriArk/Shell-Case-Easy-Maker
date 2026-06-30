@@ -61,6 +61,9 @@ void main() {
           'capHeight': 1.4,
           'stemDiameter': 3.2,
           'stemDepth': 3.0,
+          'travel': 0.9,
+          'switchClearance': 0.35,
+          'guideClearance': 0.25,
         },
         placement: {'anchor': 'component_switch_centers'},
       ),
@@ -109,6 +112,11 @@ void main() {
       3.0,
     );
     expect(
+      (buttonIntent.parameters['itemPrototype']
+          as Map<String, Object?>)['travel'],
+      0.9,
+    );
+    expect(
       buttonIntent.source['componentPlacementId'],
       'button_board_placement',
     );
@@ -122,6 +130,9 @@ void main() {
     expect(buttonIntent.items.first.parameters['capHeight'], 1.4);
     expect(buttonIntent.items.first.parameters['stemDiameter'], 3.2);
     expect(buttonIntent.items.first.parameters['stemDepth'], 3.0);
+    expect(buttonIntent.items.first.parameters['travel'], 0.9);
+    expect(buttonIntent.items.first.parameters['switchClearance'], 0.35);
+    expect(buttonIntent.items.first.parameters['guideClearance'], 0.25);
     expect(buttonIntent.items.first.source['direction'], 'top');
   });
 
@@ -203,6 +214,9 @@ void main() {
             'capHeight': 1.2,
             'stemDiameter': 3.0,
             'stemDepth': 2.8,
+            'travel': 0.8,
+            'switchClearance': 0.3,
+            'guideClearance': 0.25,
             'mode': 'plunger',
           },
         ),
@@ -235,6 +249,9 @@ void main() {
     expect(operations.last.parameters['capHeight'], 1.2);
     expect(operations.last.parameters['stemDiameter'], 3.0);
     expect(operations.last.parameters['stemDepth'], 2.8);
+    expect(operations.last.parameters['travel'], 0.8);
+    expect(operations.last.parameters['switchClearance'], 0.3);
+    expect(operations.last.parameters['guideClearance'], 0.25);
     expect(operations.last.source['direction'], 'top');
   });
 

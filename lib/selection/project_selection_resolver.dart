@@ -347,6 +347,21 @@ List<ProjectSelectionProperty> _featureGroupProperties(FeatureGroup group) {
         label: 'Глубина ножки',
         value: _formatValue(group.itemPrototype['stemDepth']),
       ),
+    if (group.itemPrototype.containsKey('travel'))
+      ProjectSelectionProperty(
+        label: 'Ход',
+        value: _formatValue(group.itemPrototype['travel']),
+      ),
+    if (group.itemPrototype.containsKey('switchClearance'))
+      ProjectSelectionProperty(
+        label: 'Зазор до свитча',
+        value: _formatValue(group.itemPrototype['switchClearance']),
+      ),
+    if (group.itemPrototype.containsKey('guideClearance'))
+      ProjectSelectionProperty(
+        label: 'Зазор направл.',
+        value: _formatValue(group.itemPrototype['guideClearance']),
+      ),
     if (group.itemPrototype.containsKey('holeDiameter'))
       ProjectSelectionProperty(
         label: 'Отверстие',

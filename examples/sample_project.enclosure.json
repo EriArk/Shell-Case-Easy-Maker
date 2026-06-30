@@ -80,7 +80,9 @@
         "stemDiameter": 3.0,
         "stemDepth": 2.8,
         "clearanceProfile": "fdm_normal",
-        "travel": 1.2
+        "travel": 1.2,
+        "switchClearance": 0.3,
+        "guideClearance": 0.25
       }
     }
   ]

@@ -45,9 +45,12 @@ solids are disposable generated geometry, and preview faces for holes/rings
 and cap/stem parts map back to the same semantic group ids such as
 `front_buttons` and `top_lid_buttons`. First-pass style controls are semantic
 `itemPrototype` values: `ringWidth`, `ringProtrusion`, `capDiameter`,
-`capHeight`, `stemDiameter`, and `stemDepth`. Guide walls, anti-wobble
-features, travel stops, tactile top textures, and richer cap shapes remain
-future work.
+`capHeight`, `stemDiameter`, `stemDepth`, `travel`, `switchClearance`, and
+`guideClearance`. The Flutter semantic validator now checks that plunger travel
+plus switch clearance fits the stem depth and that guide clearance is not too
+tight, too loose, or wider than the cap opening. Guide-wall geometry,
+anti-wobble features, travel stops, tactile top textures, and richer cap shapes
+remain future work.
 
 ## Parameters
 
@@ -60,7 +63,8 @@ future work.
 - Stem width/diameter.
 - Stem target point.
 - Travel.
-- Clearance.
+- Switch clearance.
+- Guide clearance.
 - Guide style.
 - Top texture.
 - Material profile.
@@ -78,7 +82,7 @@ future work.
 
 - Stem reaches switch center.
 - Stem does not collide with board/components.
-- Travel is enough.
-- Guide clearance is valid.
+- Travel plus switch clearance fits stem depth.
+- Guide clearance is printable and fits inside the cap opening.
 - Button can be inserted/printed.
 - U-cut flex material appropriate.

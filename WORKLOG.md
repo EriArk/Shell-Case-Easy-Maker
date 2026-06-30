@@ -42,6 +42,96 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-30 - M90 Semantic plunger travel controls
+
+### Goal
+Add first-pass semantic travel and clearance controls for plunger-style button
+groups before generating real guide walls or travel stops.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`docs/09_PATTERN_AND_LAYOUT_SYSTEM.md`,
+`docs/10_ENCLOSURE_AUTO_GENERATION.md`,
+`docs/16_BUTTON_AND_PLUNGER_SYSTEM.md`,
+`docs/27_RESEARCH_AND_REFERENCES.md`,
+`lib/ui/shell/workspace_shell.dart`,
+`lib/validation/project_semantic_validator.dart`,
+`lib/geometry/geometry_protocol.dart`, and related button-group tests.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added `travel`, `switchClearance`, and `guideClearance` defaults for manual
+    and component-sourced `button_group` creation.
+  - Added dialog and selected-group inspector controls for `Ход`,
+    `Зазор до свитча`, and `Зазор направл.`.
+  - Normalizes the new values into `FeatureGroup.itemPrototype` so the group
+    remains one editable semantic object.
+- `lib/validation/project_semantic_validator.dart`:
+  - Added plunger-only validation for travel depth, switch clearance, and guide
+    clearance fit.
+  - Keeps `mode: cutout` groups quiet for plunger-specific warnings.
+- `lib/selection/project_selection_resolver.dart` and
+  `lib/project/project_model.dart`:
+  - Surface the new properties in inspector details and initial project data.
+- Protocol fixtures, sample project, and smoke inputs:
+  - Added the new semantic fields to geometry requests and operation-plan
+    fixtures.
+- Tests and docs:
+  - Added semantic validator coverage, protocol assertions, resolver assertions,
+    and widget coverage for inspector/dialog defaults and undo.
+  - Updated roadmap, task tracker, button/plunger docs, pattern docs, enclosure
+    generation docs, command/undo docs, and research notes.
+
+### Tests run
+- `flutter test test\geometry_protocol_test.dart test\project_selection_resolver_test.dart test\project_semantic_validator_test.dart --reporter compact`:
+  - Passed, 33 tests.
+- `flutter test test\widget_test.dart --plain-name "selected button group inspector edits pattern through undo" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "component button command creates switch-sourced group" --reporter compact`:
+  - Passed.
+- `flutter pub get`:
+  - Passed.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed, no formatting changes required.
+- `flutter analyze`:
+  - Passed, no issues found.
+- `flutter test --reporter compact`:
+  - Passed, 193 tests.
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`:
+  - Passed; native preview emitted mesh and button cap/stem metrics.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed; rebuilt latest Windows bundle.
+
+### Validation
+- Geometry checked?
+  - Protocol fixtures and native smoke passed; no new OCCT shape operation was
+    added in this slice.
+- Serialization checked?
+  - New fields round-trip through request fixtures and operation plans.
+- UI checked?
+  - Widget tests cover dialog defaults, inspector editing, and undo.
+- Export checked?
+  - Not touched.
+
+### Known issues
+- Issue: Guide walls, travel stops, anti-wobble geometry, and richer
+  switch-contact/collision checks are still future work.
+  - Severity: Medium.
+  - Next action: Add the next printable plunger mechanics slice after this
+    semantic validation base.
+
+### Next step
+Start the next button/plunger mechanics slice: guide-wall/travel-stop planning
+or a first constrained printable plunger geometry step.
+
+### Notes for future Codex sessions
+The new parameters are semantic project data in `FeatureGroup.itemPrototype`.
+Do not flatten them into generated solids or make the OCCT worker own product
+semantics; geometry should consume these values through existing feature-group
+intents.
+
+---
+
 ## 2026-06-30 - M89 Viewport navigation presets
 
 ### Goal

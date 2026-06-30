@@ -40,11 +40,12 @@ Front-wall and top-lid `button_group` features can cut generated circular holes
 and add small raised annular rings/bezels around those holes while staying one
 editable group. Plunger-style groups also get first-pass separate generated
 cap/stem preview solids. Ring, cap, and stem dimensions are stored as semantic
-`itemPrototype` parameters. These are generated B-Rep output; the editable
-project still stores semantic groups and lid metadata rather than generated
-solids, per-boss bodies, per-hole editable features, editable lip geometry,
-editable groove geometry, editable assembly state, or per-ring/cap/stem
-editable solids.
+`itemPrototype` parameters, alongside first-pass plunger travel and clearance
+values used by semantic validation. These are generated B-Rep output; the
+editable project still stores semantic groups and lid metadata rather than
+generated solids, per-boss bodies, per-hole editable features, editable lip
+geometry, editable groove geometry, editable assembly state, or
+per-ring/cap/stem editable solids.
 
 ## Port cutouts
 
@@ -70,7 +71,7 @@ map. See `docs/33_COMPONENT_FEATURE_PROJECTION.md`.
 For upward switches:
 - project switch centers to lid/top surface,
 - generate hole or plunger,
-- check height/travel,
+- check height/travel/clearance,
 - warn if switch cannot be reached.
 
 Component-sourced button groups use the same projector. Saved

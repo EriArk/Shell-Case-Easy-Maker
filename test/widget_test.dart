@@ -261,6 +261,9 @@ void main() {
           'capHeight': 1.2,
           'stemDiameter': 3.0,
           'stemDepth': 2.8,
+          'travel': 0.8,
+          'switchClearance': 0.3,
+          'guideClearance': 0.25,
           'mode': 'plunger',
         },
         placement: {'anchor': 'center'},
@@ -750,6 +753,9 @@ void main() {
           'capHeight': 1.2,
           'stemDiameter': 3.0,
           'stemDepth': 2.8,
+          'travel': 0.8,
+          'switchClearance': 0.3,
+          'guideClearance': 0.25,
           'mode': 'plunger',
         },
         placement: {'anchor': 'center'},
@@ -770,39 +776,28 @@ void main() {
       const ValueKey('toolbar-command-${CommandIds.undo}'),
     );
 
-    final canvasFinder = find.byKey(const ValueKey('mock-viewport-canvas'));
-    final canvasTopLeft = tester.getTopLeft(canvasFinder);
-    final canvasSize = tester.getSize(canvasFinder);
-    final layout = MockViewportLayout.fromSize(
-      canvasSize,
-      const ViewportState(),
-    );
-    const buttonGroup = MockViewportFeatureGroupPreview(
-      semanticId: 'button_group_1',
-      kind: MockViewportFeatureGroupKind.buttonGroup,
-      sourcePositions: [
-        Offset(14, 0),
-        Offset(0, -14),
-        Offset(0, 14),
-        Offset(-14, 0),
-      ],
-      referenceWidth: 120,
-      referenceHeight: 70,
-      itemDiameter: 8,
-    );
-
-    await tester.tapAt(
-      canvasTopLeft + layout.featureGroupCenters(buttonGroup).first,
-    );
+    final browserGroup = find.text('button_group_1', skipOffstage: false);
+    await tester.ensureVisible(browserGroup);
+    await tester.pumpAndSettle();
+    await tester.tap(browserGroup.first);
     await tester.pumpAndSettle();
 
-    final countField = find.byKey(
-      const ValueKey('feature-group-param-button_group_1-count'),
+    Finder parameterField(String id) => find.byKey(
+      ValueKey('feature-group-param-button_group_1-$id'),
+      skipOffstage: false,
     );
 
-    await tester.enterText(countField, '6');
-    await tester.testTextInput.receiveAction(TextInputAction.done);
-    await tester.pumpAndSettle();
+    Future<void> enterParameterText(Finder field, String value) async {
+      await tester.ensureVisible(field);
+      await tester.pump();
+      await tester.enterText(field, value);
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+    }
+
+    final countField = parameterField('count');
+
+    await enterParameterText(countField, '6');
 
     expect(tester.widget<TextFormField>(countField).controller?.text, '6');
     expect(tester.widget<IconButton>(undoButton).onPressed, isNotNull);
@@ -812,18 +807,13 @@ void main() {
 
     expect(tester.widget<TextFormField>(countField).controller?.text, '4');
 
-    final ringWidthField = find.byKey(
-      const ValueKey('feature-group-param-button_group_1-ringWidth'),
-    );
-    final ringProtrusionField = find.byKey(
-      const ValueKey('feature-group-param-button_group_1-ringProtrusion'),
-    );
-    final capDiameterField = find.byKey(
-      const ValueKey('feature-group-param-button_group_1-capDiameter'),
-    );
-    final stemDepthField = find.byKey(
-      const ValueKey('feature-group-param-button_group_1-stemDepth'),
-    );
+    final ringWidthField = parameterField('ringWidth');
+    final ringProtrusionField = parameterField('ringProtrusion');
+    final capDiameterField = parameterField('capDiameter');
+    final stemDepthField = parameterField('stemDepth');
+    final travelField = parameterField('travel');
+    final switchClearanceField = parameterField('switchClearance');
+    final guideClearanceField = parameterField('guideClearance');
 
     expect(
       tester.widget<TextFormField>(ringWidthField).controller?.text,
@@ -841,10 +831,17 @@ void main() {
       tester.widget<TextFormField>(stemDepthField).controller?.text,
       '2.8',
     );
+    expect(tester.widget<TextFormField>(travelField).controller?.text, '0.80');
+    expect(
+      tester.widget<TextFormField>(switchClearanceField).controller?.text,
+      '0.30',
+    );
+    expect(
+      tester.widget<TextFormField>(guideClearanceField).controller?.text,
+      '0.25',
+    );
 
-    await tester.enterText(ringWidthField, '2.4');
-    await tester.testTextInput.receiveAction(TextInputAction.done);
-    await tester.pumpAndSettle();
+    await enterParameterText(ringWidthField, '2.4');
 
     expect(
       tester.widget<TextFormField>(ringWidthField).controller?.text,
@@ -859,9 +856,7 @@ void main() {
       '1.2',
     );
 
-    await tester.enterText(capDiameterField, '6.4');
-    await tester.testTextInput.receiveAction(TextInputAction.done);
-    await tester.pumpAndSettle();
+    await enterParameterText(capDiameterField, '6.4');
 
     expect(
       tester.widget<TextFormField>(capDiameterField).controller?.text,
@@ -875,8 +870,16 @@ void main() {
       tester.widget<TextFormField>(capDiameterField).controller?.text,
       '7.4',
     );
-  });
 
+    await enterParameterText(travelField, '1.1');
+
+    expect(tester.widget<TextFormField>(travelField).controller?.text, '1.10');
+
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+
+    expect(tester.widget<TextFormField>(travelField).controller?.text, '0.80');
+  });
   testWidgets(
     'selected standoff group inspector edits mount parameters through undo',
     (tester) async {
@@ -1732,7 +1735,8 @@ void main() {
     await tester.tap(find.text('main_enclosure').first);
     await tester.pumpAndSettle();
 
-    expect(find.text('Тип кнопки'), findsNothing);
+    const modeFieldKey = ValueKey('feature-group-param-button_group_1-mode');
+    expect(find.byKey(modeFieldKey, skipOffstage: false), findsNothing);
 
     final canvasFinder = find.byKey(const ValueKey('mock-viewport-canvas'));
     final canvasTopLeft = tester.getTopLeft(canvasFinder);
@@ -1755,7 +1759,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Тип кнопки'), findsOneWidget);
+    final modeField = find.byKey(modeFieldKey, skipOffstage: false);
+    await tester.ensureVisible(modeField);
+    await tester.pump();
+
+    expect(modeField, findsOneWidget);
 
     await tester.tap(undoButton);
     await _pumpAsyncUi(tester);
@@ -1825,6 +1833,9 @@ void main() {
     expect(_dialogNumberText(tester, 'button-group-cap-height'), '1.2');
     expect(_dialogNumberText(tester, 'button-group-stem-diameter'), '3');
     expect(_dialogNumberText(tester, 'button-group-stem-depth'), '2.8');
+    expect(_dialogNumberText(tester, 'button-group-travel'), '0.8');
+    expect(_dialogNumberText(tester, 'button-group-switch-clearance'), '0.3');
+    expect(_dialogNumberText(tester, 'button-group-guide-clearance'), '0.25');
 
     await tester.tap(find.byKey(const ValueKey('button-group-confirm')));
     await _pumpAsyncUi(tester);
@@ -1853,6 +1864,9 @@ void main() {
     expect(created.itemPrototype['capHeight'], 1.2);
     expect(created.itemPrototype['stemDiameter'], 3.0);
     expect(created.itemPrototype['stemDepth'], 2.8);
+    expect(created.itemPrototype['travel'], 0.8);
+    expect(created.itemPrototype['switchClearance'], 0.3);
+    expect(created.itemPrototype['guideClearance'], 0.25);
     expect(switchPositions, hasLength(4));
     expect(
       switchPositions

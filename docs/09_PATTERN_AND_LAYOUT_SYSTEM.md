@@ -91,6 +91,9 @@ The pattern system creates editable feature groups.
     "capHeight": 1.2,
     "stemDiameter": 3.0,
     "stemDepth": 2.8,
+    "travel": 0.8,
+    "switchClearance": 0.3,
+    "guideClearance": 0.25,
     "mode": "plunger"
   },
   "placement": {
@@ -108,7 +111,7 @@ dialog and creates a `FeatureGroup` with:
 - `type: button_group`,
 - editable `pattern` data for layout, count, and spacing,
 - editable `itemPrototype` data for circular button diameter, ring width,
-  ring protrusion, cap/stem sizing, and mode,
+  ring protrusion, cap/stem sizing, plunger travel/clearance, and mode,
 - centered placement metadata.
 
 The group is committed as one undoable semantic object. It is not flattened
@@ -156,11 +159,11 @@ ranges are disposable worker output.
 
 When a `button_group` is selected, the contextual inspector currently supports
 editing layout, count, spacing, button diameter, ring width, ring protrusion,
-cap diameter, cap height, stem diameter, stem depth, and button mode.
-Layout/count/spacing are written back to `FeatureGroup.pattern`;
-diameter/ring/cap/stem/mode values are written back to
-`FeatureGroup.itemPrototype`. The group remains one semantic object, and undo
-restores the previous pattern/item data.
+cap diameter, cap height, stem diameter, stem depth, plunger travel, switch
+clearance, guide clearance, and button mode. Layout/count/spacing are written
+back to `FeatureGroup.pattern`; diameter/ring/cap/stem/travel/clearance/mode
+values are written back to `FeatureGroup.itemPrototype`. The group remains one
+semantic object, and undo restores the previous pattern/item data.
 
 ## Per-item overrides
 

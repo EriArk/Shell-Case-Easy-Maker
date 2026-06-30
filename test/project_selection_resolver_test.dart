@@ -85,6 +85,9 @@ void main() {
           'capHeight': 1.2,
           'stemDiameter': 3.0,
           'stemDepth': 2.8,
+          'travel': 0.8,
+          'switchClearance': 0.3,
+          'guideClearance': 0.25,
           'mode': 'plunger',
         },
       ),
@@ -105,6 +108,10 @@ void main() {
     expect(
       details.properties.map((property) => property.label),
       containsAll(['Колпачок', 'Высота кнопки', 'Ножка', 'Глубина ножки']),
+    );
+    expect(
+      details.properties.map((property) => property.label),
+      containsAll(['Ход', 'Зазор до свитча', 'Зазор направл.']),
     );
   });
 

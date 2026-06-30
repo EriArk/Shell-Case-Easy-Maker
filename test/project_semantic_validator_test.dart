@@ -306,6 +306,119 @@ void main() {
     );
   });
 
+  test('button plunger travel and guide fit are validated', () {
+    final project = ProjectModel.initial().copyWith(
+      features: const [],
+      featureGroups: const [
+        FeatureGroup(
+          id: 'bad_plunger',
+          type: 'button_group',
+          targetSurface: 'main_enclosure.top_lid.outer',
+          pattern: {'layout': 'diamond', 'count': 1, 'spacing': 14.0},
+          itemPrototype: {
+            'diameter': 8.0,
+            'stemDiameter': 7.8,
+            'stemDepth': 1.0,
+            'travel': 0.8,
+            'switchClearance': 0.3,
+            'guideClearance': 0.2,
+            'mode': 'plunger',
+          },
+        ),
+      ],
+    );
+
+    final report = ProjectSemanticValidator.validate(project);
+    final codes = report.messages.map((message) => message.code);
+
+    expect(report.hasErrors, isTrue);
+    expect(codes, contains('group.button_plunger.travel.too_deep'));
+    expect(codes, contains('group.button_plunger.guide.too_wide'));
+  });
+
+  test('button plunger negative guide clearance is an error', () {
+    final project = ProjectModel.initial().copyWith(
+      features: const [],
+      featureGroups: const [
+        FeatureGroup(
+          id: 'invalid_guide_plunger',
+          type: 'button_group',
+          targetSurface: 'main_enclosure.top_lid.outer',
+          pattern: {'layout': 'diamond', 'count': 1, 'spacing': 14.0},
+          itemPrototype: {
+            'diameter': 8.0,
+            'stemDiameter': 3.0,
+            'stemDepth': 2.8,
+            'travel': 0.8,
+            'switchClearance': 0.3,
+            'guideClearance': -0.1,
+            'mode': 'plunger',
+          },
+        ),
+      ],
+    );
+
+    final report = ProjectSemanticValidator.validate(project);
+
+    expect(report.hasErrors, isTrue);
+    expect(
+      report.messages.map((message) => message.code),
+      contains('group.button_plunger.guide_clearance.invalid'),
+    );
+  });
+
+  test('button plunger guide clearance warnings keep cutout mode quiet', () {
+    final plungerProject = ProjectModel.initial().copyWith(
+      features: const [],
+      featureGroups: const [
+        FeatureGroup(
+          id: 'tight_plunger',
+          type: 'button_group',
+          targetSurface: 'main_enclosure.top_lid.outer',
+          pattern: {'layout': 'diamond', 'count': 1, 'spacing': 14.0},
+          itemPrototype: {
+            'diameter': 8.0,
+            'stemDiameter': 3.0,
+            'stemDepth': 2.8,
+            'travel': 0.8,
+            'switchClearance': 0.3,
+            'guideClearance': 0.05,
+            'mode': 'plunger',
+          },
+        ),
+      ],
+    );
+    final cutoutProject = plungerProject.replaceFeatureGroup(
+      const FeatureGroup(
+        id: 'tight_plunger',
+        type: 'button_group',
+        targetSurface: 'main_enclosure.top_lid.outer',
+        pattern: {'layout': 'diamond', 'count': 1, 'spacing': 14.0},
+        itemPrototype: {
+          'diameter': 8.0,
+          'stemDiameter': 3.0,
+          'stemDepth': 2.8,
+          'travel': 0.8,
+          'switchClearance': 0.3,
+          'guideClearance': 0.05,
+          'mode': 'cutout',
+        },
+      ),
+    );
+
+    final plungerReport = ProjectSemanticValidator.validate(plungerProject);
+    final cutoutReport = ProjectSemanticValidator.validate(cutoutProject);
+
+    expect(plungerReport.hasErrors, isFalse);
+    expect(plungerReport.hasWarnings, isTrue);
+    expect(
+      plungerReport.messages.map((message) => message.code),
+      contains('group.button_plunger.guide_clearance.tight'),
+    );
+    expect(cutoutReport.hasErrors, isFalse);
+    expect(cutoutReport.hasWarnings, isFalse);
+  });
+
   test('projected feature with missing source reports a warning', () {
     final project = ProjectModel.initial().copyWith(
       componentPlacements: const [],

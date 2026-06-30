@@ -73,7 +73,8 @@ JSON equality guard.
 
 Feature group inspector edits also use semantic snapshots. The first supported
 group parameter edits are:
-- `button_group`: layout, count, spacing, diameter, mode,
+- `button_group`: layout, count, spacing, diameter, ring/cap/stem sizing,
+  travel, switch clearance, guide clearance, and mode,
 - `standoff_mounts`: diameter, hole diameter, height, clearance profile.
 
 Submitting a changed group value replaces the selected `FeatureGroup` in

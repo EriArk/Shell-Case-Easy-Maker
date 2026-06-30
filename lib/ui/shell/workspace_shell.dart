@@ -1771,6 +1771,9 @@ FeatureGroup _defaultButtonGroup({
       'capHeight': 1.2,
       'stemDiameter': 3.0,
       'stemDepth': 2.8,
+      'travel': 0.8,
+      'switchClearance': 0.3,
+      'guideClearance': 0.25,
       'mode': 'plunger',
     },
     placement: const {'anchor': 'center'},
@@ -1822,6 +1825,9 @@ FeatureGroup _buttonGroupFromComponentSwitches({
       'capHeight': 1.2,
       'stemDiameter': 3.0,
       'stemDepth': 2.8,
+      'travel': 0.8,
+      'switchClearance': 0.3,
+      'guideClearance': 0.25,
       'mode': 'plunger',
     },
     placement: {
@@ -3710,6 +3716,9 @@ _FeatureGroupParameterTarget? _featureGroupParameterTarget(
       'capHeight' ||
       'stemDiameter' ||
       'stemDepth' ||
+      'travel' ||
+      'switchClearance' ||
+      'guideClearance' ||
       'mode' => _FeatureGroupParameterTarget.itemPrototype,
       _ => null,
     },
@@ -3764,6 +3773,23 @@ _normalizeFeatureGroupParameterMaps(
       'stemDepth',
       2.8,
     ).clamp(0.5, 12);
+    final maxTravel = math.max(0.1, stemDepth.toDouble() - 0.1);
+    final travel = _featureDouble(
+      itemPrototype,
+      'travel',
+      0.8,
+    ).clamp(0.1, maxTravel);
+    final maxSwitchClearance = math.max(0.0, stemDepth.toDouble() - travel);
+    final switchClearance = _featureDouble(
+      itemPrototype,
+      'switchClearance',
+      0.3,
+    ).clamp(0.0, maxSwitchClearance);
+    final guideClearance = _featureDouble(
+      itemPrototype,
+      'guideClearance',
+      0.25,
+    ).clamp(0.05, 1.5);
 
     return (
       pattern: pattern,
@@ -3776,6 +3802,9 @@ _normalizeFeatureGroupParameterMaps(
         'capHeight': capHeight.toDouble(),
         'stemDiameter': stemDiameter.toDouble(),
         'stemDepth': stemDepth.toDouble(),
+        'travel': travel.toDouble(),
+        'switchClearance': switchClearance.toDouble(),
+        'guideClearance': guideClearance.toDouble(),
       },
     );
   }
@@ -3888,6 +3917,30 @@ const _buttonGroupParameterSchema = ParameterSchema(
       unit: 'mm',
       defaultValue: 2.8,
       range: ParameterRange(min: 0.5, max: 12, step: 0.1),
+    ),
+    ParameterDefinition(
+      id: 'travel',
+      label: 'Ход',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 0.8,
+      range: ParameterRange(min: 0.1, max: 4, step: 0.05),
+    ),
+    ParameterDefinition(
+      id: 'switchClearance',
+      label: 'Зазор до свитча',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 0.3,
+      range: ParameterRange(min: 0, max: 3, step: 0.05),
+    ),
+    ParameterDefinition(
+      id: 'guideClearance',
+      label: 'Зазор направл.',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 0.25,
+      range: ParameterRange(min: 0.05, max: 1.5, step: 0.05),
     ),
     ParameterDefinition(
       id: 'mode',
@@ -4899,6 +4952,9 @@ class _ButtonGroupDialogState extends State<_ButtonGroupDialog> {
   late double _capHeight;
   late double _stemDiameter;
   late double _stemDepth;
+  late double _travel;
+  late double _switchClearance;
+  late double _guideClearance;
   late double _spacing;
   late String _mode;
 
@@ -4932,6 +4988,17 @@ class _ButtonGroupDialogState extends State<_ButtonGroupDialog> {
     _capHeight = _featureDouble(group.itemPrototype, 'capHeight', 1.2);
     _stemDiameter = _featureDouble(group.itemPrototype, 'stemDiameter', 3.0);
     _stemDepth = _featureDouble(group.itemPrototype, 'stemDepth', 2.8);
+    _travel = _featureDouble(group.itemPrototype, 'travel', 0.8);
+    _switchClearance = _featureDouble(
+      group.itemPrototype,
+      'switchClearance',
+      0.3,
+    );
+    _guideClearance = _featureDouble(
+      group.itemPrototype,
+      'guideClearance',
+      0.25,
+    );
     _mode = _featureString(group.itemPrototype, 'mode', 'plunger');
   }
 
@@ -5075,6 +5142,36 @@ class _ButtonGroupDialogState extends State<_ButtonGroupDialog> {
                 ],
               ),
               const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: _DialogNumberField(
+                      key: const ValueKey('button-group-travel'),
+                      label: 'Ход',
+                      value: _travel,
+                      onChanged: (value) => setState(() => _travel = value),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _DialogNumberField(
+                      key: const ValueKey('button-group-switch-clearance'),
+                      label: 'Зазор',
+                      value: _switchClearance,
+                      onChanged: (value) =>
+                          setState(() => _switchClearance = value),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              _DialogNumberField(
+                key: const ValueKey('button-group-guide-clearance'),
+                label: 'Зазор направляющей',
+                value: _guideClearance,
+                onChanged: (value) => setState(() => _guideClearance = value),
+              ),
+              const SizedBox(height: 10),
               DropdownButtonFormField<String>(
                 key: const ValueKey('button-group-mode'),
                 initialValue: _mode,
@@ -5144,6 +5241,17 @@ class _ButtonGroupDialogState extends State<_ButtonGroupDialog> {
                   math.max(0.8, math.min(_capDiameter, _diameter - 0.2)),
                 ),
                 'stemDepth': _clampDouble(_stemDepth, 0.5, 12),
+                'travel': _clampDouble(
+                  _travel,
+                  0.1,
+                  math.max(0.1, _stemDepth - 0.1),
+                ),
+                'switchClearance': _clampDouble(
+                  _switchClearance,
+                  0,
+                  math.max(0, _stemDepth - _travel),
+                ),
+                'guideClearance': _clampDouble(_guideClearance, 0.05, 1.5),
                 'mode': _mode,
               },
               placement: widget.initialGroup.placement,
