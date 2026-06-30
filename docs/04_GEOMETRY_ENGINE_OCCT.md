@@ -259,8 +259,10 @@ dart run tool\native_occt_worker_metrics_smoke.dart --skip-build
 ```
 
 The smoke checks capabilities, request ID preservation, sample bounds,
-dimensions, surface area, volume, preview mesh counts, and the
-`editableGeneratedGeometry=false` contract.
+dimensions, surface area, volume, preview mesh counts, generated button-ring
+metrics, and the `editableGeneratedGeometry=false` contract. The current
+sample includes front and top-lid button holes plus small raised rings/bezels
+that are generated from semantic `button_group` data.
 
 Native scaffold smoke command:
 

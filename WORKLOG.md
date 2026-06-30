@@ -42,6 +42,102 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-30 - M85 Native button rings
+
+### Goal
+Generate first-pass native button rings/bezels around semantic front-wall and
+top-lid button holes while keeping `button_group` as the editable source of
+truth.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`docs/04_GEOMETRY_ENGINE_OCCT.md`,
+`docs/10_ENCLOSURE_AUTO_GENERATION.md`,
+`docs/16_BUTTON_AND_PLUNGER_SYSTEM.md`,
+`docs/27_RESEARCH_AND_REFERENCES.md`,
+`docs/34_FIRST_GEOMETRY_SLICE.md`,
+`occt_worker/native/src/occt_main.cpp`,
+`tool/native_occt_worker_metrics_smoke.dart`, and
+`test/occt_native_target_scaffold_test.dart`.
+
+### Changes made
+- `occt_worker/native/src/occt_main.cpp`:
+  - Added shared button-ring sizing helpers.
+  - Builds annular front-wall button rings and generated top-lid button rings
+    from OCCT cylinders.
+  - Fuses rings after their matching button holes are cut.
+  - Maps ring faces back to the same semantic button group ids as the holes.
+  - Emits `nativeButtonRingCount` and
+    `nativeGeneratedLidButtonRingCount`.
+- `tool/native_occt_worker_metrics_smoke.dart`:
+  - Updated deterministic native expectations to 9502 vertices, 10136
+    triangles, 14 mappings, 16684 mapped triangles, bounds
+    `[-60, -35.45, 0]` through `[60, 35, 30.8]`, surface area
+    `54964.596483`, and volume `52901.661268`.
+  - Added assertions and summary output for front and top-lid button-ring
+    metrics.
+- `test/occt_native_target_scaffold_test.dart`:
+  - Added source-contract coverage for ring builders, classifiers, helpers,
+    and response metrics.
+- Docs/tasks/roadmap:
+  - Recorded M85, OCCT ring-generation notes, current native metrics, and the
+    manual poke checklist.
+
+### Tests run
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`:
+  - Passed.
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`:
+  - Passed; reports `nativeButtonRingCount=2`,
+    `nativeGeneratedLidButtonRingCount=4`, 14 preview mappings, and 16684
+    mapped triangles.
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`:
+  - Passed, 5 tests.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 0 files changed.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed, 187 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git diff --check`:
+  - Passed; Git printed CRLF/LF normalization warnings for existing markdown
+    line endings only.
+
+### Validation
+- Geometry checked?
+  - Yes. Native smoke verifies deterministic mesh counts, ring metrics,
+    semantic preview mappings, bounds, surface area, and volume.
+- Serialization checked?
+  - Yes. Full test suite passed; rings are generated from semantic
+    `button_group` data and are not stored as editable solids.
+- UI checked?
+  - Latest Windows bundle was rebuilt for manual inspection.
+- Export checked?
+  - No. STEP/STL export is still future work.
+
+### Known issues
+- Issue:
+  - Ring width/protrusion are generator constants, not editable UX parameters.
+  - Severity: Low for the current slice.
+  - Next action: Add ring/bezel style parameters after button cap/plunger
+    semantics are clearer.
+
+### Next step
+Continue toward the next button/plunger slice: either generated cap/plunger
+planning or ring style controls, depending on what manual inspection shows.
+
+### Notes for future Codex sessions
+Button-ring counts are separate from `nativeFeatureCutCount` because rings are
+positive generated geometry rather than additional cut operations.
+
+---
+
 ## 2026-06-30 - M84 Native front glass ledge window
 
 ### Goal

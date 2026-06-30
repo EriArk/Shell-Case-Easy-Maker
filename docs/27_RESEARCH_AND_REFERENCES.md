@@ -275,9 +275,32 @@ through the generated top lid plate. Report
 `nativeGeneratedLidButtonCutoutCount`, and map preview triangles by the
 semantic group id such as `top_lid_buttons`.
 
+## Update - first native button rings
+
+M85 reuses the same OCCT primitive/Boolean family for first-pass button
+rings/bezels. The worker builds an annular ring by cutting an inner
+`BRepPrimAPI_MakeCylinder` tool out of an outer cylinder, validates the ring
+with `BRepCheck_Analyzer`, then fuses it to the already-cut body or generated
+lid with `BRepAlgoAPI_Fuse`.
+
+The ring dimensions are generator-owned constants for now: a small clearance
+around the button hole, `1.2 mm` ring width, `0.45 mm` outward protrusion, and
+a shallow overlap into the target surface to make the fuse robust. Preview
+classification uses the same radius helpers as generation so ring faces map
+back to `front_buttons` or `top_lid_buttons` instead of becoming separate
+editable objects.
+
+Smoke metrics now include `nativeButtonRingCount` and
+`nativeGeneratedLidButtonRingCount`; the sample reports 2 front-wall rings and
+4 generated top-lid rings. No GPL/AGPL code or external project snippets were
+copied; this slice uses project-local OCCT headers and existing worker
+patterns.
+
 ## Follow-up tasks
 
 - Add button-cap/plunger generation after holes are stable.
+- Add user-facing ring/bezel style parameters after the first generated ring
+  slice is proven stable.
 - Add lid/body assembly semantics before exposing generated lid parts as
   independently inspectable objects.
 

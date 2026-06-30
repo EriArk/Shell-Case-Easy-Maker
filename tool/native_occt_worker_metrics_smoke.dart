@@ -98,12 +98,12 @@ Future<void> main(List<String> args) async {
       failures,
     );
     _expect(
-      previewMesh.vertexCount == 7750,
+      previewMesh.vertexCount == 9502,
       'previewMesh must contain the deterministic sample vertex count',
       failures,
     );
     _expect(
-      previewMesh.triangleCount == 8408,
+      previewMesh.triangleCount == 10136,
       'previewMesh must contain the deterministic sample triangle count',
       failures,
     );
@@ -228,13 +228,13 @@ Future<void> main(List<String> args) async {
     );
     _expectDoubleList(
       previewMesh.bounds.min,
-      const [-60, -35, 0],
+      const [-60, -35.45, 0],
       'previewMesh.bounds.min',
       failures,
     );
     _expectDoubleList(
       previewMesh.bounds.max,
-      const [60, 35, 30.35],
+      const [60, 35, 30.8],
       'previewMesh.bounds.max',
       failures,
     );
@@ -359,6 +359,11 @@ Future<void> main(List<String> args) async {
     failures,
   );
   _expect(
+    metrics['nativeGeneratedLidButtonRingCount'] == 4,
+    'nativeGeneratedLidButtonRingCount must include generated top lid button rings',
+    failures,
+  );
+  _expect(
     metrics['featureIntentCount'] == 7,
     'featureIntentCount must match the sample request',
     failures,
@@ -411,6 +416,11 @@ Future<void> main(List<String> args) async {
   _expect(
     metrics['nativeButtonCutoutCount'] == 2,
     'nativeButtonCutoutCount must include the sample button items',
+    failures,
+  );
+  _expect(
+    metrics['nativeButtonRingCount'] == 2,
+    'nativeButtonRingCount must include the sample front button rings',
     failures,
   );
   _expect(
@@ -505,29 +515,34 @@ Future<void> main(List<String> args) async {
   );
   _expectDoubleList(
     metrics['dimensions'],
-    const [120, 70, 30.35],
+    const [120, 70.45, 30.8],
     'dimensions',
     failures,
   );
 
   final bounds = _readMap(metrics['bounds']);
-  _expectDoubleList(bounds['min'], const [-60, -35, 0], 'bounds.min', failures);
+  _expectDoubleList(
+    bounds['min'],
+    const [-60, -35.45, 0],
+    'bounds.min',
+    failures,
+  );
   _expectDoubleList(
     bounds['max'],
-    const [60, 35, 30.35],
+    const [60, 35, 30.8],
     'bounds.max',
     failures,
   );
   _expectClose(
     _readNumber(metrics['surfaceArea']),
-    54840.754901,
+    54964.596483,
     0.001,
     'surfaceArea',
     failures,
   );
   _expectClose(
     _readNumber(metrics['volume']),
-    52827.356314,
+    52901.661268,
     0.001,
     'volume',
     failures,
@@ -585,6 +600,8 @@ Future<void> main(List<String> args) async {
           metrics['nativeGeneratedLidButtonGroupCount'],
       'nativeGeneratedLidButtonCutoutCount':
           metrics['nativeGeneratedLidButtonCutoutCount'],
+      'nativeGeneratedLidButtonRingCount':
+          metrics['nativeGeneratedLidButtonRingCount'],
       'featureIntentCount': metrics['featureIntentCount'],
       'nativeFeatureCutCount': metrics['nativeFeatureCutCount'],
       'nativeIgnoredFeatureIntentCount':
@@ -600,6 +617,7 @@ Future<void> main(List<String> args) async {
           metrics['nativeGlassWindowFilletedEdgeCount'],
       'nativeButtonGroupCount': metrics['nativeButtonGroupCount'],
       'nativeButtonCutoutCount': metrics['nativeButtonCutoutCount'],
+      'nativeButtonRingCount': metrics['nativeButtonRingCount'],
       'nativeStandoffGroupCount': metrics['nativeStandoffGroupCount'],
       'nativeStandoffMountCount': metrics['nativeStandoffMountCount'],
       'bounds': metrics['bounds'],

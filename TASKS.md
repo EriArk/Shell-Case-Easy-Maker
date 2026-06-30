@@ -138,6 +138,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Generate first native top lid body seat/groove.
 - [x] Position first native top lid in fit-preview state.
 - [x] Generate first native top lid button group cutouts.
+- [x] Generate first native button rings/bezels.
 - [x] Generate first native top lid glass recess.
 - [ ] Export STEP.
 - [ ] Export STL.
@@ -282,12 +283,13 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] First-pass native top-lid glass recess.
 - [x] First-pass native top-lid glass ledge/window.
 - [x] First-pass native front-wall glass ledge/window.
+- [x] First-pass native rings around button holes.
 - [ ] Recess from screen/window feature.
 - [ ] Free recessed panel.
 - [ ] Insert/glass definition.
 - [ ] Ledge/lip/bezel generation.
 - [ ] Protected islands inside recess.
-- [ ] Rings around buttons.
+- [ ] Editable ring/bezel style controls.
 - [ ] Curved sides / GBA-like panel shapes.
 - [ ] DXF export of glass/acrylic/insert contour.
 - [ ] DXF layers and kerf/tool compensation.
@@ -297,6 +299,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [ ] Switch center overlay.
 - [ ] Generate holes from switch centers.
 - [x] First-pass native top-lid button holes from semantic button groups.
+- [x] First-pass native button rings from semantic button groups.
 - [x] First-pass semantic button group from switch centers.
 - [ ] Generate full button cap/plunger from switch centers.
 - [ ] U-cut button generator.

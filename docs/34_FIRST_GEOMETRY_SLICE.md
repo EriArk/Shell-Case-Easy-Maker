@@ -328,19 +328,19 @@ Expected sample dimensions:
 - size: `120 x 70 x 28 mm`,
 - wall thickness: `2 mm`,
 - corner radius: `4 mm`,
-- native preview assembly bounds: `[-60, -35, 0]` to `[60, 35, 30.35]`,
+- native preview assembly bounds: `[-60, -35.45, 0]` to `[60, 35, 30.8]`,
 - native preview volume after lid screw bosses, USB-C, front glass
-  recess/window, front button cutouts, bottom standoff bosses, generated lid
-  plate, lid screw holes, underside locating lip, body-side lid seat,
-  fit-preview positioning, top-lid button holes, top-lid glass recess, and
-  top-lid glass window: `52827.356314 mm^3`,
+  recess/window, front button cutouts/rings, bottom standoff bosses, generated
+  lid plate, lid screw holes, underside locating lip, body-side lid seat,
+  fit-preview positioning, top-lid button holes/rings, top-lid glass recess,
+  and top-lid glass window: `52901.661268 mm^3`,
 - native preview surface area after lid screw bosses, USB-C, front glass
-  recess/window, front button cutouts, bottom standoff bosses, generated lid
-  plate, lid screw holes, underside locating lip, body-side lid seat,
-  fit-preview positioning, top-lid button holes, top-lid glass recess, and
-  top-lid glass window: `54840.754901 mm^2`,
+  recess/window, front button cutouts/rings, bottom standoff bosses, generated
+  lid plate, lid screw holes, underside locating lip, body-side lid seat,
+  fit-preview positioning, top-lid button holes/rings, top-lid glass recess,
+  and top-lid glass window: `54964.596483 mm^2`,
 - native preview surface mappings after feature ranges: `14`,
-- native preview mapped triangles after feature ranges: `12218`,
+- native preview mapped triangles after feature ranges: `16684`,
 - native feature metrics: `featureIntentCount=7`,
   `nativeFeatureCutCount=9`, `nativeIgnoredFeatureIntentCount=1`,
   `nativeLidScrewBossCount=4`, `nativeLidScrewPilotCount=4`,
@@ -355,11 +355,13 @@ Expected sample dimensions:
   `nativeGeneratedLidGlassWindowCount=1`,
   `nativeGeneratedLidGlassWindowFilletedEdgeCount=8`,
   `nativeGeneratedLidButtonGroupCount=1`,
-  `nativeGeneratedLidButtonCutoutCount=4`, `nativeUsbCCutoutCount=1`,
+  `nativeGeneratedLidButtonCutoutCount=4`,
+  `nativeGeneratedLidButtonRingCount=4`, `nativeUsbCCutoutCount=1`,
   `nativeGlassRecessCount=1`, `nativeGlassRecessFilletedEdgeCount=8`,
   `nativeGlassWindowCount=1`, `nativeGlassWindowFilletedEdgeCount=8`,
   `nativeButtonGroupCount=1`,
-  `nativeButtonCutoutCount=2`, `nativeStandoffGroupCount=1`,
+  `nativeButtonCutoutCount=2`, `nativeButtonRingCount=2`,
+  `nativeStandoffGroupCount=1`,
   `nativeStandoffMountCount=4`.
 
 ## Current Limitations

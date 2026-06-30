@@ -3828,3 +3828,58 @@ stored as one semantic glass recess.
   opening with a support ledge/frame around it.
 - Confirm the front USB-C cutout and front button holes still read separately.
 - Confirm the top-lid glass window and top-lid button holes still remain.
+
+---
+
+## M85 - Native Button Rings
+
+### Goal
+Generate first-pass raised rings/bezels around semantic button holes on the
+front wall and generated top lid, without adding editable per-ring CAD objects
+or flattening `button_group` semantics.
+
+### Tasks
+- [x] Add shared native button-ring sizing helpers.
+- [x] Build front-wall rings as annular OCCT cylinder shapes around existing
+      front button cutouts.
+- [x] Build generated top-lid rings as annular OCCT cylinder shapes around
+      existing top-lid button cutouts.
+- [x] Fuse generated rings after their matching holes are cut.
+- [x] Keep ring faces mapped to the original semantic button group ids.
+- [x] Emit native ring metrics for front-wall and generated top-lid buttons.
+- [x] Update native smoke expectations, source-contract tests, docs, tasks,
+      roadmap, and worklog.
+
+### Done Criteria
+- Native smoke reports 9502 vertices, 10136 triangles, 14 preview surface
+  mappings, and 16684 mapped triangles.
+- Native smoke reports bounds `[-60, -35.45, 0]` to `[60, 35, 30.8]`,
+  surface area `54964.596483`, and volume `52901.661268`.
+- Native smoke reports `nativeButtonRingCount: 2` and
+  `nativeGeneratedLidButtonRingCount: 4`.
+- Button holes and generated button rings remain mapped to `front_buttons` and
+  `top_lid_buttons`.
+- The editable project still stores semantic `button_group` data, not
+  generated ring solids.
+
+### Tests
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open
+  `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- Orbit to the front wall and confirm the two front button holes now have
+  small raised rings around them.
+- Orbit above the generated lid and confirm the four top-lid button holes now
+  have matching raised rings.
+- Select/poke the front and top button groups and confirm the holes/rings read
+  as one semantic group rather than separate CAD objects.
+- Confirm the front and top glass ledge windows still remain visible.

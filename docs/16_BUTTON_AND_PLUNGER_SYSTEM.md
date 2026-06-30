@@ -30,6 +30,20 @@ TPU/hard case button cap presses original device button.
 - Tactile top texture.
 - Optional labels/markings.
 
+## Current native slice
+
+The native OCCT worker now generates first-pass circular button openings and
+small raised rings/bezels from semantic `button_group` data. Front-wall groups
+produce two operations per item in the generated B-Rep output: a through-hole
+cut and a fused annular ring on the outside face. Top-lid groups do the same
+on the generated lid preview plate.
+
+The editable project still stores one `button_group`; ring solids are
+disposable generated geometry, and preview faces for holes/rings map back to
+the same semantic group ids such as `front_buttons` and `top_lid_buttons`.
+Full caps, plungers, stems, guide walls, travel stops, and editable ring style
+controls remain future work.
+
 ## Parameters
 
 - Cap shape: circle, rectangle, rounded rectangle, oval, custom.
