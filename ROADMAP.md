@@ -102,6 +102,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M81 - Native Top Lid Button Cutouts
 - [x] M82 - Native Top Lid Glass Recess
 - [x] M83 - Native Top Lid Glass Ledge Window
+- [x] M84 - Native Front Glass Ledge Window
 
 ---
 
@@ -3777,3 +3778,53 @@ window, leaving a support ledge/bezel around the opening.
 - Confirm the support ledge remains around the window.
 - Confirm the four round top-lid button holes and screw holes are still
   present and aligned.
+
+---
+
+## M84 - Native Front Glass Ledge Window
+
+### Goal
+Make front-wall `glass_recess` features use `ledgeWidth` the same way as the
+generated top lid: a shallow outer seat plus an inner through-window, still
+stored as one semantic glass recess.
+
+### Tasks
+- [x] Reuse OCCT box/fillet/cut research for the front-wall inner window.
+- [x] Cut a rounded inner window through the front wall after the shallow
+      front glass recess cut.
+- [x] Keep front-wall glass window preview faces mapped to the original
+      semantic feature id.
+- [x] Emit native front glass-window metrics.
+- [x] Update native smoke expectations, source-contract tests, docs, tasks,
+      roadmap, and worklog.
+
+### Done Criteria
+- Native smoke reports 7750 vertices, 8408 triangles, 14 preview surface
+  mappings, and 12218 mapped triangles.
+- Native smoke reports `nativeFeatureCutCount: 9`,
+  `nativeGlassRecessCount: 1`, `nativeGlassRecessFilletedEdgeCount: 8`,
+  `nativeGlassWindowCount: 1`, and
+  `nativeGlassWindowFilletedEdgeCount: 8`.
+- Surface mappings still include `front_glass_recess` for the semantic glass
+  feature.
+- The editable project still stores one semantic `glass_recess`, not a
+  separate generated window object.
+
+### Tests
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open
+  `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- Orbit to the front wall and confirm the glass feature now has an inner
+  opening with a support ledge/frame around it.
+- Confirm the front USB-C cutout and front button holes still read separately.
+- Confirm the top-lid glass window and top-lid button holes still remain.

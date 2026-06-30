@@ -56,6 +56,7 @@ void main() {
       expect(source, contains('ApplyNativeLidScrewBosses'));
       expect(source, contains('BuildUsbCCutoutTool'));
       expect(source, contains('BuildGlassRecessTool'));
+      expect(source, contains('BuildGlassWindowTool'));
       expect(source, contains('BuildButtonCutoutTool'));
       expect(source, contains('BuildStandoffMountShape'));
       expect(source, contains('ApplyNativeFeatureCutouts'));
@@ -130,6 +131,8 @@ void main() {
       expect(source, contains('nativeUsbCCutoutFilletedEdgeCount'));
       expect(source, contains('nativeGlassRecessCount'));
       expect(source, contains('nativeGlassRecessFilletedEdgeCount'));
+      expect(source, contains('nativeGlassWindowCount'));
+      expect(source, contains('nativeGlassWindowFilletedEdgeCount'));
       expect(source, contains('nativeButtonGroupCount'));
       expect(source, contains('nativeButtonCutoutCount'));
       expect(source, contains('nativeStandoffGroupCount'));
@@ -268,6 +271,8 @@ void main() {
       expect(tool, contains('nativeUsbCCutoutFilletedEdgeCount'));
       expect(tool, contains('nativeGlassRecessCount'));
       expect(tool, contains('nativeGlassRecessFilletedEdgeCount'));
+      expect(tool, contains('nativeGlassWindowCount'));
+      expect(tool, contains('nativeGlassWindowFilletedEdgeCount'));
       expect(tool, contains('nativeButtonGroupCount'));
       expect(tool, contains('nativeButtonCutoutCount'));
       expect(tool, contains('nativeStandoffGroupCount'));

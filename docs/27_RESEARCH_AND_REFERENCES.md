@@ -57,6 +57,63 @@ Use `templates/RESEARCH_NOTE_TEMPLATE.md`.
 
 ---
 
+## 2026-06-30 - OCCT front-wall glass ledge window
+
+## Question
+
+How should front-wall `glass_recess` features use semantic `ledgeWidth` to
+create a real panel window while staying one editable feature?
+
+## Sources checked
+
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepPrimAPI_MakeBox.hxx`
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepFilletAPI_MakeFillet.hxx`
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepAlgoAPI_Cut.hxx`
+- Existing native worker slices in `occt_worker/native/src/occt_main.cpp` for
+  front-wall USB-C/button through-cuts, front glass shallow recesses, top-lid
+  glass windows, preview surface mapping, and generated-output metrics.
+- `docs/13_PANEL_RECESS_INSERT_GLASS_SYSTEM.md` for the recess/window/ledge
+  product terminology.
+
+## Findings
+
+- The front-wall path can mirror the top-lid ledge/window behavior while using
+  the wall-depth Y axis instead of the lid-thickness Z axis.
+- The outer recess remains a shallow seat; the inner window is a second rounded
+  box cut through the wall using `width - ledgeWidth * 2` and
+  `height - ledgeWidth * 2`.
+- Preview surface mapping should continue to use the original semantic feature
+  id, such as `front_glass_recess`, for both the seat and inner window faces.
+- Generated metrics can distinguish the front glass window operation without
+  exposing a separate editable object.
+
+## License / compatibility notes
+
+- OCCT headers are from the project-local vcpkg dependency. They are LGPL 2.1
+  with OCCT exception / commercial alternative, matching the existing OCCT
+  dependency evaluation.
+- No external project code was copied.
+
+## Decision
+
+For front-wall `glass_recess` intents, cut the shallow outer recess first, then
+cut a rounded through-window from semantic `ledgeWidth`, leaving a support
+ledge in the wall. Report `nativeGlassWindowCount` and
+`nativeGlassWindowFilletedEdgeCount`, and keep preview mapping keyed by the
+original semantic feature id.
+
+## Follow-up tasks
+
+- Add protected islands inside glass recesses for buttons or screen features.
+- Add DXF/acrylic contour export from the same semantic recess parameters.
+- Add richer panel opening presets after screen/window feature semantics are
+  explicit.
+
+---
+
 ## 2026-06-30 - OCCT generated top lid glass ledge window
 
 ## Question
@@ -110,8 +167,6 @@ keyed by the original semantic feature id such as `top_lid_glass_recess`.
 ## Follow-up tasks
 
 - Add protected islands inside glass recesses for buttons or screen features.
-- Add front-wall/window support only after front-panel opening semantics are
-  explicit.
 - Add DXF/acrylic contour export from the same semantic recess parameters.
 
 ---

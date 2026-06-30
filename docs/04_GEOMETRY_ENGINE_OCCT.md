@@ -114,7 +114,9 @@ operations before real B-Rep generation exists:
 The mock backend exposes this plan in response metrics for testing and worker
 development. The native OCCT worker now consumes front-wall `usb_c_cutout`
 intents, first-pass front-wall and top-lid `glass_recess` intents, and
-front-wall `button_group` item intents as real generated B-Rep. It also
+front-wall `button_group` item intents as real generated B-Rep. Front-wall and
+top-lid glass recesses both use semantic `ledgeWidth` to leave a generated
+support ledge around an inner through-window. It also
 consumes bottom-inside `standoff_mounts` item intents as positive generated
 boss geometry and generates first-pass lid screw bosses from the enclosure
 `top_screw_lid` semantic lid spec. For the first lid/body step, it also adds a
@@ -131,7 +133,7 @@ generated lid plate, and front-wall
 `button_group` intents remain body cutouts. Button and standoff groups remain
 one editable semantic object; lid screw bosses, lid plate, lid screw holes,
 lid locating lip, body lid seat, lid fit preview, generated top-lid recesses,
-generated top-lid glass windows, and generated top-lid button holes remain
+generated front/top glass windows, and generated top-lid button holes remain
 generated enclosure detail, not separate editable solids. The native worker
 only consumes semantic parameters and derived item positions as disposable
 generator input. A real mating lid/body split, protected recess islands,

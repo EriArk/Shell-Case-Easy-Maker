@@ -281,6 +281,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] First-pass glass recess inspector parameter editing.
 - [x] First-pass native top-lid glass recess.
 - [x] First-pass native top-lid glass ledge/window.
+- [x] First-pass native front-wall glass ledge/window.
 - [ ] Recess from screen/window feature.
 - [ ] Free recessed panel.
 - [ ] Insert/glass definition.

@@ -178,6 +178,8 @@ struct ShapeMetrics {
   int native_usb_c_cutout_filleted_edge_count = 0;
   int native_glass_recess_count = 0;
   int native_glass_recess_filleted_edge_count = 0;
+  int native_glass_window_count = 0;
+  int native_glass_window_filleted_edge_count = 0;
   int native_button_group_count = 0;
   int native_button_cutout_count = 0;
   int native_standoff_group_count = 0;
@@ -254,6 +256,8 @@ struct NativeFeatureCutResult {
   int usb_c_filleted_edge_count = 0;
   int glass_recess_count = 0;
   int glass_recess_filleted_edge_count = 0;
+  int glass_window_count = 0;
+  int glass_window_filleted_edge_count = 0;
   int button_group_count = 0;
   int button_cutout_count = 0;
   int standoff_group_count = 0;
@@ -2018,6 +2022,9 @@ ShapeMetrics ComputeShapeMetrics(const TopoDS_Shape& shape,
   metrics.native_glass_recess_count = feature_cuts.glass_recess_count;
   metrics.native_glass_recess_filleted_edge_count =
       feature_cuts.glass_recess_filleted_edge_count;
+  metrics.native_glass_window_count = feature_cuts.glass_window_count;
+  metrics.native_glass_window_filleted_edge_count =
+      feature_cuts.glass_window_filleted_edge_count;
   metrics.native_button_group_count = feature_cuts.button_group_count;
   metrics.native_button_cutout_count = feature_cuts.button_cutout_count;
   metrics.native_standoff_group_count = feature_cuts.standoff_group_count;
@@ -2198,6 +2205,8 @@ bool FaceIntersectsGlassRecess(const FaceBounds& face_bounds,
   const double front_y = -enclosure.size[1] / 2.0;
   const double recess_min_y = front_y - tolerance;
   const double recess_max_y = front_y + recess.recess_depth + tolerance;
+  const double window_width = recess.width - recess.ledge_width * 2.0;
+  const double window_height = recess.height - recess.ledge_width * 2.0;
 
   const bool overlaps_recess_volume =
       face_bounds.max[0] >= recess_min_x &&
@@ -2218,9 +2227,39 @@ bool FaceIntersectsGlassRecess(const FaceBounds& face_bounds,
                     face_bounds.max[1],
                     front_y + recess.recess_depth,
                     tolerance);
+  const bool intersects_recess =
+      overlaps_recess_volume && is_inside_recess_outline &&
+      (spans_recess_depth || is_recess_back_face);
 
-  return overlaps_recess_volume && is_inside_recess_outline &&
-         (spans_recess_depth || is_recess_back_face);
+  if (!IsPositiveDimension(window_width) ||
+      !IsPositiveDimension(window_height)) {
+    return intersects_recess;
+  }
+
+  const double window_min_x = center[0] - window_width / 2.0 - tolerance;
+  const double window_max_x = center[0] + window_width / 2.0 + tolerance;
+  const double window_min_z = center[1] - window_height / 2.0 - tolerance;
+  const double window_max_z = center[1] + window_height / 2.0 + tolerance;
+  const double window_max_y =
+      front_y + enclosure.wall_thickness + tolerance;
+  const bool overlaps_window_volume =
+      face_bounds.max[0] >= window_min_x &&
+      face_bounds.min[0] <= window_max_x &&
+      face_bounds.max[1] >= recess_min_y &&
+      face_bounds.min[1] <= window_max_y &&
+      face_bounds.max[2] >= window_min_z &&
+      face_bounds.min[2] <= window_max_z;
+  const bool is_inside_window_outline =
+      face_bounds.min[0] >= window_min_x &&
+      face_bounds.max[0] <= window_max_x &&
+      face_bounds.min[2] >= window_min_z &&
+      face_bounds.max[2] <= window_max_z;
+  const bool spans_wall_depth =
+      face_bounds.max[1] - face_bounds.min[1] > tolerance;
+
+  return intersects_recess ||
+         (overlaps_window_volume && is_inside_window_outline &&
+          spans_wall_depth);
 }
 
 std::array<double, 2> ButtonCutoutCenter(const EnclosureRequest& enclosure,
@@ -2828,6 +2867,64 @@ TopoDS_Shape BuildGlassRecessTool(const EnclosureRequest& enclosure,
   return fillet.Shape();
 }
 
+TopoDS_Shape BuildGlassWindowTool(const EnclosureRequest& enclosure,
+                                  const GlassRecessRequest& recess,
+                                  int* filleted_edge_count) {
+  const std::array<double, 2> center =
+      GlassRecessCenter(enclosure, recess);
+  const double inner_width = recess.width - recess.ledge_width * 2.0;
+  const double inner_height = recess.height - recess.ledge_width * 2.0;
+  if (!IsPositiveDimension(inner_width) ||
+      !IsPositiveDimension(inner_height)) {
+    throw std::runtime_error("OCCT glass window dimensions are invalid.");
+  }
+
+  const double overcut = 0.2;
+  const std::array<double, 3> tool_size = {
+      inner_width,
+      enclosure.wall_thickness + overcut * 2.0,
+      inner_height};
+  const gp_Pnt tool_origin(center[0] - inner_width / 2.0,
+                           -enclosure.size[1] / 2.0 - overcut,
+                           center[1] - inner_height / 2.0);
+  const TopoDS_Shape box =
+      BRepPrimAPI_MakeBox(tool_origin,
+                          tool_size[0],
+                          tool_size[1],
+                          tool_size[2])
+          .Shape();
+
+  *filleted_edge_count = 0;
+  const double inner_radius =
+      std::max(0.0, recess.corner_radius - recess.ledge_width);
+  const double safe_radius =
+      std::min(inner_radius,
+               std::min(inner_width, inner_height) / 2.0 - 0.001);
+  if (safe_radius <= 0.0) {
+    return box;
+  }
+
+  BRepFilletAPI_MakeFillet fillet(box);
+  for (TopExp_Explorer explorer(box, TopAbs_EDGE); explorer.More();
+       explorer.Next()) {
+    const TopoDS_Edge edge = TopoDS::Edge(explorer.Current());
+    const std::array<double, 3> edge_dimensions =
+        DimensionsFromBounds(ComputeTopoBounds(edge));
+    if (edge_dimensions[0] <= 0.001 && edge_dimensions[2] <= 0.001 &&
+        edge_dimensions[1] > 0.001) {
+      fillet.Add(safe_radius, edge);
+      ++(*filleted_edge_count);
+    }
+  }
+
+  fillet.Build();
+  if (!fillet.IsDone()) {
+    throw std::runtime_error("OCCT glass window fillet did not complete.");
+  }
+
+  return fillet.Shape();
+}
+
 TopoDS_Shape BuildGeneratedTopLidGlassRecessTool(
     const EnclosureRequest& enclosure,
     const GeneratedLidPlateRequest& lid_plate,
@@ -3025,9 +3122,36 @@ NativeFeatureCutResult ApplyNativeFeatureCutouts(
     }
 
     ++result.applied_cut_count;
-    ++result.applied_intent_count;
     ++result.glass_recess_count;
     result.glass_recess_filleted_edge_count += tool_filleted_edge_count;
+
+    int window_filleted_edge_count = 0;
+    const TopoDS_Shape window_tool =
+        BuildGlassWindowTool(enclosure, recess, &window_filleted_edge_count);
+    if (window_tool.IsNull()) {
+      throw std::runtime_error("OCCT generated a null glass window tool.");
+    }
+
+    BRepAlgoAPI_Cut window_cut(result.shape, window_tool);
+    window_cut.SimplifyResult(true, true);
+    if (!window_cut.IsDone() || window_cut.HasErrors()) {
+      throw std::runtime_error("OCCT glass window cut did not complete.");
+    }
+
+    result.shape = window_cut.Shape();
+    if (result.shape.IsNull()) {
+      throw std::runtime_error("OCCT generated a null glass window shape.");
+    }
+
+    BRepCheck_Analyzer window_analyzer(result.shape, false);
+    if (!window_analyzer.IsValid()) {
+      throw std::runtime_error("OCCT generated an invalid glass window shape.");
+    }
+
+    ++result.applied_cut_count;
+    ++result.applied_intent_count;
+    ++result.glass_window_count;
+    result.glass_window_filleted_edge_count += window_filleted_edge_count;
   }
 
   for (const ButtonGroupCutoutRequest& group : button_groups) {
@@ -3703,6 +3827,10 @@ void WriteRoundedEnclosurePreviewResponse(const NativeRequestEnvelope& request,
             << metrics.native_glass_recess_count << ",\n"
             << "    \"nativeGlassRecessFilletedEdgeCount\": "
             << metrics.native_glass_recess_filleted_edge_count << ",\n"
+            << "    \"nativeGlassWindowCount\": "
+            << metrics.native_glass_window_count << ",\n"
+            << "    \"nativeGlassWindowFilletedEdgeCount\": "
+            << metrics.native_glass_window_filleted_edge_count << ",\n"
             << "    \"nativeButtonGroupCount\": "
             << metrics.native_button_group_count << ",\n"
             << "    \"nativeButtonCutoutCount\": "

@@ -98,12 +98,12 @@ Future<void> main(List<String> args) async {
       failures,
     );
     _expect(
-      previewMesh.vertexCount == 7574,
+      previewMesh.vertexCount == 7750,
       'previewMesh must contain the deterministic sample vertex count',
       failures,
     );
     _expect(
-      previewMesh.triangleCount == 8244,
+      previewMesh.triangleCount == 8408,
       'previewMesh must contain the deterministic sample triangle count',
       failures,
     );
@@ -364,8 +364,8 @@ Future<void> main(List<String> args) async {
     failures,
   );
   _expect(
-    metrics['nativeFeatureCutCount'] == 8,
-    'nativeFeatureCutCount must include USB-C, glass, button, and standoff operations',
+    metrics['nativeFeatureCutCount'] == 9,
+    'nativeFeatureCutCount must include USB-C, glass recess/window, button, and standoff operations',
     failures,
   );
   _expect(
@@ -391,6 +391,16 @@ Future<void> main(List<String> args) async {
   _expect(
     metrics['nativeGlassRecessFilletedEdgeCount'] == 8,
     'nativeGlassRecessFilletedEdgeCount must be deterministic',
+    failures,
+  );
+  _expect(
+    metrics['nativeGlassWindowCount'] == 1,
+    'nativeGlassWindowCount must include the sample front glass window',
+    failures,
+  );
+  _expect(
+    metrics['nativeGlassWindowFilletedEdgeCount'] == 8,
+    'nativeGlassWindowFilletedEdgeCount must be deterministic',
     failures,
   );
   _expect(
@@ -510,14 +520,14 @@ Future<void> main(List<String> args) async {
   );
   _expectClose(
     _readNumber(metrics['surfaceArea']),
-    55079.184105,
+    54840.754901,
     0.001,
     'surfaceArea',
     failures,
   );
   _expectClose(
     _readNumber(metrics['volume']),
-    52974.14169,
+    52827.356314,
     0.001,
     'volume',
     failures,
@@ -585,6 +595,9 @@ Future<void> main(List<String> args) async {
       'nativeGlassRecessCount': metrics['nativeGlassRecessCount'],
       'nativeGlassRecessFilletedEdgeCount':
           metrics['nativeGlassRecessFilletedEdgeCount'],
+      'nativeGlassWindowCount': metrics['nativeGlassWindowCount'],
+      'nativeGlassWindowFilletedEdgeCount':
+          metrics['nativeGlassWindowFilletedEdgeCount'],
       'nativeButtonGroupCount': metrics['nativeButtonGroupCount'],
       'nativeButtonCutoutCount': metrics['nativeButtonCutoutCount'],
       'nativeStandoffGroupCount': metrics['nativeStandoffGroupCount'],
