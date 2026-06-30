@@ -171,6 +171,10 @@ void main() {
       find.byKey(const ValueKey('geometry-preview-mesh-active')),
       findsOneWidget,
     );
+    expect(
+      find.byKey(const ValueKey('native-semantic-overlay-mode-active')),
+      findsOneWidget,
+    );
     expect(find.textContaining('fake_worker_preview'), findsOneWidget);
   });
 

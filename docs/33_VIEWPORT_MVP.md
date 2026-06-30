@@ -39,11 +39,15 @@ It does not return mesh IDs, triangle IDs, OCCT face IDs, or generated topology.
 `GeometryPreview.previewMesh` is an optional display-only mesh. The viewport
 painter projects its vertices with the current `ViewportState`, draws sorted
 triangles as a faceted body layer, and keeps component, feature, workplane,
-snap, ghost, and selection overlays above it. The mesh is never hit-tested as
+snap, ghost, and selection overlays above it. When a mesh is present, those
+semantic overlays switch into an annotation style: lower opacity, lighter
+strokes, and no duplicate heavy mock selection outline when the selected
+semantic id already has mapped preview ranges. The mesh is never hit-tested as
 the editable source of truth. Native preview meshes may include disposable
 semantic surface ranges. When the current selection is a matching semantic
-surface, the viewport can tint/stroke those mapped preview triangles as a
-display-only highlight. It still does not use generated triangles for picking.
+surface, feature, or feature group, the viewport can tint those mapped preview
+triangles and draw a screen-space halo as a display-only highlight. It still
+does not use generated triangles for picking.
 
 Component placement hit zones are now supplied as
 `MockViewportComponentPlacementPreview` values derived from semantic

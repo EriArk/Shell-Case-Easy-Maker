@@ -2587,6 +2587,7 @@ class _ViewportAreaState extends State<_ViewportArea> {
           final placementCandidateIssue =
               widget.placementDialogCandidateIssue ??
               widget.activeSnapPlacementIssue;
+          final hasPreviewMesh = _hasPreviewMesh(widget.preview?.previewMesh);
 
           return Listener(
             behavior: HitTestBehavior.opaque,
@@ -2629,6 +2630,14 @@ class _ViewportAreaState extends State<_ViewportArea> {
                       top: 0,
                       child: SizedBox(
                         key: ValueKey('geometry-preview-mesh-active'),
+                      ),
+                    ),
+                  if (hasPreviewMesh)
+                    const Positioned(
+                      left: 0,
+                      top: 0,
+                      child: SizedBox(
+                        key: ValueKey('native-semantic-overlay-mode-active'),
                       ),
                     ),
                   if (_hasSelectedPreviewSurface(
@@ -6143,7 +6152,15 @@ class _ViewportPainter extends CustomPainter {
       );
     }
 
-    _paintComponentPlacements(canvas, layout);
+    final previewSelectionRendered =
+        previewMeshRendered &&
+        _hasSelectedPreviewSurface(previewMesh, selection);
+
+    _paintComponentPlacements(
+      canvas,
+      layout,
+      annotationMode: previewMeshRendered,
+    );
     _paintActiveSnapPlacementPreview(canvas, layout);
 
     if (!previewMeshRendered) {
@@ -6165,9 +6182,9 @@ class _ViewportPainter extends CustomPainter {
       );
     }
 
-    _paintFeatures(canvas, layout);
-    _paintFeatureGroups(canvas, layout);
-    _paintWorkplaneOverlay(canvas, layout);
+    _paintFeatures(canvas, layout, annotationMode: previewMeshRendered);
+    _paintFeatureGroups(canvas, layout, annotationMode: previewMeshRendered);
+    _paintWorkplaneOverlay(canvas, layout, annotationMode: previewMeshRendered);
     _paintGhostPreview(canvas, layout);
 
     final highlightPaint = Paint()
@@ -6189,7 +6206,7 @@ class _ViewportPainter extends CustomPainter {
       );
     }
 
-    if (selection.kind == SelectionKind.surface) {
+    if (selection.kind == SelectionKind.surface && !previewSelectionRendered) {
       final selectedSurface = selection.id ?? '';
       if (selectedSurface.contains('top_lid')) {
         canvas.drawRRect(
@@ -6244,6 +6261,7 @@ class _ViewportPainter extends CustomPainter {
     }
 
     if (selection.kind == SelectionKind.feature &&
+        !previewSelectionRendered &&
         selection.id == 'front_usb_c') {
       canvas.drawRRect(
         RRect.fromRectAndRadius(
@@ -6254,7 +6272,7 @@ class _ViewportPainter extends CustomPainter {
       );
     }
 
-    if (selection.kind == SelectionKind.feature) {
+    if (selection.kind == SelectionKind.feature && !previewSelectionRendered) {
       final feature = featurePreviews
           .where((feature) => feature.semanticId == selection.id)
           .firstOrNull;
@@ -6271,6 +6289,7 @@ class _ViewportPainter extends CustomPainter {
     }
 
     if (selection.kind == SelectionKind.feature &&
+        !previewSelectionRendered &&
         selection.id == 'abxy_buttons') {
       for (final center in layout.buttonCenters) {
         canvas.drawCircle(
@@ -6281,7 +6300,8 @@ class _ViewportPainter extends CustomPainter {
       }
     }
 
-    if (selection.kind == SelectionKind.featureGroup) {
+    if (selection.kind == SelectionKind.featureGroup &&
+        !previewSelectionRendered) {
       final group = featureGroupPreviews
           .where((group) => group.semanticId == selection.id)
           .firstOrNull;
@@ -6364,6 +6384,10 @@ class _ViewportPainter extends CustomPainter {
         _selectionUsesPreviewSurfaceRanges(selection)
         ? _previewSurfaceTriangleIndices(mesh, selection.id)
         : const <int>{};
+    final selectionTone = _PreviewMeshSelectionTone.fromSelection(
+      colorScheme: colorScheme,
+      selection: selection,
+    );
     final triangles = <_PreviewMeshTriangle>[];
     for (var index = 0; index < mesh.triangleCount; index++) {
       final base = index * 3;
@@ -6401,36 +6425,78 @@ class _ViewportPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.8;
     final selectedStrokePaint = Paint()
-      ..color = colorScheme.primary.withValues(alpha: 0.84)
+      ..color = selectionTone.color.withValues(alpha: selectionTone.edgeAlpha)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.2;
+      ..strokeJoin = StrokeJoin.round
+      ..strokeWidth = selectionTone.edgeWidth;
+    final selectedHaloShadowPaint = Paint()
+      ..color = Colors.black.withValues(alpha: 0.34)
+      ..style = PaintingStyle.stroke
+      ..strokeJoin = StrokeJoin.round
+      ..strokeWidth = selectionTone.haloWidth + 3.2;
+    final selectedHaloPaint = Paint()
+      ..color = selectionTone.color.withValues(alpha: selectionTone.haloAlpha)
+      ..style = PaintingStyle.stroke
+      ..strokeJoin = StrokeJoin.round
+      ..strokeWidth = selectionTone.haloWidth;
     const shadowColor = Color(0xFF334047);
     const litColor = Color(0xFF74838A);
+    Rect? selectedBounds;
 
     for (final triangle in triangles) {
+      final a = vertices[triangle.a].point;
+      final b = vertices[triangle.b].point;
+      final c = vertices[triangle.c].point;
       final path = Path()
-        ..moveTo(vertices[triangle.a].point.dx, vertices[triangle.a].point.dy)
-        ..lineTo(vertices[triangle.b].point.dx, vertices[triangle.b].point.dy)
-        ..lineTo(vertices[triangle.c].point.dx, vertices[triangle.c].point.dy)
+        ..moveTo(a.dx, a.dy)
+        ..lineTo(b.dx, b.dy)
+        ..lineTo(c.dx, c.dy)
         ..close();
       final baseColor = Color.lerp(shadowColor, litColor, triangle.shade)!;
       fillPaint.color = triangle.selectedSurface
           ? Color.alphaBlend(
-              colorScheme.primary.withValues(alpha: 0.38),
+              selectionTone.color.withValues(alpha: selectionTone.fillAlpha),
               baseColor,
             )
           : baseColor;
       canvas.drawPath(path, fillPaint);
       canvas.drawPath(path, strokePaint);
       if (triangle.selectedSurface) {
+        final triangleBounds = Rect.fromLTRB(
+          math.min(a.dx, math.min(b.dx, c.dx)),
+          math.min(a.dy, math.min(b.dy, c.dy)),
+          math.max(a.dx, math.max(b.dx, c.dx)),
+          math.max(a.dy, math.max(b.dy, c.dy)),
+        );
+        selectedBounds = selectedBounds == null
+            ? triangleBounds
+            : selectedBounds.expandToInclude(triangleBounds);
         canvas.drawPath(path, selectedStrokePaint);
       }
+    }
+
+    final haloBounds = selectedBounds;
+    if (haloBounds != null) {
+      final haloRect = haloBounds.inflate(selectionTone.haloPadding);
+      final haloRadius = Radius.circular(selectionTone.haloRadius);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(haloRect, haloRadius),
+        selectedHaloShadowPaint,
+      );
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(haloRect, haloRadius),
+        selectedHaloPaint,
+      );
     }
 
     return true;
   }
 
-  void _paintWorkplaneOverlay(Canvas canvas, MockViewportLayout layout) {
+  void _paintWorkplaneOverlay(
+    Canvas canvas,
+    MockViewportLayout layout, {
+    required bool annotationMode,
+  }) {
     final workplane = workplaneOverlay;
     if (workplane == null) {
       return;
@@ -6447,18 +6513,22 @@ class _ViewportPainter extends CustomPainter {
           : 8 * layout.zoom,
     );
     final fill = Paint()
-      ..color = colorScheme.primary.withValues(alpha: 0.08)
+      ..color = colorScheme.primary.withValues(
+        alpha: annotationMode ? 0.035 : 0.08,
+      )
       ..style = PaintingStyle.fill;
     final outline = Paint()
-      ..color = colorScheme.primary.withValues(alpha: 0.62)
+      ..color = colorScheme.primary.withValues(
+        alpha: annotationMode ? 0.44 : 0.62,
+      )
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
+      ..strokeWidth = annotationMode ? 1.4 : 2;
     final gridPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.16)
+      ..color = Colors.white.withValues(alpha: annotationMode ? 0.07 : 0.16)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
     final snapFill = Paint()
-      ..color = colorScheme.primary
+      ..color = colorScheme.primary.withValues(alpha: annotationMode ? 0.70 : 1)
       ..style = PaintingStyle.fill;
     final activeSnapFill = Paint()
       ..color = colorScheme.secondary
@@ -6495,7 +6565,8 @@ class _ViewportPainter extends CustomPainter {
         workplane,
         localPoints[index],
       );
-      final radius = (active ? 7.0 : 4.5) * layout.zoom;
+      final radius =
+          (active ? 7.0 : (annotationMode ? 3.6 : 4.5)) * layout.zoom;
       canvas.drawCircle(
         snapPoints[index],
         radius,
@@ -6505,14 +6576,22 @@ class _ViewportPainter extends CustomPainter {
     }
   }
 
-  void _paintComponentPlacements(Canvas canvas, MockViewportLayout layout) {
+  void _paintComponentPlacements(
+    Canvas canvas,
+    MockViewportLayout layout, {
+    required bool annotationMode,
+  }) {
     final boardFill = Paint()
-      ..color = const Color(0xFF243F3D)
+      ..color = const Color(
+        0xFF243F3D,
+      ).withValues(alpha: annotationMode ? 0.62 : 1)
       ..style = PaintingStyle.fill;
     final boardStroke = Paint()
-      ..color = colorScheme.secondary.withValues(alpha: 0.28)
+      ..color = colorScheme.secondary.withValues(
+        alpha: annotationMode ? 0.50 : 0.28,
+      )
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
+      ..strokeWidth = annotationMode ? 1.2 : 1.5;
 
     for (final placement in componentPlacementPreviews) {
       final rect = layout.componentPlacementRect(placement);
@@ -6568,19 +6647,35 @@ class _ViewportPainter extends CustomPainter {
     );
   }
 
-  void _paintFeatures(Canvas canvas, MockViewportLayout layout) {
+  void _paintFeatures(
+    Canvas canvas,
+    MockViewportLayout layout, {
+    required bool annotationMode,
+  }) {
     final usbFill = Paint()
-      ..color = colorScheme.secondary
+      ..color = colorScheme.secondary.withValues(
+        alpha: annotationMode ? 0.24 : 1,
+      )
       ..style = PaintingStyle.fill;
+    final usbStroke = Paint()
+      ..color = colorScheme.secondary.withValues(
+        alpha: annotationMode ? 0.74 : 0,
+      )
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = annotationMode ? 1.6 : 0;
     final glassFill = Paint()
-      ..color = const Color(0xFF92C9D8).withValues(alpha: 0.24)
+      ..color = const Color(
+        0xFF92C9D8,
+      ).withValues(alpha: annotationMode ? 0.12 : 0.24)
       ..style = PaintingStyle.fill;
     final glassStroke = Paint()
-      ..color = const Color(0xFF92C9D8).withValues(alpha: 0.86)
+      ..color = const Color(
+        0xFF92C9D8,
+      ).withValues(alpha: annotationMode ? 0.58 : 0.86)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
+      ..strokeWidth = annotationMode ? 1.5 : 2;
     final darkInset = Paint()
-      ..color = Colors.black.withValues(alpha: 0.25)
+      ..color = Colors.black.withValues(alpha: annotationMode ? 0.12 : 0.25)
       ..style = PaintingStyle.fill;
 
     for (final feature in featurePreviews) {
@@ -6591,6 +6686,9 @@ class _ViewportPainter extends CustomPainter {
       switch (feature.kind) {
         case MockViewportFeatureKind.usbC:
           canvas.drawRRect(rrect, usbFill);
+          if (annotationMode) {
+            canvas.drawRRect(rrect, usbStroke);
+          }
           canvas.drawRRect(
             RRect.fromRectAndRadius(rect.deflate(3), radius),
             darkInset,
@@ -6609,33 +6707,63 @@ class _ViewportPainter extends CustomPainter {
     }
   }
 
-  void _paintFeatureGroups(Canvas canvas, MockViewportLayout layout) {
+  void _paintFeatureGroups(
+    Canvas canvas,
+    MockViewportLayout layout, {
+    required bool annotationMode,
+  }) {
     final buttonFill = Paint()
-      ..color = colorScheme.primary.withValues(alpha: 0.92)
+      ..color = colorScheme.primary.withValues(
+        alpha: annotationMode ? 0.10 : 0.92,
+      )
       ..style = PaintingStyle.fill;
     final buttonHole = Paint()
-      ..color = Colors.black.withValues(alpha: 0.28)
+      ..color = Colors.black.withValues(alpha: annotationMode ? 0.34 : 0.28)
       ..style = PaintingStyle.fill;
+    final buttonStroke = Paint()
+      ..color = colorScheme.primary.withValues(alpha: annotationMode ? 0.58 : 0)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = annotationMode ? 1.6 : 0;
+    final selectedButtonStroke = Paint()
+      ..color = colorScheme.secondary.withValues(alpha: 0.92)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.2;
     final mountFill = Paint()
-      ..color = const Color(0xFFE6C35A)
+      ..color = const Color(
+        0xFFE6C35A,
+      ).withValues(alpha: annotationMode ? 0.50 : 1)
       ..style = PaintingStyle.fill;
     final mountStroke = Paint()
-      ..color = const Color(0xFF151719).withValues(alpha: 0.7)
+      ..color =
+          (annotationMode ? colorScheme.secondary : const Color(0xFF151719))
+              .withValues(alpha: annotationMode ? 0.62 : 0.7)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
+      ..strokeWidth = annotationMode ? 1.5 : 2;
     final mountHole = Paint()
-      ..color = const Color(0xFF151719).withValues(alpha: 0.62)
+      ..color = const Color(
+        0xFF151719,
+      ).withValues(alpha: annotationMode ? 0.42 : 0.62)
       ..style = PaintingStyle.fill;
 
     for (final group in featureGroupPreviews) {
       final radius = layout.featureGroupRadius(group);
       final centers = layout.featureGroupCenters(group);
+      final selected =
+          selection.kind == SelectionKind.featureGroup &&
+          selection.id == group.semanticId;
 
       switch (group.kind) {
         case MockViewportFeatureGroupKind.buttonGroup:
           for (final center in centers) {
             canvas.drawCircle(center, radius, buttonFill);
             canvas.drawCircle(center, radius * 0.44, buttonHole);
+            if (annotationMode) {
+              canvas.drawCircle(
+                center,
+                radius,
+                selected ? selectedButtonStroke : buttonStroke,
+              );
+            }
           }
         case MockViewportFeatureGroupKind.standoffMounts:
           for (final center in centers) {
@@ -6807,6 +6935,67 @@ class _PreviewMeshTriangle {
   final double depth;
   final double shade;
   final bool selectedSurface;
+}
+
+class _PreviewMeshSelectionTone {
+  const _PreviewMeshSelectionTone({
+    required this.color,
+    required this.fillAlpha,
+    required this.edgeAlpha,
+    required this.edgeWidth,
+    required this.haloAlpha,
+    required this.haloWidth,
+    required this.haloPadding,
+    required this.haloRadius,
+  });
+
+  factory _PreviewMeshSelectionTone.fromSelection({
+    required ColorScheme colorScheme,
+    required SelectionModel selection,
+  }) {
+    return switch (selection.kind) {
+      SelectionKind.feature ||
+      SelectionKind.featureGroup => _PreviewMeshSelectionTone(
+        color: colorScheme.secondary,
+        fillAlpha: 0.28,
+        edgeAlpha: 0.54,
+        edgeWidth: 1.0,
+        haloAlpha: 0.90,
+        haloWidth: 2.4,
+        haloPadding: 7,
+        haloRadius: 11,
+      ),
+      SelectionKind.surface => _PreviewMeshSelectionTone(
+        color: colorScheme.primary,
+        fillAlpha: 0.16,
+        edgeAlpha: 0.30,
+        edgeWidth: 0.8,
+        haloAlpha: 0.64,
+        haloWidth: 1.8,
+        haloPadding: 6,
+        haloRadius: 12,
+      ),
+      _ => _PreviewMeshSelectionTone(
+        color: colorScheme.primary,
+        fillAlpha: 0.18,
+        edgeAlpha: 0.36,
+        edgeWidth: 0.8,
+        haloAlpha: 0.62,
+        haloWidth: 1.8,
+        haloPadding: 6,
+        haloRadius: 12,
+      ),
+    };
+  }
+
+  final Color color;
+  final double fillAlpha;
+  final double edgeAlpha;
+  final double edgeWidth;
+  final double haloAlpha;
+  final double haloWidth;
+  final double haloPadding;
+  final double haloRadius;
 }
 
 bool _hasPreviewMesh(PreviewMesh? mesh) {

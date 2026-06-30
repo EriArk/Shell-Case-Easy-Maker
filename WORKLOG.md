@@ -42,6 +42,83 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-30 - M88 Native viewport readability pass
+
+### Goal
+Make the center native preview easier to read by treating the generated mesh as
+the main model layer and the old mock workplanes/markers as lightweight
+semantic annotations.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`docs/33_VIEWPORT_MVP.md`, `lib/ui/shell/workspace_shell.dart`,
+`test/widget_test.dart`, and the user's latest screenshot/comment about the
+center viewport looking confusing.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added a native semantic overlay sentinel when a `PreviewMesh` is active.
+  - Suppresses duplicate mock selection outlines when a selected surface,
+    feature, or feature group already has mapped preview-mesh ranges.
+  - Softens selected native surface tint and draws one screen-space halo around
+    mapped selected ranges instead of a heavy per-triangle cyan block.
+  - Uses the secondary accent for mapped feature and feature-group highlights
+    so button groups read apart from lid/body selection.
+  - Fades workplanes, component placements, feature markers, and group markers
+    into annotation-style overlays while preserving semantic hit targets.
+- `test/widget_test.dart`:
+  - Added coverage for the native semantic overlay mode sentinel.
+- Docs/tasks/roadmap:
+  - Added M88 to `ROADMAP.md`.
+  - Added the completed native preview readability task to `TASKS.md`.
+  - Updated `docs/33_VIEWPORT_MVP.md` to describe native mesh annotation mode.
+
+### Tests run
+- `flutter test test\widget_test.dart --plain-name "viewport exposes geometry preview mesh from service" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "selected surface highlights mapped preview mesh range" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "selected feature group highlights mapped preview mesh range" --reporter compact`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed, 67 files checked with no changes.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed, 188 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+
+### Validation
+- Geometry checked indirectly through existing native preview/service tests;
+  this slice did not change OCCT generation.
+- Serialization checked indirectly through the full test suite; no project
+  schema changed.
+- UI checked with targeted viewport widget tests and the full widget suite.
+- Export not checked; STEP/STL export is still future work.
+
+### Known issues
+- Issue: The native preview is still a simple faceted painter, not a full 3D
+  viewport with real depth-aware semantic labels or mesh picking.
+  - Severity: Medium.
+  - Next action: Continue toward richer viewport rendering/selection after the
+    current semantic geometry slices stabilize.
+
+### Next step
+Poke the latest app by selecting `Top lid`, then `Группа кнопок` /
+`abxy_buttons`, and confirm the model is less visually noisy while the buttons
+remain selectable.
+
+### Notes for future Codex sessions
+Keep native viewport overlays as semantic annotations. Do not use generated
+triangles or OCCT topology as editable selection state; the current highlight
+still flows through semantic ids and `GeometryService` preview ranges only.
+
+---
+
 ## 2026-06-30 - M87 Native button cap/stem preview
 
 ### Goal

@@ -106,6 +106,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M85 - Native Button Rings
 - [x] M86 - Semantic Button Ring Controls
 - [x] M87 - Native Button Cap/Stem Preview
+- [x] M88 - Native Viewport Readability Pass
 
 ---
 
@@ -4008,3 +4009,59 @@ the group into editable CAD solids.
   `Глубина ножки`; confirm undo returns the previous values.
 - Switch a button group to `Только отверстия` and confirm cap/stem preview
   generation is disabled after the preview refresh.
+
+---
+
+## M88 - Native Viewport Readability Pass
+
+### Goal
+Make the native preview mesh read as the primary model layer while keeping
+semantic markers, workplanes, and selection feedback useful as lightweight
+annotations instead of a heavy 2D mock drawing over the generated geometry.
+
+### Tasks
+- [x] Add a native semantic annotation mode when a `PreviewMesh` is available.
+- [x] Reduce duplicate mock selection outlines when the selected semantic id
+      already has mapped preview-mesh triangle ranges.
+- [x] Soften native surface selection tint and add a single screen-space halo
+      around selected mapped ranges.
+- [x] Use the secondary accent for mapped feature and feature-group ranges so
+      button groups read separately from selected lid/body surfaces.
+- [x] Fade workplane, component, feature, and feature-group markers in native
+      mesh mode while keeping them selectable semantic affordances.
+- [x] Add widget coverage that native preview mesh mode enables the semantic
+      overlay sentinel.
+- [x] Update viewport docs, tasks, roadmap, and worklog.
+
+### Done Criteria
+- Native preview mesh remains display-only; no generated mesh, B-Rep,
+  triangle id, or OCCT topology becomes editable state.
+- Selection still flows through semantic ids and existing preview surface
+  ranges from `GeometryService`.
+- A selected surface with mapped preview ranges no longer gets an extra heavy
+  mock surface outline on top of the native mesh.
+- Feature and feature-group mapped ranges use a warmer highlight/halo so
+  button caps, stems, rings, and other semantic details are easier to read.
+- Mock workplane and semantic markers remain visible but behave like annotation
+  handles over the native preview instead of the main model layer.
+
+### Tests
+- `flutter test test\widget_test.dart --plain-name "viewport exposes geometry preview mesh from service" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "selected surface highlights mapped preview mesh range" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "selected feature group highlights mapped preview mesh range" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open
+  `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- Select `Top lid` and confirm the center model reads less like a solid cyan
+  2D mock overlay; it should show a softer mesh tint plus a single halo.
+- Select `Группа кнопок` / `abxy_buttons` and confirm button-related selection
+  reads with a warmer accent over the generated lid/body preview.
+- Orbit, pan, and zoom; confirm semantic handles remain useful without hiding
+  the native preview mesh.

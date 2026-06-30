@@ -150,6 +150,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Add native OCCT app backend preset.
 - [x] Bundle native OCCT worker into explicit latest Windows builds.
 - [x] Feed native worker preview mesh into the Flutter viewport.
+- [x] Add native preview readability/semantic annotation pass.
 - [x] First-pass semantic validation warnings/errors.
 - [x] First-pass component placement and keepout semantic validation.
 - [x] Rotation-aware component placement bounds validation.
