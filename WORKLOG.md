@@ -42,6 +42,95 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-30 - M71 Native USB-C feature range highlight
+
+### Goal
+Expose the generated USB-C cutout as a disposable native preview range and let
+the viewport highlight `front_usb_c` when the semantic feature is selected.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`docs/04_GEOMETRY_ENGINE_OCCT.md`, `docs/34_FIRST_GEOMETRY_SLICE.md`,
+`occt_worker/native/src/occt_main.cpp`,
+`tool/native_occt_worker_metrics_smoke.dart`,
+`lib/ui/shell/workspace_shell.dart`, `test/widget_test.dart`, and
+`test/occt_native_target_scaffold_test.dart`.
+
+### Changes made
+- `occt_worker/native/src/occt_main.cpp`:
+  - Split body surface classification from generated feature range
+    classification.
+  - Added a USB-C cutout face-range classifier that maps faces inside the
+    opening while leaving the full front wall mapped to
+    `main_enclosure.front_wall.outer`.
+  - Emits `front_usb_c` as an additional disposable preview surface mapping.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Allows selected semantic features to use preview mesh triangle ranges for
+    display-only highlighting.
+- `test/widget_test.dart`:
+  - Added fake preview mesh coverage and a widget test for selected feature
+    highlight activation.
+- `tool/native_occt_worker_metrics_smoke.dart` and
+  `test/occt_native_target_scaffold_test.dart`:
+  - Updated the native contract to expect 4 preview mappings: top, front,
+    bottom, and `front_usb_c`.
+- Docs/tasks/roadmap:
+  - Recorded M71 and clarified that feature preview ranges are disposable
+    geometry output, not editable project state.
+
+### Tests run
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`:
+  - Passed.
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`:
+  - Passed; sample reports 1418 vertices, 1754 triangles, 4 mappings, and 636
+    mapped triangles.
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`:
+  - Passed, 5 tests.
+- `flutter test test\widget_test.dart --plain-name "selected feature highlights mapped preview mesh range" --reporter compact`:
+  - Passed after rerunning without a parallel Flutter startup lock.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed after formatting `lib/ui/shell/workspace_shell.dart`.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed, 185 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `git diff --check`:
+  - Passed with CRLF normalization warnings for existing text files.
+
+### Validation
+- Geometry checked?
+  - Yes. Native smoke verifies the USB-C cut remains valid and now emits the
+    additional `front_usb_c` range.
+- Serialization checked?
+  - Yes. Full test suite passed; preview ranges remain generated response data,
+    not editable project state.
+- UI checked?
+  - Yes. Widget coverage verifies selected feature range highlighting.
+- Export checked?
+  - No. STEP/STL export remains planned.
+
+### Known issues
+- Issue: The USB-C preview range is still face-range based, not exact edge-loop
+  highlighting.
+  - Severity: Low for this slice.
+  - Next action: Improve mapping precision alongside richer generated feature
+    geometry and real viewport picking.
+
+### Next step
+Continue to the next native feature-generation slice: likely button-group or
+glass-recess B-Rep generation, still through semantic feature intents.
+
+### Notes for future Codex sessions
+`front_usb_c` preview ranges are display-only. Do not use them for semantic
+editing, saved project references, or native topology coupling.
+
+---
+
 ## 2026-06-29 - M70 Native USB-C cutout slice
 
 ### Goal

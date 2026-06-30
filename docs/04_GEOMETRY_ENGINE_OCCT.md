@@ -51,6 +51,17 @@ Use semantic surface IDs:
 
 Do not store selected triangle IDs as permanent model references.
 
+## Preview range mapping
+
+Generated preview meshes may include disposable triangle ranges keyed by stable
+semantic IDs. Flutter can use those ranges to highlight a selected surface or a
+selected generated feature, such as `front_usb_c`, but the ranges are not
+editable model state.
+
+The native worker must keep OCCT topology and preview triangle indices behind
+the `GeometryService` boundary. Rebuilds may change triangle ranges; semantic
+project objects remain the source of truth.
+
 ## Fillet/chamfer policy
 
 Avoid a universal “fillet all edges” workflow in MVP.

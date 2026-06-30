@@ -195,6 +195,28 @@ void main() {
     );
   });
 
+  testWidgets('selected feature highlights mapped preview mesh range', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const CaseMakerApp(geometryService: _PreviewMeshGeometryService()),
+    );
+    await tester.pumpAndSettle();
+
+    const highlightKey = ValueKey('geometry-preview-surface-highlight-active');
+    expect(find.byKey(highlightKey), findsNothing);
+
+    await tester.scrollUntilVisible(
+      find.text('USB-C'),
+      80,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('USB-C').first);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(highlightKey), findsOneWidget);
+  });
+
   testWidgets('surface snap point seeds component placement dialog', (
     tester,
   ) async {
@@ -2194,6 +2216,11 @@ class _PreviewMeshGeometryService extends MockGeometryService {
             semanticId: 'main_enclosure.top_lid.outer',
             label: 'Top lid',
             triangleRanges: [PreviewTriangleRange(start: 0, count: 1)],
+          ),
+          PreviewSurfaceMapping(
+            semanticId: 'front_usb_c',
+            label: 'USB-C cutout',
+            triangleRanges: [PreviewTriangleRange(start: 1, count: 2)],
           ),
         ],
       ),

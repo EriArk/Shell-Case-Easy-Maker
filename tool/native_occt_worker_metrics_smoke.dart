@@ -125,8 +125,8 @@ Future<void> main(List<String> args) async {
       failures,
     );
     _expect(
-      previewMesh.surfaces.length == 3,
-      'previewMesh must expose three first-pass semantic surface mappings',
+      previewMesh.surfaces.length == 4,
+      'previewMesh must expose body surfaces plus the sample USB-C feature mapping',
       failures,
     );
     final surfaceIds = previewMesh.surfaces
@@ -145,6 +145,11 @@ Future<void> main(List<String> args) async {
     _expect(
       surfaceIds.contains('main_enclosure.bottom_inside'),
       'previewMesh surfaces must include the semantic bottom inside surface',
+      failures,
+    );
+    _expect(
+      surfaceIds.contains('front_usb_c'),
+      'previewMesh surfaces must include the sample USB-C feature range',
       failures,
     );
     _expect(

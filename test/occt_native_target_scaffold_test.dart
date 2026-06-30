@@ -50,7 +50,9 @@ void main() {
       expect(source, contains('BuildUsbCCutoutTool'));
       expect(source, contains('ApplyNativeFeatureCutouts'));
       expect(source, contains('BuildPreviewMesh'));
+      expect(source, contains('FaceIntersectsUsbCCutout'));
       expect(source, contains('ClassifyPreviewSurface'));
+      expect(source, contains('ClassifyPreviewSurfaces'));
       expect(source, contains('PreviewSurfaceMappingData'));
       expect(source, contains('ComputeShapeMetrics'));
       expect(source, contains('WritePreviewMesh'));
@@ -80,6 +82,7 @@ void main() {
       expect(source, contains('.top_lid.outer'));
       expect(source, contains('.front_wall.outer'));
       expect(source, contains('.bottom_inside'));
+      expect(source, contains('USB-C cutout'));
       expect(source, contains('editableGeneratedGeometry'));
       expect(source, contains('semantic_project'));
       expect(source, contains('nativeHealthShapeNull'));
@@ -147,7 +150,8 @@ void main() {
       expect(tool, contains('occt.rounded_enclosure.shell_preview_mesh.v1'));
       expect(tool, contains('previewMesh.vertexCount'));
       expect(tool, contains('previewMesh.triangleCount'));
-      expect(tool, contains('previewMesh.surfaces.length == 3'));
+      expect(tool, contains('previewMesh.surfaces.length == 4'));
+      expect(tool, contains('front_usb_c'));
       expect(tool, contains('shellCavityApplied'));
       expect(tool, contains('shellCavityValid'));
       expect(tool, contains('shellCavityToolCount'));

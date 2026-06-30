@@ -248,6 +248,11 @@ lid/body split is still future work.
 Triangle ranges are allowed only as disposable preview metadata. They are not
 stable project IDs and must not leak into semantic editing.
 
+The native preview mesh can also expose generated feature ranges by semantic
+feature ID. The first such mapping is `front_usb_c`, which highlights the
+generated USB-C cutout faces while `main_enclosure.front_wall.outer` remains the
+front wall surface mapping.
+
 ## Initial Rounded Enclosure Plan
 
 The first native OCCT slices now:
@@ -266,6 +271,8 @@ The first native OCCT slices now:
 12. Return disposable preview mesh vertices and triangle indices.
 13. Return first-pass semantic preview surface ranges for top rim, front, and
     bottom face blocks.
+14. Return a disposable `front_usb_c` feature range for the generated USB-C
+    cutout faces.
 
 The next native geometry slices should:
 
@@ -281,6 +288,8 @@ Expected sample dimensions:
 - native preview bounds: `[-60, -35, 0]` to `[60, 35, 27.464102]`,
 - native preview volume after USB-C cutout: `33664.517631 mm^3`,
 - native preview surface area after USB-C cutout: `34732.966792 mm^2`,
+- native preview surface mappings after USB-C feature range: `4`,
+- native preview mapped triangles after USB-C feature range: `636`,
 - native feature metrics: `featureIntentCount=2`,
   `nativeFeatureCutCount=1`, `nativeIgnoredFeatureIntentCount=1`,
   `nativeUsbCCutoutCount=1`.

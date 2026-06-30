@@ -1065,6 +1065,40 @@ bool UsbCCutoutFitsFrontSurface(const EnclosureRequest& enclosure,
          center[1] + cutout.height / 2.0 <= inner_height + tolerance;
 }
 
+bool FaceIntersectsUsbCCutout(const FaceBounds& face_bounds,
+                              const ShapeMetrics& metrics,
+                              const EnclosureRequest& enclosure,
+                              const UsbCCutoutRequest& cutout) {
+  const std::array<double, 2> center =
+      UsbCCutoutCenter(enclosure, cutout);
+  const double tolerance = PreviewSurfaceTolerance(metrics);
+  const double cutout_min_x = center[0] - cutout.width / 2.0 - tolerance;
+  const double cutout_max_x = center[0] + cutout.width / 2.0 + tolerance;
+  const double cutout_min_z = center[1] - cutout.height / 2.0 - tolerance;
+  const double cutout_max_z = center[1] + cutout.height / 2.0 + tolerance;
+  const double front_y = -enclosure.size[1] / 2.0;
+  const double cutout_min_y = front_y - tolerance;
+  const double cutout_max_y =
+      front_y + enclosure.wall_thickness + tolerance;
+
+  const bool overlaps_cutout_volume =
+      face_bounds.max[0] >= cutout_min_x &&
+      face_bounds.min[0] <= cutout_max_x &&
+      face_bounds.max[1] >= cutout_min_y &&
+      face_bounds.min[1] <= cutout_max_y &&
+      face_bounds.max[2] >= cutout_min_z &&
+      face_bounds.min[2] <= cutout_max_z;
+  const bool is_inside_cutout_opening =
+      face_bounds.min[0] >= cutout_min_x &&
+      face_bounds.max[0] <= cutout_max_x &&
+      face_bounds.min[2] >= cutout_min_z &&
+      face_bounds.max[2] <= cutout_max_z;
+  const bool spans_wall_depth =
+      face_bounds.max[1] - face_bounds.min[1] > tolerance;
+
+  return overlaps_cutout_volume && is_inside_cutout_opening && spans_wall_depth;
+}
+
 TopoDS_Shape BuildUsbCCutoutTool(const EnclosureRequest& enclosure,
                                  const UsbCCutoutRequest& cutout,
                                  int* filleted_edge_count) {
@@ -1222,6 +1256,28 @@ std::optional<std::pair<std::string, std::string>> ClassifyPreviewSurface(
   return std::nullopt;
 }
 
+std::vector<std::pair<std::string, std::string>> ClassifyPreviewSurfaces(
+    const FaceBounds& face_bounds,
+    const ShapeMetrics& metrics,
+    const std::string& body_id,
+    const EnclosureRequest& enclosure,
+    const std::vector<UsbCCutoutRequest>& usb_c_cutouts) {
+  std::vector<std::pair<std::string, std::string>> surfaces;
+  const std::optional<std::pair<std::string, std::string>> body_surface =
+      ClassifyPreviewSurface(face_bounds, metrics, body_id);
+  if (body_surface.has_value()) {
+    surfaces.push_back(body_surface.value());
+  }
+
+  for (const UsbCCutoutRequest& cutout : usb_c_cutouts) {
+    if (FaceIntersectsUsbCCutout(face_bounds, metrics, enclosure, cutout)) {
+      surfaces.push_back(std::make_pair(cutout.id, "USB-C cutout"));
+    }
+  }
+
+  return surfaces;
+}
+
 void AddPreviewSurfaceRange(
     PreviewMeshData* mesh,
     const std::optional<std::pair<std::string, std::string>>& surface,
@@ -1255,7 +1311,9 @@ int PreviewMappedTriangleCount(const PreviewMeshData& mesh) {
 
 PreviewMeshData BuildPreviewMesh(const TopoDS_Shape& shape,
                                  const ShapeMetrics& metrics,
-                                 const std::string& body_id) {
+                                 const EnclosureRequest& enclosure,
+                                 const std::vector<UsbCCutoutRequest>&
+                                     usb_c_cutouts) {
   PreviewMeshData mesh;
   BRepMesh_IncrementalMesh mesher(shape,
                                   kPreviewLinearDeflection,
@@ -1276,8 +1334,12 @@ PreviewMeshData BuildPreviewMesh(const TopoDS_Shape& shape,
     }
 
     const FaceBounds face_bounds = ComputeFaceBounds(triangulation, location);
-    const std::optional<std::pair<std::string, std::string>> surface =
-        ClassifyPreviewSurface(face_bounds, metrics, body_id);
+    const std::vector<std::pair<std::string, std::string>> surfaces =
+        ClassifyPreviewSurfaces(face_bounds,
+                                metrics,
+                                enclosure.id,
+                                enclosure,
+                                usb_c_cutouts);
     const int vertex_offset = mesh.vertex_count();
     const int triangle_start = mesh.triangle_count();
     for (int node_index = 1; node_index <= triangulation->NbNodes();
@@ -1315,8 +1377,12 @@ PreviewMeshData BuildPreviewMesh(const TopoDS_Shape& shape,
       }
     }
 
-    AddPreviewSurfaceRange(
-        &mesh, surface, triangle_start, mesh.triangle_count() - triangle_start);
+    for (const std::pair<std::string, std::string>& surface : surfaces) {
+      AddPreviewSurfaceRange(&mesh,
+                             surface,
+                             triangle_start,
+                             mesh.triangle_count() - triangle_start);
+    }
   }
 
   if (mesh.triangles.empty()) {
@@ -1669,8 +1735,10 @@ int main(int argc, char* argv[]) {
                             parsed_request.feature_intent_count,
                             feature_cuts);
     const PreviewMeshData mesh =
-        BuildPreviewMesh(
-            feature_cuts.shape, metrics, parsed_request.enclosure.id);
+        BuildPreviewMesh(feature_cuts.shape,
+                         metrics,
+                         parsed_request.enclosure,
+                         parsed_request.usb_c_cutouts);
     WriteRoundedEnclosurePreviewResponse(
         parsed_request.request, parsed_request.enclosure, metrics, mesh);
     return 0;

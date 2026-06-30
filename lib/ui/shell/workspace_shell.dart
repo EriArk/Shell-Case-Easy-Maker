@@ -6137,7 +6137,8 @@ class _ViewportPainter extends CustomPainter {
         ),
     ];
 
-    final selectedTriangleIndices = selection.kind == SelectionKind.surface
+    final selectedTriangleIndices =
+        _selectionUsesPreviewSurfaceRanges(selection)
         ? _previewSurfaceTriangleIndices(mesh, selection.id)
         : const <int>{};
     final triangles = <_PreviewMeshTriangle>[];
@@ -6590,11 +6591,17 @@ bool _hasPreviewMesh(PreviewMesh? mesh) {
 }
 
 bool _hasSelectedPreviewSurface(PreviewMesh? mesh, SelectionModel selection) {
-  if (!_hasPreviewMesh(mesh) || selection.kind != SelectionKind.surface) {
+  if (!_hasPreviewMesh(mesh) ||
+      !_selectionUsesPreviewSurfaceRanges(selection)) {
     return false;
   }
 
   return _previewSurfaceTriangleIndices(mesh!, selection.id).isNotEmpty;
+}
+
+bool _selectionUsesPreviewSurfaceRanges(SelectionModel selection) {
+  return selection.kind == SelectionKind.surface ||
+      selection.kind == SelectionKind.feature;
 }
 
 Set<int> _previewSurfaceTriangleIndices(PreviewMesh mesh, String? semanticId) {

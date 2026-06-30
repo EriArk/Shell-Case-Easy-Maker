@@ -97,6 +97,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Implement focus/fit view.
 - [x] Render disposable geometry preview mesh when a backend provides one.
 - [x] Highlight selected semantic surface ranges on generated preview mesh.
+- [x] Highlight selected semantic feature ranges on generated preview mesh.
 
 ## Phase 4 — OCCT worker MVP
 
@@ -126,6 +127,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Generate mock preview mesh through protocol.
 - [x] Generate OCCT preview mesh.
 - [x] Emit first native semantic preview surface ranges.
+- [x] Emit first native USB-C feature preview ranges.
 - [ ] Export STEP.
 - [ ] Export STL.
 - [x] Define response issues/warnings model.

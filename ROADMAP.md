@@ -89,6 +89,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M68 - Preview Surface Range Highlight
 - [x] M69 - Native Shell/Cavity Slice
 - [x] M70 - Native USB-C Cutout Slice
+- [x] M71 - Native USB-C Feature Range Highlight
 
 ---
 
@@ -3071,4 +3072,55 @@ subtract a rounded front-wall port opening from the generated shell.
 - Orbit to the front wall and confirm a small USB-C opening is visible.
 - Select `USB-C` / `front_usb_c` and confirm the inspector still edits the
   semantic feature; this chunk does not add mesh picking.
+- Select `Top lid` and confirm the top-rim highlight still works.
+
+---
+
+## M71 - Native USB-C Feature Range Highlight
+
+### Goal
+Expose a disposable native preview range for the generated `front_usb_c`
+opening and let the Flutter viewport highlight it when the semantic feature is
+selected.
+
+### Tasks
+- [x] Keep body surface range classification separate from feature range
+      classification.
+- [x] Add a native USB-C cutout face-range classifier that avoids mapping the
+      whole front wall to the feature.
+- [x] Emit `front_usb_c` as an additional preview mesh surface mapping.
+- [x] Let selected semantic features use preview mesh ranges in the viewport.
+- [x] Add widget coverage for selected feature range highlighting.
+- [x] Update native smoke, scaffold tests, docs, tasks, and worklog.
+
+### Done Criteria
+- Native smoke reports 1418 vertices, 1754 triangles, 4 preview surface
+  mappings, and 636 mapped triangles.
+- Surface mappings include `main_enclosure.top_lid.outer`,
+  `main_enclosure.front_wall.outer`, `main_enclosure.bottom_inside`, and
+  `front_usb_c`.
+- Selecting `front_usb_c` can activate the preview mesh highlight without using
+  persistent triangle IDs or OCCT topology IDs.
+- Editable project JSON remains semantic; preview ranges are disposable output
+  only.
+
+### Tests
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "selected feature highlights mapped preview mesh range" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open
+  `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- Confirm the viewport label still shows `occt_worker_native_occt`.
+- Select `USB-C` / `front_usb_c` and confirm a cyan highlight appears around
+  the generated USB-C opening.
+- Select `Front wall` and confirm the front wall still has its own selection.
 - Select `Top lid` and confirm the top-rim highlight still works.
