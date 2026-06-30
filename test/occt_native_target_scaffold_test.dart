@@ -61,11 +61,17 @@ void main() {
       expect(source, contains('BuildPreviewMesh'));
       expect(source, contains('FaceIntersectsUsbCCutout'));
       expect(source, contains('FaceIntersectsLidScrewBoss'));
+      expect(source, contains('FaceIntersectsGeneratedLidPlate'));
       expect(source, contains('FaceIntersectsGlassRecess'));
       expect(source, contains('FaceIntersectsButtonCutout'));
       expect(source, contains('FaceIntersectsStandoffMount'));
       expect(source, contains('BRepPrimAPI_MakeCylinder'));
       expect(source, contains('BRepAlgoAPI_Fuse'));
+      expect(source, contains('BRep_Builder'));
+      expect(source, contains('TopoDS_Compound'));
+      expect(source, contains('GeneratedLidPlateRequest'));
+      expect(source, contains('BuildGeneratedTopLidPlateShape'));
+      expect(source, contains('BuildPreviewAssembly'));
       expect(source, contains('ClassifyPreviewSurface'));
       expect(source, contains('ClassifyPreviewSurfaces'));
       expect(source, contains('PreviewSurfaceMappingData'));
@@ -85,6 +91,7 @@ void main() {
       expect(source, contains('nativeIgnoredFeatureIntentCount'));
       expect(source, contains('nativeLidScrewBossCount'));
       expect(source, contains('nativeLidScrewPilotCount'));
+      expect(source, contains('nativeGeneratedLidPlateCount'));
       expect(source, contains('nativeUsbCCutoutCount'));
       expect(source, contains('nativeUsbCCutoutFilletedEdgeCount'));
       expect(source, contains('nativeGlassRecessCount'));
@@ -106,7 +113,9 @@ void main() {
       expect(source, contains('.front_wall.outer'));
       expect(source, contains('.bottom_inside'));
       expect(source, contains('.lid_screw_bosses'));
+      expect(source, contains('.generated_top_lid'));
       expect(source, contains('Lid screw bosses'));
+      expect(source, contains('Generated lid'));
       expect(source, contains('USB-C cutout'));
       expect(source, contains('Glass recess'));
       expect(source, contains('Button group'));
@@ -178,8 +187,9 @@ void main() {
       expect(tool, contains('occt.rounded_enclosure.shell_preview_mesh.v1'));
       expect(tool, contains('previewMesh.vertexCount'));
       expect(tool, contains('previewMesh.triangleCount'));
-      expect(tool, contains('previewMesh.surfaces.length == 8'));
+      expect(tool, contains('previewMesh.surfaces.length == 9'));
       expect(tool, contains('main_enclosure.lid_screw_bosses'));
+      expect(tool, contains('main_enclosure.generated_top_lid'));
       expect(tool, contains('front_usb_c'));
       expect(tool, contains('front_glass_recess'));
       expect(tool, contains('front_buttons'));
@@ -193,6 +203,7 @@ void main() {
       expect(tool, contains('nativeIgnoredFeatureIntentCount'));
       expect(tool, contains('nativeLidScrewBossCount'));
       expect(tool, contains('nativeLidScrewPilotCount'));
+      expect(tool, contains('nativeGeneratedLidPlateCount'));
       expect(tool, contains('nativeUsbCCutoutCount'));
       expect(tool, contains('nativeUsbCCutoutFilletedEdgeCount'));
       expect(tool, contains('nativeGlassRecessCount'));

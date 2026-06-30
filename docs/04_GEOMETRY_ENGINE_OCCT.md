@@ -117,13 +117,16 @@ intents, first-pass front-wall `glass_recess` intents, and front-wall
 `button_group` item intents as real generated B-Rep. It also consumes
 bottom-inside `standoff_mounts` item intents as positive generated boss
 geometry and generates first-pass lid screw bosses from the enclosure
-`top_screw_lid` semantic lid spec. Button and standoff groups remain one
-editable semantic object; lid screw bosses remain generated enclosure detail,
-not separate editable solids. The native worker only consumes semantic
-parameters and derived item positions as disposable generator input. Top-lid
-button/recess support, richer mount variants, and export operations remain next
-slices. The plan is disposable backend input. It must not be saved as the
-editable project model and must not contain OCCT topology IDs.
+`top_screw_lid` semantic lid spec. For the first lid/body step, it also adds a
+separate generated top lid preview plate to the native preview assembly with
+`BRep_Builder`/`TopoDS_Compound`. Button and standoff groups remain one
+editable semantic object; lid screw bosses and the generated lid plate remain
+generated enclosure detail, not separate editable solids. The native worker
+only consumes semantic parameters and derived item positions as disposable
+generator input. A real mating lid/body split, top-lid button/recess support,
+richer mount variants, and export operations remain next slices. The plan is
+disposable backend input. It must not be saved as the editable project model
+and must not contain OCCT topology IDs.
 
 ## Generated protocol fixtures
 

@@ -94,6 +94,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M73 - Native Front Button Group Cutouts
 - [x] M74 - Native Bottom Standoff Mounts
 - [x] M75 - Native Top Screw Lid Bosses
+- [x] M76 - Native Top Lid Plate Preview
 
 ---
 
@@ -3356,3 +3357,56 @@ Generate first native screw bosses for enclosures whose semantic lid spec is
   standoffs still appear separately from the lid screw bosses.
 - Select/edit the enclosure lid type in the inspector if needed; generated
   bosses are tied to the semantic lid spec, not separate editable objects.
+
+---
+
+## M76 - Native Top Lid Plate Preview
+
+### Goal
+Generate the first separate native preview lid plate for `top_screw_lid`
+enclosures, without changing editable project JSON or pretending the full
+lid/body mechanical split is complete.
+
+### Tasks
+- [x] Record OCCT compound/lid-preview research before implementation.
+- [x] Add generated top lid plate request data derived from semantic
+      `Enclosure.lid`.
+- [x] Build a rounded preview lid plate above the body.
+- [x] Assemble body plus lid plate as an OCCT compound for preview meshing and
+      metrics.
+- [x] Emit `nativeGeneratedLidPlateCount`.
+- [x] Map `main_enclosure.generated_top_lid` as disposable preview output while
+      keeping `main_enclosure.top_lid.outer` semantic highlighting.
+- [x] Update native smoke expectations, source-contract tests, docs, tasks,
+      roadmap, and worklog.
+
+### Done Criteria
+- Native smoke reports 5022 vertices, 5574 triangles, 9 preview surface
+  mappings, and 3782 mapped triangles.
+- Native smoke reports `nativeGeneratedLidPlateCount: 1`.
+- Native preview bounds are `[-60, -35, 0]` to `[60, 35, 32]`.
+- Surface mappings include `main_enclosure.generated_top_lid`.
+- Generated lid plate data remains disposable B-Rep output, not editable
+  project state.
+
+### Tests
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open
+  `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- Confirm the viewport label still shows `occt_worker_native_occt`.
+- Orbit above the enclosure and confirm a separate rounded lid plate floats
+  above the open body.
+- Select the enclosure/top lid area and confirm highlight still appears on lid
+  preview ranges.
+- Confirm existing USB-C, glass, button, standoff, and screw-boss highlights
+  still work.

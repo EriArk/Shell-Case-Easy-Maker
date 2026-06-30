@@ -30,9 +30,9 @@ For each mounting hole:
 The native OCCT worker now generates the first bottom-inside
 `standoff_mounts` bosses from semantic mounting-hole groups. For enclosures
 with `lid.type: top_screw_lid`, it also generates four default lid screw bosses
-from the enclosure lid spec. Both are generated B-Rep output; the editable
-project still stores semantic groups and lid metadata rather than generated
-solids.
+and a separate top lid preview plate from the enclosure lid spec. These are
+generated B-Rep output; the editable project still stores semantic groups and
+lid metadata rather than generated solids or per-boss/per-lid editable bodies.
 
 ## Port cutouts
 

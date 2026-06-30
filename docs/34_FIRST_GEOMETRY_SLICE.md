@@ -287,10 +287,13 @@ The first native OCCT slices now:
 18. Return disposable `main_enclosure.lid_screw_bosses`, `front_usb_c`,
     `front_glass_recess`, `front_buttons`, and `standoff_mounts_1` generated
     ranges for highlighting.
+19. Add a separate generated top lid preview plate for `top_screw_lid`
+    enclosures as an OCCT compound member keyed by
+    `main_enclosure.generated_top_lid`.
 
 The next native geometry slices should:
 
-1. Add a real lid/body split around the generated screw boss workflow.
+1. Turn the preview lid plate into a real lid/body split with mating geometry.
 2. Add top-lid glass/button support after a real lid/body split exists.
 3. Add screw boss and standoff fillets/chamfers plus richer mount variants.
 4. Expand semantic face mapping beyond the first top/front/bottom ranges.
@@ -299,20 +302,22 @@ Expected sample dimensions:
 - size: `120 x 70 x 28 mm`,
 - wall thickness: `2 mm`,
 - corner radius: `4 mm`,
-- native preview bounds: `[-60, -35, 0]` to `[60, 35, 27.464102]`,
+- native preview assembly bounds: `[-60, -35, 0]` to `[60, 35, 32]`,
 - native preview volume after lid screw bosses, USB-C, front glass recess,
-  front button cutouts, and bottom standoff bosses: `36692.568707 mm^3`,
+  front button cutouts, bottom standoff bosses, and generated lid plate:
+  `53329.419133 mm^3`,
 - native preview surface area after lid screw bosses, USB-C, front glass
-  recess, front button cutouts, and bottom standoff bosses:
-  `37838.594851 mm^2`,
-- native preview surface mappings after feature ranges: `8`,
-- native preview mapped triangles after feature ranges: `2820`,
+  recess, front button cutouts, bottom standoff bosses, and generated lid
+  plate: `55068.165581 mm^2`,
+- native preview surface mappings after feature ranges: `9`,
+- native preview mapped triangles after feature ranges: `3782`,
 - native feature metrics: `featureIntentCount=5`,
   `nativeFeatureCutCount=8`, `nativeIgnoredFeatureIntentCount=1`,
   `nativeLidScrewBossCount=4`, `nativeLidScrewPilotCount=4`,
-  `nativeUsbCCutoutCount=1`, `nativeGlassRecessCount=1`,
-  `nativeButtonGroupCount=1`, `nativeButtonCutoutCount=2`,
-  `nativeStandoffGroupCount=1`, `nativeStandoffMountCount=4`.
+  `nativeGeneratedLidPlateCount=1`, `nativeUsbCCutoutCount=1`,
+  `nativeGlassRecessCount=1`, `nativeButtonGroupCount=1`,
+  `nativeButtonCutoutCount=2`, `nativeStandoffGroupCount=1`,
+  `nativeStandoffMountCount=4`.
 
 ## Current Limitations
 
@@ -349,8 +354,9 @@ Expected sample dimensions:
   semantic surface ranges are implemented. Front-wall glass recesses and
   front-wall button-group cutouts are also implemented. Bottom-inside standoff
   bosses are implemented as the first native mount geometry, and top-screw-lid
-  enclosures generate first-pass screw bosses. A real separable lid/body split,
-  top-lid feature cuts, richer mount variants, and richer face mapping are
-  still planned.
+  enclosures generate first-pass screw bosses plus a separate generated top lid
+  preview plate. A real separable lid/body split with mating geometry, top-lid
+  feature cuts, richer mount variants, and richer face mapping are still
+  planned.
 - STEP/STL export operations intentionally return unsupported in the mock
   backend.

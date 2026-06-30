@@ -7,6 +7,7 @@
 #include <BRepMesh_IncrementalMesh.hxx>
 #include <BRepPrimAPI_MakeBox.hxx>
 #include <BRepPrimAPI_MakeCylinder.hxx>
+#include <BRep_Builder.hxx>
 #include <BRep_Tool.hxx>
 #include <Bnd_Box.hxx>
 #include <GProp_GProps.hxx>
@@ -18,6 +19,7 @@
 #include <TopExp_Explorer.hxx>
 #include <TopLoc_Location.hxx>
 #include <TopoDS.hxx>
+#include <TopoDS_Compound.hxx>
 #include <TopoDS_Edge.hxx>
 #include <TopoDS_Face.hxx>
 #include <TopoDS_Shape.hxx>
@@ -76,6 +78,12 @@ struct LidScrewBossRequest {
   double height = 20.0;
 };
 
+struct GeneratedLidPlateRequest {
+  std::string id;
+  double thickness = 2.0;
+  double preview_gap = 2.0;
+};
+
 struct UsbCCutoutRequest {
   std::string id;
   std::string target_surface;
@@ -132,6 +140,7 @@ struct NativeRequestParseResult {
   std::vector<ButtonGroupCutoutRequest> button_groups;
   std::vector<StandoffMountGroupRequest> standoff_groups;
   std::vector<LidScrewBossRequest> lid_screw_bosses;
+  std::vector<GeneratedLidPlateRequest> generated_lid_plates;
   int feature_intent_count = 0;
   std::string issue_code;
   std::string issue_message;
@@ -163,6 +172,7 @@ struct ShapeMetrics {
   int native_standoff_mount_count = 0;
   int native_lid_screw_boss_count = 0;
   int native_lid_screw_pilot_count = 0;
+  int native_generated_lid_plate_count = 0;
 };
 
 struct ShellBuildResult {
@@ -176,6 +186,11 @@ struct NativeLidBossResult {
   TopoDS_Shape shape;
   int boss_count = 0;
   int pilot_hole_count = 0;
+};
+
+struct NativePreviewAssemblyResult {
+  TopoDS_Shape shape;
+  int generated_lid_plate_count = 0;
 };
 
 struct NativeFeatureCutResult {
@@ -896,6 +911,12 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
     }
 
     if (result.enclosure.lid_type == "top_screw_lid") {
+      GeneratedLidPlateRequest lid_plate;
+      lid_plate.id = result.enclosure.id + ".generated_top_lid";
+      lid_plate.thickness = std::max(1.0, result.enclosure.wall_thickness);
+      lid_plate.preview_gap = std::max(1.0, result.enclosure.wall_thickness);
+      result.generated_lid_plates.push_back(lid_plate);
+
       const double inner_width =
           result.enclosure.size[0] - result.enclosure.wall_thickness * 2.0;
       const double inner_depth =
@@ -1296,6 +1317,67 @@ TopoDS_Shape BuildRoundedEnclosureShape(const EnclosureRequest& enclosure,
                               filleted_edge_count);
 }
 
+TopoDS_Shape BuildGeneratedTopLidPlateShape(
+    const EnclosureRequest& enclosure,
+    const GeneratedLidPlateRequest& lid_plate) {
+  const std::array<double, 3> lid_size = {
+      enclosure.size[0],
+      enclosure.size[1],
+      lid_plate.thickness};
+  const gp_Pnt lid_origin(-lid_size[0] / 2.0,
+                          -lid_size[1] / 2.0,
+                          enclosure.size[2] + lid_plate.preview_gap);
+  bool lid_radius_applied = false;
+  int lid_filleted_edge_count = 0;
+  const TopoDS_Shape lid_shape =
+      BuildRoundedBoxShape(lid_origin,
+                           lid_size,
+                           enclosure.corner_radius,
+                           &lid_radius_applied,
+                           &lid_filleted_edge_count);
+  if (lid_shape.IsNull()) {
+    throw std::runtime_error("OCCT generated a null top lid plate.");
+  }
+
+  BRepCheck_Analyzer analyzer(lid_shape, false);
+  if (!analyzer.IsValid()) {
+    throw std::runtime_error("OCCT generated an invalid top lid plate.");
+  }
+
+  return lid_shape;
+}
+
+NativePreviewAssemblyResult BuildPreviewAssembly(
+    const TopoDS_Shape& body_shape,
+    const EnclosureRequest& enclosure,
+    const std::vector<GeneratedLidPlateRequest>& lid_plates) {
+  NativePreviewAssemblyResult result;
+  result.shape = body_shape;
+  if (lid_plates.empty()) {
+    return result;
+  }
+
+  BRep_Builder builder;
+  TopoDS_Compound compound;
+  builder.MakeCompound(compound);
+  builder.Add(compound, body_shape);
+
+  for (const GeneratedLidPlateRequest& lid_plate : lid_plates) {
+    const TopoDS_Shape lid_shape =
+        BuildGeneratedTopLidPlateShape(enclosure, lid_plate);
+    builder.Add(compound, lid_shape);
+    ++result.generated_lid_plate_count;
+  }
+
+  BRepCheck_Analyzer analyzer(compound, false);
+  if (!analyzer.IsValid()) {
+    throw std::runtime_error("OCCT generated an invalid preview assembly.");
+  }
+
+  result.shape = compound;
+  return result;
+}
+
 TopoDS_Shape BuildCavityCutTool(const EnclosureRequest& enclosure) {
   const std::array<double, 3> inner_size = {
       enclosure.size[0] - enclosure.wall_thickness * 2.0,
@@ -1323,6 +1405,7 @@ ShapeMetrics ComputeShapeMetrics(const TopoDS_Shape& shape,
                                  int shell_cavity_tool_count,
                                  int lid_screw_boss_count,
                                  int lid_screw_pilot_count,
+                                 int generated_lid_plate_count,
                                  int feature_intent_count,
                                  const NativeFeatureCutResult& feature_cuts) {
   ShapeMetrics metrics;
@@ -1333,6 +1416,7 @@ ShapeMetrics ComputeShapeMetrics(const TopoDS_Shape& shape,
   metrics.shell_cavity_tool_count = shell_cavity_tool_count;
   metrics.native_lid_screw_boss_count = lid_screw_boss_count;
   metrics.native_lid_screw_pilot_count = lid_screw_pilot_count;
+  metrics.native_generated_lid_plate_count = generated_lid_plate_count;
   metrics.feature_intent_count = feature_intent_count;
   metrics.native_feature_cut_count = feature_cuts.applied_cut_count;
   metrics.native_ignored_feature_intent_count =
@@ -1618,6 +1702,30 @@ bool FaceIntersectsLidScrewBoss(const FaceBounds& face_bounds,
       face_bounds.max[2] >= enclosure.wall_thickness + tolerance;
 
   return overlaps_boss_volume && is_above_bottom_inside;
+}
+
+bool FaceIntersectsGeneratedLidPlate(
+    const FaceBounds& face_bounds,
+    const ShapeMetrics& metrics,
+    const EnclosureRequest& enclosure,
+    const GeneratedLidPlateRequest& lid_plate) {
+  const double tolerance = PreviewSurfaceTolerance(metrics);
+  const double lid_min_x = -enclosure.size[0] / 2.0 - tolerance;
+  const double lid_max_x = enclosure.size[0] / 2.0 + tolerance;
+  const double lid_min_y = -enclosure.size[1] / 2.0 - tolerance;
+  const double lid_max_y = enclosure.size[1] / 2.0 + tolerance;
+  const double lid_min_z =
+      enclosure.size[2] + lid_plate.preview_gap - tolerance;
+  const double lid_max_z =
+      enclosure.size[2] + lid_plate.preview_gap + lid_plate.thickness +
+      tolerance;
+
+  return face_bounds.max[0] >= lid_min_x &&
+         face_bounds.min[0] <= lid_max_x &&
+         face_bounds.max[1] >= lid_min_y &&
+         face_bounds.min[1] <= lid_max_y &&
+         face_bounds.max[2] >= lid_min_z &&
+         face_bounds.min[2] <= lid_max_z;
 }
 
 TopoDS_Shape BuildUsbCCutoutTool(const EnclosureRequest& enclosure,
@@ -2093,14 +2201,29 @@ std::vector<std::pair<std::string, std::string>> ClassifyPreviewSurfaces(
     const std::string& body_id,
     const EnclosureRequest& enclosure,
     const std::vector<LidScrewBossRequest>& lid_screw_bosses,
+    const std::vector<GeneratedLidPlateRequest>& generated_lid_plates,
     const std::vector<UsbCCutoutRequest>& usb_c_cutouts,
     const std::vector<GlassRecessRequest>& glass_recesses,
     const std::vector<ButtonGroupCutoutRequest>& button_groups,
     const std::vector<StandoffMountGroupRequest>& standoff_groups) {
   std::vector<std::pair<std::string, std::string>> surfaces;
+  bool is_generated_lid_plate = false;
+  for (const GeneratedLidPlateRequest& lid_plate : generated_lid_plates) {
+    if (FaceIntersectsGeneratedLidPlate(face_bounds,
+                                       metrics,
+                                       enclosure,
+                                       lid_plate)) {
+      surfaces.push_back(std::make_pair(lid_plate.id, "Generated lid"));
+      is_generated_lid_plate = true;
+      break;
+    }
+  }
+
   const std::optional<std::pair<std::string, std::string>> body_surface =
       ClassifyPreviewSurface(face_bounds, metrics, body_id);
-  if (body_surface.has_value()) {
+  if (body_surface.has_value() &&
+      (!is_generated_lid_plate ||
+       body_surface->first == body_id + ".top_lid.outer")) {
     surfaces.push_back(body_surface.value());
   }
 
@@ -2181,6 +2304,8 @@ PreviewMeshData BuildPreviewMesh(const TopoDS_Shape& shape,
                                  const EnclosureRequest& enclosure,
                                  const std::vector<LidScrewBossRequest>&
                                      lid_screw_bosses,
+                                 const std::vector<GeneratedLidPlateRequest>&
+                                     generated_lid_plates,
                                  const std::vector<UsbCCutoutRequest>&
                                      usb_c_cutouts,
                                  const std::vector<GlassRecessRequest>&
@@ -2215,6 +2340,7 @@ PreviewMeshData BuildPreviewMesh(const TopoDS_Shape& shape,
                                 enclosure.id,
                                 enclosure,
                                 lid_screw_bosses,
+                                generated_lid_plates,
                                 usb_c_cutouts,
                                 glass_recesses,
                                 button_groups,
@@ -2493,6 +2619,8 @@ void WriteRoundedEnclosurePreviewResponse(const NativeRequestEnvelope& request,
             << metrics.native_lid_screw_boss_count << ",\n"
             << "    \"nativeLidScrewPilotCount\": "
             << metrics.native_lid_screw_pilot_count << ",\n"
+            << "    \"nativeGeneratedLidPlateCount\": "
+            << metrics.native_generated_lid_plate_count << ",\n"
             << "    \"featureIntentCount\": "
             << metrics.feature_intent_count << ",\n"
             << "    \"nativeFeatureCutCount\": "
@@ -2631,8 +2759,16 @@ int main(int argc, char* argv[]) {
       throw std::runtime_error("OCCT generated a null feature-cut shape.");
     }
 
+    const NativePreviewAssemblyResult preview_assembly =
+        BuildPreviewAssembly(feature_cuts.shape,
+                             parsed_request.enclosure,
+                             parsed_request.generated_lid_plates);
+    if (preview_assembly.shape.IsNull()) {
+      throw std::runtime_error("OCCT generated a null preview assembly.");
+    }
+
     const ShapeMetrics metrics =
-        ComputeShapeMetrics(feature_cuts.shape,
+        ComputeShapeMetrics(preview_assembly.shape,
                             corner_radius_applied,
                             filleted_edge_count,
                             shell.cavity_applied,
@@ -2640,13 +2776,15 @@ int main(int argc, char* argv[]) {
                             shell.cavity_tool_count,
                             lid_bosses.boss_count,
                             lid_bosses.pilot_hole_count,
+                            preview_assembly.generated_lid_plate_count,
                             parsed_request.feature_intent_count,
                             feature_cuts);
     const PreviewMeshData mesh =
-        BuildPreviewMesh(feature_cuts.shape,
+        BuildPreviewMesh(preview_assembly.shape,
                          metrics,
                          parsed_request.enclosure,
                          parsed_request.lid_screw_bosses,
+                         parsed_request.generated_lid_plates,
                          parsed_request.usb_c_cutouts,
                          parsed_request.glass_recesses,
                          parsed_request.button_groups,

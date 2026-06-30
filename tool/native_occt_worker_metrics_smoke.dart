@@ -98,12 +98,12 @@ Future<void> main(List<String> args) async {
       failures,
     );
     _expect(
-      previewMesh.vertexCount == 4222,
+      previewMesh.vertexCount == 5022,
       'previewMesh must contain the deterministic sample vertex count',
       failures,
     );
     _expect(
-      previewMesh.triangleCount == 4514,
+      previewMesh.triangleCount == 5574,
       'previewMesh must contain the deterministic sample triangle count',
       failures,
     );
@@ -125,8 +125,8 @@ Future<void> main(List<String> args) async {
       failures,
     );
     _expect(
-      previewMesh.surfaces.length == 8,
-      'previewMesh must expose body surfaces plus lid bosses, USB-C, glass, button, and standoff feature mappings',
+      previewMesh.surfaces.length == 9,
+      'previewMesh must expose body surfaces plus generated lid, lid bosses, USB-C, glass, button, and standoff feature mappings',
       failures,
     );
     final surfaceIds = previewMesh.surfaces
@@ -150,6 +150,11 @@ Future<void> main(List<String> args) async {
     _expect(
       surfaceIds.contains('main_enclosure.lid_screw_bosses'),
       'previewMesh surfaces must include the generated lid screw boss range',
+      failures,
+    );
+    _expect(
+      surfaceIds.contains('main_enclosure.generated_top_lid'),
+      'previewMesh surfaces must include the generated top lid plate range',
       failures,
     );
     _expect(
@@ -204,7 +209,7 @@ Future<void> main(List<String> args) async {
     );
     _expectDoubleList(
       previewMesh.bounds.max,
-      const [60, 35, 27.464102],
+      const [60, 35, 32],
       'previewMesh.bounds.max',
       failures,
     );
@@ -264,6 +269,11 @@ Future<void> main(List<String> args) async {
   _expect(
     metrics['nativeLidScrewPilotCount'] == 4,
     'nativeLidScrewPilotCount must include generated pilot holes',
+    failures,
+  );
+  _expect(
+    metrics['nativeGeneratedLidPlateCount'] == 1,
+    'nativeGeneratedLidPlateCount must include the generated top lid plate',
     failures,
   );
   _expect(
@@ -403,29 +413,24 @@ Future<void> main(List<String> args) async {
   );
   _expectDoubleList(
     metrics['dimensions'],
-    const [120, 70, 27.464102],
+    const [120, 70, 32],
     'dimensions',
     failures,
   );
 
   final bounds = _readMap(metrics['bounds']);
   _expectDoubleList(bounds['min'], const [-60, -35, 0], 'bounds.min', failures);
-  _expectDoubleList(
-    bounds['max'],
-    const [60, 35, 27.464102],
-    'bounds.max',
-    failures,
-  );
+  _expectDoubleList(bounds['max'], const [60, 35, 32], 'bounds.max', failures);
   _expectClose(
     _readNumber(metrics['surfaceArea']),
-    37838.594851,
+    55068.165581,
     0.001,
     'surfaceArea',
     failures,
   );
   _expectClose(
     _readNumber(metrics['volume']),
-    36692.568707,
+    53329.419133,
     0.001,
     'volume',
     failures,
@@ -462,6 +467,7 @@ Future<void> main(List<String> args) async {
       'shellOpening': metrics['shellOpening'],
       'nativeLidScrewBossCount': metrics['nativeLidScrewBossCount'],
       'nativeLidScrewPilotCount': metrics['nativeLidScrewPilotCount'],
+      'nativeGeneratedLidPlateCount': metrics['nativeGeneratedLidPlateCount'],
       'featureIntentCount': metrics['featureIntentCount'],
       'nativeFeatureCutCount': metrics['nativeFeatureCutCount'],
       'nativeIgnoredFeatureIntentCount':

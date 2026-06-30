@@ -57,6 +57,58 @@ Use `templates/RESEARCH_NOTE_TEMPLATE.md`.
 
 ---
 
+## 2026-06-30 - OCCT preview compound for generated lid plate
+
+## Question
+
+How should the first native top-lid preview show a separate generated plate
+without making generated geometry editable project state?
+
+## Sources checked
+
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRep_Builder.hxx`
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/TopoDS_Compound.hxx`
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/TopoDS_Builder.hxx`
+- Existing native worker slices in `occt_worker/native/src/occt_main.cpp` for
+  rounded box generation, shell/cavity generation, preview meshing, and
+  semantic surface range mapping.
+
+## Findings
+
+- `TopoDS_Compound` can hold multiple generated shapes while keeping them as
+  separate compound members.
+- `BRep_Builder` inherits `TopoDS_Builder`, whose `MakeCompound` creates an
+  empty compound and `Add` can add any shape to a compound.
+- A compound is suitable for preview meshing a body plus a generated lid plate
+  before the real mating lid/body split exists.
+- The compound should remain generated B-Rep output. It must not introduce
+  editable lid solids, raw topology IDs, or stable triangle IDs into the
+  semantic project model.
+
+## License / compatibility notes
+
+- OCCT headers are from the project-local vcpkg dependency. They are LGPL 2.1
+  with OCCT exception / commercial alternative, matching the existing OCCT
+  dependency evaluation.
+- No external project code was copied.
+
+## Decision
+
+Use `BRep_Builder` and `TopoDS_Compound` to create a native preview assembly
+from the cut body plus a generated `top_screw_lid` preview plate. Key preview
+ranges by semantic IDs such as `main_enclosure.generated_top_lid`, not by OCCT
+topology.
+
+## Follow-up tasks
+
+- Turn the preview lid plate into a real mating lid/body split.
+- Add top-lid feature cuts only after lid/body targeting is explicit.
+
+---
+
 ## 2026-06-30 - OCCT cylindrical button cutout tools
 
 ## Question

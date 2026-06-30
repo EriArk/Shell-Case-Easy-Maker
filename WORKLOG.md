@@ -42,6 +42,102 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-30 - M76 Native top lid plate preview
+
+### Goal
+Add the first separate native preview lid plate for semantic
+`top_screw_lid` enclosures while keeping generated B-Rep out of editable
+project state.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`docs/04_GEOMETRY_ENGINE_OCCT.md`, `docs/10_ENCLOSURE_AUTO_GENERATION.md`,
+`docs/27_RESEARCH_AND_REFERENCES.md`, `docs/34_FIRST_GEOMETRY_SLICE.md`,
+`occt_worker/native/src/occt_main.cpp`,
+`occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRep_Builder.hxx`,
+`occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/TopoDS_Compound.hxx`,
+`occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/TopoDS_Builder.hxx`,
+`tool/native_occt_worker_metrics_smoke.dart`, and
+`test/occt_native_target_scaffold_test.dart`.
+
+### Changes made
+- `occt_worker/native/src/occt_main.cpp`:
+  - Added `GeneratedLidPlateRequest` derived from semantic
+    `Enclosure.lid.type == top_screw_lid`.
+  - Builds a rounded generated top lid preview plate above the top-open body.
+  - Assembles body plus lid plate with `BRep_Builder` and `TopoDS_Compound`
+    after feature cuts.
+  - Emits `nativeGeneratedLidPlateCount` and maps
+    `main_enclosure.generated_top_lid` as disposable preview output.
+  - Keeps body wall mappings from being polluted by generated lid side faces.
+- `tool/native_occt_worker_metrics_smoke.dart`:
+  - Updated deterministic expectations to 5022 vertices, 5574 triangles,
+    9 mappings, 3782 mapped triangles, bounds `[60, 35, 32]`, surface area
+    `55068.165581`, and volume `53329.419133`.
+- `test/occt_native_target_scaffold_test.dart`:
+  - Added source-contract coverage for generated lid plate requests, compound
+    assembly, metric emission, and smoke expectations.
+- Docs/tasks/roadmap:
+  - Recorded M76, OCCT compound research, current native metrics, and the
+    manual poke checklist.
+
+### Tests run
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`:
+  - Passed.
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`:
+  - Passed; reports `nativeGeneratedLidPlateCount=1`,
+    9 preview mappings, and `main_enclosure.generated_top_lid`.
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`:
+  - Passed, 5 tests.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with constraints.
+- `dart format tool\native_occt_worker_metrics_smoke.dart`:
+  - Formatted one Dart file.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed after formatting; 0 files changed.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed, 187 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `git diff --check`:
+  - Passed; Git printed CRLF/LF normalization warnings for existing markdown
+    line endings only.
+
+### Validation
+- Geometry checked?
+  - Yes. Native smoke verifies deterministic mesh counts, preview assembly
+    bounds, generated lid metric, surface area, and volume.
+- Serialization checked?
+  - Yes. Full test suite passed; generated lid plate is derived from semantic
+    lid metadata and not saved as generated geometry.
+- UI checked?
+  - Not manually in this session. Latest exe was rebuilt for user poke testing.
+- Export checked?
+  - No. STEP/STL export remains planned.
+
+### Known issues
+- Issue: The top lid plate is a preview assembly member, not a real mating lid
+  with screw holes, lip/groove, or clearance rules.
+  - Severity: Expected first-slice limit.
+  - Next action: Turn the preview plate into a real lid/body split.
+- Issue: The preview lid uses simple rounded-box generation.
+  - Severity: Expected visual/geometry simplification.
+  - Next action: Add lid-specific edge treatment and screw-hole alignment after
+    split mechanics are explicit.
+
+### Next step
+Commit and push M76.
+
+### Notes for future Codex sessions
+Keep `main_enclosure.generated_top_lid` as disposable preview metadata. Do not
+save generated lid plate B-Rep, OCCT topology IDs, or triangle IDs into the
+semantic project model.
+
+---
+
 ## 2026-06-30 - M75 Native top screw lid bosses
 
 ### Goal
