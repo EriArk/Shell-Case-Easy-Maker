@@ -98,12 +98,12 @@ Future<void> main(List<String> args) async {
       failures,
     );
     _expect(
-      previewMesh.vertexCount == 7398,
+      previewMesh.vertexCount == 7574,
       'previewMesh must contain the deterministic sample vertex count',
       failures,
     );
     _expect(
-      previewMesh.triangleCount == 8080,
+      previewMesh.triangleCount == 8244,
       'previewMesh must contain the deterministic sample triangle count',
       failures,
     );
@@ -324,8 +324,8 @@ Future<void> main(List<String> args) async {
     failures,
   );
   _expect(
-    metrics['nativeGeneratedLidFeatureCutCount'] == 5,
-    'nativeGeneratedLidFeatureCutCount must include generated top lid recess and button holes',
+    metrics['nativeGeneratedLidFeatureCutCount'] == 6,
+    'nativeGeneratedLidFeatureCutCount must include generated top lid recess, window, and button holes',
     failures,
   );
   _expect(
@@ -336,6 +336,16 @@ Future<void> main(List<String> args) async {
   _expect(
     metrics['nativeGeneratedLidGlassRecessFilletedEdgeCount'] == 8,
     'nativeGeneratedLidGlassRecessFilletedEdgeCount must be deterministic',
+    failures,
+  );
+  _expect(
+    metrics['nativeGeneratedLidGlassWindowCount'] == 1,
+    'nativeGeneratedLidGlassWindowCount must include the generated top lid glass window',
+    failures,
+  );
+  _expect(
+    metrics['nativeGeneratedLidGlassWindowFilletedEdgeCount'] == 8,
+    'nativeGeneratedLidGlassWindowFilletedEdgeCount must be deterministic',
     failures,
   );
   _expect(
@@ -500,14 +510,14 @@ Future<void> main(List<String> args) async {
   );
   _expectClose(
     _readNumber(metrics['surfaceArea']),
-    55361.470831,
+    55079.184105,
     0.001,
     'surfaceArea',
     failures,
   );
   _expectClose(
     _readNumber(metrics['volume']),
-    53224.939925,
+    52974.14169,
     0.001,
     'volume',
     failures,
@@ -557,6 +567,10 @@ Future<void> main(List<String> args) async {
           metrics['nativeGeneratedLidGlassRecessCount'],
       'nativeGeneratedLidGlassRecessFilletedEdgeCount':
           metrics['nativeGeneratedLidGlassRecessFilletedEdgeCount'],
+      'nativeGeneratedLidGlassWindowCount':
+          metrics['nativeGeneratedLidGlassWindowCount'],
+      'nativeGeneratedLidGlassWindowFilletedEdgeCount':
+          metrics['nativeGeneratedLidGlassWindowFilletedEdgeCount'],
       'nativeGeneratedLidButtonGroupCount':
           metrics['nativeGeneratedLidButtonGroupCount'],
       'nativeGeneratedLidButtonCutoutCount':

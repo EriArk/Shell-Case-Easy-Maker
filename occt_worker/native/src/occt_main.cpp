@@ -192,6 +192,8 @@ struct ShapeMetrics {
   int native_generated_lid_feature_cut_count = 0;
   int native_generated_lid_glass_recess_count = 0;
   int native_generated_lid_glass_recess_filleted_edge_count = 0;
+  int native_generated_lid_glass_window_count = 0;
+  int native_generated_lid_glass_window_filleted_edge_count = 0;
   int native_generated_lid_button_group_count = 0;
   int native_generated_lid_button_cutout_count = 0;
 };
@@ -217,6 +219,8 @@ struct NativePreviewAssemblyResult {
   int generated_lid_feature_cut_count = 0;
   int generated_lid_glass_recess_count = 0;
   int generated_lid_glass_recess_filleted_edge_count = 0;
+  int generated_lid_glass_window_count = 0;
+  int generated_lid_glass_window_filleted_edge_count = 0;
   int generated_lid_button_group_count = 0;
   int generated_lid_button_cutout_count = 0;
   int applied_feature_intent_count = 0;
@@ -229,6 +233,8 @@ struct NativeGeneratedLidPlateResult {
   int feature_cut_count = 0;
   int glass_recess_count = 0;
   int glass_recess_filleted_edge_count = 0;
+  int glass_window_count = 0;
+  int glass_window_filleted_edge_count = 0;
   int button_group_count = 0;
   int button_cutout_count = 0;
   int applied_feature_intent_count = 0;
@@ -1169,6 +1175,8 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
           !IsPositiveDimension(recess.recess_depth) ||
           !std::isfinite(recess.ledge_width) ||
           recess.ledge_width < 0.0 ||
+          recess.ledge_width * 2.0 >=
+              std::min(recess.width, recess.height) ||
           !std::isfinite(recess.corner_radius) ||
           recess.corner_radius < 0.0 ||
           recess.corner_radius * 2.0 >
@@ -1555,6 +1563,12 @@ TopoDS_Shape BuildGeneratedTopLidGlassRecessTool(
     const GlassRecessRequest& recess,
     int* filleted_edge_count);
 
+TopoDS_Shape BuildGeneratedTopLidGlassWindowTool(
+    const EnclosureRequest& enclosure,
+    const GeneratedLidPlateRequest& lid_plate,
+    const GlassRecessRequest& recess,
+    int* filleted_edge_count);
+
 std::array<double, 2> GlassRecessTopLidCenter(
     const GlassRecessRequest& recess);
 
@@ -1656,6 +1670,39 @@ NativeGeneratedLidPlateResult BuildGeneratedTopLidPlateShape(
     ++result.feature_cut_count;
     ++result.glass_recess_count;
     result.glass_recess_filleted_edge_count += tool_filleted_edge_count;
+
+    int window_filleted_edge_count = 0;
+    const TopoDS_Shape window_tool =
+        BuildGeneratedTopLidGlassWindowTool(enclosure,
+                                            lid_plate,
+                                            recess,
+                                            &window_filleted_edge_count);
+    if (window_tool.IsNull()) {
+      throw std::runtime_error(
+          "OCCT generated a null top lid glass window tool.");
+    }
+
+    BRepAlgoAPI_Cut window_cut(result.shape, window_tool);
+    window_cut.SimplifyResult(true, true);
+    if (!window_cut.IsDone() || window_cut.HasErrors()) {
+      throw std::runtime_error("OCCT top lid glass window cut did not complete.");
+    }
+
+    result.shape = window_cut.Shape();
+    if (result.shape.IsNull()) {
+      throw std::runtime_error(
+          "OCCT generated a null top lid glass window shape.");
+    }
+
+    BRepCheck_Analyzer window_cut_analyzer(result.shape, false);
+    if (!window_cut_analyzer.IsValid()) {
+      throw std::runtime_error(
+          "OCCT generated an invalid top lid glass window shape.");
+    }
+
+    ++result.feature_cut_count;
+    ++result.glass_window_count;
+    result.glass_window_filleted_edge_count += window_filleted_edge_count;
     ++result.applied_feature_intent_count;
   }
 
@@ -1768,6 +1815,9 @@ NativePreviewAssemblyResult BuildPreviewAssembly(
     result.generated_lid_glass_recess_count += lid_result.glass_recess_count;
     result.generated_lid_glass_recess_filleted_edge_count +=
         lid_result.glass_recess_filleted_edge_count;
+    result.generated_lid_glass_window_count += lid_result.glass_window_count;
+    result.generated_lid_glass_window_filleted_edge_count +=
+        lid_result.glass_window_filleted_edge_count;
     result.generated_lid_button_group_count += lid_result.button_group_count;
     result.generated_lid_button_cutout_count += lid_result.button_cutout_count;
     result.applied_feature_intent_count +=
@@ -1920,6 +1970,8 @@ ShapeMetrics ComputeShapeMetrics(const TopoDS_Shape& shape,
                                  int generated_lid_feature_cut_count,
                                  int generated_lid_glass_recess_count,
                                  int generated_lid_glass_recess_filleted_edge_count,
+                                 int generated_lid_glass_window_count,
+                                 int generated_lid_glass_window_filleted_edge_count,
                                  int generated_lid_button_group_count,
                                  int generated_lid_button_cutout_count,
                                  int generated_lid_applied_intent_count,
@@ -1946,6 +1998,10 @@ ShapeMetrics ComputeShapeMetrics(const TopoDS_Shape& shape,
       generated_lid_glass_recess_count;
   metrics.native_generated_lid_glass_recess_filleted_edge_count =
       generated_lid_glass_recess_filleted_edge_count;
+  metrics.native_generated_lid_glass_window_count =
+      generated_lid_glass_window_count;
+  metrics.native_generated_lid_glass_window_filleted_edge_count =
+      generated_lid_glass_window_filleted_edge_count;
   metrics.native_generated_lid_button_group_count =
       generated_lid_button_group_count;
   metrics.native_generated_lid_button_cutout_count =
@@ -2825,6 +2881,68 @@ TopoDS_Shape BuildGeneratedTopLidGlassRecessTool(
   return fillet.Shape();
 }
 
+TopoDS_Shape BuildGeneratedTopLidGlassWindowTool(
+    const EnclosureRequest& enclosure,
+    const GeneratedLidPlateRequest& lid_plate,
+    const GlassRecessRequest& recess,
+    int* filleted_edge_count) {
+  const std::array<double, 2> center = GlassRecessTopLidCenter(recess);
+  const double inner_width = recess.width - recess.ledge_width * 2.0;
+  const double inner_height = recess.height - recess.ledge_width * 2.0;
+  if (!IsPositiveDimension(inner_width) ||
+      !IsPositiveDimension(inner_height)) {
+    throw std::runtime_error(
+        "OCCT generated top lid glass window dimensions are invalid.");
+  }
+
+  const double overcut = 0.2;
+  const double lid_bottom_z = enclosure.size[2] + lid_plate.preview_gap;
+  const std::array<double, 3> tool_size = {
+      inner_width,
+      inner_height,
+      lid_plate.thickness + overcut * 2.0};
+  const gp_Pnt tool_origin(center[0] - inner_width / 2.0,
+                           center[1] - inner_height / 2.0,
+                           lid_bottom_z - overcut);
+  const TopoDS_Shape box =
+      BRepPrimAPI_MakeBox(tool_origin,
+                          tool_size[0],
+                          tool_size[1],
+                          tool_size[2])
+          .Shape();
+
+  *filleted_edge_count = 0;
+  const double inner_radius =
+      std::max(0.0, recess.corner_radius - recess.ledge_width);
+  const double safe_radius =
+      std::min(inner_radius,
+               std::min(inner_width, inner_height) / 2.0 - 0.001);
+  if (safe_radius <= 0.0) {
+    return box;
+  }
+
+  BRepFilletAPI_MakeFillet fillet(box);
+  for (TopExp_Explorer explorer(box, TopAbs_EDGE); explorer.More();
+       explorer.Next()) {
+    const TopoDS_Edge edge = TopoDS::Edge(explorer.Current());
+    const std::array<double, 3> edge_dimensions =
+        DimensionsFromBounds(ComputeTopoBounds(edge));
+    if (edge_dimensions[0] <= 0.001 && edge_dimensions[1] <= 0.001 &&
+        edge_dimensions[2] > 0.001) {
+      fillet.Add(safe_radius, edge);
+      ++(*filleted_edge_count);
+    }
+  }
+
+  fillet.Build();
+  if (!fillet.IsDone()) {
+    throw std::runtime_error(
+        "OCCT generated top lid glass window fillet did not complete.");
+  }
+
+  return fillet.Shape();
+}
+
 NativeFeatureCutResult ApplyNativeFeatureCutouts(
     const TopoDS_Shape& base_shape,
     const EnclosureRequest& enclosure,
@@ -3562,6 +3680,11 @@ void WriteRoundedEnclosurePreviewResponse(const NativeRequestEnvelope& request,
             << "    \"nativeGeneratedLidGlassRecessFilletedEdgeCount\": "
             << metrics.native_generated_lid_glass_recess_filleted_edge_count
             << ",\n"
+            << "    \"nativeGeneratedLidGlassWindowCount\": "
+            << metrics.native_generated_lid_glass_window_count << ",\n"
+            << "    \"nativeGeneratedLidGlassWindowFilletedEdgeCount\": "
+            << metrics.native_generated_lid_glass_window_filleted_edge_count
+            << ",\n"
             << "    \"nativeGeneratedLidButtonGroupCount\": "
             << metrics.native_generated_lid_button_group_count << ",\n"
             << "    \"nativeGeneratedLidButtonCutoutCount\": "
@@ -3744,6 +3867,9 @@ int main(int argc, char* argv[]) {
                             preview_assembly.generated_lid_glass_recess_count,
                             preview_assembly
                                 .generated_lid_glass_recess_filleted_edge_count,
+                            preview_assembly.generated_lid_glass_window_count,
+                            preview_assembly
+                                .generated_lid_glass_window_filleted_edge_count,
                             preview_assembly.generated_lid_button_group_count,
                             preview_assembly.generated_lid_button_cutout_count,
                             preview_assembly.applied_feature_intent_count,

@@ -101,6 +101,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M80 - Native Top Lid Fit Preview
 - [x] M81 - Native Top Lid Button Cutouts
 - [x] M82 - Native Top Lid Glass Recess
+- [x] M83 - Native Top Lid Glass Ledge Window
 
 ---
 
@@ -3723,3 +3724,56 @@ data.
 - Confirm the four round top-lid button holes are still cut through the lid.
 - Confirm the lid still sits close to the body with the small fit-preview gap.
 - Confirm screw holes still align over the four body screw bosses.
+
+---
+
+## M83 - Native Top Lid Glass Ledge Window
+
+### Goal
+Make `ledgeWidth` produce real generated geometry for top-lid glass recesses:
+the generated lid now has a shallow outer glass seat plus an inner through
+window, leaving a support ledge/bezel around the opening.
+
+### Tasks
+- [x] Reuse OCCT box/fillet/cut research for the generated inner window.
+- [x] Validate native `ledgeWidth` so it leaves a positive inner window.
+- [x] Cut a rounded inner window through the generated lid plate after the
+      shallow recess cut.
+- [x] Keep the ledge/window generated from one semantic `glass_recess`
+      feature, not separate editable solids.
+- [x] Emit generated-lid glass-window metrics.
+- [x] Update native smoke expectations, source-contract tests, docs, tasks,
+      roadmap, and worklog.
+
+### Done Criteria
+- Native smoke reports 7574 vertices, 8244 triangles, 14 preview surface
+  mappings, and 12054 mapped triangles.
+- Native smoke reports `nativeGeneratedLidFeatureCutCount: 6`,
+  `nativeGeneratedLidGlassRecessCount: 1`,
+  `nativeGeneratedLidGlassRecessFilletedEdgeCount: 8`,
+  `nativeGeneratedLidGlassWindowCount: 1`, and
+  `nativeGeneratedLidGlassWindowFilletedEdgeCount: 8`.
+- Surface mappings still include `top_lid_glass_recess` for the semantic
+  glass feature.
+- The editable project still stores one semantic `glass_recess`, not a
+  generated pocket object plus generated window object.
+
+### Tests
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open
+  `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- Orbit above the lid and confirm the glass feature now reads as a recessed
+  frame with an inner opening, not just a flat shallow pocket.
+- Confirm the support ledge remains around the window.
+- Confirm the four round top-lid button holes and screw holes are still
+  present and aligned.

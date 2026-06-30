@@ -34,9 +34,10 @@ and a separate top lid preview plate with matching screw clearance holes and an
 underside locating lip from the enclosure lid spec. The body also gets a
 matching shallow generated lid seat around the top opening, and the generated
 lid is positioned in a small fit-preview gap for inspection. Semantic
-top-lid `glass_recess` features can cut shallow generated recesses into that
-lid, and top-lid `button_group` features can cut generated circular holes
-through it while staying one editable group. These are
+top-lid `glass_recess` features can cut a shallow generated seat plus an inner
+window through that lid, leaving a support ledge from semantic `ledgeWidth`.
+Top-lid `button_group` features can cut generated circular holes through the
+same lid while staying one editable group. These are
 generated B-Rep output; the editable project still stores semantic groups and
 lid metadata rather than generated solids, per-boss bodies, per-hole editable
 features, editable lip geometry, editable groove geometry, or editable

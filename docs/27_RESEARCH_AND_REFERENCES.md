@@ -57,6 +57,65 @@ Use `templates/RESEARCH_NOTE_TEMPLATE.md`.
 
 ---
 
+## 2026-06-30 - OCCT generated top lid glass ledge window
+
+## Question
+
+How should semantic `ledgeWidth` become generated support ledge geometry for a
+top-lid glass recess without splitting the editable feature into separate
+pocket/window solids?
+
+## Sources checked
+
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepPrimAPI_MakeBox.hxx`
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepFilletAPI_MakeFillet.hxx`
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepAlgoAPI_Cut.hxx`
+- Existing native worker slices in `occt_worker/native/src/occt_main.cpp` for
+  generated top-lid glass recesses, lid button through-holes, preview surface
+  mapping, and generated-output metrics.
+- `docs/13_PANEL_RECESS_INSERT_GLASS_SYSTEM.md` for the product distinction
+  between recess, insert, window, and ledge/lip/bezel.
+
+## Findings
+
+- `ledgeWidth` already exists in the semantic `glass_recess` feature and Dart
+  validation already treats it as the border around an inner window.
+- The generated top lid can keep the existing shallow outer recess cut, then
+  apply a second rounded box cut through the lid plate using
+  `width - ledgeWidth * 2` and `height - ledgeWidth * 2`.
+- The inner window radius should be derived from the outer corner radius minus
+  the ledge width, then clamped to the inner window size.
+- The window should be reported with generated-output metrics, but it should
+  not become a separate editable feature or raw topology selection target.
+
+## License / compatibility notes
+
+- OCCT headers are from the project-local vcpkg dependency. They are LGPL 2.1
+  with OCCT exception / commercial alternative, matching the existing OCCT
+  dependency evaluation.
+- No external project code was copied.
+
+## Decision
+
+For top-lid `glass_recess` intents, cut the shallow outer recess first, then
+cut an inner rounded through-window from semantic `ledgeWidth`, leaving a
+support ledge in the generated lid. Report
+`nativeGeneratedLidGlassWindowCount` and
+`nativeGeneratedLidGlassWindowFilletedEdgeCount` while keeping preview mapping
+keyed by the original semantic feature id such as `top_lid_glass_recess`.
+
+## Follow-up tasks
+
+- Add protected islands inside glass recesses for buttons or screen features.
+- Add front-wall/window support only after front-panel opening semantics are
+  explicit.
+- Add DXF/acrylic contour export from the same semantic recess parameters.
+
+---
+
 ## 2026-06-30 - OCCT generated top lid glass recess
 
 ## Question

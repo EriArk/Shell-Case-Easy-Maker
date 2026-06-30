@@ -44,11 +44,12 @@ with:
 This is still semantic project state only. It does not store generated mesh,
 B-Rep, DXF contours, or OCCT topology.
 
-The first native OCCT slice can consume a `glass_recess` on
+The native OCCT worker can consume a `glass_recess` on
 `main_enclosure.front_wall.outer` and generate a shallow rounded recess in the
-preview B-Rep. It is intentionally not a through-window yet. Top-lid glass
-recess generation remains future work because the current native body is still a
-top-open shell, not a separate generated lid.
+preview B-Rep. The front-wall recess is intentionally not a through-window yet.
+For `main_enclosure.top_lid.outer`, the generated top lid now uses the same
+semantic feature to cut a shallow outer seat plus an inner through-window from
+`ledgeWidth`, leaving a support ledge/bezel around the opening.
 
 The mock viewport derives a schematic selectable recess marker from the same
 semantic `glass_recess` parameters. Clicking the marker selects the semantic

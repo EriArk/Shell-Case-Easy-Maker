@@ -42,6 +42,113 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-30 - M83 Native top lid glass ledge window
+
+### Goal
+Use semantic `ledgeWidth` for top-lid glass recesses so the generated lid has
+a shallow outer seat plus an inner through-window, leaving a support ledge
+without splitting the editable feature.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`docs/04_GEOMETRY_ENGINE_OCCT.md`, `docs/10_ENCLOSURE_AUTO_GENERATION.md`,
+`docs/13_PANEL_RECESS_INSERT_GLASS_SYSTEM.md`,
+`docs/27_RESEARCH_AND_REFERENCES.md`,
+`docs/34_FIRST_GEOMETRY_SLICE.md`,
+`occt_worker/native/src/occt_main.cpp`,
+`occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepPrimAPI_MakeBox.hxx`,
+`occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepFilletAPI_MakeFillet.hxx`,
+`occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepAlgoAPI_Cut.hxx`,
+`tool/native_occt_worker_metrics_smoke.dart`, and
+`test/occt_native_target_scaffold_test.dart`.
+
+### Changes made
+- `occt_worker/native/src/occt_main.cpp`:
+  - Validates native `glass_recess.ledge_width` so it leaves a positive inner
+    window.
+  - Adds `BuildGeneratedTopLidGlassWindowTool`.
+  - Cuts the shallow top-lid glass recess first, then cuts a rounded inner
+    through-window from `width - ledgeWidth * 2` and
+    `height - ledgeWidth * 2`.
+  - Emits `nativeGeneratedLidGlassWindowCount` and
+    `nativeGeneratedLidGlassWindowFilletedEdgeCount`.
+  - Keeps preview mapping keyed by the original semantic feature id, such as
+    `top_lid_glass_recess`.
+- `tool/native_occt_worker_metrics_smoke.dart`:
+  - Updated deterministic native expectations to 7574 vertices, 8244
+    triangles, 14 mappings, 12054 mapped triangles, surface area
+    `55079.184105`, and volume `52974.141690`.
+  - Added assertions and summary output for generated-lid glass-window metrics.
+- `test/occt_native_target_scaffold_test.dart`:
+  - Added source-contract coverage for the generated top-lid glass window tool
+    and response metrics.
+- Docs/tasks/roadmap:
+  - Recorded M83, OCCT box/fillet/cut research, current native metrics, and
+    the manual poke checklist.
+
+### Tests run
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`:
+  - Passed.
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`:
+  - Passed; reports `nativeGeneratedLidFeatureCutCount=6`,
+    `nativeGeneratedLidGlassRecessCount=1`,
+    `nativeGeneratedLidGlassRecessFilletedEdgeCount=8`,
+    `nativeGeneratedLidGlassWindowCount=1`,
+    `nativeGeneratedLidGlassWindowFilletedEdgeCount=8`, 14 preview mappings,
+    and `top_lid_glass_recess`.
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`:
+  - Passed, 5 tests.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 0 files changed.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed, 187 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git diff --check`:
+  - Passed; Git printed CRLF/LF normalization warnings for existing markdown
+    line endings only.
+
+### Validation
+- Geometry checked?
+  - Yes. Native smoke verifies deterministic mesh counts, generated glass
+    window metrics, preview mappings, bounds, surface area, and volume.
+- Serialization checked?
+  - Yes. Full test suite passed; the ledge/window remains generated from one
+    semantic `glass_recess` feature.
+- UI checked?
+  - Not manually in this session. Latest exe was rebuilt for user poke testing.
+- Export checked?
+  - No. STEP/STL/DXF export remains planned.
+
+### Known issues
+- Issue: The ledge/window slice applies to generated top-lid glass recesses;
+  front-wall glass recesses are still shallow recesses only.
+  - Severity: Expected scoped slice.
+  - Next action: Add front-wall/window semantics only after panel opening rules
+    are explicit.
+- Issue: Protected islands inside glass recesses are not generated yet.
+  - Severity: Expected next feature.
+  - Next action: Add island semantics for buttons/screen areas before DXF
+    export.
+
+### Next step
+Commit and push M83, then continue toward protected islands inside recesses or
+button cap/plunger generation.
+
+### Notes for future Codex sessions
+Keep the generated glass window tied to the same semantic `glass_recess`.
+Do not expose the generated inner window as a separate editable solid or raw
+topology/triangle target.
+
+---
+
 ## 2026-06-30 - M82 Native top lid glass recess
 
 ### Goal
