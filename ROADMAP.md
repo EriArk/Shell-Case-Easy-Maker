@@ -98,6 +98,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M77 - Native Top Lid Screw Holes
 - [x] M78 - Native Top Lid Locating Lip
 - [x] M79 - Native Top Lid Body Seat
+- [x] M80 - Native Top Lid Fit Preview
 
 ---
 
@@ -3568,3 +3569,48 @@ project remains semantic.
   screw bosses.
 - Confirm the body seat is generated preview detail, not a separate editable
   object in the inspector.
+
+---
+
+## M80 - Native Top Lid Fit Preview
+
+### Goal
+Move the generated top lid from a high exploded preview into a clearer
+fit-preview position: the lid is still slightly open for inspection, but the
+locating lip now visually enters the body-side seat.
+
+### Tasks
+- [x] Decouple generated lid lip height from the old exploded preview gap.
+- [x] Add a small generated lid fit-preview gap derived from wall thickness.
+- [x] Emit `nativeGeneratedLidFitPreviewGap`.
+- [x] Update native smoke bounds/dimensions and source-contract tests.
+- [x] Update docs, tasks, roadmap, and worklog.
+
+### Done Criteria
+- Native smoke reports the same topology counts as M79: 6638 vertices, 7328
+  triangles, and 12 preview surface mappings.
+- Native smoke reports `nativeGeneratedLidFitPreviewGap: 0.35`.
+- Native preview assembly bounds are `[-60, -35, 0]` to `[60, 35, 30.35]`.
+- The generated lid remains disposable preview B-Rep output, not editable
+  assembly state.
+
+### Tests
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open
+  `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- Orbit above and slightly beside the enclosure.
+- Confirm the lid is no longer floating high above the body; it should sit just
+  above the top rim with a small visible gap.
+- Orbit around the top opening and confirm the lid lip reads as entering the
+  body-side seat.
+- Confirm screw holes still align over the four body screw bosses.

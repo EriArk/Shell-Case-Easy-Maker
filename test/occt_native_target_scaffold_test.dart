@@ -79,6 +79,8 @@ void main() {
       expect(source, contains('BuildGeneratedTopLidPlateShape'));
       expect(source, contains('BuildGeneratedTopLidLocatingLipShape'));
       expect(source, contains('GeneratedTopLidLipWidth'));
+      expect(source, contains('GeneratedTopLidLipHeight'));
+      expect(source, contains('GeneratedTopLidFitPreviewGap'));
       expect(source, contains('BuildGeneratedTopLidScrewHoleTool'));
       expect(source, contains('GeneratedTopLidScrewClearanceDiameter'));
       expect(source, contains('BuildPreviewAssembly'));
@@ -103,6 +105,7 @@ void main() {
       expect(source, contains('nativeLidScrewPilotCount'));
       expect(source, contains('nativeGeneratedLidPlateCount'));
       expect(source, contains('nativeGeneratedLidSeatCount'));
+      expect(source, contains('nativeGeneratedLidFitPreviewGap'));
       expect(source, contains('nativeGeneratedLidLipCount'));
       expect(source, contains('nativeGeneratedLidScrewHoleCount'));
       expect(source, contains('nativeUsbCCutoutCount'));
@@ -227,6 +230,7 @@ void main() {
       expect(tool, contains('nativeLidScrewPilotCount'));
       expect(tool, contains('nativeGeneratedLidPlateCount'));
       expect(tool, contains('nativeGeneratedLidSeatCount'));
+      expect(tool, contains('nativeGeneratedLidFitPreviewGap'));
       expect(tool, contains('nativeGeneratedLidLipCount'));
       expect(tool, contains('nativeGeneratedLidScrewHoleCount'));
       expect(tool, contains('nativeUsbCCutoutCount'));

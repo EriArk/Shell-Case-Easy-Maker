@@ -57,6 +57,57 @@ Use `templates/RESEARCH_NOTE_TEMPLATE.md`.
 
 ---
 
+## 2026-06-30 - OCCT generated top lid fit preview
+
+## Question
+
+How should the generated top lid be positioned so the body seat and lid lip are
+readable without pretending the project has editable assembly state?
+
+## Sources checked
+
+- Existing native worker slices in `occt_worker/native/src/occt_main.cpp` for
+  generated top lid plate, locating lip, screw holes, body lid seat, preview
+  assembly, bounds metrics, and semantic preview mappings.
+- Previous OCCT notes in this file for generated lid plate compounds, screw
+  holes, locating lip, and body-side lid seat.
+
+## Findings
+
+- The first lid preview does not need a new OCCT operation. The generated lid
+  plate, lip, and screw-hole tools can use the same coordinate system with a
+  smaller `preview_gap`.
+- Decoupling lip height from the old exploded gap keeps the mating detail
+  stable while the display position moves closer to the body.
+- A small inspection gap is preferable to a fully closed preview because the
+  user can still orbit and see the relationship between the generated lip and
+  generated body seat.
+- Reporting `nativeGeneratedLidFitPreviewGap` makes the preview positioning
+  deterministic and testable.
+
+## License / compatibility notes
+
+- No new dependency or external source code was used.
+- Existing OCCT usage remains through the project-local vcpkg dependency.
+
+## Decision
+
+Position the generated top lid with a first-pass fit-preview gap derived from
+wall thickness. For the sample enclosure this gap is `0.35 mm`, giving preview
+bounds of `[-60, -35, 0]` to `[60, 35, 30.35]`. Keep this as disposable
+generated preview output; do not save lid assembly state, topology IDs, or
+triangle IDs in `ProjectModel`.
+
+## Follow-up tasks
+
+- Add explicit lid/body assembly semantics before making the lid truly closed
+  or independently selectable as a generated part.
+- Add top-lid feature targeting once lid/body semantics can distinguish body
+  wall features from lid features.
+- Add printable chamfers/fillets after the fit relationship is stable.
+
+---
+
 ## 2026-06-30 - OCCT generated top lid body seat
 
 ## Question

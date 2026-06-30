@@ -299,10 +299,13 @@ The first native OCCT slices now:
     `main_enclosure.generated_top_lid_locating_lip`.
 22. Cut a first-pass shallow body-side locating seat around the top opening,
     keyed by `main_enclosure.generated_top_lid_seat`.
+23. Position the generated top lid in a first-pass fit-preview state with a
+    small inspection gap, reported by `nativeGeneratedLidFitPreviewGap`.
 
 The next native geometry slices should:
 
-1. Lower/position the preview lid into a clearer lid/body fit state.
+1. Turn the fit-preview lid into a real lid/body split when assembly semantics
+   are explicit.
 2. Add top-lid glass/button support after lid/body targeting is explicit.
 3. Add screw boss, lid, and standoff fillets/chamfers plus richer mount
    variants.
@@ -312,21 +315,24 @@ Expected sample dimensions:
 - size: `120 x 70 x 28 mm`,
 - wall thickness: `2 mm`,
 - corner radius: `4 mm`,
-- native preview assembly bounds: `[-60, -35, 0]` to `[60, 35, 32]`,
+- native preview assembly bounds: `[-60, -35, 0]` to `[60, 35, 30.35]`,
 - native preview volume after lid screw bosses, USB-C, front glass recess,
   front button cutouts, bottom standoff bosses, generated lid plate, lid screw
-  holes, underside locating lip, and body-side lid seat: `53593.074426 mm^3`,
+  holes, underside locating lip, body-side lid seat, and fit-preview
+  positioning: `53593.074428 mm^3`,
 - native preview surface area after lid screw bosses, USB-C, front glass
   recess, front button cutouts, bottom standoff bosses, generated lid plate,
-  lid screw holes, underside locating lip, and body-side lid seat:
+  lid screw holes, underside locating lip, body-side lid seat, and
+  fit-preview positioning:
   `55400.529232 mm^2`,
 - native preview surface mappings after feature ranges: `12`,
-- native preview mapped triangles after feature ranges: `8088`,
+- native preview mapped triangles after feature ranges: `9694`,
 - native feature metrics: `featureIntentCount=5`,
   `nativeFeatureCutCount=8`, `nativeIgnoredFeatureIntentCount=1`,
   `nativeLidScrewBossCount=4`, `nativeLidScrewPilotCount=4`,
   `nativeGeneratedLidPlateCount=1`,
   `nativeGeneratedLidSeatCount=1`,
+  `nativeGeneratedLidFitPreviewGap=0.35`,
   `nativeGeneratedLidLipCount=1`,
   `nativeGeneratedLidScrewHoleCount=4`, `nativeUsbCCutoutCount=1`,
   `nativeGlassRecessCount=1`, `nativeButtonGroupCount=1`,
@@ -370,8 +376,9 @@ Expected sample dimensions:
   bosses are implemented as the first native mount geometry, and top-screw-lid
   enclosures generate first-pass screw bosses plus a separate generated top lid
   preview plate with screw clearance holes, an underside locating lip, and a
-  body-side shallow locating seat. A real separable lid/body split with full
-  mating geometry, top-lid feature cuts, richer mount variants, and richer face
-  mapping are still planned.
+  body-side shallow locating seat. The generated lid is now positioned in a
+  first-pass fit-preview state with a small inspection gap. A real separable
+  lid/body split with full mating geometry, top-lid feature cuts, richer mount
+  variants, and richer face mapping are still planned.
 - STEP/STL export operations intentionally return unsupported in the mock
   backend.

@@ -136,6 +136,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Generate first native top lid screw clearance holes.
 - [x] Generate first native top lid locating lip.
 - [x] Generate first native top lid body seat/groove.
+- [x] Position first native top lid in fit-preview state.
 - [ ] Export STEP.
 - [ ] Export STL.
 - [x] Define response issues/warnings model.
@@ -163,6 +164,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Add first-pass generated top lid screw holes.
 - [x] Add first-pass generated top lid locating lip.
 - [x] Add first-pass generated top lid body seat/groove.
+- [x] Add first-pass generated top lid fit-preview positioning.
 - [ ] Add generic circular cutout.
 - [ ] Add generic rectangular rounded cutout.
 - [x] First-pass USB-C cutout command.

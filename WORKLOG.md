@@ -42,6 +42,104 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-30 - M80 Native top lid fit preview
+
+### Goal
+Move the generated `top_screw_lid` from a high exploded preview into a clearer
+fit-preview position so the locating lip visually enters the body-side seat
+while keeping the result disposable generated geometry.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`docs/04_GEOMETRY_ENGINE_OCCT.md`, `docs/10_ENCLOSURE_AUTO_GENERATION.md`,
+`docs/27_RESEARCH_AND_REFERENCES.md`, `docs/34_FIRST_GEOMETRY_SLICE.md`,
+`occt_worker/native/src/occt_main.cpp`,
+`tool/native_occt_worker_metrics_smoke.dart`, and
+`test/occt_native_target_scaffold_test.dart`.
+
+### Changes made
+- `occt_worker/native/src/occt_main.cpp`:
+  - Added deterministic helpers for generated lid lip height and fit-preview
+    gap.
+  - Decoupled lip height from the previous exploded preview gap.
+  - Positions the generated top lid with a sample fit-preview gap of `0.35 mm`.
+  - Emits `nativeGeneratedLidFitPreviewGap`.
+- `tool/native_occt_worker_metrics_smoke.dart`:
+  - Updated native preview bounds to `[-60, -35, 0]` through
+    `[60, 35, 30.35]`.
+  - Added assertion and summary output for
+    `nativeGeneratedLidFitPreviewGap == 0.35`.
+  - Updated deterministic dimensions, mapped triangle summary, and volume
+    expectation.
+- `test/occt_native_target_scaffold_test.dart`:
+  - Added source-contract coverage for the fit-preview helpers and metric.
+- Docs/tasks/roadmap:
+  - Recorded M80, current metrics, generated-output boundary, and manual poke
+    checklist.
+
+### Tests run
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`:
+  - Passed.
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`:
+  - Passed; reports 6638 vertices, 7328 triangles, 12 preview mappings,
+    9694 mapped triangles, `nativeGeneratedLidFitPreviewGap=0.35`, bounds
+    `[-60, -35, 0]` to `[60, 35, 30.35]`, surface area `55400.529232`, and
+    volume `53593.074428`.
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`:
+  - Passed, 5 tests.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Initially reported one unformatted file after smoke edits; after
+    `dart format tool\native_occt_worker_metrics_smoke.dart`, passed with 0
+    files changed.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed, 187 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git diff --check`:
+  - Passed; Git printed CRLF/LF normalization warnings for existing markdown
+    line endings only.
+
+### Validation
+- Geometry checked?
+  - Yes. Native smoke verifies deterministic mesh counts, fit-preview gap,
+    bounds, dimensions, surface area, and volume.
+- Serialization checked?
+  - Yes. Full test suite passed; lid positioning is generated preview output
+    and is not saved into `ProjectModel`.
+- UI checked?
+  - Not manually in this session. Latest exe was rebuilt for user poke testing.
+- Export checked?
+  - No. STEP/STL export remains planned.
+
+### Known issues
+- Issue: The generated lid is still a preview compound member, not an editable
+  separable assembly part.
+  - Severity: Expected architecture boundary.
+  - Next action: Add explicit lid/body assembly semantics before true closed
+    lid state or part-level selection.
+- Issue: Top-lid features are still not targeted to the generated lid.
+  - Severity: Expected next-slice limitation.
+  - Next action: Add lid/body targeting before cutting top-lid buttons or glass
+    recesses.
+
+### Next step
+Commit and push M80, then continue toward explicit lid/body targeting or
+top-lid feature support.
+
+### Notes for future Codex sessions
+`nativeGeneratedLidFitPreviewGap` is a generated-output metric. Do not persist
+fit-preview positioning, generated lid B-Rep, OCCT topology IDs, or triangle
+IDs in the editable project model.
+
+---
+
 ## 2026-06-30 - M79 Native top lid body seat
 
 ### Goal

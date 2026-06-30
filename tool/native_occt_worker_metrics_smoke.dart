@@ -224,7 +224,7 @@ Future<void> main(List<String> args) async {
     );
     _expectDoubleList(
       previewMesh.bounds.max,
-      const [60, 35, 32],
+      const [60, 35, 30.35],
       'previewMesh.bounds.max',
       failures,
     );
@@ -294,6 +294,13 @@ Future<void> main(List<String> args) async {
   _expect(
     metrics['nativeGeneratedLidSeatCount'] == 1,
     'nativeGeneratedLidSeatCount must include the generated body-side lid seat',
+    failures,
+  );
+  _expectClose(
+    _readNumber(metrics['nativeGeneratedLidFitPreviewGap']),
+    0.35,
+    0.000001,
+    'nativeGeneratedLidFitPreviewGap',
     failures,
   );
   _expect(
@@ -443,14 +450,19 @@ Future<void> main(List<String> args) async {
   );
   _expectDoubleList(
     metrics['dimensions'],
-    const [120, 70, 32],
+    const [120, 70, 30.35],
     'dimensions',
     failures,
   );
 
   final bounds = _readMap(metrics['bounds']);
   _expectDoubleList(bounds['min'], const [-60, -35, 0], 'bounds.min', failures);
-  _expectDoubleList(bounds['max'], const [60, 35, 32], 'bounds.max', failures);
+  _expectDoubleList(
+    bounds['max'],
+    const [60, 35, 30.35],
+    'bounds.max',
+    failures,
+  );
   _expectClose(
     _readNumber(metrics['surfaceArea']),
     55400.529232,
@@ -460,7 +472,7 @@ Future<void> main(List<String> args) async {
   );
   _expectClose(
     _readNumber(metrics['volume']),
-    53593.074426,
+    53593.074428,
     0.001,
     'volume',
     failures,
@@ -499,6 +511,8 @@ Future<void> main(List<String> args) async {
       'nativeLidScrewPilotCount': metrics['nativeLidScrewPilotCount'],
       'nativeGeneratedLidPlateCount': metrics['nativeGeneratedLidPlateCount'],
       'nativeGeneratedLidSeatCount': metrics['nativeGeneratedLidSeatCount'],
+      'nativeGeneratedLidFitPreviewGap':
+          metrics['nativeGeneratedLidFitPreviewGap'],
       'nativeGeneratedLidLipCount': metrics['nativeGeneratedLidLipCount'],
       'nativeGeneratedLidScrewHoleCount':
           metrics['nativeGeneratedLidScrewHoleCount'],

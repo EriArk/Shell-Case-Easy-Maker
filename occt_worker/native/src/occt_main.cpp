@@ -186,6 +186,7 @@ struct ShapeMetrics {
   int native_lid_screw_pilot_count = 0;
   int native_generated_lid_seat_count = 0;
   int native_generated_lid_plate_count = 0;
+  double native_generated_lid_fit_preview_gap = 0.0;
   int native_generated_lid_lip_count = 0;
   int native_generated_lid_screw_hole_count = 0;
 };
@@ -810,6 +811,17 @@ bool IsPositiveDimension(double value) {
   return std::isfinite(value) && value > 0.0;
 }
 
+double GeneratedTopLidLipHeight(const EnclosureRequest& enclosure) {
+  return std::min(1.2, std::max(0.6, enclosure.wall_thickness * 0.6));
+}
+
+double GeneratedTopLidFitPreviewGap(const EnclosureRequest& enclosure,
+                                    double lip_height) {
+  const double inspection_gap =
+      std::min(0.35, std::max(0.2, enclosure.wall_thickness * 0.175));
+  return std::max(0.1, std::min(lip_height - 0.2, inspection_gap));
+}
+
 NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
   NativeRequestParseResult result;
   const std::optional<std::string> request_id =
@@ -946,9 +958,10 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
       lid_plate.screw_holes_id =
           result.enclosure.id + ".generated_top_lid_screw_holes";
       lid_plate.thickness = std::max(1.0, result.enclosure.wall_thickness);
-      lid_plate.preview_gap = std::max(1.0, result.enclosure.wall_thickness);
-      lid_plate.lip_height =
-          std::min(1.2, std::max(0.6, lid_plate.preview_gap - 0.4));
+      lid_plate.lip_height = GeneratedTopLidLipHeight(result.enclosure);
+      lid_plate.preview_gap =
+          GeneratedTopLidFitPreviewGap(result.enclosure,
+                                       lid_plate.lip_height);
       lid_plate.lip_width =
           std::max(1.0, result.enclosure.wall_thickness * 0.75);
       lid_plate.lip_clearance = 0.3;
@@ -1736,6 +1749,7 @@ ShapeMetrics ComputeShapeMetrics(const TopoDS_Shape& shape,
                                  int lid_screw_pilot_count,
                                  int generated_lid_seat_count,
                                  int generated_lid_plate_count,
+                                 double generated_lid_fit_preview_gap,
                                  int generated_lid_lip_count,
                                  int generated_lid_screw_hole_count,
                                  int feature_intent_count,
@@ -1750,6 +1764,8 @@ ShapeMetrics ComputeShapeMetrics(const TopoDS_Shape& shape,
   metrics.native_lid_screw_pilot_count = lid_screw_pilot_count;
   metrics.native_generated_lid_seat_count = generated_lid_seat_count;
   metrics.native_generated_lid_plate_count = generated_lid_plate_count;
+  metrics.native_generated_lid_fit_preview_gap =
+      generated_lid_fit_preview_gap;
   metrics.native_generated_lid_lip_count = generated_lid_lip_count;
   metrics.native_generated_lid_screw_hole_count =
       generated_lid_screw_hole_count;
@@ -3140,6 +3156,9 @@ void WriteRoundedEnclosurePreviewResponse(const NativeRequestEnvelope& request,
             << metrics.native_generated_lid_seat_count << ",\n"
             << "    \"nativeGeneratedLidPlateCount\": "
             << metrics.native_generated_lid_plate_count << ",\n"
+            << "    \"nativeGeneratedLidFitPreviewGap\": "
+            << FormatDouble(metrics.native_generated_lid_fit_preview_gap)
+            << ",\n"
             << "    \"nativeGeneratedLidLipCount\": "
             << metrics.native_generated_lid_lip_count << ",\n"
             << "    \"nativeGeneratedLidScrewHoleCount\": "
@@ -3310,6 +3329,10 @@ int main(int argc, char* argv[]) {
                             lid_bosses.pilot_hole_count,
                             lid_seats.seat_count,
                             preview_assembly.generated_lid_plate_count,
+                            parsed_request.generated_lid_plates.empty()
+                                ? 0.0
+                                : parsed_request.generated_lid_plates.front()
+                                      .preview_gap,
                             preview_assembly.generated_lid_lip_count,
                             preview_assembly.generated_lid_screw_hole_count,
                             parsed_request.feature_intent_count,

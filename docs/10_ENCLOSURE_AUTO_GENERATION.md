@@ -32,10 +32,12 @@ The native OCCT worker now generates the first bottom-inside
 with `lid.type: top_screw_lid`, it also generates four default lid screw bosses
 and a separate top lid preview plate with matching screw clearance holes and an
 underside locating lip from the enclosure lid spec. The body also gets a
-matching shallow generated lid seat around the top opening. These are generated
-B-Rep output; the editable project still stores semantic groups and lid
-metadata rather than generated solids, per-boss bodies, per-hole editable
-features, editable lip geometry, or editable groove geometry.
+matching shallow generated lid seat around the top opening, and the generated
+lid is positioned in a small fit-preview gap for inspection. These are
+generated B-Rep output; the editable project still stores semantic groups and
+lid metadata rather than generated solids, per-boss bodies, per-hole editable
+features, editable lip geometry, editable groove geometry, or editable
+assembly state.
 
 ## Port cutouts
 
