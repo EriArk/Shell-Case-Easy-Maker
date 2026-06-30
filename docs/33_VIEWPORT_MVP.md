@@ -42,12 +42,15 @@ triangles as a faceted body layer, and keeps component, feature, workplane,
 snap, ghost, and selection overlays above it. When a mesh is present, those
 semantic overlays switch into an annotation style: lower opacity, lighter
 strokes, and no duplicate heavy mock selection outline when the selected
-semantic id already has mapped preview ranges. The mesh is never hit-tested as
-the editable source of truth. Native preview meshes may include disposable
-semantic surface ranges. When the current selection is a matching semantic
-surface, feature, or feature group, the viewport can tint those mapped preview
-triangles and draw a screen-space halo as a display-only highlight. It still
-does not use generated triangles for picking.
+semantic id already has mapped preview ranges. Project/workspace selection keeps
+component, feature, and feature-group annotations muted so the native body stays
+the primary visual layer; selecting a feature, feature group, or component
+placement focuses the relevant annotation again for inspection. The mesh is
+never hit-tested as the editable source of truth. Native preview meshes may
+include disposable semantic surface ranges. When the current selection is a
+matching semantic surface, feature, or feature group, the viewport can tint
+those mapped preview triangles and draw a screen-space halo as a display-only
+highlight. It still does not use generated triangles for picking.
 
 Component placement hit zones are now supplied as
 `MockViewportComponentPlacementPreview` values derived from semantic
@@ -137,6 +140,9 @@ whole feature group, not an individual mesh primitive or flattened hole.
   workplane overlay and snap hints.
 - Select a supported surface with mapped preview ranges: show a generated mesh
   surface highlight.
+- In native preview mode, unselected schematic annotations stay muted; selecting
+  a feature, feature group, or component placement brings that semantic helper
+  forward.
 
 These controls are deliberately simple and can be refined after manual testing.
 
@@ -163,8 +169,9 @@ mapping, desktop stability, license, and packaging complexity.
 ## Current Limitations
 
 - The viewport can draw a generated preview mesh body and selected mapped
-  surface highlights when a backend provides them, but other semantic overlays
-  are still first-pass schematic affordances.
+  surface highlights when a backend provides them. Other semantic overlays are
+  still first-pass schematic affordances, now muted by default in native preview
+  mode and focused only when their semantic item is selected.
 - Hit zones are deterministic mock zones, not mesh picking.
 - Component placement previews are semantic mock rectangles, not generated
   board meshes or OCCT bodies.

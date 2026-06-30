@@ -2657,6 +2657,24 @@ class _ViewportAreaState extends State<_ViewportArea> {
                         key: ValueKey('native-semantic-overlay-mode-active'),
                       ),
                     ),
+                  if (hasPreviewMesh &&
+                      !_nativeSemanticAnnotationsFocused(widget.selection))
+                    const Positioned(
+                      left: 0,
+                      top: 0,
+                      child: SizedBox(
+                        key: ValueKey('native-semantic-overlays-muted'),
+                      ),
+                    ),
+                  if (hasPreviewMesh &&
+                      _nativeSemanticAnnotationsFocused(widget.selection))
+                    const Positioned(
+                      left: 0,
+                      top: 0,
+                      child: SizedBox(
+                        key: ValueKey('native-semantic-overlays-focused'),
+                      ),
+                    ),
                   if (_hasSelectedPreviewSurface(
                     widget.preview?.previewMesh,
                     widget.selection,
@@ -6629,9 +6647,9 @@ class _ViewportPainter extends CustomPainter {
 
     final fillPaint = Paint()..style = PaintingStyle.fill;
     final strokePaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.08)
+      ..color = Colors.white.withValues(alpha: 0.025)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.8;
+      ..strokeWidth = 0.45;
     final selectedStrokePaint = Paint()
       ..color = selectionTone.color.withValues(alpha: selectionTone.edgeAlpha)
       ..style = PaintingStyle.stroke
@@ -6789,19 +6807,35 @@ class _ViewportPainter extends CustomPainter {
     MockViewportLayout layout, {
     required bool annotationMode,
   }) {
+    final selectedPlacementId =
+        selection.kind == SelectionKind.componentPlacement
+        ? selection.id
+        : null;
     final boardFill = Paint()
       ..color = const Color(
         0xFF243F3D,
-      ).withValues(alpha: annotationMode ? 0.62 : 1)
+      ).withValues(alpha: annotationMode ? 0.18 : 1)
       ..style = PaintingStyle.fill;
     final boardStroke = Paint()
       ..color = colorScheme.secondary.withValues(
-        alpha: annotationMode ? 0.50 : 0.28,
+        alpha: annotationMode ? 0.22 : 0.28,
       )
       ..style = PaintingStyle.stroke
       ..strokeWidth = annotationMode ? 1.2 : 1.5;
+    final selectedBoardFill = Paint()
+      ..color = const Color(
+        0xFF243F3D,
+      ).withValues(alpha: annotationMode ? 0.46 : 1)
+      ..style = PaintingStyle.fill;
+    final selectedBoardStroke = Paint()
+      ..color = colorScheme.secondary.withValues(
+        alpha: annotationMode ? 0.62 : 0.28,
+      )
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = annotationMode ? 1.5 : 1.5;
 
     for (final placement in componentPlacementPreviews) {
+      final selected = placement.semanticId == selectedPlacementId;
       final rect = layout.componentPlacementRect(placement);
       final radius = Radius.circular(layout.boardRadius);
       _drawRotatedRRect(
@@ -6809,14 +6843,14 @@ class _ViewportPainter extends CustomPainter {
         rect,
         placement.rotationZDegrees,
         radius,
-        boardFill,
+        selected ? selectedBoardFill : boardFill,
       );
       _drawRotatedRRect(
         canvas,
         rect,
         placement.rotationZDegrees,
         radius,
-        boardStroke,
+        selected ? selectedBoardStroke : boardStroke,
       );
     }
   }
@@ -6860,33 +6894,37 @@ class _ViewportPainter extends CustomPainter {
     MockViewportLayout layout, {
     required bool annotationMode,
   }) {
-    final usbFill = Paint()
-      ..color = colorScheme.secondary.withValues(
-        alpha: annotationMode ? 0.24 : 1,
-      )
-      ..style = PaintingStyle.fill;
-    final usbStroke = Paint()
-      ..color = colorScheme.secondary.withValues(
-        alpha: annotationMode ? 0.74 : 0,
-      )
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = annotationMode ? 1.6 : 0;
-    final glassFill = Paint()
-      ..color = const Color(
-        0xFF92C9D8,
-      ).withValues(alpha: annotationMode ? 0.12 : 0.24)
-      ..style = PaintingStyle.fill;
-    final glassStroke = Paint()
-      ..color = const Color(
-        0xFF92C9D8,
-      ).withValues(alpha: annotationMode ? 0.58 : 0.86)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = annotationMode ? 1.5 : 2;
-    final darkInset = Paint()
-      ..color = Colors.black.withValues(alpha: annotationMode ? 0.12 : 0.25)
-      ..style = PaintingStyle.fill;
-
     for (final feature in featurePreviews) {
+      final selected =
+          selection.kind == SelectionKind.feature &&
+          selection.id == feature.semanticId;
+      final usbFill = Paint()
+        ..color = colorScheme.secondary.withValues(
+          alpha: annotationMode ? (selected ? 0.28 : 0.055) : 1,
+        )
+        ..style = PaintingStyle.fill;
+      final usbStroke = Paint()
+        ..color = colorScheme.secondary.withValues(
+          alpha: annotationMode ? (selected ? 0.82 : 0.20) : 0,
+        )
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = annotationMode ? (selected ? 1.8 : 1.1) : 0;
+      final glassFill = Paint()
+        ..color = const Color(
+          0xFF92C9D8,
+        ).withValues(alpha: annotationMode ? (selected ? 0.16 : 0.028) : 0.24)
+        ..style = PaintingStyle.fill;
+      final glassStroke = Paint()
+        ..color = const Color(
+          0xFF92C9D8,
+        ).withValues(alpha: annotationMode ? (selected ? 0.72 : 0.18) : 0.86)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = annotationMode ? (selected ? 1.7 : 1.0) : 2;
+      final darkInset = Paint()
+        ..color = Colors.black.withValues(
+          alpha: annotationMode ? (selected ? 0.12 : 0.035) : 0.25,
+        )
+        ..style = PaintingStyle.fill;
       final rect = layout.featureRect(feature);
       final radius = Radius.circular(layout.featureCornerRadius(feature));
       final rrect = RRect.fromRectAndRadius(rect, radius);
@@ -6904,13 +6942,15 @@ class _ViewportPainter extends CustomPainter {
         case MockViewportFeatureKind.glassRecess:
           canvas.drawRRect(rrect, glassFill);
           canvas.drawRRect(rrect, glassStroke);
-          canvas.drawRRect(
-            RRect.fromRectAndRadius(rect.deflate(6), radius),
-            Paint()
-              ..color = Colors.black.withValues(alpha: 0.12)
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 1,
-          );
+          if (!annotationMode || selected) {
+            canvas.drawRRect(
+              RRect.fromRectAndRadius(rect.deflate(6), radius),
+              Paint()
+                ..color = Colors.black.withValues(alpha: 0.12)
+                ..style = PaintingStyle.stroke
+                ..strokeWidth = 1,
+            );
+          }
       }
     }
   }
@@ -6922,16 +6962,16 @@ class _ViewportPainter extends CustomPainter {
   }) {
     final buttonFill = Paint()
       ..color = colorScheme.primary.withValues(
-        alpha: annotationMode ? 0.10 : 0.92,
+        alpha: annotationMode ? 0.028 : 0.92,
       )
       ..style = PaintingStyle.fill;
     final buttonHole = Paint()
-      ..color = Colors.black.withValues(alpha: annotationMode ? 0.34 : 0.28)
+      ..color = Colors.black.withValues(alpha: annotationMode ? 0.12 : 0.28)
       ..style = PaintingStyle.fill;
     final buttonStroke = Paint()
-      ..color = colorScheme.primary.withValues(alpha: annotationMode ? 0.58 : 0)
+      ..color = colorScheme.primary.withValues(alpha: annotationMode ? 0.20 : 0)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = annotationMode ? 1.6 : 0;
+      ..strokeWidth = annotationMode ? 1.1 : 0;
     final selectedButtonStroke = Paint()
       ..color = colorScheme.secondary.withValues(alpha: 0.92)
       ..style = PaintingStyle.stroke
@@ -6939,15 +6979,31 @@ class _ViewportPainter extends CustomPainter {
     final mountFill = Paint()
       ..color = const Color(
         0xFFE6C35A,
-      ).withValues(alpha: annotationMode ? 0.50 : 1)
+      ).withValues(alpha: annotationMode ? 0.20 : 1)
       ..style = PaintingStyle.fill;
     final mountStroke = Paint()
       ..color =
           (annotationMode ? colorScheme.secondary : const Color(0xFF151719))
-              .withValues(alpha: annotationMode ? 0.62 : 0.7)
+              .withValues(alpha: annotationMode ? 0.24 : 0.7)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = annotationMode ? 1.5 : 2;
+      ..strokeWidth = annotationMode ? 1.1 : 2;
     final mountHole = Paint()
+      ..color = const Color(
+        0xFF151719,
+      ).withValues(alpha: annotationMode ? 0.20 : 0.62)
+      ..style = PaintingStyle.fill;
+    final selectedMountFill = Paint()
+      ..color = const Color(
+        0xFFE6C35A,
+      ).withValues(alpha: annotationMode ? 0.55 : 1)
+      ..style = PaintingStyle.fill;
+    final selectedMountStroke = Paint()
+      ..color = colorScheme.secondary.withValues(
+        alpha: annotationMode ? 0.78 : 0.7,
+      )
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = annotationMode ? 1.7 : 2;
+    final selectedMountHole = Paint()
       ..color = const Color(
         0xFF151719,
       ).withValues(alpha: annotationMode ? 0.42 : 0.62)
@@ -6975,9 +7031,21 @@ class _ViewportPainter extends CustomPainter {
           }
         case MockViewportFeatureGroupKind.standoffMounts:
           for (final center in centers) {
-            canvas.drawCircle(center, radius, mountFill);
-            canvas.drawCircle(center, radius * 0.46, mountHole);
-            canvas.drawCircle(center, radius, mountStroke);
+            canvas.drawCircle(
+              center,
+              radius,
+              selected ? selectedMountFill : mountFill,
+            );
+            canvas.drawCircle(
+              center,
+              radius * 0.46,
+              selected ? selectedMountHole : mountHole,
+            );
+            canvas.drawCircle(
+              center,
+              radius,
+              selected ? selectedMountStroke : mountStroke,
+            );
           }
       }
     }
@@ -7208,6 +7276,13 @@ class _PreviewMeshSelectionTone {
 
 bool _hasPreviewMesh(PreviewMesh? mesh) {
   return mesh != null && mesh.vertexCount > 0 && mesh.triangleCount > 0;
+}
+
+bool _nativeSemanticAnnotationsFocused(SelectionModel selection) {
+  return selection.kind == SelectionKind.componentPlacement ||
+      selection.kind == SelectionKind.componentTemplate ||
+      selection.kind == SelectionKind.feature ||
+      selection.kind == SelectionKind.featureGroup;
 }
 
 bool _hasSelectedPreviewSurface(PreviewMesh? mesh, SelectionModel selection) {

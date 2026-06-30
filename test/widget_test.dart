@@ -178,6 +178,41 @@ void main() {
     expect(find.textContaining('fake_worker_preview'), findsOneWidget);
   });
 
+  testWidgets('native preview keeps semantic overlays muted until selected', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const CaseMakerApp(geometryService: _PreviewMeshGeometryService()),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('native-semantic-overlays-muted')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('native-semantic-overlays-focused')),
+      findsNothing,
+    );
+
+    await tester.scrollUntilVisible(
+      find.text('USB-C'),
+      80,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('USB-C').first);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('native-semantic-overlays-muted')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('native-semantic-overlays-focused')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('viewport preset controls switch standard camera views', (
     tester,
   ) async {

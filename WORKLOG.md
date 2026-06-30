@@ -42,6 +42,82 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-30 - M92 Native viewport de-clutter
+
+### Goal
+Respond to the latest screenshot by making native preview inspection less noisy:
+the generated body should read as the main layer, while schematic semantic
+overlays stay muted until the user selects them.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`docs/33_VIEWPORT_MVP.md`, `lib/ui/shell/workspace_shell.dart`, and
+`test/widget_test.dart`.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added native overlay mute/focus sentinels for widget coverage.
+  - Reduced default preview-mesh triangle stroke alpha/width to cut down
+    screenshot-visible internal triangle noise.
+  - Dimmed component placement, USB-C, glass recess, button group, and standoff
+    schematic annotations when a native preview mesh is active and the
+    corresponding semantic object is not selected.
+  - Keeps selected semantic feature/group/component annotations stronger so the
+    user can still inspect and poke them.
+- `test/widget_test.dart`:
+  - Added coverage proving native overlays start muted and switch to focused
+    after selecting `USB-C`.
+- Docs/tasks:
+  - Added M92 to `ROADMAP.md`, marked the viewport polish in `TASKS.md`, and
+    documented the muted/focused native annotation behavior in
+    `docs/33_VIEWPORT_MVP.md`.
+
+### Tests run
+- `dart format lib\ui\shell\workspace_shell.dart test\widget_test.dart`:
+  - Passed; formatted `lib/ui/shell/workspace_shell.dart`.
+- `flutter test test\widget_test.dart --plain-name "viewport exposes geometry preview mesh from service" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "native preview keeps semantic overlays muted until selected" --reporter compact`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed, 0 changes.
+- `flutter analyze`:
+  - Passed, no issues found.
+- `flutter test --reporter compact`:
+  - Passed, 194 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed; refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+
+### Validation
+- Geometry checked?
+  - Not changed; this slice only changes viewport rendering style.
+- Serialization checked?
+  - No project model or protocol fields changed.
+- UI checked?
+  - Targeted widget tests and full widget suite passed.
+- Export checked?
+  - Not touched.
+
+### Known issues
+- Issue: The viewport is still a `CustomPaint` preview renderer without a real
+  depth buffer, so very large meshes can still show painter-order artifacts.
+  - Severity: Medium.
+  - Next action: Consider a real 3D renderer or a stronger native preview
+    simplification pass after the semantic geometry MVP is further along.
+
+### Next step
+Run full validation, rebuild the latest Windows bundle, then continue with the
+next safe geometry or viewport readability slice after manual inspection.
+
+### Notes for future Codex sessions
+Do not hide semantic affordances permanently. In native mesh mode they should be
+quiet by default and become readable when their semantic item is selected.
+
+---
+
 ## 2026-06-30 - M91 Native plunger guide/stop preview
 
 ### Goal

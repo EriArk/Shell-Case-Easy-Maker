@@ -98,6 +98,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Render disposable geometry preview mesh when a backend provides one.
 - [x] Highlight selected semantic surface ranges on generated preview mesh.
 - [x] Highlight selected semantic feature ranges on generated preview mesh.
+- [x] Add native preview overlay de-clutter pass.
 
 ## Phase 4 — OCCT worker MVP
 
@@ -354,6 +355,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [ ] Parameter knobs.
 - [ ] Focused parameter workflow.
 - [ ] Parameter banks and diamond slots.
+- [x] Native preview overlay mute/focus states.
 - [ ] Keyboard-emulated controller support.
 - [ ] Step configuration.
 - [ ] Right-click quick popovers.

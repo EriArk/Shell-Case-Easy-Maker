@@ -110,6 +110,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M89 - Viewport Navigation Presets
 - [x] M90 - Semantic Plunger Travel Controls
 - [x] M91 - Native Plunger Guide/Stop Preview
+- [x] M92 - Native Viewport De-Clutter
 
 ---
 
@@ -4223,3 +4224,52 @@ keeping editable project state semantic and generator-first.
 - Treat the center model as a first-pass mechanical preview, not polished CAD:
   the important check is that the added guide/stop detail is visible and remains
   tied to one semantic button group.
+
+---
+
+## M92 - Native Viewport De-Clutter
+
+### Goal
+Make the native preview easier to inspect after manual screenshot review by
+reducing always-on schematic overlays and triangle-wire noise while preserving
+semantic selection and hit targets.
+
+### Tasks
+- [x] Analyze the latest screenshot for readability issues.
+- [x] Add native overlay mute/focus state sentinels for widget coverage.
+- [x] Dim component, feature, and feature-group mock annotations when the native
+      preview mesh is visible and no matching semantic detail is selected.
+- [x] Keep selected semantic details more visible when the user selects a
+      feature, feature group, or component placement.
+- [x] Reduce default preview-mesh triangle stroke alpha/width so the generated
+      model is less visually noisy.
+- [x] Update viewport docs, task tracker, roadmap, and worklog.
+
+### Done Criteria
+- Project/workspace selection shows the native model as the primary visual
+  layer instead of large opaque schematic feature panels.
+- Selecting a feature or feature group still brings that semantic annotation
+  forward for manual inspection.
+- Preview mesh remains display-only; hit testing and editing still use semantic
+  IDs, not triangle IDs or OCCT topology.
+- Existing preview mesh highlight tests continue to pass.
+
+### Tests
+- `flutter test test\widget_test.dart --plain-name "viewport exposes geometry preview mesh from service" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "native preview keeps semantic overlays muted until selected" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open
+  `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- With the project selected, confirm the big center glass/feature rectangle and
+  board footprint no longer dominate the native body.
+- Select `USB-C`, `Группа кнопок`, and the board placement; each selected
+  semantic item should still become visible enough to inspect.
+- Orbit/pan/zoom and confirm the body has fewer distracting internal triangle
+  lines than in the screenshot.
