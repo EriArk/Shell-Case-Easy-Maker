@@ -92,6 +92,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M71 - Native USB-C Feature Range Highlight
 - [x] M72 - Native Front Glass Recess Slice
 - [x] M73 - Native Front Button Group Cutouts
+- [x] M74 - Native Bottom Standoff Mounts
 
 ---
 
@@ -3241,3 +3242,63 @@ editable semantic object.
 - Select the button group and confirm its generated holes highlight together.
 - Top-lid button holes are intentionally still pending until the lid/body split
   exists.
+
+---
+
+## M74 - Native Bottom Standoff Mounts
+
+### Goal
+Consume `standoff_mounts` feature-group intents targeting the bottom inside
+surface and generate simple cylindrical screw standoffs in native OCCT B-Rep
+while keeping the mount set one editable semantic group.
+
+### Tasks
+- [x] Record OCCT fuse/standoff research before implementation.
+- [x] Add native `StandoffMountGroupRequest` and item parsing for derived
+      mounting-hole positions.
+- [x] Support `standoff_mounts` intents targeting
+      `main_enclosure.bottom_inside` only in this slice.
+- [x] Build cylindrical boss geometry with a central blind hole per item.
+- [x] Fuse generated bosses into the top-open enclosure shell.
+- [x] Track standoff group/item metrics separately from other feature
+      operations.
+- [x] Emit one disposable preview range keyed by the standoff group semantic
+      ID.
+- [x] Add smoke, source-contract, and widget coverage for standoff mappings.
+- [x] Update docs, tasks, roadmap, and worklog.
+
+### Done Criteria
+- Native smoke reports 3054 vertices, 3362 triangles, 7 preview surface
+  mappings, and 1956 mapped triangles.
+- Native smoke reports `featureIntentCount: 5`, `nativeFeatureCutCount: 8`,
+  `nativeIgnoredFeatureIntentCount: 1`, `nativeStandoffGroupCount: 1`, and
+  `nativeStandoffMountCount: 4`.
+- Surface mappings include `standoff_mounts_1` as one semantic group mapping,
+  not per-standoff editable objects.
+- Generated B-Rep, topology IDs, and preview triangle IDs stay out of editable
+  project JSON.
+
+### Tests
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "selected standoff group highlights mapped preview mesh range" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open
+  `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- Confirm the viewport label still shows `occt_worker_native_occt`.
+- Select `button_board_placement`, click the mount tool, keep/default or set
+  standoff diameter `5`, hole `2.2`, height `4`, then confirm.
+- Orbit toward the inside bottom and confirm four cylindrical standoffs appear
+  around the board footprint.
+- Select the created `standoff_mounts_1` group and confirm the inspector still
+  edits the group as one object.
+- Confirm the generated standoffs highlight together when the group is
+  selected.

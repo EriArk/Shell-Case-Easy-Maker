@@ -108,6 +108,56 @@ semantic object; native button holes are generated B-Rep preview output.
 ## Follow-up tasks
 
 - Add top-lid button cutouts after the lid/body split exists.
+
+---
+
+## 2026-06-30 - OCCT standoff boss fuse tools
+
+## Question
+
+How should the first native standoff-mount slice generate simple printable
+mounting bosses without turning mounts into independent editable solids?
+
+## Sources checked
+
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepAlgoAPI_Fuse.hxx`
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepPrimAPI_MakeCylinder.hxx`
+- Existing native worker boolean cut/fuse-adjacent patterns in
+  `occt_worker/native/src/occt_main.cpp`.
+
+## Findings
+
+- `BRepAlgoAPI_Fuse` provides a boolean union between a base shape and a tool
+  shape.
+- `BRepPrimAPI_MakeCylinder(gp_Ax2, radius, height)` is suitable for both the
+  outer standoff boss and the central hole tool.
+- A tiny overlap into the bottom floor makes the boss and enclosure volumes
+  intersect before fusion, which is more robust than relying on coplanar touch.
+- Cutting the hole from the boss before fusing it to the shell creates a blind
+  screw pilot instead of cutting a through-hole in the enclosure floor.
+
+## License / compatibility notes
+
+- OCCT headers are from the project-local vcpkg dependency. They are LGPL 2.1
+  with OCCT exception / commercial alternative, matching the existing OCCT
+  dependency evaluation.
+- No external project code was copied.
+
+## Decision
+
+Implement first native bottom standoffs as generated B-Rep bosses from
+`standoff_mounts` feature-group item positions. The editable project still
+stores one semantic group with diameter, hole diameter, height, and source
+mounting-hole metadata.
+
+## Follow-up tasks
+
+- Add fillet/chamfer polish for standoff bases after the first native boss path
+  is stable.
+- Add top-lid or side-wall mount variants only after the body/lid split and
+  target-surface mapping are richer.
 - Add richer button geometry later: bevels, caps, support rings, and clearance
   profiles.
 

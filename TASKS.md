@@ -130,6 +130,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Emit first native USB-C feature preview ranges.
 - [x] Generate first native front-wall glass recess.
 - [x] Generate first native front-wall button group cutouts.
+- [x] Generate first native bottom standoff mounts.
 - [ ] Export STEP.
 - [ ] Export STL.
 - [x] Define response issues/warnings model.
@@ -194,7 +195,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] First-pass semantic standoff group from board mounting holes.
 - [x] First-pass standoff marker preview from board mounting holes.
 - [x] Reusable standoff source-anchor layout helper.
-- [ ] Generate real standoff geometry from board mounting holes.
+- [x] Generate real standoff geometry from board mounting holes.
 - [x] Generate side wall cutouts from ports.
 - [x] First-pass semantic USB-C cutout from component connector metadata.
 - [x] First-pass projected component feature anchors.

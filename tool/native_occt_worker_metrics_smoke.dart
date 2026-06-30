@@ -98,12 +98,12 @@ Future<void> main(List<String> args) async {
       failures,
     );
     _expect(
-      previewMesh.vertexCount == 1886,
+      previewMesh.vertexCount == 3054,
       'previewMesh must contain the deterministic sample vertex count',
       failures,
     );
     _expect(
-      previewMesh.triangleCount == 2210,
+      previewMesh.triangleCount == 3362,
       'previewMesh must contain the deterministic sample triangle count',
       failures,
     );
@@ -125,8 +125,8 @@ Future<void> main(List<String> args) async {
       failures,
     );
     _expect(
-      previewMesh.surfaces.length == 6,
-      'previewMesh must expose body surfaces plus USB-C, glass, and button feature mappings',
+      previewMesh.surfaces.length == 7,
+      'previewMesh must expose body surfaces plus USB-C, glass, button, and standoff feature mappings',
       failures,
     );
     final surfaceIds = previewMesh.surfaces
@@ -160,6 +160,11 @@ Future<void> main(List<String> args) async {
     _expect(
       surfaceIds.contains('front_buttons'),
       'previewMesh surfaces must include the sample button group feature range',
+      failures,
+    );
+    _expect(
+      surfaceIds.contains('standoff_mounts_1'),
+      'previewMesh surfaces must include the sample standoff mount group feature range',
       failures,
     );
     _expect(
@@ -247,13 +252,13 @@ Future<void> main(List<String> args) async {
     failures,
   );
   _expect(
-    metrics['featureIntentCount'] == 4,
+    metrics['featureIntentCount'] == 5,
     'featureIntentCount must match the sample request',
     failures,
   );
   _expect(
-    metrics['nativeFeatureCutCount'] == 4,
-    'nativeFeatureCutCount must include USB-C, glass, and button cuts',
+    metrics['nativeFeatureCutCount'] == 8,
+    'nativeFeatureCutCount must include USB-C, glass, button, and standoff operations',
     failures,
   );
   _expect(
@@ -289,6 +294,16 @@ Future<void> main(List<String> args) async {
   _expect(
     metrics['nativeButtonCutoutCount'] == 2,
     'nativeButtonCutoutCount must include the sample button items',
+    failures,
+  );
+  _expect(
+    metrics['nativeStandoffGroupCount'] == 1,
+    'nativeStandoffGroupCount must include the sample standoff group',
+    failures,
+  );
+  _expect(
+    metrics['nativeStandoffMountCount'] == 4,
+    'nativeStandoffMountCount must include the sample standoff items',
     failures,
   );
   _expect(
@@ -388,14 +403,14 @@ Future<void> main(List<String> args) async {
   );
   _expectClose(
     _readNumber(metrics['surfaceArea']),
-    34759.83405,
+    35121.745524,
     0.001,
     'surfaceArea',
     failures,
   );
   _expectClose(
     _readNumber(metrics['volume']),
-    33314.853997,
+    33568.192004,
     0.001,
     'volume',
     failures,
@@ -442,6 +457,8 @@ Future<void> main(List<String> args) async {
           metrics['nativeGlassRecessFilletedEdgeCount'],
       'nativeButtonGroupCount': metrics['nativeButtonGroupCount'],
       'nativeButtonCutoutCount': metrics['nativeButtonCutoutCount'],
+      'nativeStandoffGroupCount': metrics['nativeStandoffGroupCount'],
+      'nativeStandoffMountCount': metrics['nativeStandoffMountCount'],
       'bounds': metrics['bounds'],
       'dimensions': metrics['dimensions'],
       'surfaceArea': metrics['surfaceArea'],
@@ -506,6 +523,58 @@ ProjectModel _nativeSmokeProject() {
             'mode': 'plunger',
           },
           placement: {'anchor': 'center'},
+        ),
+      )
+      .replaceFeatureGroup(
+        const FeatureGroup(
+          id: 'standoff_mounts_1',
+          type: 'standoff_mounts',
+          targetSurface: 'main_enclosure.bottom_inside',
+          pattern: {
+            'layout': 'from_component_mounting_holes',
+            'count': 4,
+            'sourcePlacementId': 'button_board_placement',
+            'sourceTemplateId': 'custom_button_board_v1',
+            'holePositions': [
+              {
+                'id': 'mh1',
+                'position': [-20.0, -12.0],
+                'diameter': 2.2,
+                'screw': 'M2',
+              },
+              {
+                'id': 'mh2',
+                'position': [20.0, -12.0],
+                'diameter': 2.2,
+                'screw': 'M2',
+              },
+              {
+                'id': 'mh3',
+                'position': [-20.0, 12.0],
+                'diameter': 2.2,
+                'screw': 'M2',
+              },
+              {
+                'id': 'mh4',
+                'position': [20.0, 12.0],
+                'diameter': 2.2,
+                'screw': 'M2',
+              },
+            ],
+          },
+          itemPrototype: {
+            'type': 'standoff',
+            'diameter': 5.0,
+            'holeDiameter': 2.2,
+            'height': 4.0,
+            'screw': 'M2',
+            'clearanceProfile': 'fdm_normal',
+          },
+          placement: {
+            'anchor': 'component_mounting_holes',
+            'componentPlacementId': 'button_board_placement',
+            'mountingSide': 'bottom_inside',
+          },
         ),
       );
 }

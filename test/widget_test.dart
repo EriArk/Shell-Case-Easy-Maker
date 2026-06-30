@@ -273,6 +273,72 @@ void main() {
     expect(find.byKey(highlightKey), findsOneWidget);
   });
 
+  testWidgets('selected standoff group highlights mapped preview mesh range', (
+    tester,
+  ) async {
+    final project = ProjectModel.initial().replaceFeatureGroup(
+      const FeatureGroup(
+        id: 'standoff_mounts_1',
+        type: 'standoff_mounts',
+        targetSurface: 'main_enclosure.bottom_inside',
+        pattern: {
+          'layout': 'from_component_mounting_holes',
+          'sourceTemplateId': 'custom_button_board_v1',
+          'holePositions': [
+            {
+              'id': 'mh1',
+              'position': [-20.0, -12.0],
+              'diameter': 2.2,
+            },
+          ],
+        },
+        itemPrototype: {
+          'type': 'standoff',
+          'diameter': 5.0,
+          'holeDiameter': 2.2,
+          'height': 4.0,
+        },
+        placement: {'anchor': 'component_mounting_holes'},
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkspaceShell(
+          project: project,
+          geometryService: const _PreviewMeshGeometryService(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    const highlightKey = ValueKey('geometry-preview-surface-highlight-active');
+    expect(find.byKey(highlightKey), findsNothing);
+
+    final canvasFinder = find.byKey(const ValueKey('mock-viewport-canvas'));
+    final canvasTopLeft = tester.getTopLeft(canvasFinder);
+    final canvasSize = tester.getSize(canvasFinder);
+    final layout = MockViewportLayout.fromSize(
+      canvasSize,
+      const ViewportState(),
+    );
+    const mountGroup = MockViewportFeatureGroupPreview(
+      semanticId: 'standoff_mounts_1',
+      kind: MockViewportFeatureGroupKind.standoffMounts,
+      sourcePositions: [Offset(-20, -12)],
+      referenceWidth: 48,
+      referenceHeight: 32,
+      itemDiameter: 5,
+    );
+
+    await tester.tapAt(
+      canvasTopLeft + layout.featureGroupCenters(mountGroup).first,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(highlightKey), findsOneWidget);
+  });
+
   testWidgets('surface snap point seeds component placement dialog', (
     tester,
   ) async {
@@ -2282,6 +2348,11 @@ class _PreviewMeshGeometryService extends MockGeometryService {
             semanticId: 'button_group_1',
             label: 'Button group',
             triangleRanges: [PreviewTriangleRange(start: 3, count: 1)],
+          ),
+          PreviewSurfaceMapping(
+            semanticId: 'standoff_mounts_1',
+            label: 'Standoff mounts',
+            triangleRanges: [PreviewTriangleRange(start: 2, count: 1)],
           ),
         ],
       ),

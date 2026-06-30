@@ -108,6 +108,12 @@ mounting-hole positions remain in `FeatureGroup.pattern`. Hole diameter is
 clamped below the standoff diameter so the semantic request stays physically
 usable for later geometry generation.
 
+The native OCCT worker now consumes bottom-inside `standoff_mounts` feature
+groups and generates simple cylindrical bosses with blind screw holes. The
+whole mount set still maps back to one semantic group ID, and generated B-Rep
+or preview triangle ranges are not saved into the editable project.
+
 Current limitation:
-- no OCCT/B-Rep standoff bodies are generated yet; the semantic group is the
-  editable source that the future geometry worker will consume.
+- this first native geometry slice is bottom-inside only,
+- boss base fillets/chamfers, side-wall mounts, clips, pockets, clamps, and
+  lid-retained mounts are still future generator slices.

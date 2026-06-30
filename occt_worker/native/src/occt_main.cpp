@@ -1,5 +1,6 @@
 #include <BRepBndLib.hxx>
 #include <BRepAlgoAPI_Cut.hxx>
+#include <BRepAlgoAPI_Fuse.hxx>
 #include <BRepCheck_Analyzer.hxx>
 #include <BRepFilletAPI_MakeFillet.hxx>
 #include <BRepGProp.hxx>
@@ -100,12 +101,27 @@ struct ButtonGroupCutoutRequest {
   std::vector<ButtonCutoutItemRequest> items;
 };
 
+struct StandoffMountItemRequest {
+  std::string id;
+  std::array<double, 2> position = {0.0, 0.0};
+  double diameter = 5.0;
+  double hole_diameter = 2.2;
+  double height = 4.0;
+};
+
+struct StandoffMountGroupRequest {
+  std::string id;
+  std::string target_surface;
+  std::vector<StandoffMountItemRequest> items;
+};
+
 struct NativeRequestParseResult {
   NativeRequestEnvelope request;
   EnclosureRequest enclosure;
   std::vector<UsbCCutoutRequest> usb_c_cutouts;
   std::vector<GlassRecessRequest> glass_recesses;
   std::vector<ButtonGroupCutoutRequest> button_groups;
+  std::vector<StandoffMountGroupRequest> standoff_groups;
   int feature_intent_count = 0;
   std::string issue_code;
   std::string issue_message;
@@ -133,6 +149,8 @@ struct ShapeMetrics {
   int native_glass_recess_filleted_edge_count = 0;
   int native_button_group_count = 0;
   int native_button_cutout_count = 0;
+  int native_standoff_group_count = 0;
+  int native_standoff_mount_count = 0;
 };
 
 struct ShellBuildResult {
@@ -153,6 +171,8 @@ struct NativeFeatureCutResult {
   int glass_recess_filleted_edge_count = 0;
   int button_group_count = 0;
   int button_cutout_count = 0;
+  int standoff_group_count = 0;
+  int standoff_mount_count = 0;
 };
 
 struct PreviewTriangleRangeData {
@@ -868,6 +888,8 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
       static_cast<int>(feature_intents.size());
   const std::string supported_front_surface =
       result.enclosure.id + ".front_wall.outer";
+  const std::string supported_bottom_surface =
+      result.enclosure.id + ".bottom_inside";
   for (const std::string& intent : feature_intents) {
     const std::string kind =
         ExtractTopLevelStringField(intent, "kind").value_or("");
@@ -1068,6 +1090,100 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
       if (!group.items.empty()) {
         result.button_groups.push_back(group);
       }
+
+      continue;
+    }
+
+    if (kind == "standoff_mounts") {
+      if (intent_operation != "composite") {
+        continue;
+      }
+
+      StandoffMountGroupRequest group;
+      group.id =
+          ExtractTopLevelStringField(intent, "id").value_or("standoff_mounts");
+      group.target_surface =
+          ExtractTopLevelStringField(intent, "targetSurface").value_or("");
+      if (group.target_surface != supported_bottom_surface) {
+        continue;
+      }
+
+      double default_diameter = 5.0;
+      double default_hole_diameter = 2.2;
+      double default_height = 4.0;
+      if (parameters.has_value()) {
+        const std::optional<std::string> item_prototype =
+            ExtractTopLevelObjectField(*parameters, "itemPrototype");
+        if (item_prototype.has_value()) {
+          default_diameter =
+              ExtractTopLevelNumberField(*item_prototype, "diameter")
+                  .value_or(default_diameter);
+          default_hole_diameter =
+              ExtractTopLevelNumberField(*item_prototype, "holeDiameter")
+                  .value_or(default_hole_diameter);
+          default_height =
+              ExtractTopLevelNumberField(*item_prototype, "height")
+                  .value_or(default_height);
+        }
+      }
+
+      const double inner_width =
+          result.enclosure.size[0] - result.enclosure.wall_thickness * 2.0;
+      const double inner_depth =
+          result.enclosure.size[1] - result.enclosure.wall_thickness * 2.0;
+      const double available_height =
+          result.enclosure.size[2] - result.enclosure.wall_thickness;
+      const std::vector<std::string> items =
+          ExtractTopLevelObjectArrayField(intent, "items");
+      for (const std::string& item : items) {
+        const std::optional<std::array<double, 2>> position =
+            ExtractTopLevelNumberArray2Field(item, "position");
+        if (!position.has_value()) {
+          continue;
+        }
+
+        StandoffMountItemRequest mount;
+        mount.id = ExtractTopLevelStringField(item, "id").value_or(group.id);
+        mount.position = *position;
+        mount.diameter = default_diameter;
+        mount.hole_diameter = default_hole_diameter;
+        mount.height = default_height;
+        const std::optional<std::string> item_parameters =
+            ExtractTopLevelObjectField(item, "parameters");
+        if (item_parameters.has_value()) {
+          mount.diameter =
+              ExtractTopLevelNumberField(*item_parameters, "diameter")
+                  .value_or(mount.diameter);
+          mount.hole_diameter =
+              ExtractTopLevelNumberField(*item_parameters, "holeDiameter")
+                  .value_or(mount.hole_diameter);
+          mount.height =
+              ExtractTopLevelNumberField(*item_parameters, "height")
+                  .value_or(mount.height);
+        }
+
+        const double radius = mount.diameter / 2.0;
+        if (!IsPositiveDimension(mount.diameter) ||
+            !IsPositiveDimension(mount.hole_diameter) ||
+            !IsPositiveDimension(mount.height) ||
+            mount.hole_diameter >= mount.diameter - 0.8 ||
+            mount.height > available_height ||
+            mount.position[0] - radius < -inner_width / 2.0 ||
+            mount.position[0] + radius > inner_width / 2.0 ||
+            mount.position[1] - radius < -inner_depth / 2.0 ||
+            mount.position[1] + radius > inner_depth / 2.0) {
+          result.issue_code = "worker.geometry.invalid_standoff_mount";
+          result.issue_message =
+              "Native OCCT worker standoff mounts must fit the bottom inside surface.";
+          return result;
+        }
+
+        group.items.push_back(mount);
+      }
+
+      if (!group.items.empty()) {
+        result.standoff_groups.push_back(group);
+      }
     }
   }
 
@@ -1164,6 +1280,8 @@ ShapeMetrics ComputeShapeMetrics(const TopoDS_Shape& shape,
       feature_cuts.glass_recess_filleted_edge_count;
   metrics.native_button_group_count = feature_cuts.button_group_count;
   metrics.native_button_cutout_count = feature_cuts.button_cutout_count;
+  metrics.native_standoff_group_count = feature_cuts.standoff_group_count;
+  metrics.native_standoff_mount_count = feature_cuts.standoff_mount_count;
 
   const FaceBounds bounds = ComputeTopoBounds(shape);
   metrics.bounds_min = bounds.min;
@@ -1383,6 +1501,33 @@ bool FaceIntersectsButtonCutout(const FaceBounds& face_bounds,
          spans_wall_depth;
 }
 
+bool FaceIntersectsStandoffMount(const FaceBounds& face_bounds,
+                                 const ShapeMetrics& metrics,
+                                 const EnclosureRequest& enclosure,
+                                 const StandoffMountItemRequest& mount) {
+  const double tolerance = PreviewSurfaceTolerance(metrics);
+  const double radius = mount.diameter / 2.0;
+  const double mount_min_x = mount.position[0] - radius - tolerance;
+  const double mount_max_x = mount.position[0] + radius + tolerance;
+  const double mount_min_y = mount.position[1] - radius - tolerance;
+  const double mount_max_y = mount.position[1] + radius + tolerance;
+  const double mount_min_z = enclosure.wall_thickness - tolerance;
+  const double mount_max_z =
+      enclosure.wall_thickness + mount.height + tolerance;
+
+  const bool overlaps_mount_volume =
+      face_bounds.max[0] >= mount_min_x &&
+      face_bounds.min[0] <= mount_max_x &&
+      face_bounds.max[1] >= mount_min_y &&
+      face_bounds.min[1] <= mount_max_y &&
+      face_bounds.max[2] >= mount_min_z &&
+      face_bounds.min[2] <= mount_max_z;
+  const bool is_above_bottom_inside =
+      face_bounds.max[2] >= enclosure.wall_thickness + tolerance;
+
+  return overlaps_mount_volume && is_above_bottom_inside;
+}
+
 TopoDS_Shape BuildUsbCCutoutTool(const EnclosureRequest& enclosure,
                                  const UsbCCutoutRequest& cutout,
                                  int* filleted_edge_count) {
@@ -1444,6 +1589,57 @@ TopoDS_Shape BuildButtonCutoutTool(const EnclosureRequest& enclosure,
   return BRepPrimAPI_MakeCylinder(axis, cutout.diameter / 2.0, height).Shape();
 }
 
+TopoDS_Shape BuildStandoffMountShape(const EnclosureRequest& enclosure,
+                                     const StandoffMountItemRequest& mount) {
+  const double overlap = 0.05;
+  const gp_Ax2 boss_axis(
+      gp_Pnt(mount.position[0],
+             mount.position[1],
+             enclosure.wall_thickness - overlap),
+      gp_Dir(0.0, 0.0, 1.0));
+  const TopoDS_Shape boss =
+      BRepPrimAPI_MakeCylinder(boss_axis,
+                               mount.diameter / 2.0,
+                               mount.height + overlap)
+          .Shape();
+  if (boss.IsNull()) {
+    throw std::runtime_error("OCCT generated a null standoff boss.");
+  }
+
+  const double hole_overcut = 0.5;
+  const gp_Ax2 hole_axis(
+      gp_Pnt(mount.position[0],
+             mount.position[1],
+             enclosure.wall_thickness - overlap - hole_overcut),
+      gp_Dir(0.0, 0.0, 1.0));
+  const TopoDS_Shape hole_tool =
+      BRepPrimAPI_MakeCylinder(hole_axis,
+                               mount.hole_diameter / 2.0,
+                               mount.height + overlap + hole_overcut * 2.0)
+          .Shape();
+  if (hole_tool.IsNull()) {
+    throw std::runtime_error("OCCT generated a null standoff hole tool.");
+  }
+
+  BRepAlgoAPI_Cut cut(boss, hole_tool);
+  cut.SimplifyResult(true, true);
+  if (!cut.IsDone() || cut.HasErrors()) {
+    throw std::runtime_error("OCCT standoff hole cut did not complete.");
+  }
+
+  const TopoDS_Shape mount_shape = cut.Shape();
+  if (mount_shape.IsNull()) {
+    throw std::runtime_error("OCCT generated a null standoff mount.");
+  }
+
+  BRepCheck_Analyzer analyzer(mount_shape, false);
+  if (!analyzer.IsValid()) {
+    throw std::runtime_error("OCCT generated an invalid standoff mount.");
+  }
+
+  return mount_shape;
+}
+
 TopoDS_Shape BuildGlassRecessTool(const EnclosureRequest& enclosure,
                                   const GlassRecessRequest& recess,
                                   int* filleted_edge_count) {
@@ -1499,6 +1695,7 @@ NativeFeatureCutResult ApplyNativeFeatureCutouts(
     const std::vector<UsbCCutoutRequest>& usb_c_cutouts,
     const std::vector<GlassRecessRequest>& glass_recesses,
     const std::vector<ButtonGroupCutoutRequest>& button_groups,
+    const std::vector<StandoffMountGroupRequest>& standoff_groups,
     int feature_intent_count) {
   NativeFeatureCutResult result;
   result.shape = base_shape;
@@ -1610,6 +1807,42 @@ NativeFeatureCutResult ApplyNativeFeatureCutouts(
     }
   }
 
+  for (const StandoffMountGroupRequest& group : standoff_groups) {
+    int group_mount_count = 0;
+    for (const StandoffMountItemRequest& mount : group.items) {
+      const TopoDS_Shape mount_shape =
+          BuildStandoffMountShape(enclosure, mount);
+      if (mount_shape.IsNull()) {
+        throw std::runtime_error("OCCT generated a null standoff mount shape.");
+      }
+
+      BRepAlgoAPI_Fuse fuse(result.shape, mount_shape);
+      fuse.SimplifyResult(true, true);
+      if (!fuse.IsDone() || fuse.HasErrors()) {
+        throw std::runtime_error("OCCT standoff mount fuse did not complete.");
+      }
+
+      result.shape = fuse.Shape();
+      if (result.shape.IsNull()) {
+        throw std::runtime_error("OCCT generated a null standoff fuse shape.");
+      }
+
+      BRepCheck_Analyzer analyzer(result.shape, false);
+      if (!analyzer.IsValid()) {
+        throw std::runtime_error("OCCT generated an invalid standoff fuse shape.");
+      }
+
+      ++result.applied_cut_count;
+      ++result.standoff_mount_count;
+      ++group_mount_count;
+    }
+
+    if (group_mount_count > 0) {
+      ++result.applied_intent_count;
+      ++result.standoff_group_count;
+    }
+  }
+
   result.ignored_intent_count =
       std::max(0, feature_intent_count - result.applied_intent_count);
   return result;
@@ -1682,7 +1915,8 @@ std::vector<std::pair<std::string, std::string>> ClassifyPreviewSurfaces(
     const EnclosureRequest& enclosure,
     const std::vector<UsbCCutoutRequest>& usb_c_cutouts,
     const std::vector<GlassRecessRequest>& glass_recesses,
-    const std::vector<ButtonGroupCutoutRequest>& button_groups) {
+    const std::vector<ButtonGroupCutoutRequest>& button_groups,
+    const std::vector<StandoffMountGroupRequest>& standoff_groups) {
   std::vector<std::pair<std::string, std::string>> surfaces;
   const std::optional<std::pair<std::string, std::string>> body_surface =
       ClassifyPreviewSurface(face_bounds, metrics, body_id);
@@ -1706,6 +1940,15 @@ std::vector<std::pair<std::string, std::string>> ClassifyPreviewSurfaces(
     for (const ButtonCutoutItemRequest& cutout : group.items) {
       if (FaceIntersectsButtonCutout(face_bounds, metrics, enclosure, cutout)) {
         surfaces.push_back(std::make_pair(group.id, "Button group"));
+        break;
+      }
+    }
+  }
+
+  for (const StandoffMountGroupRequest& group : standoff_groups) {
+    for (const StandoffMountItemRequest& mount : group.items) {
+      if (FaceIntersectsStandoffMount(face_bounds, metrics, enclosure, mount)) {
+        surfaces.push_back(std::make_pair(group.id, "Standoff mounts"));
         break;
       }
     }
@@ -1753,7 +1996,9 @@ PreviewMeshData BuildPreviewMesh(const TopoDS_Shape& shape,
                                  const std::vector<GlassRecessRequest>&
                                      glass_recesses,
                                  const std::vector<ButtonGroupCutoutRequest>&
-                                     button_groups) {
+                                     button_groups,
+                                 const std::vector<StandoffMountGroupRequest>&
+                                     standoff_groups) {
   PreviewMeshData mesh;
   BRepMesh_IncrementalMesh mesher(shape,
                                   kPreviewLinearDeflection,
@@ -1781,7 +2026,8 @@ PreviewMeshData BuildPreviewMesh(const TopoDS_Shape& shape,
                                 enclosure,
                                 usb_c_cutouts,
                                 glass_recesses,
-                                button_groups);
+                                button_groups,
+                                standoff_groups);
     const int vertex_offset = mesh.vertex_count();
     const int triangle_start = mesh.triangle_count();
     for (int node_index = 1; node_index <= triangulation->NbNodes();
@@ -2070,6 +2316,10 @@ void WriteRoundedEnclosurePreviewResponse(const NativeRequestEnvelope& request,
             << metrics.native_button_group_count << ",\n"
             << "    \"nativeButtonCutoutCount\": "
             << metrics.native_button_cutout_count << ",\n"
+            << "    \"nativeStandoffGroupCount\": "
+            << metrics.native_standoff_group_count << ",\n"
+            << "    \"nativeStandoffMountCount\": "
+            << metrics.native_standoff_mount_count << ",\n"
             << "    \"bounds\": {\n"
             << "      \"min\": ";
   WriteDoubleArray(metrics.bounds_min);
@@ -2172,6 +2422,7 @@ int main(int argc, char* argv[]) {
                                   parsed_request.usb_c_cutouts,
                                   parsed_request.glass_recesses,
                                   parsed_request.button_groups,
+                                  parsed_request.standoff_groups,
                                   parsed_request.feature_intent_count);
     if (feature_cuts.shape.IsNull()) {
       throw std::runtime_error("OCCT generated a null feature-cut shape.");
@@ -2192,7 +2443,8 @@ int main(int argc, char* argv[]) {
                          parsed_request.enclosure,
                          parsed_request.usb_c_cutouts,
                          parsed_request.glass_recesses,
-                         parsed_request.button_groups);
+                         parsed_request.button_groups,
+                         parsed_request.standoff_groups);
     WriteRoundedEnclosurePreviewResponse(
         parsed_request.request, parsed_request.enclosure, metrics, mesh);
     return 0;

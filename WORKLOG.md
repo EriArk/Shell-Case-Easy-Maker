@@ -42,6 +42,105 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-30 - M74 Native bottom standoff mounts
+
+### Goal
+Consume bottom-inside `standoff_mounts` feature-group intents in native OCCT and
+generate simple cylindrical screw standoffs while keeping the mount set one
+editable semantic object.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`docs/04_GEOMETRY_ENGINE_OCCT.md`, `docs/09_PATTERN_AND_LAYOUT_SYSTEM.md`,
+`docs/11_MOUNTING_AND_RETENTION_SYSTEM.md`,
+`docs/27_RESEARCH_AND_REFERENCES.md`, `docs/34_FIRST_GEOMETRY_SLICE.md`,
+`lib/geometry/geometry_protocol.dart`, `lib/patterns/pattern_layout.dart`,
+`lib/validation/project_semantic_validator.dart`,
+`lib/ui/shell/workspace_shell.dart`,
+`occt_worker/native/src/occt_main.cpp`,
+`occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepAlgoAPI_Fuse.hxx`,
+`occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepPrimAPI_MakeCylinder.hxx`,
+`tool/native_occt_worker_metrics_smoke.dart`,
+`test/occt_native_target_scaffold_test.dart`, and `test/widget_test.dart`.
+
+### Changes made
+- `occt_worker/native/src/occt_main.cpp`:
+  - Added native parsing for bottom-inside `standoff_mounts` feature-group
+    intents and derived mounting-hole item positions.
+  - Builds generated cylindrical boss shapes with central blind holes.
+  - Fuses standoff bosses into the top-open enclosure shell with
+    `BRepAlgoAPI_Fuse`.
+  - Emits native standoff metrics and one disposable preview mapping keyed by
+    the standoff group id.
+- `tool/native_occt_worker_metrics_smoke.dart`:
+  - Adds a sample `standoff_mounts_1` group from the button-board mounting
+    holes.
+  - Updated deterministic native expectations to 3054 vertices, 3362
+    triangles, 7 mappings, 1956 mapped triangles, surface area `35121.745524`,
+    and volume `33568.192004`.
+- `test/occt_native_target_scaffold_test.dart` and `test/widget_test.dart`:
+  - Added source-contract coverage for standoff parsing/generation/metrics and
+    widget coverage for selected standoff group preview highlighting.
+- Docs/tasks/roadmap:
+  - Recorded M74, OCCT fuse/standoff research, current smoke metrics, and the
+    manual poke checklist.
+
+### Tests run
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`:
+  - Passed.
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`:
+  - Passed; reports `nativeStandoffGroupCount=1`,
+    `nativeStandoffMountCount=4`, and `standoff_mounts_1` preview mapping.
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`:
+  - Passed, 5 tests.
+- `flutter test test\widget_test.dart --plain-name "selected standoff group highlights mapped preview mesh range" --reporter compact`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed, 187 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `git diff --check`:
+  - Passed with CRLF normalization warnings for existing text files.
+
+### Validation
+- Geometry checked?
+  - Yes. Native smoke verifies shape validity, deterministic mesh counts,
+    standoff metrics, bounds, surface area, and volume.
+- Serialization checked?
+  - Yes. Full test suite passed; standoffs remain semantic feature groups, not
+    saved generated geometry.
+- UI checked?
+  - Yes. Widget coverage verifies selecting a standoff group can activate the
+    mapped preview highlight.
+- Export checked?
+  - No. STEP/STL export remains planned.
+
+### Known issues
+- Issue: Native standoff mounts are bottom-inside only in this slice.
+  - Severity: Expected scope limit.
+  - Next action: Add mount variants after richer target-surface/body-lid
+    mapping.
+- Issue: Standoff bases are simple cylinders without fillets/chamfers.
+  - Severity: Polish/future printability improvement.
+  - Next action: Add base fillets/chamfers after the first boss path is stable.
+
+### Next step
+Continue toward lid/body split, standoff polish, or export.
+
+### Notes for future Codex sessions
+Keep standoff bosses generated from the semantic group. Do not save per-boss
+editable solids, OCCT topology IDs, or preview triangle IDs into the project
+model.
+
+---
+
 ## 2026-06-30 - M73 Native front button group cutouts
 
 ### Goal
