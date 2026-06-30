@@ -42,6 +42,95 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-30 - M75 Native top screw lid bosses
+
+### Goal
+Generate first native screw bosses for semantic `top_screw_lid` enclosures
+without adding editable solids or exposing low-level CAD operations.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`docs/04_GEOMETRY_ENGINE_OCCT.md`, `docs/10_ENCLOSURE_AUTO_GENERATION.md`,
+`docs/27_RESEARCH_AND_REFERENCES.md`, `docs/34_FIRST_GEOMETRY_SLICE.md`,
+`lib/project/enclosure.dart`, `occt_worker/native/src/occt_main.cpp`,
+`occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepAlgoAPI_Fuse.hxx`,
+`occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepPrimAPI_MakeCylinder.hxx`,
+`tool/native_occt_worker_metrics_smoke.dart`, and
+`test/occt_native_target_scaffold_test.dart`.
+
+### Changes made
+- `occt_worker/native/src/occt_main.cpp`:
+  - Parses `Enclosure.lid.type` from the semantic project request.
+  - Generates four default screw-boss positions for `top_screw_lid` enclosures
+    from inner enclosure dimensions.
+  - Builds cylindrical bosses with pilot holes and fuses them into the native
+    shell before feature cutouts and mount groups.
+  - Emits `nativeLidScrewBossCount`, `nativeLidScrewPilotCount`, and a
+    disposable `main_enclosure.lid_screw_bosses` preview mapping.
+- `tool/native_occt_worker_metrics_smoke.dart`:
+  - Updated deterministic native expectations to 4222 vertices, 4514
+    triangles, 8 mappings, 2820 mapped triangles, surface area `37838.594851`,
+    and volume `36692.568707`.
+- `test/occt_native_target_scaffold_test.dart`:
+  - Added source-contract coverage for lid screw boss parsing, generation,
+    metrics, preview mapping, and smoke expectations.
+- Docs/tasks/roadmap:
+  - Recorded M75, OCCT screw-boss research, current smoke metrics, and the
+    manual poke checklist.
+
+### Tests run
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`:
+  - Passed.
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`:
+  - Passed; reports `nativeLidScrewBossCount=4`,
+    `nativeLidScrewPilotCount=4`, and
+    `main_enclosure.lid_screw_bosses` preview mapping.
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`:
+  - Passed, 5 tests.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed, 187 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+
+### Validation
+- Geometry checked?
+  - Yes. Native smoke verifies deterministic mesh counts, lid boss metrics,
+    bounds, surface area, and volume.
+- Serialization checked?
+  - Yes. Full test suite passed; lid bosses are generated from existing
+    semantic lid metadata, not saved generated geometry.
+- UI checked?
+  - No separate UI test was needed; this slice adds generated native enclosure
+    detail from existing lid state.
+- Export checked?
+  - No. STEP/STL export remains planned.
+
+### Known issues
+- Issue: Screw bosses are generated defaults, not user-parameterized yet.
+  - Severity: Expected first-slice limit.
+  - Next action: Add user-facing boss parameters after lid/body workflow is
+    richer.
+- Issue: The body is still a top-open shell, not a separable lid/body assembly.
+  - Severity: Expected architecture gap.
+  - Next action: Add a real lid/body split as a later native geometry slice.
+
+### Next step
+Commit and push M75.
+
+### Notes for future Codex sessions
+Keep lid screw bosses generated from semantic `Enclosure.lid` metadata. Do not
+save per-boss editable solids, OCCT topology IDs, or preview triangle IDs into
+the project model.
+
+---
+
 ## 2026-06-30 - M74 Native bottom standoff mounts
 
 ### Goal

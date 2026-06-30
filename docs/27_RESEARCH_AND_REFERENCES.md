@@ -158,6 +158,52 @@ mounting-hole metadata.
   is stable.
 - Add top-lid or side-wall mount variants only after the body/lid split and
   target-surface mapping are richer.
+
+---
+
+## 2026-06-30 - OCCT top screw lid boss generation
+
+## Question
+
+How should the first native top-screw-lid slice add simple lid screw bosses
+without creating editable CAD solids or exposing raw boolean operations?
+
+## Sources checked
+
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepAlgoAPI_Fuse.hxx`
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepPrimAPI_MakeCylinder.hxx`
+- Existing native worker boss/fuse path for `standoff_mounts` in
+  `occt_worker/native/src/occt_main.cpp`.
+
+## Findings
+
+- The same cylinder-plus-pilot-hole approach used for standoff bosses can
+  generate simple screw bosses from enclosure lid metadata.
+- Boss positions can be derived from the inner enclosure rectangle with a fixed
+  inset, avoiding new editable per-boss project objects.
+- Fusing boss shapes into the top-open shell before feature cutouts keeps the
+  generated B-Rep deterministic and still disposable.
+
+## License / compatibility notes
+
+- OCCT headers are from the project-local vcpkg dependency. They are LGPL 2.1
+  with OCCT exception / commercial alternative, matching the existing OCCT
+  dependency evaluation.
+- No external project code was copied.
+
+## Decision
+
+For `top_screw_lid`, generate four default cylindrical screw bosses with pilot
+holes as native B-Rep output keyed to the enclosure semantic lid spec. Do not
+add separate editable boss objects to the project model.
+
+## Follow-up tasks
+
+- Add user-facing screw boss parameters after the lid/body workflow is richer.
+- Add fillets/chamfers and screw-size profiles after the generated boss path is
+  stable.
 - Add richer button geometry later: bevels, caps, support rings, and clearance
   profiles.
 

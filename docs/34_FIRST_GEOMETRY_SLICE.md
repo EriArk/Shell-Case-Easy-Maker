@@ -253,8 +253,9 @@ feature ID. Current feature mappings include `front_usb_c` for the generated
 USB-C cutout faces and `front_glass_recess` for the first shallow front-wall
 glass recess, plus `front_buttons` for the generated circular button cutouts
 from one semantic button group, and `standoff_mounts_1` for generated bottom
-standoff bosses. `main_enclosure.front_wall.outer` remains the front wall
-surface mapping.
+standoff bosses. Enclosures with `top_screw_lid` also expose
+`main_enclosure.lid_screw_bosses` for generated lid screw bosses.
+`main_enclosure.front_wall.outer` remains the front wall surface mapping.
 
 ## Initial Rounded Enclosure Plan
 
@@ -267,28 +268,31 @@ The first native OCCT slices now:
 5. Build one rounded internal cavity tool from semantic wall thickness.
 6. Cut a top-open shell/cavity from the rounded outer B-Rep.
 7. Check the resulting shell/cavity shape with `BRepCheck_Analyzer`.
-8. Read first-pass USB-C, glass-recess, and button-group `featureIntents`
+8. Generate first-pass lid screw bosses when the enclosure has
+   `lid.type: top_screw_lid`.
+9. Read first-pass USB-C, glass-recess, and button-group `featureIntents`
    targeting the front wall, plus bottom-inside `standoff_mounts`.
-9. Build a rounded rectangular USB-C cut tool and subtract it from the shell.
-10. Build a shallow rounded rectangular glass-recess tool and subtract it from
+10. Build a rounded rectangular USB-C cut tool and subtract it from the shell.
+11. Build a shallow rounded rectangular glass-recess tool and subtract it from
     the shell without cutting through the wall.
-11. Build cylindrical button cut tools from derived group item positions and
+12. Build cylindrical button cut tools from derived group item positions and
     subtract one tool per item.
-12. Build cylindrical standoff bosses with central blind holes and fuse them
+13. Build cylindrical standoff bosses with central blind holes and fuse them
     into the bottom inside shell.
-13. Return deterministic bounds, dimensions, surface area, and volume.
-14. Mesh the generated B-Rep with explicit linear/angular deflection settings.
-15. Return disposable preview mesh vertices and triangle indices.
-16. Return first-pass semantic preview surface ranges for top rim, front, and
+14. Return deterministic bounds, dimensions, surface area, and volume.
+15. Mesh the generated B-Rep with explicit linear/angular deflection settings.
+16. Return disposable preview mesh vertices and triangle indices.
+17. Return first-pass semantic preview surface ranges for top rim, front, and
     bottom face blocks.
-17. Return disposable `front_usb_c`, `front_glass_recess`, `front_buttons`, and
-    `standoff_mounts_1` feature ranges for generated feature highlighting.
+18. Return disposable `main_enclosure.lid_screw_bosses`, `front_usb_c`,
+    `front_glass_recess`, `front_buttons`, and `standoff_mounts_1` generated
+    ranges for highlighting.
 
 The next native geometry slices should:
 
-1. Add screw-boss/lid-body split geometry.
+1. Add a real lid/body split around the generated screw boss workflow.
 2. Add top-lid glass/button support after a real lid/body split exists.
-3. Add standoff fillets/chamfers and richer mount variants.
+3. Add screw boss and standoff fillets/chamfers plus richer mount variants.
 4. Expand semantic face mapping beyond the first top/front/bottom ranges.
 
 Expected sample dimensions:
@@ -296,14 +300,16 @@ Expected sample dimensions:
 - wall thickness: `2 mm`,
 - corner radius: `4 mm`,
 - native preview bounds: `[-60, -35, 0]` to `[60, 35, 27.464102]`,
-- native preview volume after USB-C, front glass recess, front button cutouts,
-  and bottom standoff bosses: `33568.192004 mm^3`,
-- native preview surface area after USB-C, front glass recess, front button
-  cutouts, and bottom standoff bosses: `35121.745524 mm^2`,
-- native preview surface mappings after feature ranges: `7`,
-- native preview mapped triangles after feature ranges: `1956`,
+- native preview volume after lid screw bosses, USB-C, front glass recess,
+  front button cutouts, and bottom standoff bosses: `36692.568707 mm^3`,
+- native preview surface area after lid screw bosses, USB-C, front glass
+  recess, front button cutouts, and bottom standoff bosses:
+  `37838.594851 mm^2`,
+- native preview surface mappings after feature ranges: `8`,
+- native preview mapped triangles after feature ranges: `2820`,
 - native feature metrics: `featureIntentCount=5`,
   `nativeFeatureCutCount=8`, `nativeIgnoredFeatureIntentCount=1`,
+  `nativeLidScrewBossCount=4`, `nativeLidScrewPilotCount=4`,
   `nativeUsbCCutoutCount=1`, `nativeGlassRecessCount=1`,
   `nativeButtonGroupCount=1`, `nativeButtonCutoutCount=2`,
   `nativeStandoffGroupCount=1`, `nativeStandoffMountCount=4`.
@@ -342,8 +348,9 @@ Expected sample dimensions:
   USB-C front-wall cutout, first native preview mesh emission, and first-pass
   semantic surface ranges are implemented. Front-wall glass recesses and
   front-wall button-group cutouts are also implemented. Bottom-inside standoff
-  bosses are implemented as the first native mount geometry; top-lid feature
-  cuts, screw/lid geometry, richer mount variants, and richer face mapping are
+  bosses are implemented as the first native mount geometry, and top-screw-lid
+  enclosures generate first-pass screw bosses. A real separable lid/body split,
+  top-lid feature cuts, richer mount variants, and richer face mapping are
   still planned.
 - STEP/STL export operations intentionally return unsupported in the mock
   backend.

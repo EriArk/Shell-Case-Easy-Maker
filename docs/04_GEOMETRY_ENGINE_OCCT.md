@@ -116,12 +116,14 @@ development. The native OCCT worker now consumes front-wall `usb_c_cutout`
 intents, first-pass front-wall `glass_recess` intents, and front-wall
 `button_group` item intents as real generated B-Rep. It also consumes
 bottom-inside `standoff_mounts` item intents as positive generated boss
-geometry. Button and standoff groups remain one editable semantic object; the
-native worker only consumes derived item positions as disposable generator
-input. Top-lid button/recess support, richer mount variants, and export
-operations remain next slices. The plan is disposable backend input. It must
-not be saved as the editable project model and must not contain OCCT topology
-IDs.
+geometry and generates first-pass lid screw bosses from the enclosure
+`top_screw_lid` semantic lid spec. Button and standoff groups remain one
+editable semantic object; lid screw bosses remain generated enclosure detail,
+not separate editable solids. The native worker only consumes semantic
+parameters and derived item positions as disposable generator input. Top-lid
+button/recess support, richer mount variants, and export operations remain next
+slices. The plan is disposable backend input. It must not be saved as the
+editable project model and must not contain OCCT topology IDs.
 
 ## Generated protocol fixtures
 

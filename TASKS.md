@@ -131,6 +131,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Generate first native front-wall glass recess.
 - [x] Generate first native front-wall button group cutouts.
 - [x] Generate first native bottom standoff mounts.
+- [x] Generate first native top screw lid bosses.
 - [ ] Export STEP.
 - [ ] Export STL.
 - [x] Define response issues/warnings model.
@@ -153,7 +154,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] First-pass box dimensions, wall thickness, corner radius.
 - [ ] Lid type: none / top / bottom / screw lid.
 - [x] First-pass lid type: none / top screw lid.
-- [ ] Add simple screw bosses.
+- [x] Add simple screw bosses.
 - [ ] Add generic circular cutout.
 - [ ] Add generic rectangular rounded cutout.
 - [x] First-pass USB-C cutout command.

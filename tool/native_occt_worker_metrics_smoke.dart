@@ -98,12 +98,12 @@ Future<void> main(List<String> args) async {
       failures,
     );
     _expect(
-      previewMesh.vertexCount == 3054,
+      previewMesh.vertexCount == 4222,
       'previewMesh must contain the deterministic sample vertex count',
       failures,
     );
     _expect(
-      previewMesh.triangleCount == 3362,
+      previewMesh.triangleCount == 4514,
       'previewMesh must contain the deterministic sample triangle count',
       failures,
     );
@@ -125,8 +125,8 @@ Future<void> main(List<String> args) async {
       failures,
     );
     _expect(
-      previewMesh.surfaces.length == 7,
-      'previewMesh must expose body surfaces plus USB-C, glass, button, and standoff feature mappings',
+      previewMesh.surfaces.length == 8,
+      'previewMesh must expose body surfaces plus lid bosses, USB-C, glass, button, and standoff feature mappings',
       failures,
     );
     final surfaceIds = previewMesh.surfaces
@@ -145,6 +145,11 @@ Future<void> main(List<String> args) async {
     _expect(
       surfaceIds.contains('main_enclosure.bottom_inside'),
       'previewMesh surfaces must include the semantic bottom inside surface',
+      failures,
+    );
+    _expect(
+      surfaceIds.contains('main_enclosure.lid_screw_bosses'),
+      'previewMesh surfaces must include the generated lid screw boss range',
       failures,
     );
     _expect(
@@ -249,6 +254,16 @@ Future<void> main(List<String> args) async {
   _expect(
     metrics['shellOpening'] == 'top',
     'shell opening must be top',
+    failures,
+  );
+  _expect(
+    metrics['nativeLidScrewBossCount'] == 4,
+    'nativeLidScrewBossCount must include the generated top screw lid bosses',
+    failures,
+  );
+  _expect(
+    metrics['nativeLidScrewPilotCount'] == 4,
+    'nativeLidScrewPilotCount must include generated pilot holes',
     failures,
   );
   _expect(
@@ -403,14 +418,14 @@ Future<void> main(List<String> args) async {
   );
   _expectClose(
     _readNumber(metrics['surfaceArea']),
-    35121.745524,
+    37838.594851,
     0.001,
     'surfaceArea',
     failures,
   );
   _expectClose(
     _readNumber(metrics['volume']),
-    33568.192004,
+    36692.568707,
     0.001,
     'volume',
     failures,
@@ -445,6 +460,8 @@ Future<void> main(List<String> args) async {
       'shellCavityValid': metrics['shellCavityValid'],
       'shellCavityToolCount': metrics['shellCavityToolCount'],
       'shellOpening': metrics['shellOpening'],
+      'nativeLidScrewBossCount': metrics['nativeLidScrewBossCount'],
+      'nativeLidScrewPilotCount': metrics['nativeLidScrewPilotCount'],
       'featureIntentCount': metrics['featureIntentCount'],
       'nativeFeatureCutCount': metrics['nativeFeatureCutCount'],
       'nativeIgnoredFeatureIntentCount':

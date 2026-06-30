@@ -27,6 +27,13 @@ For each mounting hole:
 - add ribs if needed,
 - avoid keepouts.
 
+The native OCCT worker now generates the first bottom-inside
+`standoff_mounts` bosses from semantic mounting-hole groups. For enclosures
+with `lid.type: top_screw_lid`, it also generates four default lid screw bosses
+from the enclosure lid spec. Both are generated B-Rep output; the editable
+project still stores semantic groups and lid metadata rather than generated
+solids.
+
 ## Port cutouts
 
 For a side-facing connector:

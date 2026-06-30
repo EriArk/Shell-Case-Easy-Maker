@@ -93,6 +93,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M72 - Native Front Glass Recess Slice
 - [x] M73 - Native Front Button Group Cutouts
 - [x] M74 - Native Bottom Standoff Mounts
+- [x] M75 - Native Top Screw Lid Bosses
 
 ---
 
@@ -3302,3 +3303,56 @@ while keeping the mount set one editable semantic group.
   edits the group as one object.
 - Confirm the generated standoffs highlight together when the group is
   selected.
+
+---
+
+## M75 - Native Top Screw Lid Bosses
+
+### Goal
+Generate first native screw bosses for enclosures whose semantic lid spec is
+`top_screw_lid`, without adding editable solids or exposing CAD operations.
+
+### Tasks
+- [x] Record OCCT screw-boss generation research before implementation.
+- [x] Parse `Enclosure.lid.type` in the native worker request.
+- [x] Derive four safe default screw-boss positions from inner enclosure
+      dimensions.
+- [x] Build cylindrical bosses with central pilot holes.
+- [x] Fuse generated bosses into the top-open shell before feature cutouts and
+      mount groups.
+- [x] Emit native lid screw boss metrics and a disposable generated preview
+      range.
+- [x] Update native smoke expectations, source-contract tests, docs, tasks,
+      roadmap, and worklog.
+
+### Done Criteria
+- Native smoke reports 4222 vertices, 4514 triangles, 8 preview surface
+  mappings, and 2820 mapped triangles.
+- Native smoke reports `nativeLidScrewBossCount: 4` and
+  `nativeLidScrewPilotCount: 4`.
+- Surface mappings include `main_enclosure.lid_screw_bosses` as generated
+  semantic preview output.
+- Generated B-Rep, topology IDs, and preview triangle IDs stay out of editable
+  project JSON.
+
+### Tests
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open
+  `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- Confirm the viewport label still shows `occt_worker_native_occt`.
+- Orbit into the enclosure corners and confirm four taller screw bosses appear
+  for the sample `top_screw_lid` body.
+- Create `Крепёж` from `button_board_placement` and confirm the board
+  standoffs still appear separately from the lid screw bosses.
+- Select/edit the enclosure lid type in the inspector if needed; generated
+  bosses are tied to the semantic lid spec, not separate editable objects.

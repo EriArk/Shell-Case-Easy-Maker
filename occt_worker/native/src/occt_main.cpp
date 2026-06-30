@@ -62,9 +62,18 @@ struct NativeRequestEnvelope {
 struct EnclosureRequest {
   std::string id;
   std::string shape;
+  std::string lid_type;
   std::array<double, 3> size = {0.0, 0.0, 0.0};
   double wall_thickness = 0.0;
   double corner_radius = 0.0;
+};
+
+struct LidScrewBossRequest {
+  std::string id;
+  std::array<double, 2> position = {0.0, 0.0};
+  double diameter = 7.0;
+  double hole_diameter = 2.4;
+  double height = 20.0;
 };
 
 struct UsbCCutoutRequest {
@@ -122,6 +131,7 @@ struct NativeRequestParseResult {
   std::vector<GlassRecessRequest> glass_recesses;
   std::vector<ButtonGroupCutoutRequest> button_groups;
   std::vector<StandoffMountGroupRequest> standoff_groups;
+  std::vector<LidScrewBossRequest> lid_screw_bosses;
   int feature_intent_count = 0;
   std::string issue_code;
   std::string issue_message;
@@ -151,6 +161,8 @@ struct ShapeMetrics {
   int native_button_cutout_count = 0;
   int native_standoff_group_count = 0;
   int native_standoff_mount_count = 0;
+  int native_lid_screw_boss_count = 0;
+  int native_lid_screw_pilot_count = 0;
 };
 
 struct ShellBuildResult {
@@ -158,6 +170,12 @@ struct ShellBuildResult {
   bool cavity_applied = false;
   bool cavity_valid = false;
   int cavity_tool_count = 0;
+};
+
+struct NativeLidBossResult {
+  TopoDS_Shape shape;
+  int boss_count = 0;
+  int pilot_hole_count = 0;
 };
 
 struct NativeFeatureCutResult {
@@ -821,6 +839,12 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
     result.enclosure.id = ExtractTopLevelStringField(body, "id").value_or("");
     result.enclosure.shape =
         ExtractTopLevelStringField(body, "shape").value_or("");
+    const std::optional<std::string> lid =
+        ExtractTopLevelObjectField(body, "lid");
+    if (lid.has_value()) {
+      result.enclosure.lid_type =
+          ExtractTopLevelStringField(*lid, "type").value_or("");
+    }
     const std::optional<std::array<double, 3>> size =
         ExtractTopLevelNumberArray3Field(body, "size");
     const std::optional<double> wall_thickness =
@@ -869,6 +893,43 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
         "Native OCCT worker enclosure dimensions, wall thickness, and corner "
           "radius must be positive and physically valid.";
       return result;
+    }
+
+    if (result.enclosure.lid_type == "top_screw_lid") {
+      const double inner_width =
+          result.enclosure.size[0] - result.enclosure.wall_thickness * 2.0;
+      const double inner_depth =
+          result.enclosure.size[1] - result.enclosure.wall_thickness * 2.0;
+      const double boss_diameter =
+          std::min(7.0, std::min(inner_width, inner_depth) / 6.0);
+      const double boss_radius = boss_diameter / 2.0;
+      const double boss_inset = boss_radius + 5.0;
+      const double center_x = inner_width / 2.0 - boss_inset;
+      const double center_y = inner_depth / 2.0 - boss_inset;
+      const double boss_height =
+          std::min(result.enclosure.size[2] -
+                       result.enclosure.wall_thickness - 0.5,
+                   std::max(4.0,
+                            result.enclosure.size[2] -
+                                result.enclosure.wall_thickness * 2.0 - 1.0));
+      if (boss_diameter >= 3.0 && center_x > boss_radius &&
+          center_y > boss_radius && boss_height > 0.5) {
+        const double hole_diameter = std::min(2.4, boss_diameter - 1.2);
+        const std::array<std::array<double, 2>, 4> positions = {
+            std::array<double, 2>{-center_x, -center_y},
+            std::array<double, 2>{center_x, -center_y},
+            std::array<double, 2>{-center_x, center_y},
+            std::array<double, 2>{center_x, center_y}};
+        for (int index = 0; index < 4; ++index) {
+          LidScrewBossRequest boss;
+          boss.id = result.enclosure.id + ".lid_screw_bosses";
+          boss.position = positions[index];
+          boss.diameter = boss_diameter;
+          boss.hole_diameter = hole_diameter;
+          boss.height = boss_height;
+          result.lid_screw_bosses.push_back(boss);
+        }
+      }
     }
 
     found_enclosure = true;
@@ -1260,6 +1321,8 @@ ShapeMetrics ComputeShapeMetrics(const TopoDS_Shape& shape,
                                  bool shell_cavity_applied,
                                  bool shell_cavity_valid,
                                  int shell_cavity_tool_count,
+                                 int lid_screw_boss_count,
+                                 int lid_screw_pilot_count,
                                  int feature_intent_count,
                                  const NativeFeatureCutResult& feature_cuts) {
   ShapeMetrics metrics;
@@ -1268,6 +1331,8 @@ ShapeMetrics ComputeShapeMetrics(const TopoDS_Shape& shape,
   metrics.shell_cavity_applied = shell_cavity_applied;
   metrics.shell_cavity_valid = shell_cavity_valid;
   metrics.shell_cavity_tool_count = shell_cavity_tool_count;
+  metrics.native_lid_screw_boss_count = lid_screw_boss_count;
+  metrics.native_lid_screw_pilot_count = lid_screw_pilot_count;
   metrics.feature_intent_count = feature_intent_count;
   metrics.native_feature_cut_count = feature_cuts.applied_cut_count;
   metrics.native_ignored_feature_intent_count =
@@ -1528,6 +1593,33 @@ bool FaceIntersectsStandoffMount(const FaceBounds& face_bounds,
   return overlaps_mount_volume && is_above_bottom_inside;
 }
 
+bool FaceIntersectsLidScrewBoss(const FaceBounds& face_bounds,
+                                const ShapeMetrics& metrics,
+                                const EnclosureRequest& enclosure,
+                                const LidScrewBossRequest& boss) {
+  const double tolerance = PreviewSurfaceTolerance(metrics);
+  const double radius = boss.diameter / 2.0;
+  const double boss_min_x = boss.position[0] - radius - tolerance;
+  const double boss_max_x = boss.position[0] + radius + tolerance;
+  const double boss_min_y = boss.position[1] - radius - tolerance;
+  const double boss_max_y = boss.position[1] + radius + tolerance;
+  const double boss_min_z = enclosure.wall_thickness - tolerance;
+  const double boss_max_z =
+      enclosure.wall_thickness + boss.height + tolerance;
+
+  const bool overlaps_boss_volume =
+      face_bounds.max[0] >= boss_min_x &&
+      face_bounds.min[0] <= boss_max_x &&
+      face_bounds.max[1] >= boss_min_y &&
+      face_bounds.min[1] <= boss_max_y &&
+      face_bounds.max[2] >= boss_min_z &&
+      face_bounds.min[2] <= boss_max_z;
+  const bool is_above_bottom_inside =
+      face_bounds.max[2] >= enclosure.wall_thickness + tolerance;
+
+  return overlaps_boss_volume && is_above_bottom_inside;
+}
+
 TopoDS_Shape BuildUsbCCutoutTool(const EnclosureRequest& enclosure,
                                  const UsbCCutoutRequest& cutout,
                                  int* filleted_edge_count) {
@@ -1638,6 +1730,93 @@ TopoDS_Shape BuildStandoffMountShape(const EnclosureRequest& enclosure,
   }
 
   return mount_shape;
+}
+
+TopoDS_Shape BuildLidScrewBossShape(const EnclosureRequest& enclosure,
+                                    const LidScrewBossRequest& boss) {
+  const double overlap = 0.05;
+  const gp_Ax2 boss_axis(
+      gp_Pnt(boss.position[0],
+             boss.position[1],
+             enclosure.wall_thickness - overlap),
+      gp_Dir(0.0, 0.0, 1.0));
+  const TopoDS_Shape outer_boss =
+      BRepPrimAPI_MakeCylinder(boss_axis,
+                               boss.diameter / 2.0,
+                               boss.height + overlap)
+          .Shape();
+  if (outer_boss.IsNull()) {
+    throw std::runtime_error("OCCT generated a null lid screw boss.");
+  }
+
+  const double hole_overcut = 0.5;
+  const gp_Ax2 pilot_axis(
+      gp_Pnt(boss.position[0],
+             boss.position[1],
+             enclosure.wall_thickness - overlap - hole_overcut),
+      gp_Dir(0.0, 0.0, 1.0));
+  const TopoDS_Shape pilot_tool =
+      BRepPrimAPI_MakeCylinder(pilot_axis,
+                               boss.hole_diameter / 2.0,
+                               boss.height + overlap + hole_overcut * 2.0)
+          .Shape();
+  if (pilot_tool.IsNull()) {
+    throw std::runtime_error("OCCT generated a null lid screw pilot tool.");
+  }
+
+  BRepAlgoAPI_Cut cut(outer_boss, pilot_tool);
+  cut.SimplifyResult(true, true);
+  if (!cut.IsDone() || cut.HasErrors()) {
+    throw std::runtime_error("OCCT lid screw boss pilot cut did not complete.");
+  }
+
+  const TopoDS_Shape boss_shape = cut.Shape();
+  if (boss_shape.IsNull()) {
+    throw std::runtime_error("OCCT generated a null lid screw boss shape.");
+  }
+
+  BRepCheck_Analyzer analyzer(boss_shape, false);
+  if (!analyzer.IsValid()) {
+    throw std::runtime_error("OCCT generated an invalid lid screw boss.");
+  }
+
+  return boss_shape;
+}
+
+NativeLidBossResult ApplyNativeLidScrewBosses(
+    const TopoDS_Shape& base_shape,
+    const EnclosureRequest& enclosure,
+    const std::vector<LidScrewBossRequest>& bosses) {
+  NativeLidBossResult result;
+  result.shape = base_shape;
+
+  for (const LidScrewBossRequest& boss : bosses) {
+    const TopoDS_Shape boss_shape = BuildLidScrewBossShape(enclosure, boss);
+    if (boss_shape.IsNull()) {
+      throw std::runtime_error("OCCT generated a null lid screw boss shape.");
+    }
+
+    BRepAlgoAPI_Fuse fuse(result.shape, boss_shape);
+    fuse.SimplifyResult(true, true);
+    if (!fuse.IsDone() || fuse.HasErrors()) {
+      throw std::runtime_error("OCCT lid screw boss fuse did not complete.");
+    }
+
+    result.shape = fuse.Shape();
+    if (result.shape.IsNull()) {
+      throw std::runtime_error("OCCT generated a null lid screw boss fuse.");
+    }
+
+    BRepCheck_Analyzer analyzer(result.shape, false);
+    if (!analyzer.IsValid()) {
+      throw std::runtime_error("OCCT generated an invalid lid screw boss fuse.");
+    }
+
+    ++result.boss_count;
+    ++result.pilot_hole_count;
+  }
+
+  return result;
 }
 
 TopoDS_Shape BuildGlassRecessTool(const EnclosureRequest& enclosure,
@@ -1913,6 +2092,7 @@ std::vector<std::pair<std::string, std::string>> ClassifyPreviewSurfaces(
     const ShapeMetrics& metrics,
     const std::string& body_id,
     const EnclosureRequest& enclosure,
+    const std::vector<LidScrewBossRequest>& lid_screw_bosses,
     const std::vector<UsbCCutoutRequest>& usb_c_cutouts,
     const std::vector<GlassRecessRequest>& glass_recesses,
     const std::vector<ButtonGroupCutoutRequest>& button_groups,
@@ -1922,6 +2102,14 @@ std::vector<std::pair<std::string, std::string>> ClassifyPreviewSurfaces(
       ClassifyPreviewSurface(face_bounds, metrics, body_id);
   if (body_surface.has_value()) {
     surfaces.push_back(body_surface.value());
+  }
+
+  for (const LidScrewBossRequest& boss : lid_screw_bosses) {
+    if (FaceIntersectsLidScrewBoss(face_bounds, metrics, enclosure, boss)) {
+      surfaces.push_back(
+          std::make_pair(boss.id, "Lid screw bosses"));
+      break;
+    }
   }
 
   for (const UsbCCutoutRequest& cutout : usb_c_cutouts) {
@@ -1991,6 +2179,8 @@ int PreviewMappedTriangleCount(const PreviewMeshData& mesh) {
 PreviewMeshData BuildPreviewMesh(const TopoDS_Shape& shape,
                                  const ShapeMetrics& metrics,
                                  const EnclosureRequest& enclosure,
+                                 const std::vector<LidScrewBossRequest>&
+                                     lid_screw_bosses,
                                  const std::vector<UsbCCutoutRequest>&
                                      usb_c_cutouts,
                                  const std::vector<GlassRecessRequest>&
@@ -2024,6 +2214,7 @@ PreviewMeshData BuildPreviewMesh(const TopoDS_Shape& shape,
                                 metrics,
                                 enclosure.id,
                                 enclosure,
+                                lid_screw_bosses,
                                 usb_c_cutouts,
                                 glass_recesses,
                                 button_groups,
@@ -2298,6 +2489,10 @@ void WriteRoundedEnclosurePreviewResponse(const NativeRequestEnvelope& request,
             << "    \"shellCavityToolCount\": "
             << metrics.shell_cavity_tool_count << ",\n"
             << "    \"shellOpening\": \"top\",\n"
+            << "    \"nativeLidScrewBossCount\": "
+            << metrics.native_lid_screw_boss_count << ",\n"
+            << "    \"nativeLidScrewPilotCount\": "
+            << metrics.native_lid_screw_pilot_count << ",\n"
             << "    \"featureIntentCount\": "
             << metrics.feature_intent_count << ",\n"
             << "    \"nativeFeatureCutCount\": "
@@ -2416,8 +2611,16 @@ int main(int argc, char* argv[]) {
       throw std::runtime_error("OCCT generated a null shell/cavity shape.");
     }
 
+    const NativeLidBossResult lid_bosses =
+        ApplyNativeLidScrewBosses(shell.shape,
+                                  parsed_request.enclosure,
+                                  parsed_request.lid_screw_bosses);
+    if (lid_bosses.shape.IsNull()) {
+      throw std::runtime_error("OCCT generated a null lid boss shape.");
+    }
+
     const NativeFeatureCutResult feature_cuts =
-        ApplyNativeFeatureCutouts(shell.shape,
+        ApplyNativeFeatureCutouts(lid_bosses.shape,
                                   parsed_request.enclosure,
                                   parsed_request.usb_c_cutouts,
                                   parsed_request.glass_recesses,
@@ -2435,12 +2638,15 @@ int main(int argc, char* argv[]) {
                             shell.cavity_applied,
                             shell.cavity_valid,
                             shell.cavity_tool_count,
+                            lid_bosses.boss_count,
+                            lid_bosses.pilot_hole_count,
                             parsed_request.feature_intent_count,
                             feature_cuts);
     const PreviewMeshData mesh =
         BuildPreviewMesh(feature_cuts.shape,
                          metrics,
                          parsed_request.enclosure,
+                         parsed_request.lid_screw_bosses,
                          parsed_request.usb_c_cutouts,
                          parsed_request.glass_recesses,
                          parsed_request.button_groups,
