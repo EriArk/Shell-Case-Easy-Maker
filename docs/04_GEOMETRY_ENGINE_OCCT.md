@@ -120,14 +120,16 @@ geometry and generates first-pass lid screw bosses from the enclosure
 `top_screw_lid` semantic lid spec. For the first lid/body step, it also adds a
 separate generated top lid preview plate to the native preview assembly with
 `BRep_Builder`/`TopoDS_Compound`, then cuts generated screw clearance holes
-through that plate from the same screw-boss positions. Button and standoff
-groups remain one editable semantic object; lid screw bosses, lid plate, and
-lid screw holes remain generated enclosure detail, not separate editable
-solids. The native worker only consumes semantic parameters and derived item
-positions as disposable generator input. A real mating lid/body split, top-lid
-button/recess support, richer mount variants, and export operations remain next
-slices. The plan is disposable backend input. It must not be saved as the
-editable project model and must not contain OCCT topology IDs.
+through that plate from the same screw-boss positions, and fuses a first-pass
+underside locating lip into the generated lid. Button and standoff groups
+remain one editable semantic object; lid screw bosses, lid plate, lid screw
+holes, and lid locating lip remain generated enclosure detail, not separate
+editable solids. The native worker only consumes semantic parameters and
+derived item positions as disposable generator input. A real mating lid/body
+split, top-lid button/recess support, richer mount variants, and export
+operations remain next slices. The plan is disposable backend input. It must
+not be saved as the editable project model and must not contain OCCT topology
+IDs.
 
 ## Generated protocol fixtures
 

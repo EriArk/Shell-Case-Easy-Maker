@@ -96,6 +96,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M75 - Native Top Screw Lid Bosses
 - [x] M76 - Native Top Lid Plate Preview
 - [x] M77 - Native Top Lid Screw Holes
+- [x] M78 - Native Top Lid Locating Lip
 
 ---
 
@@ -3461,3 +3462,54 @@ editable per-hole solids or raw topology state.
 - Confirm the holes line up over the four body screw bosses.
 - Select the top lid/holes area and confirm highlight still behaves as preview
   range selection, not as editable hole objects.
+
+---
+
+## M78 - Native Top Lid Locating Lip
+
+### Goal
+Add a first-pass underside locating lip to the generated `top_screw_lid`
+preview plate so the lid starts to express mating geometry while remaining
+generated, disposable B-Rep output.
+
+### Tasks
+- [x] Record OCCT ring cut/fuse research for the generated lid locating lip.
+- [x] Derive lip size from enclosure wall thickness, inner opening, and a
+      small clearance.
+- [x] Build a rounded rectangular ring under the generated top lid plate.
+- [x] Fuse the lip into the generated lid before screw clearance holes are cut.
+- [x] Emit `nativeGeneratedLidLipCount`.
+- [x] Map `main_enclosure.generated_top_lid_locating_lip` as disposable
+      preview output.
+- [x] Update native smoke expectations, source-contract tests, docs, tasks,
+      roadmap, and worklog.
+
+### Done Criteria
+- Native smoke reports 6536 vertices, 7292 triangles, 11 preview surface
+  mappings, and 7464 mapped triangles.
+- Native smoke reports `nativeGeneratedLidPlateCount: 1`,
+  `nativeGeneratedLidLipCount: 1`, and
+  `nativeGeneratedLidScrewHoleCount: 4`.
+- Surface mappings include `main_enclosure.generated_top_lid_locating_lip`.
+- Generated lip remains derived B-Rep output, not editable project state.
+
+### Tests
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open
+  `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- Orbit under/around the floating top lid and confirm a thin inner locating lip
+  is visible below the lid plate.
+- Confirm the screw holes still pass through the lid and align with the four
+  body screw bosses.
+- Confirm the lip is preview-generated detail, not a separate editable object
+  in the inspector.

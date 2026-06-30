@@ -42,6 +42,104 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-30 - M78 Native top lid locating lip
+
+### Goal
+Add the first native underside locating lip to the generated `top_screw_lid`
+preview plate so the lid starts to express mating geometry without adding
+editable generated solids.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`docs/04_GEOMETRY_ENGINE_OCCT.md`, `docs/10_ENCLOSURE_AUTO_GENERATION.md`,
+`docs/27_RESEARCH_AND_REFERENCES.md`, `docs/34_FIRST_GEOMETRY_SLICE.md`,
+`occt_worker/native/src/occt_main.cpp`,
+`occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepAlgoAPI_Cut.hxx`,
+`occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepAlgoAPI_Fuse.hxx`,
+`tool/native_occt_worker_metrics_smoke.dart`, and
+`test/occt_native_target_scaffold_test.dart`.
+
+### Changes made
+- `occt_worker/native/src/occt_main.cpp`:
+  - Added generated top lid locating-lip parameters derived from enclosure wall
+    thickness, preview gap, and fit clearance.
+  - Builds a rounded rectangular ring under the generated top lid plate by
+    cutting an inner rounded tool from an outer rounded lip body.
+  - Fuses the lip into the generated lid plate before screw clearance holes are
+    cut.
+  - Emits `nativeGeneratedLidLipCount` and maps
+    `main_enclosure.generated_top_lid_locating_lip` as disposable preview
+    output.
+- `tool/native_occt_worker_metrics_smoke.dart`:
+  - Updated deterministic native expectations to 6536 vertices, 7292
+    triangles, 11 mappings, 7464 mapped triangles, surface area
+    `55923.058137`, and volume `53855.327909`.
+  - Added assertion for `nativeGeneratedLidLipCount == 1`.
+- `test/occt_native_target_scaffold_test.dart`:
+  - Added source-contract coverage for the locating lip builder, metric, smoke
+    expectation, and semantic preview mapping.
+- Docs/tasks/roadmap:
+  - Recorded M78, OCCT ring cut/fuse research, current native metrics, and the
+    manual poke checklist.
+
+### Tests run
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`:
+  - Passed.
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`:
+  - Passed; reports `nativeGeneratedLidLipCount=1`,
+    11 preview mappings, and
+    `main_enclosure.generated_top_lid_locating_lip`.
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`:
+  - Passed, 5 tests.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 0 files changed.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed, 187 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `git diff --check`:
+  - Passed; Git printed CRLF/LF normalization warnings for existing markdown
+    line endings only.
+
+### Validation
+- Geometry checked?
+  - Yes. Native smoke verifies deterministic mesh counts, generated lid lip
+    count, preview assembly bounds, surface area, and volume.
+- Serialization checked?
+  - Yes. Full test suite passed; lip geometry is derived from semantic lid data
+    and is not saved as editable project geometry.
+- UI checked?
+  - Not manually in this session. Latest exe was rebuilt for user poke testing.
+- Export checked?
+  - No. STEP/STL export remains planned.
+
+### Known issues
+- Issue: The locating lip is preview-generated only; the body still does not
+  have a real matching groove/seat.
+  - Severity: Expected first-slice mating limitation.
+  - Next action: Add body-side seat/groove or lower the lid into a true mating
+    split once fit clearance rules are explicit.
+- Issue: Lip edges are basic rounded-box output, not final printable
+  chamfer/fillet treatment.
+  - Severity: Expected geometry polish gap.
+  - Next action: Add lid-specific fillets/chamfers after the mating workflow is
+    stable.
+
+### Next step
+Commit and push M78.
+
+### Notes for future Codex sessions
+Keep `main_enclosure.generated_top_lid_locating_lip` as disposable preview
+metadata. Do not persist generated lip B-Rep, OCCT topology IDs, or triangle
+IDs in the semantic project model.
+
+---
+
 ## 2026-06-30 - M77 Native top lid screw holes
 
 ### Goal

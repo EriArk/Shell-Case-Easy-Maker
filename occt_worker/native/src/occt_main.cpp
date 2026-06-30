@@ -80,9 +80,13 @@ struct LidScrewBossRequest {
 
 struct GeneratedLidPlateRequest {
   std::string id;
+  std::string locating_lip_id;
   std::string screw_holes_id;
   double thickness = 2.0;
   double preview_gap = 2.0;
+  double lip_height = 1.2;
+  double lip_width = 1.5;
+  double lip_clearance = 0.3;
 };
 
 struct UsbCCutoutRequest {
@@ -174,6 +178,7 @@ struct ShapeMetrics {
   int native_lid_screw_boss_count = 0;
   int native_lid_screw_pilot_count = 0;
   int native_generated_lid_plate_count = 0;
+  int native_generated_lid_lip_count = 0;
   int native_generated_lid_screw_hole_count = 0;
 };
 
@@ -193,11 +198,13 @@ struct NativeLidBossResult {
 struct NativePreviewAssemblyResult {
   TopoDS_Shape shape;
   int generated_lid_plate_count = 0;
+  int generated_lid_lip_count = 0;
   int generated_lid_screw_hole_count = 0;
 };
 
 struct NativeGeneratedLidPlateResult {
   TopoDS_Shape shape;
+  int locating_lip_count = 0;
   int screw_hole_count = 0;
 };
 
@@ -921,10 +928,17 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
     if (result.enclosure.lid_type == "top_screw_lid") {
       GeneratedLidPlateRequest lid_plate;
       lid_plate.id = result.enclosure.id + ".generated_top_lid";
+      lid_plate.locating_lip_id =
+          result.enclosure.id + ".generated_top_lid_locating_lip";
       lid_plate.screw_holes_id =
           result.enclosure.id + ".generated_top_lid_screw_holes";
       lid_plate.thickness = std::max(1.0, result.enclosure.wall_thickness);
       lid_plate.preview_gap = std::max(1.0, result.enclosure.wall_thickness);
+      lid_plate.lip_height =
+          std::min(1.2, std::max(0.6, lid_plate.preview_gap - 0.4));
+      lid_plate.lip_width =
+          std::max(1.0, result.enclosure.wall_thickness * 0.75);
+      lid_plate.lip_clearance = 0.3;
       result.generated_lid_plates.push_back(lid_plate);
 
       const double inner_width =
@@ -1333,6 +1347,97 @@ double GeneratedTopLidScrewClearanceDiameter(
                   std::max(boss.hole_diameter + 0.8, boss.hole_diameter));
 }
 
+double GeneratedTopLidLipWidth(const EnclosureRequest& enclosure,
+                               const GeneratedLidPlateRequest& lid_plate) {
+  const double outer_width =
+      enclosure.size[0] -
+      (enclosure.wall_thickness + lid_plate.lip_clearance) * 2.0;
+  const double outer_depth =
+      enclosure.size[1] -
+      (enclosure.wall_thickness + lid_plate.lip_clearance) * 2.0;
+  return std::min(lid_plate.lip_width,
+                  std::min(outer_width, outer_depth) / 4.0);
+}
+
+TopoDS_Shape BuildGeneratedTopLidLocatingLipShape(
+    const EnclosureRequest& enclosure,
+    const GeneratedLidPlateRequest& lid_plate) {
+  const double lip_width = GeneratedTopLidLipWidth(enclosure, lid_plate);
+  const double lip_overlap = 0.2;
+  const std::array<double, 3> outer_size = {
+      enclosure.size[0] -
+          (enclosure.wall_thickness + lid_plate.lip_clearance) * 2.0,
+      enclosure.size[1] -
+          (enclosure.wall_thickness + lid_plate.lip_clearance) * 2.0,
+      lid_plate.lip_height + lip_overlap};
+  const std::array<double, 3> inner_size = {
+      outer_size[0] - lip_width * 2.0,
+      outer_size[1] - lip_width * 2.0,
+      outer_size[2] + 0.4};
+
+  if (!IsPositiveDimension(lip_width) ||
+      !IsPositiveDimension(lid_plate.lip_height) ||
+      !IsPositiveDimension(outer_size[0]) ||
+      !IsPositiveDimension(outer_size[1]) ||
+      !IsPositiveDimension(inner_size[0]) ||
+      !IsPositiveDimension(inner_size[1])) {
+    return TopoDS_Shape();
+  }
+
+  const double lip_min_z =
+      enclosure.size[2] + lid_plate.preview_gap - lid_plate.lip_height;
+  const double outer_radius =
+      std::max(0.0,
+               enclosure.corner_radius - enclosure.wall_thickness -
+                   lid_plate.lip_clearance);
+  bool outer_radius_applied = false;
+  int outer_filleted_edge_count = 0;
+  const TopoDS_Shape outer_lip =
+      BuildRoundedBoxShape(gp_Pnt(-outer_size[0] / 2.0,
+                                  -outer_size[1] / 2.0,
+                                  lip_min_z),
+                           outer_size,
+                           outer_radius,
+                           &outer_radius_applied,
+                           &outer_filleted_edge_count);
+  if (outer_lip.IsNull()) {
+    throw std::runtime_error("OCCT generated a null top lid locating lip.");
+  }
+
+  bool inner_radius_applied = false;
+  int inner_filleted_edge_count = 0;
+  const TopoDS_Shape inner_tool =
+      BuildRoundedBoxShape(gp_Pnt(-inner_size[0] / 2.0,
+                                  -inner_size[1] / 2.0,
+                                  lip_min_z - 0.2),
+                           inner_size,
+                           std::max(0.0, outer_radius - lip_width),
+                           &inner_radius_applied,
+                           &inner_filleted_edge_count);
+  if (inner_tool.IsNull()) {
+    throw std::runtime_error(
+        "OCCT generated a null top lid locating lip cut tool.");
+  }
+
+  BRepAlgoAPI_Cut cut(outer_lip, inner_tool);
+  cut.SimplifyResult(true, true);
+  if (!cut.IsDone() || cut.HasErrors()) {
+    throw std::runtime_error("OCCT top lid locating lip cut did not complete.");
+  }
+
+  const TopoDS_Shape lip_shape = cut.Shape();
+  if (lip_shape.IsNull()) {
+    throw std::runtime_error("OCCT generated a null top lid locating lip ring.");
+  }
+
+  BRepCheck_Analyzer analyzer(lip_shape, false);
+  if (!analyzer.IsValid()) {
+    throw std::runtime_error("OCCT generated an invalid top lid locating lip.");
+  }
+
+  return lip_shape;
+}
+
 TopoDS_Shape BuildGeneratedTopLidScrewHoleTool(
     const EnclosureRequest& enclosure,
     const GeneratedLidPlateRequest& lid_plate,
@@ -1386,6 +1491,31 @@ NativeGeneratedLidPlateResult BuildGeneratedTopLidPlateShape(
   }
 
   result.shape = lid_shape;
+  const TopoDS_Shape locating_lip =
+      BuildGeneratedTopLidLocatingLipShape(enclosure, lid_plate);
+  if (!locating_lip.IsNull()) {
+    BRepAlgoAPI_Fuse fuse(result.shape, locating_lip);
+    fuse.SimplifyResult(true, true);
+    if (!fuse.IsDone() || fuse.HasErrors()) {
+      throw std::runtime_error(
+          "OCCT top lid locating lip fuse did not complete.");
+    }
+
+    result.shape = fuse.Shape();
+    if (result.shape.IsNull()) {
+      throw std::runtime_error(
+          "OCCT generated a null top lid locating lip fuse.");
+    }
+
+    BRepCheck_Analyzer fuse_analyzer(result.shape, false);
+    if (!fuse_analyzer.IsValid()) {
+      throw std::runtime_error(
+          "OCCT generated an invalid top lid locating lip fuse.");
+    }
+
+    ++result.locating_lip_count;
+  }
+
   for (const LidScrewBossRequest& boss : lid_screw_bosses) {
     const TopoDS_Shape hole_tool =
         BuildGeneratedTopLidScrewHoleTool(enclosure, lid_plate, boss);
@@ -1439,6 +1569,7 @@ NativePreviewAssemblyResult BuildPreviewAssembly(
         BuildGeneratedTopLidPlateShape(enclosure, lid_plate, lid_screw_bosses);
     builder.Add(compound, lid_result.shape);
     ++result.generated_lid_plate_count;
+    result.generated_lid_lip_count += lid_result.locating_lip_count;
     result.generated_lid_screw_hole_count += lid_result.screw_hole_count;
   }
 
@@ -1479,6 +1610,7 @@ ShapeMetrics ComputeShapeMetrics(const TopoDS_Shape& shape,
                                  int lid_screw_boss_count,
                                  int lid_screw_pilot_count,
                                  int generated_lid_plate_count,
+                                 int generated_lid_lip_count,
                                  int generated_lid_screw_hole_count,
                                  int feature_intent_count,
                                  const NativeFeatureCutResult& feature_cuts) {
@@ -1491,6 +1623,7 @@ ShapeMetrics ComputeShapeMetrics(const TopoDS_Shape& shape,
   metrics.native_lid_screw_boss_count = lid_screw_boss_count;
   metrics.native_lid_screw_pilot_count = lid_screw_pilot_count;
   metrics.native_generated_lid_plate_count = generated_lid_plate_count;
+  metrics.native_generated_lid_lip_count = generated_lid_lip_count;
   metrics.native_generated_lid_screw_hole_count =
       generated_lid_screw_hole_count;
   metrics.feature_intent_count = feature_intent_count;
@@ -1802,6 +1935,56 @@ bool FaceIntersectsGeneratedLidPlate(
          face_bounds.min[1] <= lid_max_y &&
          face_bounds.max[2] >= lid_min_z &&
          face_bounds.min[2] <= lid_max_z;
+}
+
+bool FaceIntersectsGeneratedLidLocatingLip(
+    const FaceBounds& face_bounds,
+    const ShapeMetrics& metrics,
+    const EnclosureRequest& enclosure,
+    const GeneratedLidPlateRequest& lid_plate) {
+  const double tolerance = PreviewSurfaceTolerance(metrics);
+  const double lip_width = GeneratedTopLidLipWidth(enclosure, lid_plate);
+  const double lip_overlap = 0.2;
+  const std::array<double, 2> outer_size = {
+      enclosure.size[0] -
+          (enclosure.wall_thickness + lid_plate.lip_clearance) * 2.0,
+      enclosure.size[1] -
+          (enclosure.wall_thickness + lid_plate.lip_clearance) * 2.0};
+  const std::array<double, 2> inner_size = {
+      outer_size[0] - lip_width * 2.0,
+      outer_size[1] - lip_width * 2.0};
+  if (!IsPositiveDimension(lip_width) ||
+      !IsPositiveDimension(outer_size[0]) ||
+      !IsPositiveDimension(outer_size[1]) ||
+      !IsPositiveDimension(inner_size[0]) ||
+      !IsPositiveDimension(inner_size[1])) {
+    return false;
+  }
+
+  const double lip_min_x = -outer_size[0] / 2.0 - tolerance;
+  const double lip_max_x = outer_size[0] / 2.0 + tolerance;
+  const double lip_min_y = -outer_size[1] / 2.0 - tolerance;
+  const double lip_max_y = outer_size[1] / 2.0 + tolerance;
+  const double lip_min_z =
+      enclosure.size[2] + lid_plate.preview_gap - lid_plate.lip_height -
+      tolerance;
+  const double lip_max_z =
+      enclosure.size[2] + lid_plate.preview_gap + lip_overlap + tolerance;
+
+  const bool overlaps_lip_volume =
+      face_bounds.max[0] >= lip_min_x &&
+      face_bounds.min[0] <= lip_max_x &&
+      face_bounds.max[1] >= lip_min_y &&
+      face_bounds.min[1] <= lip_max_y &&
+      face_bounds.max[2] >= lip_min_z &&
+      face_bounds.min[2] <= lip_max_z;
+  const bool sits_inside_open_lip_hole =
+      face_bounds.min[0] > -inner_size[0] / 2.0 + tolerance &&
+      face_bounds.max[0] < inner_size[0] / 2.0 - tolerance &&
+      face_bounds.min[1] > -inner_size[1] / 2.0 + tolerance &&
+      face_bounds.max[1] < inner_size[1] / 2.0 - tolerance;
+
+  return overlaps_lip_volume && !sits_inside_open_lip_hole;
 }
 
 bool FaceIntersectsGeneratedLidScrewHole(
@@ -2324,6 +2507,19 @@ std::vector<std::pair<std::string, std::string>> ClassifyPreviewSurfaces(
     const std::vector<StandoffMountGroupRequest>& standoff_groups) {
   std::vector<std::pair<std::string, std::string>> surfaces;
   bool is_generated_lid_plate = false;
+  bool is_generated_lid_detail = false;
+  for (const GeneratedLidPlateRequest& lid_plate : generated_lid_plates) {
+    if (FaceIntersectsGeneratedLidLocatingLip(face_bounds,
+                                             metrics,
+                                             enclosure,
+                                             lid_plate)) {
+      surfaces.push_back(std::make_pair(lid_plate.locating_lip_id,
+                                        "Lid locating lip"));
+      is_generated_lid_detail = true;
+      break;
+    }
+  }
+
   for (const GeneratedLidPlateRequest& lid_plate : generated_lid_plates) {
     if (FaceIntersectsGeneratedLidPlate(face_bounds,
                                        metrics,
@@ -2349,7 +2545,7 @@ std::vector<std::pair<std::string, std::string>> ClassifyPreviewSurfaces(
   const std::optional<std::pair<std::string, std::string>> body_surface =
       ClassifyPreviewSurface(face_bounds, metrics, body_id);
   if (body_surface.has_value() &&
-      (!is_generated_lid_plate ||
+      ((!is_generated_lid_plate && !is_generated_lid_detail) ||
        body_surface->first == body_id + ".top_lid.outer")) {
     surfaces.push_back(body_surface.value());
   }
@@ -2748,6 +2944,8 @@ void WriteRoundedEnclosurePreviewResponse(const NativeRequestEnvelope& request,
             << metrics.native_lid_screw_pilot_count << ",\n"
             << "    \"nativeGeneratedLidPlateCount\": "
             << metrics.native_generated_lid_plate_count << ",\n"
+            << "    \"nativeGeneratedLidLipCount\": "
+            << metrics.native_generated_lid_lip_count << ",\n"
             << "    \"nativeGeneratedLidScrewHoleCount\": "
             << metrics.native_generated_lid_screw_hole_count << ",\n"
             << "    \"featureIntentCount\": "
@@ -2907,6 +3105,7 @@ int main(int argc, char* argv[]) {
                             lid_bosses.boss_count,
                             lid_bosses.pilot_hole_count,
                             preview_assembly.generated_lid_plate_count,
+                            preview_assembly.generated_lid_lip_count,
                             preview_assembly.generated_lid_screw_hole_count,
                             parsed_request.feature_intent_count,
                             feature_cuts);

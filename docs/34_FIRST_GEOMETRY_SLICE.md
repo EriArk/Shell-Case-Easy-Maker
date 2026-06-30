@@ -293,6 +293,9 @@ The first native OCCT slices now:
 20. Cut first-pass screw clearance holes through that generated lid plate,
     aligned to the generated lid screw boss positions and keyed by
     `main_enclosure.generated_top_lid_screw_holes`.
+21. Add a first-pass underside locating lip to the generated lid plate, sized
+    from the inner opening plus clearance and keyed by
+    `main_enclosure.generated_top_lid_locating_lip`.
 
 The next native geometry slices should:
 
@@ -307,17 +310,18 @@ Expected sample dimensions:
 - corner radius: `4 mm`,
 - native preview assembly bounds: `[-60, -35, 0]` to `[60, 35, 32]`,
 - native preview volume after lid screw bosses, USB-C, front glass recess,
-  front button cutouts, bottom standoff bosses, generated lid plate, and lid
-  screw holes: `53265.079307 mm^3`,
+  front button cutouts, bottom standoff bosses, generated lid plate, lid screw
+  holes, and underside locating lip: `53855.327909 mm^3`,
 - native preview surface area after lid screw bosses, USB-C, front glass
   recess, front button cutouts, bottom standoff bosses, generated lid plate,
-  and lid screw holes: `55084.250536 mm^2`,
-- native preview surface mappings after feature ranges: `10`,
-- native preview mapped triangles after feature ranges: `5102`,
+  lid screw holes, and underside locating lip: `55923.058137 mm^2`,
+- native preview surface mappings after feature ranges: `11`,
+- native preview mapped triangles after feature ranges: `7464`,
 - native feature metrics: `featureIntentCount=5`,
   `nativeFeatureCutCount=8`, `nativeIgnoredFeatureIntentCount=1`,
   `nativeLidScrewBossCount=4`, `nativeLidScrewPilotCount=4`,
   `nativeGeneratedLidPlateCount=1`,
+  `nativeGeneratedLidLipCount=1`,
   `nativeGeneratedLidScrewHoleCount=4`, `nativeUsbCCutoutCount=1`,
   `nativeGlassRecessCount=1`, `nativeButtonGroupCount=1`,
   `nativeButtonCutoutCount=2`, `nativeStandoffGroupCount=1`,
@@ -359,8 +363,8 @@ Expected sample dimensions:
   front-wall button-group cutouts are also implemented. Bottom-inside standoff
   bosses are implemented as the first native mount geometry, and top-screw-lid
   enclosures generate first-pass screw bosses plus a separate generated top lid
-  preview plate with screw clearance holes. A real separable lid/body split
-  with mating geometry, top-lid feature cuts, richer mount variants, and
-  richer face mapping are still planned.
+  preview plate with screw clearance holes and an underside locating lip. A
+  real separable lid/body split with full mating geometry, top-lid feature
+  cuts, richer mount variants, and richer face mapping are still planned.
 - STEP/STL export operations intentionally return unsupported in the mock
   backend.

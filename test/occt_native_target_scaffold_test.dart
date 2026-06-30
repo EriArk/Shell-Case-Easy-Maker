@@ -62,6 +62,7 @@ void main() {
       expect(source, contains('FaceIntersectsUsbCCutout'));
       expect(source, contains('FaceIntersectsLidScrewBoss'));
       expect(source, contains('FaceIntersectsGeneratedLidPlate'));
+      expect(source, contains('FaceIntersectsGeneratedLidLocatingLip'));
       expect(source, contains('FaceIntersectsGeneratedLidScrewHole'));
       expect(source, contains('FaceIntersectsGlassRecess'));
       expect(source, contains('FaceIntersectsButtonCutout'));
@@ -72,6 +73,8 @@ void main() {
       expect(source, contains('TopoDS_Compound'));
       expect(source, contains('GeneratedLidPlateRequest'));
       expect(source, contains('BuildGeneratedTopLidPlateShape'));
+      expect(source, contains('BuildGeneratedTopLidLocatingLipShape'));
+      expect(source, contains('GeneratedTopLidLipWidth'));
       expect(source, contains('BuildGeneratedTopLidScrewHoleTool'));
       expect(source, contains('GeneratedTopLidScrewClearanceDiameter'));
       expect(source, contains('BuildPreviewAssembly'));
@@ -95,6 +98,7 @@ void main() {
       expect(source, contains('nativeLidScrewBossCount'));
       expect(source, contains('nativeLidScrewPilotCount'));
       expect(source, contains('nativeGeneratedLidPlateCount'));
+      expect(source, contains('nativeGeneratedLidLipCount'));
       expect(source, contains('nativeGeneratedLidScrewHoleCount'));
       expect(source, contains('nativeUsbCCutoutCount'));
       expect(source, contains('nativeUsbCCutoutFilletedEdgeCount'));
@@ -118,9 +122,11 @@ void main() {
       expect(source, contains('.bottom_inside'));
       expect(source, contains('.lid_screw_bosses'));
       expect(source, contains('.generated_top_lid'));
+      expect(source, contains('.generated_top_lid_locating_lip'));
       expect(source, contains('.generated_top_lid_screw_holes'));
       expect(source, contains('Lid screw bosses'));
       expect(source, contains('Generated lid'));
+      expect(source, contains('Lid locating lip'));
       expect(source, contains('Lid screw holes'));
       expect(source, contains('USB-C cutout'));
       expect(source, contains('Glass recess'));
@@ -193,9 +199,10 @@ void main() {
       expect(tool, contains('occt.rounded_enclosure.shell_preview_mesh.v1'));
       expect(tool, contains('previewMesh.vertexCount'));
       expect(tool, contains('previewMesh.triangleCount'));
-      expect(tool, contains('previewMesh.surfaces.length == 10'));
+      expect(tool, contains('previewMesh.surfaces.length == 11'));
       expect(tool, contains('main_enclosure.lid_screw_bosses'));
       expect(tool, contains('main_enclosure.generated_top_lid'));
+      expect(tool, contains('main_enclosure.generated_top_lid_locating_lip'));
       expect(tool, contains('main_enclosure.generated_top_lid_screw_holes'));
       expect(tool, contains('front_usb_c'));
       expect(tool, contains('front_glass_recess'));
@@ -211,6 +218,7 @@ void main() {
       expect(tool, contains('nativeLidScrewBossCount'));
       expect(tool, contains('nativeLidScrewPilotCount'));
       expect(tool, contains('nativeGeneratedLidPlateCount'));
+      expect(tool, contains('nativeGeneratedLidLipCount'));
       expect(tool, contains('nativeGeneratedLidScrewHoleCount'));
       expect(tool, contains('nativeUsbCCutoutCount'));
       expect(tool, contains('nativeUsbCCutoutFilletedEdgeCount'));

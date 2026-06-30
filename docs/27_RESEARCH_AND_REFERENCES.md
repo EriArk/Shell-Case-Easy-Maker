@@ -57,6 +57,57 @@ Use `templates/RESEARCH_NOTE_TEMPLATE.md`.
 
 ---
 
+## 2026-06-30 - OCCT generated top lid locating lip
+
+## Question
+
+How should the first native lid mating detail add an underside locating lip
+without making generated lid geometry editable project state?
+
+## Sources checked
+
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepAlgoAPI_Cut.hxx`
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepAlgoAPI_Fuse.hxx`
+- Existing native worker slices in `occt_worker/native/src/occt_main.cpp` for
+  rounded box generation, generated lid plate assembly, and semantic preview
+  surface ranges.
+
+## Findings
+
+- A locating lip can be represented as generated B-Rep by building a rounded
+  outer lip body and subtracting a smaller rounded inner tool to make a ring.
+- `BRepAlgoAPI_Cut` is suitable for the ring operation because the lip is
+  disposable generated geometry, not source project data.
+- `BRepAlgoAPI_Fuse` can join the generated ring into the generated lid plate
+  with a small overlap into the plate underside.
+- The lip can be sized from enclosure wall thickness, inner opening dimensions,
+  and a small clearance while keeping all values derived from semantic
+  enclosure/lid data.
+
+## License / compatibility notes
+
+- OCCT headers are from the project-local vcpkg dependency. They are LGPL 2.1
+  with OCCT exception / commercial alternative, matching the existing OCCT
+  dependency evaluation.
+- No external project code was copied.
+
+## Decision
+
+Generate a first-pass underside locating lip as a rounded rectangular ring,
+fuse it into the generated top lid plate, and map its preview triangles by
+`main_enclosure.generated_top_lid_locating_lip`. Keep the lip disposable and do
+not save generated B-Rep, topology IDs, or triangle IDs into the project model.
+
+## Follow-up tasks
+
+- Add a true body-side groove/seat and configurable fit clearance after the
+  preview lid becomes a real mating lid/body split.
+- Add lid-specific fillets/chamfers once the basic mating workflow is stable.
+
+---
+
 ## 2026-06-30 - OCCT generated top lid screw clearance holes
 
 ## Question
