@@ -57,6 +57,62 @@ Use `templates/RESEARCH_NOTE_TEMPLATE.md`.
 
 ---
 
+## 2026-06-30 - OCCT generated top lid body seat
+
+## Question
+
+How should the first native body-side lid seat be generated so it matches the
+generated lid lip without introducing editable groove solids or raw topology
+state?
+
+## Sources checked
+
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepAlgoAPI_Cut.hxx`
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepPrimAPI_MakeBox.hxx`
+- Existing native worker slices in `occt_worker/native/src/occt_main.cpp` for
+  shell/cavity generation, generated lid lip sizing, semantic preview surface
+  ranges, and `BRepCheck_Analyzer` validation.
+
+## Findings
+
+- A shallow body-side seat can be modeled as generated subtraction from the
+  top-open shell, using four rectangular tool solids that nibble the inner top
+  wall band.
+- `BRepPrimAPI_MakeBox` supports axis-aligned rectangular tool solids from two
+  corner points or from a corner plus dimensions, which is enough for this
+  first wall-band seat.
+- `BRepAlgoAPI_Cut` is appropriate because the seat is disposable generated
+  B-Rep output and the editable project stores only semantic lid metadata.
+- The seat dimensions can be derived conservatively from wall thickness,
+  generated lip width, lip clearance, and lip height. A small overcut through
+  the top band avoids coplanar sliver faces at the rim.
+
+## License / compatibility notes
+
+- OCCT headers are from the project-local vcpkg dependency. They are LGPL 2.1
+  with OCCT exception / commercial alternative, matching the existing OCCT
+  dependency evaluation.
+- No external project code was copied.
+
+## Decision
+
+Cut a first-pass body-side top lid seat from the native shell before assembling
+the generated lid preview. Key preview triangles by
+`main_enclosure.generated_top_lid_seat`, emit `nativeGeneratedLidSeatCount`,
+and keep the seat as generated output derived from `Enclosure.lid`.
+
+## Follow-up tasks
+
+- Lower or position the generated lid into a clearer fit state once the
+  preview assembly should stop floating above the body.
+- Add configurable lid fit clearance and edge chamfers/fillets after the basic
+  lip/seat relationship is stable.
+- Keep top-lid feature cuts blocked until lid/body targeting is explicit.
+
+---
+
 ## 2026-06-30 - OCCT generated top lid locating lip
 
 ## Question

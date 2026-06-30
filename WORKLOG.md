@@ -42,6 +42,105 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-30 - M79 Native top lid body seat
+
+### Goal
+Cut the first native body-side locating seat/groove around the top opening so
+the generated `top_screw_lid` locating lip has matching body detail while
+remaining generated output.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`docs/04_GEOMETRY_ENGINE_OCCT.md`, `docs/10_ENCLOSURE_AUTO_GENERATION.md`,
+`docs/27_RESEARCH_AND_REFERENCES.md`, `docs/34_FIRST_GEOMETRY_SLICE.md`,
+`occt_worker/native/src/occt_main.cpp`,
+`occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepAlgoAPI_Cut.hxx`,
+`occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepPrimAPI_MakeBox.hxx`,
+`tool/native_occt_worker_metrics_smoke.dart`, and
+`test/occt_native_target_scaffold_test.dart`.
+
+### Changes made
+- `occt_worker/native/src/occt_main.cpp`:
+  - Added `GeneratedLidSeatRequest` derived from semantic lid data, wall
+    thickness, locating lip width, clearance, and lip height.
+  - Cuts four shallow rectangular seat tools around the top inner wall band
+    after normal feature cuts and before preview assembly.
+  - Validates the body after each seat cut with `BRepCheck_Analyzer`.
+  - Emits `nativeGeneratedLidSeatCount`.
+  - Maps `main_enclosure.generated_top_lid_seat` as disposable preview output.
+- `tool/native_occt_worker_metrics_smoke.dart`:
+  - Updated deterministic native expectations to 6638 vertices, 7328
+    triangles, 12 mappings, 8088 mapped triangles, surface area
+    `55400.529232`, and volume `53593.074426`.
+  - Added assertions and summary output for `nativeGeneratedLidSeatCount == 1`
+    and `main_enclosure.generated_top_lid_seat`.
+- `test/occt_native_target_scaffold_test.dart`:
+  - Added source-contract coverage for the lid seat request, cut tools,
+    application function, face-range classifier, metric, and smoke contract.
+- Docs/tasks/roadmap:
+  - Recorded M79, OCCT box-cut research, current native metrics, and the manual
+    poke checklist.
+
+### Tests run
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`:
+  - Passed.
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`:
+  - Passed; reports `nativeGeneratedLidSeatCount=1`, 12 preview mappings, and
+    `main_enclosure.generated_top_lid_seat`.
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`:
+  - Passed, 5 tests.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 0 files changed.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed, 187 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git diff --check`:
+  - Passed; Git printed CRLF/LF normalization warnings for existing markdown
+    line endings only.
+
+### Validation
+- Geometry checked?
+  - Yes. Native smoke verifies deterministic mesh counts, generated body lid
+    seat count, preview assembly bounds, surface area, and volume.
+- Serialization checked?
+  - Yes. Full test suite passed; the body seat is derived from semantic lid
+    data and is not saved as editable generated geometry.
+- UI checked?
+  - Not manually in this session. Latest exe was rebuilt for user poke testing.
+- Export checked?
+  - No. STEP/STL export remains planned.
+
+### Known issues
+- Issue: The preview lid still floats above the body; the seat/lip relationship
+  is visible but not a fully positioned separable assembly.
+  - Severity: Expected geometry-slice limitation.
+  - Next action: Lower/position the generated lid or add a true lid/body split
+    when fit rules are explicit.
+- Issue: Seat edges are first-pass box-cut geometry without final printable
+  chamfers/fillets.
+  - Severity: Expected geometry polish gap.
+  - Next action: Add lid-specific edge treatment after the lip/seat workflow is
+    stable.
+
+### Next step
+Commit and push M79, then continue toward clearer lid/body fit positioning or
+top-lid feature targeting.
+
+### Notes for future Codex sessions
+Keep `main_enclosure.generated_top_lid_seat` as disposable preview metadata.
+Do not persist generated seat B-Rep, OCCT topology IDs, triangle IDs, or
+editable groove solids in the semantic project model.
+
+---
+
 ## 2026-06-30 - M78 Native top lid locating lip
 
 ### Goal

@@ -121,10 +121,12 @@ geometry and generates first-pass lid screw bosses from the enclosure
 separate generated top lid preview plate to the native preview assembly with
 `BRep_Builder`/`TopoDS_Compound`, then cuts generated screw clearance holes
 through that plate from the same screw-boss positions, and fuses a first-pass
-underside locating lip into the generated lid. Button and standoff groups
+underside locating lip into the generated lid. It also cuts a shallow
+body-side locating seat around the top opening from the same semantic lid
+spec. Button and standoff groups
 remain one editable semantic object; lid screw bosses, lid plate, lid screw
-holes, and lid locating lip remain generated enclosure detail, not separate
-editable solids. The native worker only consumes semantic parameters and
+holes, lid locating lip, and body lid seat remain generated enclosure detail,
+not separate editable solids. The native worker only consumes semantic parameters and
 derived item positions as disposable generator input. A real mating lid/body
 split, top-lid button/recess support, richer mount variants, and export
 operations remain next slices. The plan is disposable backend input. It must

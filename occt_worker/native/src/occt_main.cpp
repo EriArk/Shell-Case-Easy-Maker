@@ -89,6 +89,12 @@ struct GeneratedLidPlateRequest {
   double lip_clearance = 0.3;
 };
 
+struct GeneratedLidSeatRequest {
+  std::string id;
+  double height = 1.4;
+  double depth = 1.2;
+};
+
 struct UsbCCutoutRequest {
   std::string id;
   std::string target_surface;
@@ -146,6 +152,7 @@ struct NativeRequestParseResult {
   std::vector<StandoffMountGroupRequest> standoff_groups;
   std::vector<LidScrewBossRequest> lid_screw_bosses;
   std::vector<GeneratedLidPlateRequest> generated_lid_plates;
+  std::vector<GeneratedLidSeatRequest> generated_lid_seats;
   int feature_intent_count = 0;
   std::string issue_code;
   std::string issue_message;
@@ -177,6 +184,7 @@ struct ShapeMetrics {
   int native_standoff_mount_count = 0;
   int native_lid_screw_boss_count = 0;
   int native_lid_screw_pilot_count = 0;
+  int native_generated_lid_seat_count = 0;
   int native_generated_lid_plate_count = 0;
   int native_generated_lid_lip_count = 0;
   int native_generated_lid_screw_hole_count = 0;
@@ -206,6 +214,11 @@ struct NativeGeneratedLidPlateResult {
   TopoDS_Shape shape;
   int locating_lip_count = 0;
   int screw_hole_count = 0;
+};
+
+struct NativeGeneratedLidSeatResult {
+  TopoDS_Shape shape;
+  int seat_count = 0;
 };
 
 struct NativeFeatureCutResult {
@@ -941,6 +954,16 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
       lid_plate.lip_clearance = 0.3;
       result.generated_lid_plates.push_back(lid_plate);
 
+      GeneratedLidSeatRequest lid_seat;
+      lid_seat.id = result.enclosure.id + ".generated_top_lid_seat";
+      lid_seat.height = lid_plate.lip_height + 0.2;
+      lid_seat.depth =
+          std::min(result.enclosure.wall_thickness - 0.4,
+                   lid_plate.lip_width + lid_plate.lip_clearance);
+      if (lid_seat.height > 0.0 && lid_seat.depth > 0.0) {
+        result.generated_lid_seats.push_back(lid_seat);
+      }
+
       const double inner_width =
           result.enclosure.size[0] - result.enclosure.wall_thickness * 2.0;
       const double inner_depth =
@@ -1582,6 +1605,108 @@ NativePreviewAssemblyResult BuildPreviewAssembly(
   return result;
 }
 
+std::vector<TopoDS_Shape> BuildGeneratedTopLidSeatTools(
+    const EnclosureRequest& enclosure,
+    const GeneratedLidSeatRequest& seat) {
+  const double depth =
+      std::min(seat.depth, enclosure.wall_thickness - 0.2);
+  const double height = seat.height;
+  const double overcut = 0.2;
+  const double inner_width =
+      enclosure.size[0] - enclosure.wall_thickness * 2.0;
+  const double inner_depth =
+      enclosure.size[1] - enclosure.wall_thickness * 2.0;
+  const double min_z = enclosure.size[2] - height;
+  const double tool_height = height + overcut * 2.0;
+
+  if (!IsPositiveDimension(depth) ||
+      !IsPositiveDimension(height) ||
+      !IsPositiveDimension(inner_width) ||
+      !IsPositiveDimension(inner_depth)) {
+    return {};
+  }
+
+  std::vector<TopoDS_Shape> tools;
+  tools.push_back(BRepPrimAPI_MakeBox(
+                      gp_Pnt(-inner_width / 2.0 - overcut,
+                             -inner_depth / 2.0 - depth,
+                             min_z - overcut),
+                      inner_width + overcut * 2.0,
+                      depth + overcut,
+                      tool_height)
+                      .Shape());
+  tools.push_back(BRepPrimAPI_MakeBox(
+                      gp_Pnt(-inner_width / 2.0 - overcut,
+                             inner_depth / 2.0 - overcut,
+                             min_z - overcut),
+                      inner_width + overcut * 2.0,
+                      depth + overcut,
+                      tool_height)
+                      .Shape());
+  tools.push_back(BRepPrimAPI_MakeBox(
+                      gp_Pnt(-inner_width / 2.0 - depth,
+                             -inner_depth / 2.0 - depth,
+                             min_z - overcut),
+                      depth + overcut,
+                      inner_depth + depth * 2.0,
+                      tool_height)
+                      .Shape());
+  tools.push_back(BRepPrimAPI_MakeBox(
+                      gp_Pnt(inner_width / 2.0 - overcut,
+                             -inner_depth / 2.0 - depth,
+                             min_z - overcut),
+                      depth + overcut,
+                      inner_depth + depth * 2.0,
+                      tool_height)
+                      .Shape());
+
+  for (const TopoDS_Shape& tool : tools) {
+    if (tool.IsNull()) {
+      throw std::runtime_error("OCCT generated a null top lid seat tool.");
+    }
+  }
+
+  return tools;
+}
+
+NativeGeneratedLidSeatResult ApplyGeneratedTopLidSeats(
+    const TopoDS_Shape& base_shape,
+    const EnclosureRequest& enclosure,
+    const std::vector<GeneratedLidSeatRequest>& seats) {
+  NativeGeneratedLidSeatResult result;
+  result.shape = base_shape;
+
+  for (const GeneratedLidSeatRequest& seat : seats) {
+    const std::vector<TopoDS_Shape> tools =
+        BuildGeneratedTopLidSeatTools(enclosure, seat);
+    if (tools.empty()) {
+      continue;
+    }
+
+    for (const TopoDS_Shape& tool : tools) {
+      BRepAlgoAPI_Cut cut(result.shape, tool);
+      cut.SimplifyResult(true, true);
+      if (!cut.IsDone() || cut.HasErrors()) {
+        throw std::runtime_error("OCCT top lid seat cut did not complete.");
+      }
+
+      result.shape = cut.Shape();
+      if (result.shape.IsNull()) {
+        throw std::runtime_error("OCCT generated a null top lid seat shape.");
+      }
+
+      BRepCheck_Analyzer analyzer(result.shape, false);
+      if (!analyzer.IsValid()) {
+        throw std::runtime_error("OCCT generated an invalid top lid seat.");
+      }
+    }
+
+    ++result.seat_count;
+  }
+
+  return result;
+}
+
 TopoDS_Shape BuildCavityCutTool(const EnclosureRequest& enclosure) {
   const std::array<double, 3> inner_size = {
       enclosure.size[0] - enclosure.wall_thickness * 2.0,
@@ -1609,6 +1734,7 @@ ShapeMetrics ComputeShapeMetrics(const TopoDS_Shape& shape,
                                  int shell_cavity_tool_count,
                                  int lid_screw_boss_count,
                                  int lid_screw_pilot_count,
+                                 int generated_lid_seat_count,
                                  int generated_lid_plate_count,
                                  int generated_lid_lip_count,
                                  int generated_lid_screw_hole_count,
@@ -1622,6 +1748,7 @@ ShapeMetrics ComputeShapeMetrics(const TopoDS_Shape& shape,
   metrics.shell_cavity_tool_count = shell_cavity_tool_count;
   metrics.native_lid_screw_boss_count = lid_screw_boss_count;
   metrics.native_lid_screw_pilot_count = lid_screw_pilot_count;
+  metrics.native_generated_lid_seat_count = generated_lid_seat_count;
   metrics.native_generated_lid_plate_count = generated_lid_plate_count;
   metrics.native_generated_lid_lip_count = generated_lid_lip_count;
   metrics.native_generated_lid_screw_hole_count =
@@ -1985,6 +2112,59 @@ bool FaceIntersectsGeneratedLidLocatingLip(
       face_bounds.max[1] < inner_size[1] / 2.0 - tolerance;
 
   return overlaps_lip_volume && !sits_inside_open_lip_hole;
+}
+
+bool FaceIntersectsGeneratedLidSeat(
+    const FaceBounds& face_bounds,
+    const ShapeMetrics& metrics,
+    const EnclosureRequest& enclosure,
+    const GeneratedLidSeatRequest& seat) {
+  const double tolerance = PreviewSurfaceTolerance(metrics);
+  const double depth =
+      std::min(seat.depth, enclosure.wall_thickness - 0.2);
+  const double inner_width =
+      enclosure.size[0] - enclosure.wall_thickness * 2.0;
+  const double inner_depth =
+      enclosure.size[1] - enclosure.wall_thickness * 2.0;
+  if (!IsPositiveDimension(depth) ||
+      !IsPositiveDimension(seat.height) ||
+      !IsPositiveDimension(inner_width) ||
+      !IsPositiveDimension(inner_depth)) {
+    return false;
+  }
+
+  const double min_z = enclosure.size[2] - seat.height - tolerance;
+  const double max_z = enclosure.size[2] + tolerance;
+  const bool overlaps_height =
+      face_bounds.max[2] >= min_z && face_bounds.min[2] <= max_z;
+  if (!overlaps_height) {
+    return false;
+  }
+
+  const double inner_x = inner_width / 2.0;
+  const double inner_y = inner_depth / 2.0;
+  const bool near_left =
+      face_bounds.max[0] >= -inner_x - depth - tolerance &&
+      face_bounds.min[0] <= -inner_x + tolerance &&
+      face_bounds.max[1] >= -inner_y - depth - tolerance &&
+      face_bounds.min[1] <= inner_y + depth + tolerance;
+  const bool near_right =
+      face_bounds.max[0] >= inner_x - tolerance &&
+      face_bounds.min[0] <= inner_x + depth + tolerance &&
+      face_bounds.max[1] >= -inner_y - depth - tolerance &&
+      face_bounds.min[1] <= inner_y + depth + tolerance;
+  const bool near_front =
+      face_bounds.max[1] >= -inner_y - depth - tolerance &&
+      face_bounds.min[1] <= -inner_y + tolerance &&
+      face_bounds.max[0] >= -inner_x - depth - tolerance &&
+      face_bounds.min[0] <= inner_x + depth + tolerance;
+  const bool near_back =
+      face_bounds.max[1] >= inner_y - tolerance &&
+      face_bounds.min[1] <= inner_y + depth + tolerance &&
+      face_bounds.max[0] >= -inner_x - depth - tolerance &&
+      face_bounds.min[0] <= inner_x + depth + tolerance;
+
+  return near_left || near_right || near_front || near_back;
 }
 
 bool FaceIntersectsGeneratedLidScrewHole(
@@ -2500,12 +2680,23 @@ std::vector<std::pair<std::string, std::string>> ClassifyPreviewSurfaces(
     const std::string& body_id,
     const EnclosureRequest& enclosure,
     const std::vector<LidScrewBossRequest>& lid_screw_bosses,
+    const std::vector<GeneratedLidSeatRequest>& generated_lid_seats,
     const std::vector<GeneratedLidPlateRequest>& generated_lid_plates,
     const std::vector<UsbCCutoutRequest>& usb_c_cutouts,
     const std::vector<GlassRecessRequest>& glass_recesses,
     const std::vector<ButtonGroupCutoutRequest>& button_groups,
     const std::vector<StandoffMountGroupRequest>& standoff_groups) {
   std::vector<std::pair<std::string, std::string>> surfaces;
+  for (const GeneratedLidSeatRequest& seat : generated_lid_seats) {
+    if (FaceIntersectsGeneratedLidSeat(face_bounds,
+                                      metrics,
+                                      enclosure,
+                                      seat)) {
+      surfaces.push_back(std::make_pair(seat.id, "Lid seat"));
+      break;
+    }
+  }
+
   bool is_generated_lid_plate = false;
   bool is_generated_lid_detail = false;
   for (const GeneratedLidPlateRequest& lid_plate : generated_lid_plates) {
@@ -2627,6 +2818,8 @@ PreviewMeshData BuildPreviewMesh(const TopoDS_Shape& shape,
                                  const EnclosureRequest& enclosure,
                                  const std::vector<LidScrewBossRequest>&
                                      lid_screw_bosses,
+                                 const std::vector<GeneratedLidSeatRequest>&
+                                     generated_lid_seats,
                                  const std::vector<GeneratedLidPlateRequest>&
                                      generated_lid_plates,
                                  const std::vector<UsbCCutoutRequest>&
@@ -2663,6 +2856,7 @@ PreviewMeshData BuildPreviewMesh(const TopoDS_Shape& shape,
                                 enclosure.id,
                                 enclosure,
                                 lid_screw_bosses,
+                                generated_lid_seats,
                                 generated_lid_plates,
                                 usb_c_cutouts,
                                 glass_recesses,
@@ -2942,6 +3136,8 @@ void WriteRoundedEnclosurePreviewResponse(const NativeRequestEnvelope& request,
             << metrics.native_lid_screw_boss_count << ",\n"
             << "    \"nativeLidScrewPilotCount\": "
             << metrics.native_lid_screw_pilot_count << ",\n"
+            << "    \"nativeGeneratedLidSeatCount\": "
+            << metrics.native_generated_lid_seat_count << ",\n"
             << "    \"nativeGeneratedLidPlateCount\": "
             << metrics.native_generated_lid_plate_count << ",\n"
             << "    \"nativeGeneratedLidLipCount\": "
@@ -3086,8 +3282,16 @@ int main(int argc, char* argv[]) {
       throw std::runtime_error("OCCT generated a null feature-cut shape.");
     }
 
+    const NativeGeneratedLidSeatResult lid_seats =
+        ApplyGeneratedTopLidSeats(feature_cuts.shape,
+                                  parsed_request.enclosure,
+                                  parsed_request.generated_lid_seats);
+    if (lid_seats.shape.IsNull()) {
+      throw std::runtime_error("OCCT generated a null top lid seat shape.");
+    }
+
     const NativePreviewAssemblyResult preview_assembly =
-        BuildPreviewAssembly(feature_cuts.shape,
+        BuildPreviewAssembly(lid_seats.shape,
                              parsed_request.enclosure,
                              parsed_request.generated_lid_plates,
                              parsed_request.lid_screw_bosses);
@@ -3104,6 +3308,7 @@ int main(int argc, char* argv[]) {
                             shell.cavity_tool_count,
                             lid_bosses.boss_count,
                             lid_bosses.pilot_hole_count,
+                            lid_seats.seat_count,
                             preview_assembly.generated_lid_plate_count,
                             preview_assembly.generated_lid_lip_count,
                             preview_assembly.generated_lid_screw_hole_count,
@@ -3114,6 +3319,7 @@ int main(int argc, char* argv[]) {
                          metrics,
                          parsed_request.enclosure,
                          parsed_request.lid_screw_bosses,
+                         parsed_request.generated_lid_seats,
                          parsed_request.generated_lid_plates,
                          parsed_request.usb_c_cutouts,
                          parsed_request.glass_recesses,

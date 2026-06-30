@@ -97,6 +97,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M76 - Native Top Lid Plate Preview
 - [x] M77 - Native Top Lid Screw Holes
 - [x] M78 - Native Top Lid Locating Lip
+- [x] M79 - Native Top Lid Body Seat
 
 ---
 
@@ -3513,3 +3514,57 @@ generated, disposable B-Rep output.
   body screw bosses.
 - Confirm the lip is preview-generated detail, not a separate editable object
   in the inspector.
+
+---
+
+## M79 - Native Top Lid Body Seat
+
+### Goal
+Cut the first body-side locating seat/groove into the top-open enclosure so the
+generated lid lip has a matching generated body detail while the editable
+project remains semantic.
+
+### Tasks
+- [x] Record OCCT box-cut research for the body-side lid seat.
+- [x] Derive a generated lid-seat request from `Enclosure.lid` and wall
+      thickness.
+- [x] Cut four shallow inner-wall seat tools around the top opening before the
+      preview assembly is built.
+- [x] Validate the generated body after each seat cut.
+- [x] Emit `nativeGeneratedLidSeatCount`.
+- [x] Map `main_enclosure.generated_top_lid_seat` as disposable preview output.
+- [x] Update native smoke expectations, source-contract tests, docs, tasks,
+      roadmap, and worklog.
+
+### Done Criteria
+- Native smoke reports 6638 vertices, 7328 triangles, 12 preview surface
+  mappings, and 8088 mapped triangles.
+- Native smoke reports `nativeGeneratedLidSeatCount: 1`,
+  `nativeGeneratedLidPlateCount: 1`, `nativeGeneratedLidLipCount: 1`, and
+  `nativeGeneratedLidScrewHoleCount: 4`.
+- Surface mappings include `main_enclosure.generated_top_lid_seat`.
+- The seat remains derived generated B-Rep output, not an editable groove or
+  raw OCCT topology object.
+
+### Tests
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open
+  `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- Orbit around the top opening of the body and confirm a shallow inner step is
+  visible around the rim.
+- Orbit under/around the floating lid and confirm its locating lip still
+  aligns visually with that body-side seat.
+- Confirm screw holes still pass through the lid and align over the four body
+  screw bosses.
+- Confirm the body seat is generated preview detail, not a separate editable
+  object in the inspector.

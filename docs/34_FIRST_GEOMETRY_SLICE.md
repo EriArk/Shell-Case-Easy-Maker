@@ -254,7 +254,8 @@ USB-C cutout faces and `front_glass_recess` for the first shallow front-wall
 glass recess, plus `front_buttons` for the generated circular button cutouts
 from one semantic button group, and `standoff_mounts_1` for generated bottom
 standoff bosses. Enclosures with `top_screw_lid` also expose
-`main_enclosure.lid_screw_bosses` for generated lid screw bosses.
+`main_enclosure.lid_screw_bosses` for generated lid screw bosses and
+`main_enclosure.generated_top_lid_seat` for the generated body-side lid seat.
 `main_enclosure.front_wall.outer` remains the front wall surface mapping.
 
 ## Initial Rounded Enclosure Plan
@@ -296,12 +297,15 @@ The first native OCCT slices now:
 21. Add a first-pass underside locating lip to the generated lid plate, sized
     from the inner opening plus clearance and keyed by
     `main_enclosure.generated_top_lid_locating_lip`.
+22. Cut a first-pass shallow body-side locating seat around the top opening,
+    keyed by `main_enclosure.generated_top_lid_seat`.
 
 The next native geometry slices should:
 
-1. Turn the preview lid plate into a real lid/body split with mating geometry.
-2. Add top-lid glass/button support after a real lid/body split exists.
-3. Add screw boss and standoff fillets/chamfers plus richer mount variants.
+1. Lower/position the preview lid into a clearer lid/body fit state.
+2. Add top-lid glass/button support after lid/body targeting is explicit.
+3. Add screw boss, lid, and standoff fillets/chamfers plus richer mount
+   variants.
 4. Expand semantic face mapping beyond the first top/front/bottom ranges.
 
 Expected sample dimensions:
@@ -311,16 +315,18 @@ Expected sample dimensions:
 - native preview assembly bounds: `[-60, -35, 0]` to `[60, 35, 32]`,
 - native preview volume after lid screw bosses, USB-C, front glass recess,
   front button cutouts, bottom standoff bosses, generated lid plate, lid screw
-  holes, and underside locating lip: `53855.327909 mm^3`,
+  holes, underside locating lip, and body-side lid seat: `53593.074426 mm^3`,
 - native preview surface area after lid screw bosses, USB-C, front glass
   recess, front button cutouts, bottom standoff bosses, generated lid plate,
-  lid screw holes, and underside locating lip: `55923.058137 mm^2`,
-- native preview surface mappings after feature ranges: `11`,
-- native preview mapped triangles after feature ranges: `7464`,
+  lid screw holes, underside locating lip, and body-side lid seat:
+  `55400.529232 mm^2`,
+- native preview surface mappings after feature ranges: `12`,
+- native preview mapped triangles after feature ranges: `8088`,
 - native feature metrics: `featureIntentCount=5`,
   `nativeFeatureCutCount=8`, `nativeIgnoredFeatureIntentCount=1`,
   `nativeLidScrewBossCount=4`, `nativeLidScrewPilotCount=4`,
   `nativeGeneratedLidPlateCount=1`,
+  `nativeGeneratedLidSeatCount=1`,
   `nativeGeneratedLidLipCount=1`,
   `nativeGeneratedLidScrewHoleCount=4`, `nativeUsbCCutoutCount=1`,
   `nativeGlassRecessCount=1`, `nativeButtonGroupCount=1`,
@@ -363,8 +369,9 @@ Expected sample dimensions:
   front-wall button-group cutouts are also implemented. Bottom-inside standoff
   bosses are implemented as the first native mount geometry, and top-screw-lid
   enclosures generate first-pass screw bosses plus a separate generated top lid
-  preview plate with screw clearance holes and an underside locating lip. A
-  real separable lid/body split with full mating geometry, top-lid feature
-  cuts, richer mount variants, and richer face mapping are still planned.
+  preview plate with screw clearance holes, an underside locating lip, and a
+  body-side shallow locating seat. A real separable lid/body split with full
+  mating geometry, top-lid feature cuts, richer mount variants, and richer face
+  mapping are still planned.
 - STEP/STL export operations intentionally return unsupported in the mock
   backend.
