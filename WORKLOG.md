@@ -42,6 +42,100 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-30 - M77 Native top lid screw holes
+
+### Goal
+Cut first native screw clearance holes through the generated `top_screw_lid`
+preview plate, aligned to generated screw bosses, without adding editable
+per-hole solids or exposing raw OCCT topology.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`docs/04_GEOMETRY_ENGINE_OCCT.md`, `docs/10_ENCLOSURE_AUTO_GENERATION.md`,
+`docs/27_RESEARCH_AND_REFERENCES.md`, `docs/34_FIRST_GEOMETRY_SLICE.md`,
+`occt_worker/native/src/occt_main.cpp`,
+`occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepAlgoAPI_Cut.hxx`,
+`occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepPrimAPI_MakeCylinder.hxx`,
+`tool/native_occt_worker_metrics_smoke.dart`, and
+`test/occt_native_target_scaffold_test.dart`.
+
+### Changes made
+- `occt_worker/native/src/occt_main.cpp`:
+  - Added `generated_top_lid_screw_holes` semantic preview id.
+  - Cuts four generated screw clearance holes through the top lid preview plate
+    using vertical cylinder tools aligned to the generated lid screw bosses.
+  - Emits `nativeGeneratedLidScrewHoleCount`.
+  - Maps `main_enclosure.generated_top_lid_screw_holes` as disposable preview
+    output.
+- `tool/native_occt_worker_metrics_smoke.dart`:
+  - Updated deterministic native expectations to 5606 vertices, 6166
+    triangles, 10 mappings, 5102 mapped triangles, surface area
+    `55084.250536`, and volume `53265.079307`.
+  - Added assertion for `nativeGeneratedLidScrewHoleCount == 4`.
+- `test/occt_native_target_scaffold_test.dart`:
+  - Added source-contract coverage for lid screw hole tool generation, metrics,
+    surface mapping, and smoke expectations.
+- Docs/tasks/roadmap:
+  - Recorded M77, OCCT cylinder-cut research, current native metrics, and the
+    manual poke checklist.
+
+### Tests run
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`:
+  - Passed.
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`:
+  - Passed; reports `nativeGeneratedLidScrewHoleCount=4`,
+    10 preview mappings, and
+    `main_enclosure.generated_top_lid_screw_holes`.
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`:
+  - Passed, 5 tests.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 0 files changed.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed, 187 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `git diff --check`:
+  - Passed; Git printed CRLF/LF normalization warnings for existing markdown
+    line endings only.
+
+### Validation
+- Geometry checked?
+  - Yes. Native smoke verifies deterministic mesh counts, generated lid screw
+    hole count, preview assembly bounds, surface area, and volume.
+- Serialization checked?
+  - Yes. Full test suite passed; holes are derived from semantic lid/boss data
+    and are not saved as editable geometry.
+- UI checked?
+  - Not manually in this session. Latest exe was rebuilt for user poke testing.
+- Export checked?
+  - No. STEP/STL export remains planned.
+
+### Known issues
+- Issue: Lid holes are simple through-clearance holes without countersinks,
+  screw-head recesses, or user-facing screw-size profiles.
+  - Severity: Expected first-slice limit.
+  - Next action: Add screw profile parameters after lid/boss workflow is more
+    explicit.
+- Issue: The lid plate is still preview-separated above the body, not a real
+  mating lid with lips/grooves.
+  - Severity: Expected architecture gap.
+  - Next action: Add real mating lid/body split geometry.
+
+### Next step
+Commit and push M77.
+
+### Notes for future Codex sessions
+Keep generated top lid screw holes derived from semantic `Enclosure.lid` and
+boss positions. Do not persist generated hole solids, OCCT topology IDs, or
+triangle IDs in the project model.
+
+---
+
 ## 2026-06-30 - M76 Native top lid plate preview
 
 ### Goal

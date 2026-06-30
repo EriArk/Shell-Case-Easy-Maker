@@ -95,6 +95,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M74 - Native Bottom Standoff Mounts
 - [x] M75 - Native Top Screw Lid Bosses
 - [x] M76 - Native Top Lid Plate Preview
+- [x] M77 - Native Top Lid Screw Holes
 
 ---
 
@@ -3410,3 +3411,53 @@ lid/body mechanical split is complete.
   preview ranges.
 - Confirm existing USB-C, glass, button, standoff, and screw-boss highlights
   still work.
+
+---
+
+## M77 - Native Top Lid Screw Holes
+
+### Goal
+Cut first-pass screw clearance holes through the generated `top_screw_lid`
+preview plate, aligned to the generated lid screw bosses, without adding
+editable per-hole solids or raw topology state.
+
+### Tasks
+- [x] Record OCCT cylinder-cut research for generated lid screw holes.
+- [x] Derive top lid screw clearance holes from generated lid screw boss
+      positions.
+- [x] Cut the holes through the generated top lid plate before adding it to the
+      preview assembly compound.
+- [x] Emit `nativeGeneratedLidScrewHoleCount`.
+- [x] Map `main_enclosure.generated_top_lid_screw_holes` as disposable preview
+      output.
+- [x] Update native smoke expectations, source-contract tests, docs, tasks,
+      roadmap, and worklog.
+
+### Done Criteria
+- Native smoke reports 5606 vertices, 6166 triangles, 10 preview surface
+  mappings, and 5102 mapped triangles.
+- Native smoke reports `nativeGeneratedLidPlateCount: 1` and
+  `nativeGeneratedLidScrewHoleCount: 4`.
+- Surface mappings include `main_enclosure.generated_top_lid_screw_holes`.
+- Generated screw holes remain derived B-Rep output, not editable project
+  state.
+
+### Tests
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open
+  `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- Orbit above the floating top lid plate and confirm four screw holes are cut
+  through it.
+- Confirm the holes line up over the four body screw bosses.
+- Select the top lid/holes area and confirm highlight still behaves as preview
+  range selection, not as editable hole objects.

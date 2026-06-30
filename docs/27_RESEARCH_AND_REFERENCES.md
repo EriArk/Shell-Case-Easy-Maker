@@ -57,6 +57,58 @@ Use `templates/RESEARCH_NOTE_TEMPLATE.md`.
 
 ---
 
+## 2026-06-30 - OCCT generated top lid screw clearance holes
+
+## Question
+
+How should the native preview plate get screw clearance holes aligned with the
+generated screw bosses without adding editable per-hole CAD objects?
+
+## Sources checked
+
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepAlgoAPI_Cut.hxx`
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepPrimAPI_MakeCylinder.hxx`
+- Existing native worker slices in `occt_worker/native/src/occt_main.cpp` for
+  lid screw boss generation, generated lid preview assembly, and semantic
+  surface range mapping.
+
+## Findings
+
+- `BRepAlgoAPI_Cut` is the existing OCCT boolean subtraction path used by the
+  worker for disposable generated geometry.
+- `BRepPrimAPI_MakeCylinder(gp_Ax2, radius, height)` can create a complete
+  vertical tool cylinder through the generated lid plate.
+- The generated lid screw boss positions already provide deterministic XY
+  centers for matching lid holes.
+- A small Z overcut through the plate makes each tool robust without changing
+  semantic project data.
+
+## License / compatibility notes
+
+- OCCT headers are from the project-local vcpkg dependency. They are LGPL 2.1
+  with OCCT exception / commercial alternative, matching the existing OCCT
+  dependency evaluation.
+- No external project code was copied.
+
+## Decision
+
+Cut generated screw clearance holes through the preview lid plate from the
+same semantic lid screw boss positions. Report
+`nativeGeneratedLidScrewHoleCount` and map the preview ranges by
+`main_enclosure.generated_top_lid_screw_holes`. Do not save generated hole
+solids, OCCT topology IDs, or triangle IDs in the editable project model.
+
+## Follow-up tasks
+
+- Add lid screw hole sizing parameters when lid/boss profiles become
+  user-facing.
+- Add mating lip/groove and screw-head/countersink options after the real
+  lid/body split exists.
+
+---
+
 ## 2026-06-30 - OCCT preview compound for generated lid plate
 
 ## Question

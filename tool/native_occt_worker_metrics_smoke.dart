@@ -98,12 +98,12 @@ Future<void> main(List<String> args) async {
       failures,
     );
     _expect(
-      previewMesh.vertexCount == 5022,
+      previewMesh.vertexCount == 5606,
       'previewMesh must contain the deterministic sample vertex count',
       failures,
     );
     _expect(
-      previewMesh.triangleCount == 5574,
+      previewMesh.triangleCount == 6166,
       'previewMesh must contain the deterministic sample triangle count',
       failures,
     );
@@ -125,8 +125,8 @@ Future<void> main(List<String> args) async {
       failures,
     );
     _expect(
-      previewMesh.surfaces.length == 9,
-      'previewMesh must expose body surfaces plus generated lid, lid bosses, USB-C, glass, button, and standoff feature mappings',
+      previewMesh.surfaces.length == 10,
+      'previewMesh must expose body surfaces plus generated lid, lid screw holes, lid bosses, USB-C, glass, button, and standoff feature mappings',
       failures,
     );
     final surfaceIds = previewMesh.surfaces
@@ -155,6 +155,11 @@ Future<void> main(List<String> args) async {
     _expect(
       surfaceIds.contains('main_enclosure.generated_top_lid'),
       'previewMesh surfaces must include the generated top lid plate range',
+      failures,
+    );
+    _expect(
+      surfaceIds.contains('main_enclosure.generated_top_lid_screw_holes'),
+      'previewMesh surfaces must include the generated top lid screw hole range',
       failures,
     );
     _expect(
@@ -274,6 +279,11 @@ Future<void> main(List<String> args) async {
   _expect(
     metrics['nativeGeneratedLidPlateCount'] == 1,
     'nativeGeneratedLidPlateCount must include the generated top lid plate',
+    failures,
+  );
+  _expect(
+    metrics['nativeGeneratedLidScrewHoleCount'] == 4,
+    'nativeGeneratedLidScrewHoleCount must include the generated top lid screw holes',
     failures,
   );
   _expect(
@@ -423,14 +433,14 @@ Future<void> main(List<String> args) async {
   _expectDoubleList(bounds['max'], const [60, 35, 32], 'bounds.max', failures);
   _expectClose(
     _readNumber(metrics['surfaceArea']),
-    55068.165581,
+    55084.250536,
     0.001,
     'surfaceArea',
     failures,
   );
   _expectClose(
     _readNumber(metrics['volume']),
-    53329.419133,
+    53265.079307,
     0.001,
     'volume',
     failures,
@@ -468,6 +478,8 @@ Future<void> main(List<String> args) async {
       'nativeLidScrewBossCount': metrics['nativeLidScrewBossCount'],
       'nativeLidScrewPilotCount': metrics['nativeLidScrewPilotCount'],
       'nativeGeneratedLidPlateCount': metrics['nativeGeneratedLidPlateCount'],
+      'nativeGeneratedLidScrewHoleCount':
+          metrics['nativeGeneratedLidScrewHoleCount'],
       'featureIntentCount': metrics['featureIntentCount'],
       'nativeFeatureCutCount': metrics['nativeFeatureCutCount'],
       'nativeIgnoredFeatureIntentCount':
