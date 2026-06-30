@@ -73,10 +73,23 @@ struct UsbCCutoutRequest {
   std::array<double, 2> surface_position = {0.0, 0.0};
 };
 
+struct GlassRecessRequest {
+  std::string id;
+  std::string target_surface;
+  double width = 42.0;
+  double height = 24.0;
+  double recess_depth = 1.2;
+  double ledge_width = 1.5;
+  double corner_radius = 2.0;
+  bool has_surface_position = false;
+  std::array<double, 2> surface_position = {0.0, 0.0};
+};
+
 struct NativeRequestParseResult {
   NativeRequestEnvelope request;
   EnclosureRequest enclosure;
   std::vector<UsbCCutoutRequest> usb_c_cutouts;
+  std::vector<GlassRecessRequest> glass_recesses;
   int feature_intent_count = 0;
   std::string issue_code;
   std::string issue_message;
@@ -100,6 +113,8 @@ struct ShapeMetrics {
   int native_ignored_feature_intent_count = 0;
   int native_usb_c_cutout_count = 0;
   int native_usb_c_cutout_filleted_edge_count = 0;
+  int native_glass_recess_count = 0;
+  int native_glass_recess_filleted_edge_count = 0;
 };
 
 struct ShellBuildResult {
@@ -115,6 +130,8 @@ struct NativeFeatureCutResult {
   int ignored_intent_count = 0;
   int usb_c_cutout_count = 0;
   int usb_c_filleted_edge_count = 0;
+  int glass_recess_count = 0;
+  int glass_recess_filleted_edge_count = 0;
 };
 
 struct PreviewTriangleRangeData {
@@ -833,65 +850,126 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
   for (const std::string& intent : feature_intents) {
     const std::string kind =
         ExtractTopLevelStringField(intent, "kind").value_or("");
-    if (kind != "usb_c_cutout") {
-      continue;
-    }
-
     const std::string intent_operation =
         ExtractTopLevelStringField(intent, "operation").value_or("");
-    if (intent_operation != "negative") {
-      continue;
-    }
-
-    UsbCCutoutRequest cutout;
-    cutout.id =
-        ExtractTopLevelStringField(intent, "id").value_or("usb_c_cutout");
-    cutout.target_surface =
-        ExtractTopLevelStringField(intent, "targetSurface").value_or("");
     const std::optional<std::string> parameters =
         ExtractTopLevelObjectField(intent, "parameters");
-    if (parameters.has_value()) {
-      cutout.width =
-          ExtractTopLevelNumberField(*parameters, "width").value_or(10.5);
-      cutout.height =
-          ExtractTopLevelNumberField(*parameters, "height").value_or(4.2);
-      cutout.corner_radius =
-          ExtractTopLevelNumberField(*parameters, "cornerRadius").value_or(1.0);
-    }
-
     const std::optional<std::string> placement =
         ExtractTopLevelObjectField(intent, "placement");
-    if (placement.has_value()) {
-      const std::optional<std::array<double, 2>> surface_position =
-          ExtractTopLevelNumberArray2Field(*placement, "surfacePosition");
-      if (surface_position.has_value()) {
-        cutout.surface_position = *surface_position;
-        cutout.has_surface_position = true;
-      }
-    }
 
-    if (cutout.target_surface != supported_front_surface) {
+    if (kind == "usb_c_cutout") {
+      if (intent_operation != "negative") {
+        continue;
+      }
+
+      UsbCCutoutRequest cutout;
+      cutout.id =
+          ExtractTopLevelStringField(intent, "id").value_or("usb_c_cutout");
+      cutout.target_surface =
+          ExtractTopLevelStringField(intent, "targetSurface").value_or("");
+      if (parameters.has_value()) {
+        cutout.width =
+            ExtractTopLevelNumberField(*parameters, "width").value_or(10.5);
+        cutout.height =
+            ExtractTopLevelNumberField(*parameters, "height").value_or(4.2);
+        cutout.corner_radius =
+            ExtractTopLevelNumberField(*parameters, "cornerRadius").value_or(1.0);
+      }
+
+      if (placement.has_value()) {
+        const std::optional<std::array<double, 2>> surface_position =
+            ExtractTopLevelNumberArray2Field(*placement, "surfacePosition");
+        if (surface_position.has_value()) {
+          cutout.surface_position = *surface_position;
+          cutout.has_surface_position = true;
+        }
+      }
+
+      if (cutout.target_surface != supported_front_surface) {
+        continue;
+      }
+
+      const double available_width =
+          result.enclosure.size[0] - result.enclosure.wall_thickness * 2.0;
+      const double available_height =
+          result.enclosure.size[2] - result.enclosure.wall_thickness * 2.0;
+      if (!IsPositiveDimension(cutout.width) ||
+          !IsPositiveDimension(cutout.height) ||
+          !std::isfinite(cutout.corner_radius) ||
+          cutout.corner_radius < 0.0 ||
+          cutout.corner_radius * 2.0 > std::min(cutout.width, cutout.height) ||
+          cutout.width > available_width ||
+          cutout.height > available_height) {
+        result.issue_code = "worker.geometry.invalid_usb_c_cutout";
+        result.issue_message =
+            "Native OCCT worker USB-C cutout dimensions must fit the front wall.";
+        return result;
+      }
+
+      result.usb_c_cutouts.push_back(cutout);
       continue;
     }
 
-    const double available_width =
-        result.enclosure.size[0] - result.enclosure.wall_thickness * 2.0;
-    const double available_height =
-        result.enclosure.size[2] - result.enclosure.wall_thickness * 2.0;
-    if (!IsPositiveDimension(cutout.width) ||
-        !IsPositiveDimension(cutout.height) ||
-        !std::isfinite(cutout.corner_radius) ||
-        cutout.corner_radius < 0.0 ||
-        cutout.corner_radius * 2.0 > std::min(cutout.width, cutout.height) ||
-        cutout.width > available_width ||
-        cutout.height > available_height) {
-      result.issue_code = "worker.geometry.invalid_usb_c_cutout";
-      result.issue_message =
-          "Native OCCT worker USB-C cutout dimensions must fit the front wall.";
-      return result;
-    }
+    if (kind == "glass_recess") {
+      if (intent_operation != "recess") {
+        continue;
+      }
 
-    result.usb_c_cutouts.push_back(cutout);
+      GlassRecessRequest recess;
+      recess.id =
+          ExtractTopLevelStringField(intent, "id").value_or("glass_recess");
+      recess.target_surface =
+          ExtractTopLevelStringField(intent, "targetSurface").value_or("");
+      if (parameters.has_value()) {
+        recess.width =
+            ExtractTopLevelNumberField(*parameters, "width").value_or(42.0);
+        recess.height =
+            ExtractTopLevelNumberField(*parameters, "height").value_or(24.0);
+        recess.recess_depth =
+            ExtractTopLevelNumberField(*parameters, "recessDepth").value_or(1.2);
+        recess.ledge_width =
+            ExtractTopLevelNumberField(*parameters, "ledgeWidth").value_or(1.5);
+        recess.corner_radius =
+            ExtractTopLevelNumberField(*parameters, "cornerRadius").value_or(2.0);
+      }
+
+      if (placement.has_value()) {
+        const std::optional<std::array<double, 2>> surface_position =
+            ExtractTopLevelNumberArray2Field(*placement, "surfacePosition");
+        if (surface_position.has_value()) {
+          recess.surface_position = *surface_position;
+          recess.has_surface_position = true;
+        }
+      }
+
+      if (recess.target_surface != supported_front_surface) {
+        continue;
+      }
+
+      const double available_width =
+          result.enclosure.size[0] - result.enclosure.wall_thickness * 2.0;
+      const double available_height =
+          result.enclosure.size[2] - result.enclosure.wall_thickness * 2.0;
+      if (!IsPositiveDimension(recess.width) ||
+          !IsPositiveDimension(recess.height) ||
+          !IsPositiveDimension(recess.recess_depth) ||
+          !std::isfinite(recess.ledge_width) ||
+          recess.ledge_width < 0.0 ||
+          !std::isfinite(recess.corner_radius) ||
+          recess.corner_radius < 0.0 ||
+          recess.corner_radius * 2.0 >
+              std::min(recess.width, recess.height) ||
+          recess.width > available_width ||
+          recess.height > available_height ||
+          recess.recess_depth >= result.enclosure.wall_thickness) {
+        result.issue_code = "worker.geometry.invalid_glass_recess";
+        result.issue_message =
+            "Native OCCT worker glass recess dimensions must fit the front wall.";
+        return result;
+      }
+
+      result.glass_recesses.push_back(recess);
+    }
   }
 
   return result;
@@ -982,6 +1060,9 @@ ShapeMetrics ComputeShapeMetrics(const TopoDS_Shape& shape,
   metrics.native_usb_c_cutout_count = feature_cuts.usb_c_cutout_count;
   metrics.native_usb_c_cutout_filleted_edge_count =
       feature_cuts.usb_c_filleted_edge_count;
+  metrics.native_glass_recess_count = feature_cuts.glass_recess_count;
+  metrics.native_glass_recess_filleted_edge_count =
+      feature_cuts.glass_recess_filleted_edge_count;
 
   const FaceBounds bounds = ComputeTopoBounds(shape);
   metrics.bounds_min = bounds.min;
@@ -1052,8 +1133,8 @@ std::array<double, 2> UsbCCutoutCenter(const EnclosureRequest& enclosure,
 }
 
 bool UsbCCutoutFitsFrontSurface(const EnclosureRequest& enclosure,
-                                const UsbCCutoutRequest& cutout,
-                                const std::array<double, 2>& center) {
+                                 const UsbCCutoutRequest& cutout,
+                                 const std::array<double, 2>& center) {
   const double inner_width =
       enclosure.size[0] - enclosure.wall_thickness * 2.0;
   const double inner_height =
@@ -1063,6 +1144,29 @@ bool UsbCCutoutFitsFrontSurface(const EnclosureRequest& enclosure,
          center[0] + cutout.width / 2.0 <= inner_width / 2.0 + tolerance &&
          center[1] - cutout.height / 2.0 >= -tolerance &&
          center[1] + cutout.height / 2.0 <= inner_height + tolerance;
+}
+
+std::array<double, 2> GlassRecessCenter(const EnclosureRequest& enclosure,
+                                        const GlassRecessRequest& recess) {
+  if (recess.has_surface_position) {
+    return recess.surface_position;
+  }
+
+  return {0.0, enclosure.size[2] / 2.0};
+}
+
+bool GlassRecessFitsFrontSurface(const EnclosureRequest& enclosure,
+                                 const GlassRecessRequest& recess,
+                                 const std::array<double, 2>& center) {
+  const double inner_width =
+      enclosure.size[0] - enclosure.wall_thickness * 2.0;
+  const double min_z = enclosure.wall_thickness;
+  const double max_z = enclosure.size[2] - enclosure.wall_thickness;
+  const double tolerance = 0.000001;
+  return center[0] - recess.width / 2.0 >= -inner_width / 2.0 - tolerance &&
+         center[0] + recess.width / 2.0 <= inner_width / 2.0 + tolerance &&
+         center[1] - recess.height / 2.0 >= min_z - tolerance &&
+         center[1] + recess.height / 2.0 <= max_z + tolerance;
 }
 
 bool FaceIntersectsUsbCCutout(const FaceBounds& face_bounds,
@@ -1097,6 +1201,44 @@ bool FaceIntersectsUsbCCutout(const FaceBounds& face_bounds,
       face_bounds.max[1] - face_bounds.min[1] > tolerance;
 
   return overlaps_cutout_volume && is_inside_cutout_opening && spans_wall_depth;
+}
+
+bool FaceIntersectsGlassRecess(const FaceBounds& face_bounds,
+                               const ShapeMetrics& metrics,
+                               const EnclosureRequest& enclosure,
+                               const GlassRecessRequest& recess) {
+  const std::array<double, 2> center = GlassRecessCenter(enclosure, recess);
+  const double tolerance = PreviewSurfaceTolerance(metrics);
+  const double recess_min_x = center[0] - recess.width / 2.0 - tolerance;
+  const double recess_max_x = center[0] + recess.width / 2.0 + tolerance;
+  const double recess_min_z = center[1] - recess.height / 2.0 - tolerance;
+  const double recess_max_z = center[1] + recess.height / 2.0 + tolerance;
+  const double front_y = -enclosure.size[1] / 2.0;
+  const double recess_min_y = front_y - tolerance;
+  const double recess_max_y = front_y + recess.recess_depth + tolerance;
+
+  const bool overlaps_recess_volume =
+      face_bounds.max[0] >= recess_min_x &&
+      face_bounds.min[0] <= recess_max_x &&
+      face_bounds.max[1] >= recess_min_y &&
+      face_bounds.min[1] <= recess_max_y &&
+      face_bounds.max[2] >= recess_min_z &&
+      face_bounds.min[2] <= recess_max_z;
+  const bool is_inside_recess_outline =
+      face_bounds.min[0] >= recess_min_x &&
+      face_bounds.max[0] <= recess_max_x &&
+      face_bounds.min[2] >= recess_min_z &&
+      face_bounds.max[2] <= recess_max_z;
+  const bool spans_recess_depth =
+      face_bounds.max[1] - face_bounds.min[1] > tolerance;
+  const bool is_recess_back_face =
+      FaceIsOnPlane(face_bounds.min[1],
+                    face_bounds.max[1],
+                    front_y + recess.recess_depth,
+                    tolerance);
+
+  return overlaps_recess_volume && is_inside_recess_outline &&
+         (spans_recess_depth || is_recess_back_face);
 }
 
 TopoDS_Shape BuildUsbCCutoutTool(const EnclosureRequest& enclosure,
@@ -1148,10 +1290,60 @@ TopoDS_Shape BuildUsbCCutoutTool(const EnclosureRequest& enclosure,
   return fillet.Shape();
 }
 
+TopoDS_Shape BuildGlassRecessTool(const EnclosureRequest& enclosure,
+                                  const GlassRecessRequest& recess,
+                                  int* filleted_edge_count) {
+  const std::array<double, 2> center =
+      GlassRecessCenter(enclosure, recess);
+  const double overcut = 0.2;
+  const std::array<double, 3> tool_size = {
+      recess.width,
+      recess.recess_depth + overcut,
+      recess.height};
+  const gp_Pnt tool_origin(center[0] - recess.width / 2.0,
+                           -enclosure.size[1] / 2.0 - overcut,
+                           center[1] - recess.height / 2.0);
+  const TopoDS_Shape box =
+      BRepPrimAPI_MakeBox(tool_origin,
+                          tool_size[0],
+                          tool_size[1],
+                          tool_size[2])
+          .Shape();
+
+  *filleted_edge_count = 0;
+  const double safe_radius =
+      std::min(recess.corner_radius,
+               std::min(recess.width, recess.height) / 2.0 - 0.001);
+  if (safe_radius <= 0.0) {
+    return box;
+  }
+
+  BRepFilletAPI_MakeFillet fillet(box);
+  for (TopExp_Explorer explorer(box, TopAbs_EDGE); explorer.More();
+       explorer.Next()) {
+    const TopoDS_Edge edge = TopoDS::Edge(explorer.Current());
+    const std::array<double, 3> edge_dimensions =
+        DimensionsFromBounds(ComputeTopoBounds(edge));
+    if (edge_dimensions[0] <= 0.001 && edge_dimensions[2] <= 0.001 &&
+        edge_dimensions[1] > 0.001) {
+      fillet.Add(safe_radius, edge);
+      ++(*filleted_edge_count);
+    }
+  }
+
+  fillet.Build();
+  if (!fillet.IsDone()) {
+    throw std::runtime_error("OCCT glass recess fillet did not complete.");
+  }
+
+  return fillet.Shape();
+}
+
 NativeFeatureCutResult ApplyNativeFeatureCutouts(
     const TopoDS_Shape& base_shape,
     const EnclosureRequest& enclosure,
     const std::vector<UsbCCutoutRequest>& usb_c_cutouts,
+    const std::vector<GlassRecessRequest>& glass_recesses,
     int feature_intent_count) {
   NativeFeatureCutResult result;
   result.shape = base_shape;
@@ -1189,6 +1381,41 @@ NativeFeatureCutResult ApplyNativeFeatureCutouts(
     ++result.applied_cut_count;
     ++result.usb_c_cutout_count;
     result.usb_c_filleted_edge_count += tool_filleted_edge_count;
+  }
+
+  for (const GlassRecessRequest& recess : glass_recesses) {
+    const std::array<double, 2> center =
+        GlassRecessCenter(enclosure, recess);
+    if (!GlassRecessFitsFrontSurface(enclosure, recess, center)) {
+      continue;
+    }
+
+    int tool_filleted_edge_count = 0;
+    const TopoDS_Shape tool =
+        BuildGlassRecessTool(enclosure, recess, &tool_filleted_edge_count);
+    if (tool.IsNull()) {
+      throw std::runtime_error("OCCT generated a null glass recess tool.");
+    }
+
+    BRepAlgoAPI_Cut cut(result.shape, tool);
+    cut.SimplifyResult(true, true);
+    if (!cut.IsDone() || cut.HasErrors()) {
+      throw std::runtime_error("OCCT glass recess cut did not complete.");
+    }
+
+    result.shape = cut.Shape();
+    if (result.shape.IsNull()) {
+      throw std::runtime_error("OCCT generated a null glass recess shape.");
+    }
+
+    BRepCheck_Analyzer analyzer(result.shape, false);
+    if (!analyzer.IsValid()) {
+      throw std::runtime_error("OCCT generated an invalid glass recess shape.");
+    }
+
+    ++result.applied_cut_count;
+    ++result.glass_recess_count;
+    result.glass_recess_filleted_edge_count += tool_filleted_edge_count;
   }
 
   result.ignored_intent_count =
@@ -1261,7 +1488,8 @@ std::vector<std::pair<std::string, std::string>> ClassifyPreviewSurfaces(
     const ShapeMetrics& metrics,
     const std::string& body_id,
     const EnclosureRequest& enclosure,
-    const std::vector<UsbCCutoutRequest>& usb_c_cutouts) {
+    const std::vector<UsbCCutoutRequest>& usb_c_cutouts,
+    const std::vector<GlassRecessRequest>& glass_recesses) {
   std::vector<std::pair<std::string, std::string>> surfaces;
   const std::optional<std::pair<std::string, std::string>> body_surface =
       ClassifyPreviewSurface(face_bounds, metrics, body_id);
@@ -1272,6 +1500,12 @@ std::vector<std::pair<std::string, std::string>> ClassifyPreviewSurfaces(
   for (const UsbCCutoutRequest& cutout : usb_c_cutouts) {
     if (FaceIntersectsUsbCCutout(face_bounds, metrics, enclosure, cutout)) {
       surfaces.push_back(std::make_pair(cutout.id, "USB-C cutout"));
+    }
+  }
+
+  for (const GlassRecessRequest& recess : glass_recesses) {
+    if (FaceIntersectsGlassRecess(face_bounds, metrics, enclosure, recess)) {
+      surfaces.push_back(std::make_pair(recess.id, "Glass recess"));
     }
   }
 
@@ -1313,7 +1547,9 @@ PreviewMeshData BuildPreviewMesh(const TopoDS_Shape& shape,
                                  const ShapeMetrics& metrics,
                                  const EnclosureRequest& enclosure,
                                  const std::vector<UsbCCutoutRequest>&
-                                     usb_c_cutouts) {
+                                     usb_c_cutouts,
+                                 const std::vector<GlassRecessRequest>&
+                                     glass_recesses) {
   PreviewMeshData mesh;
   BRepMesh_IncrementalMesh mesher(shape,
                                   kPreviewLinearDeflection,
@@ -1339,7 +1575,8 @@ PreviewMeshData BuildPreviewMesh(const TopoDS_Shape& shape,
                                 metrics,
                                 enclosure.id,
                                 enclosure,
-                                usb_c_cutouts);
+                                usb_c_cutouts,
+                                glass_recesses);
     const int vertex_offset = mesh.vertex_count();
     const int triangle_start = mesh.triangle_count();
     for (int node_index = 1; node_index <= triangulation->NbNodes();
@@ -1620,6 +1857,10 @@ void WriteRoundedEnclosurePreviewResponse(const NativeRequestEnvelope& request,
             << metrics.native_usb_c_cutout_count << ",\n"
             << "    \"nativeUsbCCutoutFilletedEdgeCount\": "
             << metrics.native_usb_c_cutout_filleted_edge_count << ",\n"
+            << "    \"nativeGlassRecessCount\": "
+            << metrics.native_glass_recess_count << ",\n"
+            << "    \"nativeGlassRecessFilletedEdgeCount\": "
+            << metrics.native_glass_recess_filleted_edge_count << ",\n"
             << "    \"bounds\": {\n"
             << "      \"min\": ";
   WriteDoubleArray(metrics.bounds_min);
@@ -1720,6 +1961,7 @@ int main(int argc, char* argv[]) {
         ApplyNativeFeatureCutouts(shell.shape,
                                   parsed_request.enclosure,
                                   parsed_request.usb_c_cutouts,
+                                  parsed_request.glass_recesses,
                                   parsed_request.feature_intent_count);
     if (feature_cuts.shape.IsNull()) {
       throw std::runtime_error("OCCT generated a null feature-cut shape.");
@@ -1738,7 +1980,8 @@ int main(int argc, char* argv[]) {
         BuildPreviewMesh(feature_cuts.shape,
                          metrics,
                          parsed_request.enclosure,
-                         parsed_request.usb_c_cutouts);
+                         parsed_request.usb_c_cutouts,
+                         parsed_request.glass_recesses);
     WriteRoundedEnclosurePreviewResponse(
         parsed_request.request, parsed_request.enclosure, metrics, mesh);
     return 0;

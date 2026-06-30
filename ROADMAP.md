@@ -90,6 +90,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M69 - Native Shell/Cavity Slice
 - [x] M70 - Native USB-C Cutout Slice
 - [x] M71 - Native USB-C Feature Range Highlight
+- [x] M72 - Native Front Glass Recess Slice
 
 ---
 
@@ -3124,3 +3125,56 @@ selected.
   the generated USB-C opening.
 - Select `Front wall` and confirm the front wall still has its own selection.
 - Select `Top lid` and confirm the top-rim highlight still works.
+
+---
+
+## M72 - Native Front Glass Recess Slice
+
+### Goal
+Consume a first `glass_recess` feature intent on the front wall and generate a
+shallow rounded recess in native OCCT B-Rep while keeping editable project state
+semantic.
+
+### Tasks
+- [x] Add a typed native `GlassRecessRequest`.
+- [x] Parse `glass_recess` intents with width, height, recess depth, ledge
+      width, corner radius, and optional `placement.surfacePosition`.
+- [x] Support front-wall recesses only for this slice; unsupported targets stay
+      ignored.
+- [x] Build a shallow rounded rectangular recess tool and subtract it from the
+      shell without cutting through the wall.
+- [x] Emit native glass-recess metrics and a disposable `front_glass_recess`
+      preview range.
+- [x] Update smoke tests, docs, tasks, roadmap, and worklog.
+
+### Done Criteria
+- Native smoke reports 1594 vertices, 1914 triangles, 5 preview surface
+  mappings, and 796 mapped triangles.
+- Native smoke reports `featureIntentCount: 3`, `nativeFeatureCutCount: 2`,
+  `nativeIgnoredFeatureIntentCount: 1`, `nativeUsbCCutoutCount: 1`, and
+  `nativeGlassRecessCount: 1`.
+- Surface mappings include `front_usb_c` and `front_glass_recess`.
+- The glass recess is a shallow front-wall generated feature, not an editable
+  mesh/topology object.
+
+### Tests
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open
+  `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- Confirm the viewport label still shows `occt_worker_native_occt`.
+- Select `Front wall`, create `Посадка под стекло`, set a modest size such as
+  width `24`, height `10`, depth around `1`, and confirm.
+- Confirm a shallow rounded recess appears on the front wall; if needed, orbit
+  a little because it is intentionally not a through-window yet.
+- Select the created `glass_recess_*` feature and confirm its semantic
+  inspector still edits parameters.

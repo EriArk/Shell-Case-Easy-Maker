@@ -47,10 +47,13 @@ void main() {
       expect(source, contains('BuildCavityCutTool'));
       expect(source, contains('BuildTopOpenEnclosureShell'));
       expect(source, contains('UsbCCutoutRequest'));
+      expect(source, contains('GlassRecessRequest'));
       expect(source, contains('BuildUsbCCutoutTool'));
+      expect(source, contains('BuildGlassRecessTool'));
       expect(source, contains('ApplyNativeFeatureCutouts'));
       expect(source, contains('BuildPreviewMesh'));
       expect(source, contains('FaceIntersectsUsbCCutout'));
+      expect(source, contains('FaceIntersectsGlassRecess'));
       expect(source, contains('ClassifyPreviewSurface'));
       expect(source, contains('ClassifyPreviewSurfaces'));
       expect(source, contains('PreviewSurfaceMappingData'));
@@ -70,6 +73,8 @@ void main() {
       expect(source, contains('nativeIgnoredFeatureIntentCount'));
       expect(source, contains('nativeUsbCCutoutCount'));
       expect(source, contains('nativeUsbCCutoutFilletedEdgeCount'));
+      expect(source, contains('nativeGlassRecessCount'));
+      expect(source, contains('nativeGlassRecessFilletedEdgeCount'));
       expect(source, contains('bounds'));
       expect(source, contains('surfaceArea'));
       expect(source, contains('volume'));
@@ -83,6 +88,7 @@ void main() {
       expect(source, contains('.front_wall.outer'));
       expect(source, contains('.bottom_inside'));
       expect(source, contains('USB-C cutout'));
+      expect(source, contains('Glass recess'));
       expect(source, contains('editableGeneratedGeometry'));
       expect(source, contains('semantic_project'));
       expect(source, contains('nativeHealthShapeNull'));
@@ -150,8 +156,9 @@ void main() {
       expect(tool, contains('occt.rounded_enclosure.shell_preview_mesh.v1'));
       expect(tool, contains('previewMesh.vertexCount'));
       expect(tool, contains('previewMesh.triangleCount'));
-      expect(tool, contains('previewMesh.surfaces.length == 4'));
+      expect(tool, contains('previewMesh.surfaces.length == 5'));
       expect(tool, contains('front_usb_c'));
+      expect(tool, contains('front_glass_recess'));
       expect(tool, contains('shellCavityApplied'));
       expect(tool, contains('shellCavityValid'));
       expect(tool, contains('shellCavityToolCount'));
@@ -161,6 +168,8 @@ void main() {
       expect(tool, contains('nativeIgnoredFeatureIntentCount'));
       expect(tool, contains('nativeUsbCCutoutCount'));
       expect(tool, contains('nativeUsbCCutoutFilletedEdgeCount'));
+      expect(tool, contains('nativeGlassRecessCount'));
+      expect(tool, contains('nativeGlassRecessFilletedEdgeCount'));
       expect(tool, contains('semantic_face_ranges_v1'));
       expect(tool, contains('previewSurfaceMappingCount'));
       expect(tool, contains('previewMappedTriangleCount'));

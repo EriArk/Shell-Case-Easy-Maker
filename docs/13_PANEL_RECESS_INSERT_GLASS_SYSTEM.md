@@ -42,8 +42,13 @@ with:
   insert thickness, and clearance profile.
 
 This is still semantic project state only. It does not store generated mesh,
-B-Rep, DXF contours, or OCCT topology. Later geometry/export work should consume
-this feature and produce B-Rep, preview mesh, STL/STEP, and DXF outputs.
+B-Rep, DXF contours, or OCCT topology.
+
+The first native OCCT slice can consume a `glass_recess` on
+`main_enclosure.front_wall.outer` and generate a shallow rounded recess in the
+preview B-Rep. It is intentionally not a through-window yet. Top-lid glass
+recess generation remains future work because the current native body is still a
+top-open shell, not a separate generated lid.
 
 The mock viewport derives a schematic selectable recess marker from the same
 semantic `glass_recess` parameters. Clicking the marker selects the semantic

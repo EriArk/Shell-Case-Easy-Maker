@@ -249,9 +249,10 @@ Triangle ranges are allowed only as disposable preview metadata. They are not
 stable project IDs and must not leak into semantic editing.
 
 The native preview mesh can also expose generated feature ranges by semantic
-feature ID. The first such mapping is `front_usb_c`, which highlights the
-generated USB-C cutout faces while `main_enclosure.front_wall.outer` remains the
-front wall surface mapping.
+feature ID. Current feature mappings include `front_usb_c` for the generated
+USB-C cutout faces and `front_glass_recess` for the first shallow front-wall
+glass recess. `main_enclosure.front_wall.outer` remains the front wall surface
+mapping.
 
 ## Initial Rounded Enclosure Plan
 
@@ -264,35 +265,41 @@ The first native OCCT slices now:
 5. Build one rounded internal cavity tool from semantic wall thickness.
 6. Cut a top-open shell/cavity from the rounded outer B-Rep.
 7. Check the resulting shell/cavity shape with `BRepCheck_Analyzer`.
-8. Read first-pass USB-C `featureIntents` targeting the front wall.
+8. Read first-pass USB-C and glass-recess `featureIntents` targeting the front
+   wall.
 9. Build a rounded rectangular USB-C cut tool and subtract it from the shell.
-10. Return deterministic bounds, dimensions, surface area, and volume.
-11. Mesh the generated B-Rep with explicit linear/angular deflection settings.
-12. Return disposable preview mesh vertices and triangle indices.
-13. Return first-pass semantic preview surface ranges for top rim, front, and
+10. Build a shallow rounded rectangular glass-recess tool and subtract it from
+    the shell without cutting through the wall.
+11. Return deterministic bounds, dimensions, surface area, and volume.
+12. Mesh the generated B-Rep with explicit linear/angular deflection settings.
+13. Return disposable preview mesh vertices and triangle indices.
+14. Return first-pass semantic preview surface ranges for top rim, front, and
     bottom face blocks.
-14. Return a disposable `front_usb_c` feature range for the generated USB-C
-    cutout faces.
+15. Return disposable `front_usb_c` and `front_glass_recess` feature ranges for
+    generated feature highlighting.
 
 The next native geometry slices should:
 
-1. Consume button-group and glass-recess feature intents.
+1. Consume button-group feature intents.
 2. Generate real standoff/mount geometry.
 3. Add screw-boss/lid-body split geometry.
-4. Expand semantic face mapping beyond the first top/front/bottom ranges.
+4. Add top-lid glass recess support after a real lid/body split exists.
+5. Expand semantic face mapping beyond the first top/front/bottom ranges.
 
 Expected sample dimensions:
 - size: `120 x 70 x 28 mm`,
 - wall thickness: `2 mm`,
 - corner radius: `4 mm`,
 - native preview bounds: `[-60, -35, 0]` to `[60, 35, 27.464102]`,
-- native preview volume after USB-C cutout: `33664.517631 mm^3`,
-- native preview surface area after USB-C cutout: `34732.966792 mm^2`,
-- native preview surface mappings after USB-C feature range: `4`,
-- native preview mapped triangles after USB-C feature range: `636`,
-- native feature metrics: `featureIntentCount=2`,
-  `nativeFeatureCutCount=1`, `nativeIgnoredFeatureIntentCount=1`,
-  `nativeUsbCCutoutCount=1`.
+- native preview volume after USB-C plus front glass recess:
+  `33427.951321 mm^3`,
+- native preview surface area after USB-C plus front glass recess:
+  `34797.533162 mm^2`,
+- native preview surface mappings after feature ranges: `5`,
+- native preview mapped triangles after feature ranges: `796`,
+- native feature metrics: `featureIntentCount=3`,
+  `nativeFeatureCutCount=2`, `nativeIgnoredFeatureIntentCount=1`,
+  `nativeUsbCCutoutCount=1`, `nativeGlassRecessCount=1`.
 
 ## Current Limitations
 

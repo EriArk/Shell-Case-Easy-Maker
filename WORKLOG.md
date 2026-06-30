@@ -42,6 +42,92 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-06-30 - M72 Native front glass recess slice
+
+### Goal
+Consume a first `glass_recess` semantic feature intent on the front wall and
+generate a shallow rounded recess in native OCCT B-Rep.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`docs/04_GEOMETRY_ENGINE_OCCT.md`, `docs/13_PANEL_RECESS_INSERT_GLASS_SYSTEM.md`,
+`docs/34_FIRST_GEOMETRY_SLICE.md`, `lib/geometry/geometry_protocol.dart`,
+`lib/geometry/geometry_operation_plan.dart`,
+`lib/project/project_model.dart`, `lib/ui/shell/workspace_shell.dart`,
+`occt_worker/native/src/occt_main.cpp`,
+`tool/native_occt_worker_metrics_smoke.dart`, and
+`test/occt_native_target_scaffold_test.dart`.
+
+### Changes made
+- `occt_worker/native/src/occt_main.cpp`:
+  - Added `GlassRecessRequest` parsing for `glass_recess` feature intents.
+  - Supports front-wall recesses with width, height, recess depth, ledge width,
+    corner radius, and optional `placement.surfacePosition`.
+  - Builds a shallow rounded rectangular recess tool and subtracts it with
+    `BRepAlgoAPI_Cut`.
+  - Validates cut results with `BRepCheck_Analyzer`.
+  - Emits native glass-recess metrics and `front_glass_recess` preview ranges.
+- `tool/native_occt_worker_metrics_smoke.dart`:
+  - Uses a smoke project with a sample front-wall glass recess.
+  - Updated deterministic counts to 1594 vertices, 1914 triangles, 5 mappings,
+    796 mapped triangles, surface area `34797.533162`, and volume
+    `33427.951321`.
+- `test/occt_native_target_scaffold_test.dart`:
+  - Added source-contract checks for glass recess parsing, native generation,
+    metrics, and smoke expectations.
+- Docs/tasks/roadmap:
+  - Recorded M72 and clarified that this slice supports front-wall shallow
+    recesses only; top-lid glass recess waits for real lid/body geometry.
+
+### Tests run
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`:
+  - Passed.
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`:
+  - Passed; sample reports one USB-C cut, one front glass recess, and one
+    ignored unsupported button intent.
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`:
+  - Passed, 5 tests.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed, 185 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `git diff --check`:
+  - Passed with CRLF normalization warnings for existing text files.
+
+### Validation
+- Geometry checked?
+  - Yes. Native smoke verifies shape validity, deterministic mesh counts,
+    native glass metrics, bounds, surface area, and volume.
+- Serialization checked?
+  - Yes. Full test suite passed; glass recesses remain semantic feature
+    intents, not saved generated geometry.
+- UI checked?
+  - Yes. Existing UI tests passed and the latest native app bundle was rebuilt.
+- Export checked?
+  - No. STEP/STL export remains planned.
+
+### Known issues
+- Issue: Native glass recess support is front-wall only in this slice.
+  - Severity: Expected scope limit.
+  - Next action: Add top-lid recess support after generated lid/body split.
+
+### Next step
+Continue with the next native feature-generation slice, likely semantic button
+cutouts or early lid/body geometry needed for top-lid recesses.
+
+### Notes for future Codex sessions
+Do not treat `front_glass_recess` preview ranges as editable topology. They are
+display-only output from the native worker.
+
+---
+
 ## 2026-06-30 - M71 Native USB-C feature range highlight
 
 ### Goal

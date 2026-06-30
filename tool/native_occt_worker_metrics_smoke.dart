@@ -40,7 +40,7 @@ Future<void> main(List<String> args) async {
   const smokeRequestId = 'native_occt_preview_smoke';
   final response = await client.buildGeometry(
     GeometryRequest.previewMesh(
-      ProjectModel.initial(),
+      _nativeSmokeProject(),
       requestId: smokeRequestId,
     ),
   );
@@ -98,12 +98,12 @@ Future<void> main(List<String> args) async {
       failures,
     );
     _expect(
-      previewMesh.vertexCount == 1418,
+      previewMesh.vertexCount == 1594,
       'previewMesh must contain the deterministic sample vertex count',
       failures,
     );
     _expect(
-      previewMesh.triangleCount == 1754,
+      previewMesh.triangleCount == 1914,
       'previewMesh must contain the deterministic sample triangle count',
       failures,
     );
@@ -125,8 +125,8 @@ Future<void> main(List<String> args) async {
       failures,
     );
     _expect(
-      previewMesh.surfaces.length == 4,
-      'previewMesh must expose body surfaces plus the sample USB-C feature mapping',
+      previewMesh.surfaces.length == 5,
+      'previewMesh must expose body surfaces plus USB-C and glass feature mappings',
       failures,
     );
     final surfaceIds = previewMesh.surfaces
@@ -150,6 +150,11 @@ Future<void> main(List<String> args) async {
     _expect(
       surfaceIds.contains('front_usb_c'),
       'previewMesh surfaces must include the sample USB-C feature range',
+      failures,
+    );
+    _expect(
+      surfaceIds.contains('front_glass_recess'),
+      'previewMesh surfaces must include the sample glass recess feature range',
       failures,
     );
     _expect(
@@ -237,13 +242,13 @@ Future<void> main(List<String> args) async {
     failures,
   );
   _expect(
-    metrics['featureIntentCount'] == 2,
+    metrics['featureIntentCount'] == 3,
     'featureIntentCount must match the sample request',
     failures,
   );
   _expect(
-    metrics['nativeFeatureCutCount'] == 1,
-    'nativeFeatureCutCount must include the sample USB-C cutout',
+    metrics['nativeFeatureCutCount'] == 2,
+    'nativeFeatureCutCount must include USB-C and glass recess cuts',
     failures,
   );
   _expect(
@@ -259,6 +264,16 @@ Future<void> main(List<String> args) async {
   _expect(
     metrics['nativeUsbCCutoutFilletedEdgeCount'] == 8,
     'nativeUsbCCutoutFilletedEdgeCount must be deterministic',
+    failures,
+  );
+  _expect(
+    metrics['nativeGlassRecessCount'] == 1,
+    'nativeGlassRecessCount must include the sample glass recess',
+    failures,
+  );
+  _expect(
+    metrics['nativeGlassRecessFilletedEdgeCount'] == 8,
+    'nativeGlassRecessFilletedEdgeCount must be deterministic',
     failures,
   );
   _expect(
@@ -358,14 +373,14 @@ Future<void> main(List<String> args) async {
   );
   _expectClose(
     _readNumber(metrics['surfaceArea']),
-    34732.966792,
+    34797.533162,
     0.001,
     'surfaceArea',
     failures,
   );
   _expectClose(
     _readNumber(metrics['volume']),
-    33664.517631,
+    33427.951321,
     0.001,
     'volume',
     failures,
@@ -407,6 +422,9 @@ Future<void> main(List<String> args) async {
       'nativeUsbCCutoutCount': metrics['nativeUsbCCutoutCount'],
       'nativeUsbCCutoutFilletedEdgeCount':
           metrics['nativeUsbCCutoutFilletedEdgeCount'],
+      'nativeGlassRecessCount': metrics['nativeGlassRecessCount'],
+      'nativeGlassRecessFilletedEdgeCount':
+          metrics['nativeGlassRecessFilletedEdgeCount'],
       'bounds': metrics['bounds'],
       'dimensions': metrics['dimensions'],
       'surfaceArea': metrics['surfaceArea'],
@@ -434,6 +452,29 @@ Future<ProcessResult> _buildNativeOcct(String repoRoot, String configuration) {
     configuration,
     '-AllowVcpkgInstall',
   ]);
+}
+
+ProjectModel _nativeSmokeProject() {
+  return ProjectModel.initial().replaceFeature(
+    const SemanticFeature(
+      id: 'front_glass_recess',
+      type: 'glass_recess',
+      targetSurface: 'main_enclosure.front_wall.outer',
+      operation: 'recess',
+      parameters: {
+        'width': 24.0,
+        'height': 10.0,
+        'recessDepth': 1.0,
+        'ledgeWidth': 1.5,
+        'cornerRadius': 2.0,
+        'insertThickness': 1.0,
+        'clearanceProfile': 'fdm_normal',
+      },
+      placement: {
+        'surfacePosition': [28.0, 16.0],
+      },
+    ),
+  );
 }
 
 String _nativeOcctExecutablePath(String repoRoot, String configuration) {

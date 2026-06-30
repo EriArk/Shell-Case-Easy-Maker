@@ -128,6 +128,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Generate OCCT preview mesh.
 - [x] Emit first native semantic preview surface ranges.
 - [x] Emit first native USB-C feature preview ranges.
+- [x] Generate first native front-wall glass recess.
 - [ ] Export STEP.
 - [ ] Export STL.
 - [x] Define response issues/warnings model.

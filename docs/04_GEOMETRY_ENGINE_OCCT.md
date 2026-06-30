@@ -112,11 +112,11 @@ operations before real B-Rep generation exists:
 - `standoff_mounts` items -> `mount.standoff`.
 
 The mock backend exposes this plan in response metrics for testing and worker
-development. The native OCCT worker now consumes the first front-wall
-`usb_c_cutout` intent as real generated B-Rep, while glass/button/standoff
-operations remain next slices. The plan is disposable backend input. It must
-not be saved as the editable project model and must not contain OCCT topology
-IDs.
+development. The native OCCT worker now consumes front-wall `usb_c_cutout`
+intents and first-pass front-wall `glass_recess` intents as real generated
+B-Rep. Button groups, top-lid recesses, and standoff operations remain next
+slices. The plan is disposable backend input. It must not be saved as the
+editable project model and must not contain OCCT topology IDs.
 
 ## Generated protocol fixtures
 
