@@ -2267,6 +2267,100 @@ void main() {
     expect(find.textContaining('Сохранено:'), findsOneWidget);
   });
 
+  testWidgets('export command writes STEP artifact through geometry service', (
+    tester,
+  ) async {
+    final fileService = _MemoryProjectFileService();
+    final dialog = _FakeProjectFileDialogService(
+      exportStepFile: File('exported_case'),
+    );
+    final geometryService = _ExportStepGeometryService();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkspaceShell(
+          project: ProjectModel.initial(),
+          geometryService: geometryService,
+          projectFileService: fileService,
+          projectFileDialogService: dialog,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('toolbar-command-${CommandIds.exportProject}')),
+    );
+    await _pumpAsyncUi(tester);
+
+    final undoButton = find.byKey(
+      const ValueKey('toolbar-command-${CommandIds.undo}'),
+    );
+
+    expect(dialog.exportStepCount, 1);
+    expect(geometryService.exportCount, 1);
+    expect(
+      geometryService.lastExportRequest?.operation,
+      GeometryOperation.exportStep,
+    );
+    expect(
+      geometryService.lastExportRequest?.options['outputPath'],
+      'exported_case.step',
+    );
+    expect(fileService.hasFile(File('exported_case.enclosure.json')), isFalse);
+    expect(tester.widget<IconButton>(undoButton).onPressed, isNull);
+    expect(find.textContaining('STEP экспортирован:'), findsOneWidget);
+  });
+
+  testWidgets('export picker opens without pre-picker status rebuild', (
+    tester,
+  ) async {
+    final fileService = _MemoryProjectFileService();
+    final dialog = _BlockingProjectFileDialogService();
+    final geometryService = _ExportStepGeometryService();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkspaceShell(
+          project: ProjectModel.initial(),
+          geometryService: geometryService,
+          projectFileService: fileService,
+          projectFileDialogService: dialog,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final exportButton = find.byKey(
+      const ValueKey('toolbar-command-${CommandIds.exportProject}'),
+    );
+
+    await tester.tap(exportButton);
+    await tester.pump();
+
+    expect(dialog.exportStepCount, 1);
+    expect(find.textContaining('Экспорт STEP'), findsNothing);
+
+    await tester.tap(exportButton);
+    await tester.pump();
+
+    expect(dialog.exportStepCount, 1);
+
+    dialog.completeExportStep(File('stable_case_export'));
+    await _pumpAsyncUi(tester);
+
+    expect(geometryService.exportCount, 1);
+    expect(
+      geometryService.lastExportRequest?.options['outputPath'],
+      'stable_case_export.step',
+    );
+    expect(
+      fileService.hasFile(File('stable_case_export.enclosure.json')),
+      isFalse,
+    );
+    expect(find.textContaining('STEP экспортирован:'), findsOneWidget);
+  });
+
   testWidgets('open command loads semantic project file and resets undo', (
     tester,
   ) async {
@@ -2465,13 +2559,20 @@ String _dialogNumberText(WidgetTester tester, String key) {
 }
 
 class _FakeProjectFileDialogService implements ProjectFileDialogService {
-  _FakeProjectFileDialogService({this.openFile, this.saveFile});
+  _FakeProjectFileDialogService({
+    this.openFile,
+    this.saveFile,
+    this.exportStepFile,
+  });
 
   final File? openFile;
   final File? saveFile;
+  final File? exportStepFile;
   int openCount = 0;
   int saveCount = 0;
+  int exportStepCount = 0;
   String? lastSuggestedName;
+  String? lastExportStepSuggestedName;
 
   @override
   Future<File?> pickOpenProjectFile() async {
@@ -2485,14 +2586,27 @@ class _FakeProjectFileDialogService implements ProjectFileDialogService {
     lastSuggestedName = suggestedName;
     return saveFile;
   }
+
+  @override
+  Future<File?> pickExportStepFile({required String suggestedName}) async {
+    exportStepCount += 1;
+    lastExportStepSuggestedName = suggestedName;
+    return exportStepFile;
+  }
 }
 
 class _BlockingProjectFileDialogService implements ProjectFileDialogService {
   final Completer<File?> _saveCompleter = Completer<File?>();
+  final Completer<File?> _exportStepCompleter = Completer<File?>();
   int saveCount = 0;
+  int exportStepCount = 0;
 
   void completeSave(File? file) {
     _saveCompleter.complete(file);
+  }
+
+  void completeExportStep(File? file) {
+    _exportStepCompleter.complete(file);
   }
 
   @override
@@ -2504,6 +2618,12 @@ class _BlockingProjectFileDialogService implements ProjectFileDialogService {
   Future<File?> pickSaveProjectFile({required String suggestedName}) async {
     saveCount += 1;
     return _saveCompleter.future;
+  }
+
+  @override
+  Future<File?> pickExportStepFile({required String suggestedName}) async {
+    exportStepCount += 1;
+    return _exportStepCompleter.future;
   }
 }
 
@@ -2531,6 +2651,43 @@ class _MemoryProjectFileService extends ProjectFileService {
     }
 
     return decode(source);
+  }
+}
+
+class _ExportStepGeometryService extends MockGeometryService {
+  int exportCount = 0;
+  GeometryRequest? lastExportRequest;
+
+  @override
+  Future<GeometryResponse> buildGeometry(GeometryRequest request) async {
+    if (request.operation != GeometryOperation.exportStep) {
+      return super.buildGeometry(request);
+    }
+
+    exportCount += 1;
+    lastExportRequest = request;
+    final outputPath = request.options['outputPath'] as String? ?? '';
+
+    return GeometryResponse(
+      requestId: request.requestId,
+      status: GeometryResponseStatus.ok,
+      backend: 'fake_step_export',
+      artifacts: [
+        GeometryArtifact(
+          type: 'step',
+          path: outputPath,
+          metadata: const {
+            'format': 'STEP',
+            'source': 'occt_brep',
+            'units': 'mm',
+          },
+        ),
+      ],
+      metrics: const {
+        'requestedOperation': 'export_step',
+        'editableGeneratedGeometry': false,
+      },
+    );
   }
 }
 

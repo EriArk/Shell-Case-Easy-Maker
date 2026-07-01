@@ -998,6 +998,71 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     }
   }
 
+  Future<void> _exportStepProject() async {
+    if (_fileBusy) {
+      return;
+    }
+
+    _fileBusy = true;
+
+    try {
+      final selectedFile = await widget.projectFileDialogService
+          .pickExportStepFile(suggestedName: _suggestedStepFileName(_project));
+      if (!mounted) {
+        _fileBusy = false;
+        return;
+      }
+
+      if (selectedFile == null) {
+        setState(() {
+          _fileBusy = false;
+          _fileStatusMessage = 'Экспорт отменён';
+        });
+        return;
+      }
+
+      final file = ensureStepFileExtension(selectedFile);
+      setState(() {
+        _fileStatusMessage = 'Экспорт STEP...';
+      });
+
+      final response = await widget.geometryService.buildGeometry(
+        GeometryRequest.exportStep(
+          _project,
+          requestId: 'toolbar_export_step',
+          outputPath: file.path,
+        ),
+      );
+      if (!mounted) {
+        _fileBusy = false;
+        return;
+      }
+
+      final artifact = response.artifacts
+          .where((artifact) => artifact.type == 'step')
+          .firstOrNull;
+      final exportedPath = artifact?.path.isNotEmpty == true
+          ? artifact!.path
+          : file.path;
+
+      setState(() {
+        _fileBusy = false;
+        _fileStatusMessage = response.hasErrors || artifact == null
+            ? 'Не удалось экспортировать STEP'
+            : 'STEP экспортирован: ${_fileName(File(exportedPath))}';
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _fileBusy = false;
+        _fileStatusMessage = 'Не удалось экспортировать STEP';
+      });
+    }
+  }
+
   void _showValidationDetails(ValidationReport report) {
     if (!report.hasIssues) {
       return;
@@ -1059,6 +1124,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                   fileBusy: _fileBusy,
                   onOpen: _openProject,
                   onSave: _saveProject,
+                  onExportStep: _exportStepProject,
                   onUndo: _undo,
                   onRedo: _redo,
                 ),
@@ -1425,13 +1491,21 @@ String _fileName(File file) {
 }
 
 String _suggestedProjectFileName(ProjectModel project) {
-  final safeName = project.projectName
+  return '${_safeFileName(project.projectName, fallback: 'project')}.enclosure.json';
+}
+
+String _suggestedStepFileName(ProjectModel project) {
+  return '${_safeFileName(project.projectName, fallback: 'project')}.step';
+}
+
+String _safeFileName(String value, {required String fallback}) {
+  final safeName = value
       .trim()
       .toLowerCase()
       .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
       .replaceAll(RegExp(r'_+'), '_')
       .replaceAll(RegExp(r'^_|_$'), '');
-  return '${safeName.isEmpty ? 'project' : safeName}.enclosure.json';
+  return safeName.isEmpty ? fallback : safeName;
 }
 
 Enclosure _defaultEnclosure() {
@@ -1979,6 +2053,7 @@ class _TopToolbar extends StatelessWidget {
     required this.fileBusy,
     required this.onOpen,
     required this.onSave,
+    required this.onExportStep,
     required this.onUndo,
     required this.onRedo,
   });
@@ -1989,6 +2064,7 @@ class _TopToolbar extends StatelessWidget {
   final bool fileBusy;
   final VoidCallback onOpen;
   final VoidCallback onSave;
+  final VoidCallback onExportStep;
   final VoidCallback onUndo;
   final VoidCallback onRedo;
 
@@ -2055,7 +2131,7 @@ class _TopToolbar extends StatelessWidget {
           _ToolbarCommand(
             command: registry.byId(CommandIds.exportProject),
             context: commandContext,
-            onPressed: null,
+            onPressed: fileBusy ? null : onExportStep,
           ),
         ],
       ),

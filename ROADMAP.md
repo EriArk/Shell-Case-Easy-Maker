@@ -118,6 +118,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M97 - Native Top Lid Planar Plate
 - [x] M98 - Native OCCT Geometry Regression Test
 - [x] M99 - Native STEP Export Slice
+- [x] M100 - Toolbar STEP Export
 
 ---
 
@@ -4606,3 +4607,49 @@ project state.
 - No new app UI is exposed in this chunk.
 - The generated STEP path is currently verified by test; manual export UI comes
   in a later chunk.
+
+---
+
+## M100 - Toolbar STEP Export
+
+### Goal
+Expose the first STEP export path through the app toolbar while keeping export
+as an output artifact, not editable project state.
+
+### Tasks
+- [x] Add a dedicated STEP save-location picker that does not reuse project
+      JSON save.
+- [x] Wire the toolbar export command to `GeometryRequest.exportStep`.
+- [x] Keep export outside undo/redo, project dirty state, and saved project
+      JSON.
+- [x] Add widget coverage for successful export and double-click/picker guard.
+- [x] Update docs, tasks, worklog, latest build, commit, and push.
+
+### Done Criteria
+- The toolbar export icon is enabled when file operations are idle.
+- Clicking export opens a STEP save dialog with `.step/.stp` handling.
+- The shell sends `export_step` to `GeometryService` with the selected
+  `options.outputPath`.
+- Export success reports the generated artifact in the status bar.
+- Export does not save a project file, mark the project clean, or create an
+  undo entry.
+- A second click while the picker is open does not launch another picker.
+
+### Tests
+- `flutter test test\project_file_service_test.dart --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "export command writes STEP artifact through geometry service" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "export picker opens without pre-picker status rebuild" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Click the top toolbar export/download icon.
+- Choose a file name with no extension and confirm.
+- Confirm a `.step` file is created and the bottom status says STEP was
+  exported.
+- Try clicking export twice quickly; only one save dialog should appear.

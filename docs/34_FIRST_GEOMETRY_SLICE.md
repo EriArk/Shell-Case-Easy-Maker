@@ -154,6 +154,10 @@ That test sends an `export_step` request, verifies that the response returns a
 payload. STEP files are generated artifacts only; they are not stored as the
 editable project source.
 
+The workspace toolbar now exposes the same `export_step` operation through a
+STEP save-location dialog. That UI path still exports the whole generated
+preview assembly; STL export and part selection remain later slices.
+
 The current native response returns deterministic bounds, dimensions, surface
 area, volume, disposable preview mesh data, and first-pass semantic surface
 ranges for the first semantic enclosure. For the sample enclosure it emits a

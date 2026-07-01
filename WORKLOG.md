@@ -42,6 +42,104 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-07-01 - M100 Toolbar STEP export
+
+### Goal
+Expose the first STEP export path through the toolbar while keeping exported
+geometry as an output artifact, not editable project state.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`,
+`lib/project/project_file_dialog_service.dart`,
+`lib/ui/shell/workspace_shell.dart`, `lib/geometry/geometry_service.dart`,
+`lib/geometry/geometry_protocol.dart`, `test/widget_test.dart`,
+`test/project_file_service_test.dart`, `docs/25_EXPORT_PIPELINE.md`,
+`docs/31_COMMANDS_AND_UNDO.md`, `docs/32_USABLE_SHELL.md`, and
+`docs/34_FIRST_GEOMETRY_SLICE.md`.
+
+### Changes made
+- `lib/project/project_file_dialog_service.dart`:
+  - Added a dedicated STEP export save-location picker.
+  - Added `.step/.stp` extension preservation via `ensureStepFileExtension`.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Wired the toolbar export command to `GeometryRequest.exportStep`.
+  - Kept export outside project save, undo/redo history, and dirty-state
+    persistence.
+  - Reused the file busy guard so repeated clicks while the picker is open do
+    not launch multiple dialogs.
+- Tests:
+  - Added STEP extension helper coverage.
+  - Added widget coverage for successful toolbar STEP export.
+  - Added widget coverage for the export picker double-click guard.
+- Docs/tasks:
+  - Added M100 to `ROADMAP.md`.
+  - Marked first-pass toolbar STEP export complete in `TASKS.md`.
+  - Updated export, commands/undo, usable-shell, and first-geometry docs.
+
+### Tests run
+- `flutter test test\project_file_service_test.dart --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "export command writes STEP artifact through geometry service" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "export picker opens without pre-picker status rebuild" --reporter compact`:
+  - Passed.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 72 files checked, 0 changed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - First full run found a status-bar priority regression: the open-cancel
+    dirty-state message was hidden by a file status message.
+- `flutter test test\widget_test.dart --plain-name "open command can be cancelled when project has unsaved changes" --reporter compact`:
+  - Passed after restoring the previous status-bar priority.
+- `flutter test test\widget_test.dart --plain-name "export command writes STEP artifact through geometry service" --reporter compact`:
+  - Passed after the status-bar fix.
+- `flutter test --reporter compact`:
+  - Passed; 205 tests.
+- `flutter pub get`:
+  - Passed; Flutter reported only newer package versions outside current
+    dependency constraints.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed; rebuilt `releases/latest/windows` with the native OCCT worker
+    bundled.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git status --short --ignored releases`:
+  - Passed; `releases/` remains ignored.
+- `git diff --check`:
+  - Passed with CRLF normalization warnings only for existing text files.
+
+### Validation
+- Geometry checked?
+  - Native STEP artifact generation remains covered by the full test suite, and
+    latest Windows build passed.
+- Serialization checked?
+  - STEP export request remains covered by protocol tests from M99; this slice
+    verifies the toolbar sends `options.outputPath`.
+- UI checked?
+  - Targeted widget export flows and the full widget suite passed.
+- Export checked?
+  - Toolbar export path is covered with a fake geometry backend; native STEP
+    artifact generation remains covered by `native_occt_step_export_test`.
+
+### Known issues
+- Issue: Toolbar export is STEP-only.
+  - Severity: Medium.
+  - Next action: Add native STL artifact path and a user-facing format choice.
+- Issue: Export still writes the whole generated assembly.
+  - Severity: Medium.
+  - Next action: Add part/body selection after the artifact formats settle.
+
+### Next step
+Commit, push, and ask for a manual STEP export poke.
+
+### Notes for future Codex sessions
+Keep project save and geometry export separate. Export paths are output-only and
+must not be written into saved project JSON unless a future explicit export
+history feature is designed.
+
+---
+
 ## 2026-07-01 - M99 Native STEP export slice
 
 ### Goal

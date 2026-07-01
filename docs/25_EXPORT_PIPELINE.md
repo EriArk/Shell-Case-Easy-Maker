@@ -41,7 +41,10 @@ Current native status:
 - The request must provide `options.outputPath`.
 - The response returns a `step` artifact generated from OCCT B-Rep.
 - The exported STEP file is output only and is not editable project state.
-- User-facing export commands and part-selection options are still future work.
+- The toolbar export command now opens a STEP save-location dialog and sends
+  `GeometryRequest.exportStep` through `GeometryService`.
+- The toolbar path exports the whole generated sample assembly for now.
+- STL, format selection, and part-selection options are still future work.
 
 Options:
 - entire device,

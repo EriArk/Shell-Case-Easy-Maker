@@ -6,6 +6,8 @@ abstract interface class ProjectFileDialogService {
   Future<File?> pickOpenProjectFile();
 
   Future<File?> pickSaveProjectFile({required String suggestedName});
+
+  Future<File?> pickExportStepFile({required String suggestedName});
 }
 
 class FileSelectorProjectFileDialogService implements ProjectFileDialogService {
@@ -14,6 +16,10 @@ class FileSelectorProjectFileDialogService implements ProjectFileDialogService {
   static const projectTypeGroup = XTypeGroup(
     label: 'Shell Case project',
     extensions: ['json'],
+  );
+  static const stepTypeGroup = XTypeGroup(
+    label: 'STEP geometry',
+    extensions: ['step', 'stp'],
   );
 
   @override
@@ -38,6 +44,19 @@ class FileSelectorProjectFileDialogService implements ProjectFileDialogService {
         ? null
         : ensureProjectFileExtension(File(location.path));
   }
+
+  @override
+  Future<File?> pickExportStepFile({required String suggestedName}) async {
+    final location = await getSaveLocation(
+      acceptedTypeGroups: const [stepTypeGroup],
+      suggestedName: suggestedName,
+      confirmButtonText: 'Export STEP',
+    );
+
+    return location == null
+        ? null
+        : ensureStepFileExtension(File(location.path));
+  }
 }
 
 File ensureProjectFileExtension(File file) {
@@ -48,4 +67,14 @@ File ensureProjectFileExtension(File file) {
   }
 
   return File('$path.enclosure.json');
+}
+
+File ensureStepFileExtension(File file) {
+  final path = file.path;
+  final lowerPath = path.toLowerCase();
+  if (lowerPath.endsWith('.step') || lowerPath.endsWith('.stp')) {
+    return file;
+  }
+
+  return File('$path.step');
 }

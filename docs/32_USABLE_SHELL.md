@@ -138,14 +138,17 @@ warnings do not confuse the snap preview.
 `ProjectFileDialogService` provides native open/save file selection through
 `file_selector`.
 
-The top toolbar now wires project open/save commands:
+The top toolbar now wires project open/save/export commands:
 - open loads `.enclosure.json` into semantic shell state,
 - save writes the current semantic project,
+- export opens a STEP save dialog and asks `GeometryService` to generate a
+  disposable artifact,
 - open resets undo/redo history for the loaded file,
 - open asks before discarding unsaved semantic edits,
 - the status bar reports unsaved changes when the project differs from the
   persisted baseline,
-- generated preview data is refreshed after loading.
+- generated preview data is refreshed after loading,
+- exported geometry paths are not stored in project JSON.
 
 ## Validation Status
 

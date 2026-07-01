@@ -86,6 +86,13 @@ Project open/save commands are also wired from the toolbar. They use
 `UndoBehavior.none`: saving should not change semantic state, and opening a file
 replaces the current project with a fresh undo history for that file.
 
+The toolbar export command is also wired with `UndoBehavior.none`. The first
+user-facing export path opens a STEP save-location dialog, sends
+`GeometryRequest.exportStep` through `GeometryService`, and reports the returned
+artifact in the status bar. Exporting is output-only: it does not update the
+current project file path, does not mark the project clean, does not write STEP
+paths into project JSON, and does not create an undo entry.
+
 The first left rail generator command is `enclosure.create`. It opens a compact
 parameter dialog powered by `CoreParameterSchemas.roundedEnclosure`, applies the
 values to the semantic `Enclosure`, and commits the result as one undoable
@@ -163,5 +170,7 @@ visible and disabled, instead of running empty callbacks.
   feature parameter edits, first button/mount feature-group parameter edits,
   and first enclosure creation/component placement/USB-C cutout/button
   group/glass recess/mount group only.
+- Export is currently first-pass STEP only. STL and a user-facing format/part
+  selector are still pending.
 - Selection and active surface context are available from the shell selection
   model, but most editing commands are not wired yet.

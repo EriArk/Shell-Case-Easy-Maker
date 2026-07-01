@@ -52,4 +52,10 @@ void main() {
       'case.enclosure.json',
     );
   });
+
+  test('export dialog helper preserves or adds STEP extension', () {
+    expect(ensureStepFileExtension(File('case.step')).path, 'case.step');
+    expect(ensureStepFileExtension(File('case.stp')).path, 'case.stp');
+    expect(ensureStepFileExtension(File('case')).path, 'case.step');
+  });
 }

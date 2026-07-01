@@ -186,7 +186,8 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] First-pass USB-C viewport marker.
 - [x] First-pass USB-C inspector parameter editing.
 - [ ] USB-C placement polish with face-local picking/snapping.
-- [ ] Export STL/STEP.
+- [x] First-pass toolbar STEP export command.
+- [ ] User-facing STL export command.
 - [x] First-pass wall thickness and cutout size validation.
 
 ## Phase 6 — Component template MVP
