@@ -235,6 +235,8 @@ class ProjectSemanticValidator {
           _validateUsbC(project, feature, enclosure, messages);
         case 'glass_recess':
           _validateGlassRecess(feature, enclosure, messages);
+        case 'circular_cutout':
+          _validateCircularCutout(project, feature, enclosure, messages);
       }
     }
   }
@@ -366,6 +368,89 @@ class ProjectSemanticValidator {
         ),
       );
     }
+  }
+
+  static void _validateCircularCutout(
+    ProjectModel project,
+    SemanticFeature feature,
+    Enclosure enclosure,
+    List<ValidationMessage> messages,
+  ) {
+    final diameter = readDouble(feature.parameters['diameter'], fallback: 8);
+    final depth = readDouble(feature.parameters['depth'], fallback: 3);
+    final positionX = readDouble(feature.parameters['positionX'], fallback: 0);
+    final positionY = readDouble(feature.parameters['positionY'], fallback: 0);
+    final targetsFront = feature.targetSurface.contains('front_wall');
+    final targetsTop = feature.targetSurface.contains('top_lid');
+    final availableWidth =
+        _sizeAt(enclosure, 0, 120) - enclosure.wallThickness * 2;
+    final availableSecondary = targetsFront
+        ? _sizeAt(enclosure, 2, 28) - enclosure.wallThickness * 2
+        : _sizeAt(enclosure, 1, 70) - enclosure.wallThickness * 2;
+
+    if (!targetsFront && !targetsTop) {
+      messages.add(
+        ValidationMessage(
+          severity: ValidationSeverity.error,
+          code: 'feature.circular_cutout.surface.unsupported',
+          message:
+              'Круглое отверстие пока поддерживает переднюю стенку и крышку.',
+          targetId: feature.id,
+        ),
+      );
+      return;
+    }
+
+    if (diameter <= 0 || depth <= 0) {
+      messages.add(
+        ValidationMessage(
+          severity: ValidationSeverity.error,
+          code: 'feature.circular_cutout.dimension.invalid',
+          message:
+              'Диаметр и глубина круглого отверстия должны быть больше нуля.',
+          targetId: feature.id,
+        ),
+      );
+      return;
+    }
+
+    if (diameter > availableWidth || diameter > availableSecondary) {
+      messages.add(
+        ValidationMessage(
+          severity: ValidationSeverity.error,
+          code: 'feature.circular_cutout.diameter.too_large',
+          message: 'Круглое отверстие больше доступной поверхности корпуса.',
+          targetId: feature.id,
+        ),
+      );
+    }
+
+    if (!_fitsCenteredRect(
+      centerX: positionX,
+      centerY: positionY,
+      width: diameter,
+      depth: diameter,
+      spaceWidth: availableWidth,
+      spaceDepth: availableSecondary,
+    )) {
+      messages.add(
+        ValidationMessage(
+          severity: ValidationSeverity.error,
+          code: 'feature.circular_cutout.position.outside_surface',
+          message: 'Центр круглого отверстия выходит за доступную поверхность.',
+          targetId: feature.id,
+        ),
+      );
+    }
+
+    _validateProjectedFeatureAnchor(
+      project: project,
+      enclosure: enclosure,
+      feature: feature,
+      sizeA: diameter,
+      sizeB: diameter,
+      messages: messages,
+    );
   }
 
   static void _validateFeatureGroups(

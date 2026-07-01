@@ -122,6 +122,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M101 - Native STL Export Slice
 - [x] M102 - Toolbar STEP/STL Export Format Choice
 - [x] M103 - Semantic Circular Cutout Command
+- [x] M104 - Native Circular Cutout Geometry
 
 ---
 
@@ -4808,3 +4809,60 @@ without introducing editable mesh/STL/B-Rep data.
 - Select the new marker in the viewport and confirm the inspector shows
   diameter/depth/X/Y.
 - Press undo and confirm the cutout disappears.
+
+---
+
+## M104 - Native Circular Cutout Geometry
+
+### Goal
+Make semantic `circular_cutout` features generate real native OCCT subtraction
+geometry for supported front-wall and generated top-lid targets, while keeping
+the editable project semantic and keeping Flutter behind `GeometryService`.
+
+### Tasks
+- [x] Research the official OCCT cylinder/cut APIs before implementation.
+- [x] Parse `circular_cutout` feature intents in the native OCCT worker.
+- [x] Validate diameter, depth, target surface, and face-local position.
+- [x] Build front-wall cylinder cut tools with `BRepPrimAPI_MakeCylinder`.
+- [x] Build generated top-lid cylinder cut tools with `BRepPrimAPI_MakeCylinder`.
+- [x] Subtract both with `BRepAlgoAPI_Cut` and validate the resulting shape.
+- [x] Add semantic preview surface mappings for circular cutout faces.
+- [x] Add deterministic native metrics for body and generated-lid circular
+      cutouts.
+- [x] Add semantic validator coverage for oversized circular cutouts.
+- [x] Update native smoke/regression/export expectations.
+- [x] Update docs/tasks/worklog.
+
+### Done Criteria
+- `circular_cutout` with `targetSurface=main_enclosure.front_wall.outer` cuts
+  the generated body B-Rep.
+- `circular_cutout` with `targetSurface=main_enclosure.top_lid.outer` cuts the
+  generated top lid plate B-Rep.
+- Depth behaves as a blind cut when shallower than the target thickness and as
+  a through cut when depth reaches/exceeds target thickness.
+- Preview surface mappings include `front_round_hole` and `top_lid_round_hole`
+  in the native regression fixture.
+- Metrics include `nativeCircularCutoutCount` and
+  `nativeGeneratedLidCircularCutoutCount`.
+- STEP/STL export use the same updated B-Rep output.
+- No editable mesh, STL, B-Rep, triangle ID, or raw OCCT topology ID is stored
+  in the project model or exposed to Flutter.
+
+### Tests
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`
+- `flutter test test\project_semantic_validator_test.dart --plain-name "oversized circular cutout reports semantic errors" --reporter compact`
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`
+- `flutter test test\native_occt_geometry_regression_test.dart --reporter compact`
+- `flutter test test\native_occt_step_export_test.dart --reporter compact`
+- `flutter test test\native_occt_stl_export_test.dart --reporter compact`
+
+### Poke Checklist
+- Open the latest exe with native OCCT backend.
+- Select `Top lid`, click `Отверстия`, and create a circular cutout with a
+  visible diameter such as `14`.
+- Confirm the native 3D lid now has an actual round opening, not only a 2D
+  overlay marker.
+- Select the cutout marker/range and confirm the inspector still edits the
+  semantic `circular_cutout`.
+- Export STL or STEP and confirm the exported artifact includes the cutout.

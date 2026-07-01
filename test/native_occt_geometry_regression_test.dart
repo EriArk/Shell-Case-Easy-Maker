@@ -86,8 +86,8 @@ void main() {
       expect(metrics['shellCavityValid'], isTrue);
       expect(metrics['shellCavityToolCount'], 1);
       expect(metrics['shellOpening'], 'top');
-      expect(metrics['featureIntentCount'], 7);
-      expect(metrics['nativeFeatureCutCount'], 9);
+      expect(metrics['featureIntentCount'], 9);
+      expect(metrics['nativeFeatureCutCount'], 10);
       expect(metrics['nativeIgnoredFeatureIntentCount'], 1);
       expect(metrics['nativeLidScrewBossCount'], 4);
       expect(metrics['nativeLidScrewPilotCount'], 4);
@@ -99,7 +99,8 @@ void main() {
       );
       expect(metrics['nativeGeneratedLidLipCount'], 1);
       expect(metrics['nativeGeneratedLidScrewHoleCount'], 4);
-      expect(metrics['nativeGeneratedLidFeatureCutCount'], 6);
+      expect(metrics['nativeGeneratedLidFeatureCutCount'], 7);
+      expect(metrics['nativeGeneratedLidCircularCutoutCount'], 1);
       expect(metrics['nativeGeneratedLidGlassRecessCount'], 1);
       expect(metrics['nativeGeneratedLidGlassRecessFilletedEdgeCount'], 8);
       expect(metrics['nativeGeneratedLidGlassWindowCount'], 1);
@@ -117,6 +118,7 @@ void main() {
       expect(metrics['nativeGlassRecessFilletedEdgeCount'], 8);
       expect(metrics['nativeGlassWindowCount'], 1);
       expect(metrics['nativeGlassWindowFilletedEdgeCount'], 8);
+      expect(metrics['nativeCircularCutoutCount'], 1);
       expect(metrics['nativeButtonGroupCount'], 1);
       expect(metrics['nativeButtonCutoutCount'], 2);
       expect(metrics['nativeButtonRingCount'], 2);

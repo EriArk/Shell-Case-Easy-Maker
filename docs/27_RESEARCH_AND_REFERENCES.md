@@ -1351,3 +1351,53 @@ existing `GeometryService` boundary.
   treating these as printable final button mechanics.
 - Keep guide/stop geometry generated from semantic groups; do not flatten them
   into editable per-button solids.
+
+---
+
+## 2026-07-01 - Native circular cutout geometry
+
+## Question
+
+How should the native OCCT worker generate the first generic round hole from a
+semantic `circular_cutout` without exposing Boolean operations or topology IDs
+to Flutter?
+
+## Sources checked
+
+- OpenCascade reference:
+  [BRepPrimAPI_MakeCylinder](https://dev.opencascade.org/doc/refman/html/class_b_rep_prim_a_p_i___make_cylinder.html)
+- OpenCascade reference:
+  [BRepAlgoAPI_Cut](https://dev.opencascade.org/doc/refman/html/class_b_rep_algo_a_p_i___cut.html)
+- OpenCascade reference:
+  [gp_Ax2](https://dev.opencascade.org/doc/refman/html/classgp___ax2.html)
+
+## Findings
+
+- `BRepPrimAPI_MakeCylinder` supports construction from `gp_Ax2`, radius, and
+  height, which matches semantic round-hole generation for front-wall and top
+  lid targets.
+- `gp_Ax2` lets the worker orient the cylinder along the target surface normal:
+  +Y for front-wall cuts and +Z for generated top-lid cuts.
+- `BRepAlgoAPI_Cut` is the existing Boolean subtraction path already used by
+  shell, USB-C, glass, and button features.
+- Depth can remain semantic: shallower than target thickness creates a blind
+  cut; equal/greater depth creates a through-cut with small generator overcut.
+- The preview mesh should map generated cut faces back to the original semantic
+  feature id, not to raw OCCT faces or triangle ids.
+
+## Decision
+
+Parse `circular_cutout` feature intents in the native worker and build
+generator-owned cylinder tools. Front-wall tools cut the body shell along +Y.
+Top-lid tools cut the generated lid plate along +Z. The worker reports
+`nativeCircularCutoutCount` and `nativeGeneratedLidCircularCutoutCount`, and
+the preview mesh maps cut faces to the original semantic feature ids such as
+`front_round_hole` and `top_lid_round_hole`.
+
+## Follow-up tasks
+
+- Seed circular-cutout X/Y from direct face clicks instead of manual fields.
+- Add richer shape variants such as countersinks, counterbores, slots, and
+  inserts while preserving semantic feature types.
+- Add material/printer-profile based clearance presets before treating generic
+  holes as final printable hardware interfaces.

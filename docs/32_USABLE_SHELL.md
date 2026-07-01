@@ -229,7 +229,8 @@ Clicking `Отверстия` is enabled after selecting a semantic surface. It 
 compact circular cutout dialog and appends a semantic `circular_cutout` feature
 with editable diameter, depth, and face-local X/Y parameters. The mock viewport
 draws a circular marker and hit-tests it by semantic feature ID. Native OCCT
-subtraction for this generic feature is still a separate geometry slice.
+now consumes supported front-wall and top-lid circular cutouts as generated
+subtraction geometry while keeping the editable source semantic.
 
 Clicking `Кнопки` is enabled only after selecting a semantic surface such as
 `Top lid`. The command opens a compact button group dialog and appends a

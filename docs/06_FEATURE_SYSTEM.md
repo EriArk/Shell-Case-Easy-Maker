@@ -43,7 +43,8 @@ exportable — produces manufacturing profile or part
 
 The mock viewport derives transient markers from semantic features:
 - `usb_c_cutout`,
-- `glass_recess`.
+- `glass_recess`,
+- `circular_cutout`.
 
 These markers are selectable affordances only. They return semantic feature IDs
 to the selection model and are not saved geometry, mesh IDs, triangle IDs, or
@@ -54,11 +55,15 @@ OCCT topology IDs.
 The contextual inspector can edit the first numeric parameter banks for:
 - `usb_c_cutout`: width, height, corner radius,
 - `glass_recess`: width, height, recess depth, ledge width, corner radius,
-  insert thickness.
+  insert thickness,
+- `circular_cutout`: diameter, depth, face-local X, and face-local Y.
 
 These edits update the selected `SemanticFeature.parameters` map and commit a
 semantic undo snapshot. They do not edit generated geometry directly. The mock
 viewport marker is rebuilt from semantic parameters after the project changes.
+The native OCCT worker consumes supported front-wall and top-lid
+`circular_cutout` feature intents as generated B-Rep subtraction tools; the
+editable source remains the semantic feature parameters above.
 
 ## Feature groups
 

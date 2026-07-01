@@ -127,7 +127,10 @@ The target references OCCT modeling APIs, reports `status=preview_mesh_smoke`,
 and returns a disposable rounded enclosure preview mesh plus deterministic
 metrics for `preview_mesh` requests. It also supports the first `export_step`
 and `export_stl` operations, writing generated artifacts to an explicit
-`options.outputPath`. It still does not emit editable generated geometry.
+`options.outputPath`. The native preview consumes first-pass generic
+`circular_cutout` feature intents on the front wall and generated top lid as
+generated subtraction geometry. It still does not emit editable generated
+geometry.
 
 Native OCCT metrics smoke command:
 

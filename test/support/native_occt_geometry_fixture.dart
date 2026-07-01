@@ -3,15 +3,15 @@ import 'dart:io';
 import 'package:shell_case_easy_maker/geometry/geometry_service.dart';
 import 'package:shell_case_easy_maker/project/project_model.dart';
 
-const nativeOcctExpectedPreviewVertexCount = 13258;
-const nativeOcctExpectedPreviewTriangleCount = 13480;
-const nativeOcctExpectedSurfaceMappingCount = 14;
-const nativeOcctExpectedMappedTriangleCount = 20072;
+const nativeOcctExpectedPreviewVertexCount = 13550;
+const nativeOcctExpectedPreviewTriangleCount = 13776;
+const nativeOcctExpectedSurfaceMappingCount = 16;
+const nativeOcctExpectedMappedTriangleCount = 20478;
 const nativeOcctExpectedBoundsMin = [-60.0, -36.65, 0.0];
 const nativeOcctExpectedBoundsMax = [60.0, 35.0, 31.73];
 const nativeOcctExpectedDimensions = [120.0, 71.65, 31.73];
-const nativeOcctExpectedSurfaceArea = 56309.554412;
-const nativeOcctExpectedVolume = 53366.434601;
+const nativeOcctExpectedSurfaceArea = 56226.302206;
+const nativeOcctExpectedVolume = 53188.934617;
 const nativeOcctExpectedFitPreviewGap = 0.08;
 
 const nativeOcctExpectedSurfaceIds = {
@@ -25,8 +25,10 @@ const nativeOcctExpectedSurfaceIds = {
   'main_enclosure.generated_top_lid_screw_holes',
   'top_lid_buttons',
   'top_lid_glass_recess',
+  'top_lid_round_hole',
   'front_usb_c',
   'front_glass_recess',
+  'front_round_hole',
   'front_buttons',
   'standoff_mounts_1',
 };
@@ -100,6 +102,36 @@ ProjectModel nativeOcctRegressionProject() {
           },
           placement: {
             'surfacePosition': [36.0, 0.0],
+          },
+        ),
+      )
+      .replaceFeature(
+        const SemanticFeature(
+          id: 'front_round_hole',
+          type: 'circular_cutout',
+          targetSurface: 'main_enclosure.front_wall.outer',
+          operation: 'negative',
+          parameters: {
+            'diameter': 7.0,
+            'depth': 3.0,
+            'positionX': -36.0,
+            'positionY': 0.0,
+            'clearanceProfile': 'fdm_normal',
+          },
+        ),
+      )
+      .replaceFeature(
+        const SemanticFeature(
+          id: 'top_lid_round_hole',
+          type: 'circular_cutout',
+          targetSurface: 'main_enclosure.top_lid.outer',
+          operation: 'negative',
+          parameters: {
+            'diameter': 8.0,
+            'depth': 3.0,
+            'positionX': -36.0,
+            'positionY': 0.0,
+            'clearanceProfile': 'fdm_normal',
           },
         ),
       )

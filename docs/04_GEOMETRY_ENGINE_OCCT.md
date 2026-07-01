@@ -108,13 +108,15 @@ operations before real B-Rep generation exists:
 
 - `usb_c_cutout` -> `cutout.usb_c`,
 - `glass_recess` -> `recess.glass`,
+- `circular_cutout` -> `cutout.circular`,
 - `button_group` items -> `cutout.button`,
 - `standoff_mounts` items -> `mount.standoff`.
 
 The mock backend exposes this plan in response metrics for testing and worker
 development. The native OCCT worker now consumes front-wall `usb_c_cutout`
-intents, first-pass front-wall and top-lid `glass_recess` intents, and
-front-wall `button_group` item intents as real generated B-Rep. Front-wall and
+intents, first-pass front-wall and top-lid `glass_recess` intents,
+front-wall/top-lid `circular_cutout` intents, and front-wall `button_group`
+item intents as real generated B-Rep. Front-wall and
 top-lid glass recesses both use semantic `ledgeWidth` to leave a generated
 support ledge around an inner through-window. It also
 consumes bottom-inside `standoff_mounts` item intents as positive generated
@@ -130,19 +132,21 @@ body-side locating seat around the top opening from the same semantic lid
 spec and positions the generated lid in a near-flush fit-preview gap so the
 lip/seat relationship is readable. Top-lid `glass_recess` intents cut a
 shallow rounded outer seat plus an inner through-window from semantic
-`ledgeWidth`, top-lid `button_group` intents cut through-holes through that
-generated lid plate, and front-wall
+`ledgeWidth`, top-lid `circular_cutout` intents cut cylinder holes through
+that generated lid plate, top-lid `button_group` intents cut through-holes
+through that generated lid plate, and front-wall `circular_cutout` and
 `button_group` intents remain body cutouts. Button and standoff groups remain
-one editable semantic object; lid screw bosses, lid plate, lid screw holes,
+one editable semantic object; circular holes remain semantic features; lid
+screw bosses, lid plate, lid screw holes,
 lid locating lip, body lid seat, lid fit preview, generated top-lid recesses,
-generated front/top glass windows, generated top-lid button holes, and
+generated front/top glass windows, generated circular cutouts, generated
+top-lid button holes, and
 plunger-style cap/stem/guide/stop preview parts remain generated enclosure
 detail, not separate editable solids. The native worker only consumes semantic
 parameters and derived item positions as disposable generator input. A real
-mating lid/body split, protected recess islands, richer mount variants, and
-export operations remain next slices. The plan is disposable backend input. It
-must not be saved as the editable project model and must not contain OCCT
-topology IDs.
+mating lid/body split, protected recess islands, and richer mount variants
+remain next slices. The plan is disposable backend input. It must not be saved
+as the editable project model and must not contain OCCT topology IDs.
 
 ## Generated protocol fixtures
 

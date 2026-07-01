@@ -146,8 +146,9 @@ project snapshot.
 available only when a semantic surface is selected. The command creates a
 `circular_cutout` `SemanticFeature` with editable diameter, depth, and
 face-local X/Y parameters, then commits it as one undoable project snapshot.
-The result remains semantic project state; native OCCT subtraction is a later
-geometry slice.
+The result remains semantic project state; native OCCT now consumes supported
+front-wall and top-lid targets as generated subtraction geometry behind the
+`GeometryService` boundary.
 
 `mount.generate` is the first component-driven command. It is available only
 when the selected object is a component placement whose template has mounting

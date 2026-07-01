@@ -358,10 +358,13 @@ The first native OCCT slices now:
 26. Cut the top-lid glass inner window through the generated lid plate from
     the same semantic `glass_recess` using `ledgeWidth`, leaving a generated
     support ledge.
-27. Add first-pass separate preview cap/stem solids for semantic
+27. Cut first-pass generic `circular_cutout` features through the front wall or
+    generated top lid plate using cylindrical OCCT cut tools, keyed by the
+    original semantic feature ids.
+28. Add first-pass separate preview cap/stem solids for semantic
     `button_group` items whose `itemPrototype.mode` is `plunger`, while keeping
     those solids mapped to the original group ids.
-28. Add first-pass generated guide sleeves and travel-stop collars from
+29. Add first-pass generated guide sleeves and travel-stop collars from
     semantic plunger travel/clearance values, while keeping those generated
     parts mapped to the original group ids.
 
@@ -380,30 +383,31 @@ Expected sample dimensions:
 - wall thickness: `2 mm`,
 - corner radius: `4 mm`,
 - native preview assembly bounds: `[-60, -36.65, 0]` to `[60, 35, 31.73]`,
-- native preview volume after lid screw bosses, USB-C, front glass
-  recess/window, front button cutouts/rings/caps/stems/guides/stops, bottom
-  standoff bosses, generated lid plate, lid screw holes, underside locating lip,
-  body-side lid seat, fit-preview positioning, top-lid button
-  holes/rings/caps/stems/guides/stops, top-lid glass recess, and top-lid glass
-  window: `53366.434601 mm^3`,
-- native preview surface area after lid screw bosses, USB-C, front glass
-  recess/window, front button cutouts/rings/caps/stems/guides/stops, bottom
-  standoff bosses, generated lid plate, lid screw holes, underside locating lip,
-  body-side lid seat, fit-preview positioning, top-lid button
-  holes/rings/caps/stems/guides/stops, top-lid glass recess, and top-lid glass
-  window: `56309.554412 mm^2`,
-- native preview surface mappings after feature ranges: `14`,
-- native preview mesh size: `13258` vertices, `13480` triangles,
-- native preview mapped triangles after feature ranges: `20072`,
-- native feature metrics: `featureIntentCount=7`,
-  `nativeFeatureCutCount=9`, `nativeIgnoredFeatureIntentCount=1`,
+- native preview volume after lid screw bosses, USB-C, circular cutouts, front
+  glass recess/window, front button cutouts/rings/caps/stems/guides/stops,
+  bottom standoff bosses, generated lid plate, lid screw holes, underside
+  locating lip, body-side lid seat, fit-preview positioning, top-lid circular
+  cutout, top-lid button holes/rings/caps/stems/guides/stops, top-lid glass
+  recess, and top-lid glass window: `53188.934617 mm^3`,
+- native preview surface area after lid screw bosses, USB-C, circular cutouts,
+  front glass recess/window, front button cutouts/rings/caps/stems/guides/stops,
+  bottom standoff bosses, generated lid plate, lid screw holes, underside
+  locating lip, body-side lid seat, fit-preview positioning, top-lid circular
+  cutout, top-lid button holes/rings/caps/stems/guides/stops, top-lid glass
+  recess, and top-lid glass window: `56226.302206 mm^2`,
+- native preview surface mappings after feature ranges: `16`,
+- native preview mesh size: `13550` vertices, `13776` triangles,
+- native preview mapped triangles after feature ranges: `20478`,
+- native feature metrics: `featureIntentCount=9`,
+  `nativeFeatureCutCount=10`, `nativeIgnoredFeatureIntentCount=1`,
   `nativeLidScrewBossCount=4`, `nativeLidScrewPilotCount=4`,
   `nativeGeneratedLidPlateCount=1`,
   `nativeGeneratedLidSeatCount=1`,
   `nativeGeneratedLidFitPreviewGap=0.08`,
   `nativeGeneratedLidLipCount=1`,
   `nativeGeneratedLidScrewHoleCount=4`,
-  `nativeGeneratedLidFeatureCutCount=6`,
+  `nativeGeneratedLidFeatureCutCount=7`,
+  `nativeGeneratedLidCircularCutoutCount=1`,
   `nativeGeneratedLidGlassRecessCount=1`,
   `nativeGeneratedLidGlassRecessFilletedEdgeCount=8`,
   `nativeGeneratedLidGlassWindowCount=1`,
@@ -418,6 +422,7 @@ Expected sample dimensions:
   `nativeUsbCCutoutCount=1`,
   `nativeGlassRecessCount=1`, `nativeGlassRecessFilletedEdgeCount=8`,
   `nativeGlassWindowCount=1`, `nativeGlassWindowFilletedEdgeCount=8`,
+  `nativeCircularCutoutCount=1`,
   `nativeButtonGroupCount=1`,
   `nativeButtonCutoutCount=2`, `nativeButtonRingCount=2`,
   `nativeButtonCapCount=2`, `nativeButtonStemCount=2`,
@@ -458,8 +463,9 @@ Expected sample dimensions:
 - Rounded edges, first top-open native shell/cavity generation, first native
   USB-C front-wall cutout, first native preview mesh emission, and first-pass
   semantic surface ranges are implemented. Front-wall glass recesses now cut a
-  support ledge plus inner window, and front-wall button-group cutouts are also
-  implemented. Bottom-inside standoff
+  support ledge plus inner window, front-wall button-group cutouts are
+  implemented, and semantic `circular_cutout` features now cut cylindrical
+  openings on the front wall or generated top lid. Bottom-inside standoff
   bosses are implemented as the first native mount geometry, and top-screw-lid
   enclosures generate first-pass screw bosses plus a separate generated top lid
   preview plate with screw clearance holes, an underside locating lip, and a
@@ -475,6 +481,7 @@ Expected sample dimensions:
 - STEP/STL export operations intentionally return unsupported in the mock
   backend. Native OCCT now supports the first `export_step` and `export_stl`
   artifact paths.
-- Generic `circular_cutout` is currently wired through semantic UI, inspector,
-  operation planning, and mock viewport selection only. Native OCCT subtraction
-  for this feature remains a follow-up geometry slice.
+- Generic `circular_cutout` is wired through semantic UI, inspector, operation
+  planning, mock viewport selection, native front-wall subtraction, and native
+  generated-top-lid subtraction. Direct click-to-place on a face remains a
+  follow-up UX slice; current placement is parameter-driven X/Y.

@@ -95,6 +95,34 @@ void main() {
     );
   });
 
+  test('oversized circular cutout reports semantic errors', () {
+    final project = ProjectModel.initial().replaceFeature(
+      const SemanticFeature(
+        id: 'bad_round_hole',
+        type: 'circular_cutout',
+        targetSurface: 'main_enclosure.top_lid.outer',
+        operation: 'negative',
+        parameters: {
+          'diameter': 90.0,
+          'depth': 3.0,
+          'positionX': 50.0,
+          'positionY': 0.0,
+        },
+      ),
+    );
+
+    final report = ProjectSemanticValidator.validate(project);
+
+    expect(report.hasErrors, isTrue);
+    expect(
+      report.messages.map((message) => message.code),
+      containsAll([
+        'feature.circular_cutout.diameter.too_large',
+        'feature.circular_cutout.position.outside_surface',
+      ]),
+    );
+  });
+
   test('component placement outside enclosure reports an error', () {
     final project = ProjectModel.initial().replaceComponentPlacement(
       const ComponentPlacement(

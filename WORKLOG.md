@@ -42,6 +42,133 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-07-01 - M104 Native circular cutout geometry
+
+### Goal
+Make semantic `circular_cutout` features generate real native OCCT subtraction
+geometry for supported front-wall and generated top-lid targets while keeping
+the editable project semantic and keeping Flutter behind `GeometryService`.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `docs/04_GEOMETRY_ENGINE_OCCT.md`,
+`docs/05_PROJECT_FILE_FORMAT.md`, `docs/06_FEATURE_SYSTEM.md`,
+`docs/27_RESEARCH_AND_REFERENCES.md`, `docs/31_COMMANDS_AND_UNDO.md`,
+`docs/32_USABLE_SHELL.md`, `docs/34_FIRST_GEOMETRY_SLICE.md`,
+`occt_worker/README.md`, `occt_worker/native/src/occt_main.cpp`,
+`lib/geometry/geometry_protocol.dart`,
+`lib/validation/project_semantic_validator.dart`,
+`test/support/native_occt_geometry_fixture.dart`,
+`test/native_occt_geometry_regression_test.dart`,
+`test/native_occt_step_export_test.dart`,
+`test/native_occt_stl_export_test.dart`,
+`test/occt_native_target_scaffold_test.dart`,
+`test/project_semantic_validator_test.dart`, and
+`tool/native_occt_worker_metrics_smoke.dart`.
+
+### Changes made
+- `occt_worker/native/src/occt_main.cpp`:
+  - Added `CircularCutoutRequest` parsing from `circular_cutout` feature
+    intents.
+  - Reads `diameter`, `depth`, face-local `positionX`/`positionY`, and optional
+    `placement.surfacePosition`.
+  - Validates supported front-wall/top-lid targets and surface fit.
+  - Builds cylinder cut tools with `BRepPrimAPI_MakeCylinder`.
+  - Cuts front-wall holes from the body shell and top-lid holes from the
+    generated lid plate with `BRepAlgoAPI_Cut`.
+  - Maps generated cut faces back to semantic feature ids.
+  - Emits `nativeCircularCutoutCount` and
+    `nativeGeneratedLidCircularCutoutCount`.
+- `lib/validation/project_semantic_validator.dart`:
+  - Added semantic validation for circular cutout target, dimensions, and
+    face-local placement.
+- Tests/tools:
+  - Added front/top circular cutouts to the native OCCT regression fixture and
+    metrics smoke project.
+  - Updated deterministic mesh counts, area, volume, mapping counts, and
+    native metrics.
+  - Added validator coverage for oversized circular cutouts.
+- Docs/tasks:
+  - Marked native circular geometry complete in `TASKS.md`.
+  - Added M104 to `ROADMAP.md`.
+  - Updated OCCT, feature, shell, project-file, command/undo, README, and
+    research docs.
+
+### Tests run
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`:
+  - Passed; rebuilt `occt_worker_native_occt.exe`.
+- `flutter test test\project_semantic_validator_test.dart --plain-name "oversized circular cutout reports semantic errors" --reporter compact`:
+  - Passed.
+- `flutter test test\occt_native_target_scaffold_test.dart --reporter compact`:
+  - Passed.
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`:
+  - Passed; preview mesh now has 13550 vertices, 13776 triangles, 16 surface
+    mappings, `nativeCircularCutoutCount=1`, and
+    `nativeGeneratedLidCircularCutoutCount=1`.
+- `flutter test test\native_occt_geometry_regression_test.dart --reporter compact`:
+  - Passed.
+- `flutter test test\native_occt_step_export_test.dart --reporter compact`:
+  - Passed.
+- `flutter test test\native_occt_stl_export_test.dart --reporter compact`:
+  - Passed.
+- `dart format --output=none --set-exit-if-changed lib test tool`:
+  - Passed; 72 files checked, 0 changed.
+- `flutter test test\project_semantic_validator_test.dart --reporter compact`:
+  - Passed; 16 tests.
+- `flutter test test\geometry_protocol_test.dart --plain-name "operation planner creates deterministic backend operations" --reporter compact`:
+  - Passed.
+- `flutter test test\occt_native_target_scaffold_test.dart test\native_occt_geometry_regression_test.dart test\native_occt_step_export_test.dart test\native_occt_stl_export_test.dart --reporter compact`:
+  - Passed; 8 tests.
+- `flutter pub get`:
+  - Passed; dependency notices only.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed; 213 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed; refreshed `releases/latest/windows/shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git status --short --ignored releases`:
+  - Passed; `releases/` is ignored.
+- `git diff --check`:
+  - Passed with CRLF normalization warnings only for markdown/README files.
+
+### Validation
+- Geometry checked?
+  - Native OCCT body and generated-lid circular cuts are covered by smoke,
+    regression, STEP export, STL export, and the full Flutter test suite.
+- Serialization checked?
+  - `circular_cutout` remains normal semantic project data; no generated
+    cylinders, meshes, B-Rep, triangle ids, or topology ids are stored.
+- UI checked?
+  - Existing M103 widget coverage still passes; this slice changes native output
+    behind the same semantic command.
+- Export checked?
+  - STEP and STL native export tests passed with the updated B-Rep.
+
+### Known issues
+- Issue: Circular cutout placement is still typed X/Y, not seeded directly from
+  a face click.
+  - Severity: Medium.
+  - Next action: Use workplane hit/snap data to seed cutout placement.
+- Issue: Generic hole variants such as countersink, counterbore, threaded
+  insert, and slot are not modeled yet.
+  - Severity: Medium.
+  - Next action: Add semantic variants without exposing raw Boolean/sketch
+    operations in the default UI.
+
+### Next step
+Commit and push M104, then continue with direct face click-to-place or richer
+hole variants.
+
+### Notes for future Codex sessions
+The native worker now interprets manual `positionX`/`positionY` as face-local
+center coordinates. For front-wall manual features, Y is converted to Z around
+the enclosure center; `placement.surfacePosition` remains an absolute surface
+coordinate override for projected/future click-seeded features.
+
+---
+
 ## 2026-07-01 - M103 Semantic circular cutout command
 
 ### Goal

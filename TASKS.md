@@ -233,7 +233,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] First-pass native top-lid button group cutouts.
 - [x] First-pass semantic button group from component switch centers.
 - [x] First-pass keepout warnings.
-- [ ] Generate native circular cutout geometry.
+- [x] Generate native circular cutout geometry.
 - [ ] Generate support ribs from drawn line.
 - [ ] Generate rectangular structural rib grid.
 - [x] First-pass component placement locking.

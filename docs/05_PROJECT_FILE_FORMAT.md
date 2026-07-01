@@ -128,6 +128,11 @@ Current behavior:
   update the clean project baseline,
 - generated previews are refreshed from the loaded semantic model.
 
+Native OCCT preview/export now consumes supported `circular_cutout` features on
+the front wall and generated top lid as disposable B-Rep subtraction tools. The
+project file still stores only the semantic feature, not generated cylinders,
+meshes, Boolean tools, or OCCT topology ids.
+
 Current limitations:
 - no separate "Save As" command yet,
 - export part selection and STL quality presets are still future work.

@@ -98,12 +98,12 @@ Future<void> main(List<String> args) async {
       failures,
     );
     _expect(
-      previewMesh.vertexCount == 13258,
+      previewMesh.vertexCount == 13550,
       'previewMesh must contain the deterministic sample vertex count',
       failures,
     );
     _expect(
-      previewMesh.triangleCount == 13480,
+      previewMesh.triangleCount == 13776,
       'previewMesh must contain the deterministic sample triangle count',
       failures,
     );
@@ -125,8 +125,8 @@ Future<void> main(List<String> args) async {
       failures,
     );
     _expect(
-      previewMesh.surfaces.length == 14,
-      'previewMesh must expose body surfaces plus generated lid, body lid seat, locating lip, lid screw holes, top-lid glass, top-lid buttons, lid bosses, USB-C, glass, front button, and standoff feature mappings',
+      previewMesh.surfaces.length == 16,
+      'previewMesh must expose body surfaces plus generated lid, body lid seat, locating lip, lid screw holes, top-lid glass, top-lid circular hole, top-lid buttons, lid bosses, USB-C, glass, front circular hole, front button, and standoff feature mappings',
       failures,
     );
     final surfaceIds = previewMesh.surfaces
@@ -183,6 +183,11 @@ Future<void> main(List<String> args) async {
       failures,
     );
     _expect(
+      surfaceIds.contains('top_lid_round_hole'),
+      'previewMesh surfaces must include the generated top lid circular cutout range',
+      failures,
+    );
+    _expect(
       surfaceIds.contains('front_usb_c'),
       'previewMesh surfaces must include the sample USB-C feature range',
       failures,
@@ -190,6 +195,11 @@ Future<void> main(List<String> args) async {
     _expect(
       surfaceIds.contains('front_glass_recess'),
       'previewMesh surfaces must include the sample glass recess feature range',
+      failures,
+    );
+    _expect(
+      surfaceIds.contains('front_round_hole'),
+      'previewMesh surfaces must include the sample front circular cutout range',
       failures,
     );
     _expect(
@@ -324,8 +334,13 @@ Future<void> main(List<String> args) async {
     failures,
   );
   _expect(
-    metrics['nativeGeneratedLidFeatureCutCount'] == 6,
-    'nativeGeneratedLidFeatureCutCount must include generated top lid recess, window, and button holes',
+    metrics['nativeGeneratedLidFeatureCutCount'] == 7,
+    'nativeGeneratedLidFeatureCutCount must include generated top lid recess, window, circular hole, and button holes',
+    failures,
+  );
+  _expect(
+    metrics['nativeGeneratedLidCircularCutoutCount'] == 1,
+    'nativeGeneratedLidCircularCutoutCount must include the generated top lid circular cutout',
     failures,
   );
   _expect(
@@ -384,13 +399,13 @@ Future<void> main(List<String> args) async {
     failures,
   );
   _expect(
-    metrics['featureIntentCount'] == 7,
+    metrics['featureIntentCount'] == 9,
     'featureIntentCount must match the sample request',
     failures,
   );
   _expect(
-    metrics['nativeFeatureCutCount'] == 9,
-    'nativeFeatureCutCount must include USB-C, glass recess/window, button, and standoff operations',
+    metrics['nativeFeatureCutCount'] == 10,
+    'nativeFeatureCutCount must include USB-C, glass recess/window, circular cutout, button, and standoff operations',
     failures,
   );
   _expect(
@@ -426,6 +441,11 @@ Future<void> main(List<String> args) async {
   _expect(
     metrics['nativeGlassWindowFilletedEdgeCount'] == 8,
     'nativeGlassWindowFilletedEdgeCount must be deterministic',
+    failures,
+  );
+  _expect(
+    metrics['nativeCircularCutoutCount'] == 1,
+    'nativeCircularCutoutCount must include the sample front circular cutout',
     failures,
   );
   _expect(
@@ -575,14 +595,14 @@ Future<void> main(List<String> args) async {
   );
   _expectClose(
     _readNumber(metrics['surfaceArea']),
-    56309.554412,
+    56226.302206,
     0.001,
     'surfaceArea',
     failures,
   );
   _expectClose(
     _readNumber(metrics['volume']),
-    53366.434601,
+    53188.934617,
     0.001,
     'volume',
     failures,
@@ -636,6 +656,8 @@ Future<void> main(List<String> args) async {
           metrics['nativeGeneratedLidGlassWindowCount'],
       'nativeGeneratedLidGlassWindowFilletedEdgeCount':
           metrics['nativeGeneratedLidGlassWindowFilletedEdgeCount'],
+      'nativeGeneratedLidCircularCutoutCount':
+          metrics['nativeGeneratedLidCircularCutoutCount'],
       'nativeGeneratedLidButtonGroupCount':
           metrics['nativeGeneratedLidButtonGroupCount'],
       'nativeGeneratedLidButtonCutoutCount':
@@ -663,6 +685,7 @@ Future<void> main(List<String> args) async {
       'nativeGlassWindowCount': metrics['nativeGlassWindowCount'],
       'nativeGlassWindowFilletedEdgeCount':
           metrics['nativeGlassWindowFilletedEdgeCount'],
+      'nativeCircularCutoutCount': metrics['nativeCircularCutoutCount'],
       'nativeButtonGroupCount': metrics['nativeButtonGroupCount'],
       'nativeButtonCutoutCount': metrics['nativeButtonCutoutCount'],
       'nativeButtonRingCount': metrics['nativeButtonRingCount'],
@@ -740,6 +763,36 @@ ProjectModel _nativeSmokeProject() {
           },
           placement: {
             'surfacePosition': [36.0, 0.0],
+          },
+        ),
+      )
+      .replaceFeature(
+        const SemanticFeature(
+          id: 'front_round_hole',
+          type: 'circular_cutout',
+          targetSurface: 'main_enclosure.front_wall.outer',
+          operation: 'negative',
+          parameters: {
+            'diameter': 7.0,
+            'depth': 3.0,
+            'positionX': -36.0,
+            'positionY': 0.0,
+            'clearanceProfile': 'fdm_normal',
+          },
+        ),
+      )
+      .replaceFeature(
+        const SemanticFeature(
+          id: 'top_lid_round_hole',
+          type: 'circular_cutout',
+          targetSurface: 'main_enclosure.top_lid.outer',
+          operation: 'negative',
+          parameters: {
+            'diameter': 8.0,
+            'depth': 3.0,
+            'positionX': -36.0,
+            'positionY': 0.0,
+            'clearanceProfile': 'fdm_normal',
           },
         ),
       )
