@@ -38,23 +38,25 @@ It does not return mesh IDs, triangle IDs, OCCT face IDs, or generated topology.
 
 `GeometryPreview.previewMesh` is an optional display-only mesh. The viewport
 painter projects its vertices with the current `ViewportState`, draws sorted
-triangles as a faceted body layer, and keeps component, feature, workplane,
-snap, ghost, and selection overlays above it. When a mesh is present, those
-semantic overlays switch into an annotation style: lower opacity, lighter
-strokes, and no duplicate heavy mock selection outline when the selected
-semantic id already has mapped preview ranges. Project/workspace selection keeps
-component, feature, and feature-group annotations muted so the native body stays
-the primary visual layer; selecting a feature, feature group, or component
-placement focuses the relevant annotation again for inspection. The mesh is
-never hit-tested as the editable source of truth. Native preview meshes may
-include disposable semantic surface ranges. When the current selection is a
-matching semantic surface, feature, or feature group, the viewport can tint
-those mapped preview triangles and draw a screen-space halo as a display-only
-highlight. First-pass native mesh picking uses those same disposable triangle
-ranges only inside the viewport event handler: a click is projected against the
-current preview mesh, the hit range is translated immediately back to a
-semantic id, and selection stores only that semantic id. Triangle IDs remain
-preview implementation details and are not written into `ProjectModel`.
+triangles as a faceted body layer, derives boundary edges from triangle
+connectivity to avoid drawing every internal triangulation diagonal, and keeps
+component, feature, workplane, snap, ghost, and selection overlays above it.
+When a mesh is present, those semantic overlays switch into an annotation style:
+lower opacity, lighter strokes, and no duplicate heavy mock selection outline
+when the selected semantic id already has mapped preview ranges.
+Project/workspace selection keeps component, feature, and feature-group
+annotations muted so the native body stays the primary visual layer; selecting a
+feature, feature group, or component placement focuses the relevant annotation
+again for inspection. The mesh is never hit-tested as the editable source of
+truth. Native preview meshes may include disposable semantic surface ranges.
+When the current selection is a matching semantic surface, feature, or feature
+group, the viewport can tint those mapped preview triangles and draw only the
+selected range boundary plus a screen-space halo as a display-only highlight.
+First-pass native mesh picking uses those same disposable triangle ranges only
+inside the viewport event handler: a click is projected against the current
+preview mesh, the hit range is translated immediately back to a semantic id, and
+selection stores only that semantic id. Triangle IDs remain preview
+implementation details and are not written into `ProjectModel`.
 
 Component placement hit zones are now supplied as
 `MockViewportComponentPlacementPreview` values derived from semantic
@@ -155,6 +157,8 @@ whole feature group, not an individual mesh primitive or flattened hole.
   forward.
 - Click a mapped native preview mesh range: select the semantic part behind
   that range, then show the generated mesh highlight.
+- Native preview mesh rendering hides shared internal triangle edges and keeps
+  only boundary/selection contours visible.
 - Selected surface workplanes are hidden in native preview mode; component
   placement workplanes and active snap targets remain focused.
 
@@ -185,7 +189,9 @@ mapping, desktop stability, license, and packaging complexity.
 - The viewport can draw a generated preview mesh body and selected mapped
   surface highlights when a backend provides them. Other semantic overlays are
   still first-pass schematic affordances, now muted by default in native preview
-  mode and focused only when their semantic item is selected.
+  mode and focused only when their semantic item is selected. Rendering hides
+  internal mesh diagonals, but the `CustomPaint` preview still uses simple
+  per-triangle shading rather than a final material/normal pipeline.
 - Native preview mesh picking is first-pass semantic picking from mapped
   preview ranges. It is not raw triangle editing, and it falls back to mock hit
   zones when no mapped mesh range is hit.

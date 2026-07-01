@@ -113,6 +113,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M92 - Native Viewport De-Clutter
 - [x] M93 - Native Surface Workplane Softening
 - [x] M94 - Native Mesh Semantic Picking
+- [x] M95 - Native Preview Mesh De-Noise
 
 ---
 
@@ -4374,3 +4375,52 @@ semantic parts.
   of the model during passive inspection.
 - Click explicit snap points only when you want the snap workflow; those should
   still work.
+
+---
+
+## M95 - Native Preview Mesh De-Noise
+
+### Goal
+Reduce visible triangulation noise in the current `CustomPaint` native preview
+without changing semantic project data, OCCT B-Rep generation, or preview mesh
+protocols.
+
+### Tasks
+- [x] Add a small tested helper that derives boundary edges from preview mesh
+      triangles.
+- [x] Stop drawing every unselected internal triangle edge in the viewport.
+- [x] Draw only mesh boundary edges and selected semantic-range boundary edges.
+- [x] Slightly soften per-triangle shading contrast.
+- [x] Keep selected mapped surface/feature highlights and native mesh picking
+      intact.
+- [x] Update viewport docs, task tracker, roadmap, and worklog.
+
+### Done Criteria
+- A two-triangle quad can hide its shared internal diagonal while preserving
+  its outer boundary.
+- Selected semantic ranges get a contour without reintroducing internal mesh
+  wire noise.
+- No project model, geometry protocol, OCCT worker, or editable geometry state
+  changes.
+- Existing native mesh highlight and picking widget tests still pass.
+
+### Tests
+- `flutter test test\preview_mesh_edges_test.dart --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "selected surface highlights mapped preview mesh range" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "native preview mesh click selects mapped semantic feature" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open
+  `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- Orbit the native model and confirm the body looks less like a triangle mesh
+  debug view.
+- Select `Top lid`, `USB-C`, and a button group; selected mapped ranges should
+  still highlight clearly.
+- Some faceting will remain because this is still the interim `CustomPaint`
+  renderer, not a final shaded 3D viewport.

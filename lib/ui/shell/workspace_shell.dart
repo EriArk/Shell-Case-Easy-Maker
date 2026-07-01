@@ -21,6 +21,7 @@ import '../../selection/project_selection_resolver.dart';
 import '../../selection/selection_model.dart';
 import '../../validation/project_semantic_validator.dart';
 import '../../validation/validation_result.dart';
+import '../../viewport/preview_mesh_edges.dart';
 import '../../viewport/viewport_controller.dart';
 
 class WorkspaceShell extends StatefulWidget {
@@ -6606,6 +6607,17 @@ class _ViewportPainter extends CustomPainter {
         _selectionUsesPreviewSurfaceRanges(selection)
         ? _previewSurfaceTriangleIndices(mesh, selection.id)
         : const <int>{};
+    final meshBoundaryEdges = previewMeshBoundaryEdges(
+      triangles: mesh.triangles,
+      vertexCount: mesh.vertexCount,
+    );
+    final selectedBoundaryEdges = selectedTriangleIndices.isEmpty
+        ? const <PreviewMeshEdgeKey>{}
+        : previewMeshBoundaryEdges(
+            triangles: mesh.triangles,
+            vertexCount: mesh.vertexCount,
+            triangleIndices: selectedTriangleIndices,
+          );
     final selectionTone = _PreviewMeshSelectionTone.fromSelection(
       colorScheme: colorScheme,
       selection: selection,
@@ -6642,13 +6654,15 @@ class _ViewportPainter extends CustomPainter {
     triangles.sort((left, right) => left.depth.compareTo(right.depth));
 
     final fillPaint = Paint()..style = PaintingStyle.fill;
-    final strokePaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.025)
+    final meshBoundaryPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.055)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.45;
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = 0.55;
     final selectedStrokePaint = Paint()
       ..color = selectionTone.color.withValues(alpha: selectionTone.edgeAlpha)
       ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
       ..strokeWidth = selectionTone.edgeWidth;
     final selectedHaloShadowPaint = Paint()
@@ -6682,7 +6696,13 @@ class _ViewportPainter extends CustomPainter {
             )
           : baseColor;
       canvas.drawPath(path, fillPaint);
-      canvas.drawPath(path, strokePaint);
+      _drawPreviewMeshTriangleEdges(
+        canvas: canvas,
+        vertices: vertices,
+        triangle: triangle,
+        edges: meshBoundaryEdges,
+        paint: meshBoundaryPaint,
+      );
       if (triangle.selectedSurface) {
         final triangleBounds = Rect.fromLTRB(
           math.min(a.dx, math.min(b.dx, c.dx)),
@@ -6693,7 +6713,13 @@ class _ViewportPainter extends CustomPainter {
         selectedBounds = selectedBounds == null
             ? triangleBounds
             : selectedBounds.expandToInclude(triangleBounds);
-        canvas.drawPath(path, selectedStrokePaint);
+        _drawPreviewMeshTriangleEdges(
+          canvas: canvas,
+          vertices: vertices,
+          triangle: triangle,
+          edges: selectedBoundaryEdges,
+          paint: selectedStrokePaint,
+        );
       }
     }
 
@@ -7284,6 +7310,54 @@ bool _hasPreviewMesh(PreviewMesh? mesh) {
   return mesh != null && mesh.vertexCount > 0 && mesh.triangleCount > 0;
 }
 
+void _drawPreviewMeshTriangleEdges({
+  required Canvas canvas,
+  required List<_PreviewMeshVertex> vertices,
+  required _PreviewMeshTriangle triangle,
+  required Set<PreviewMeshEdgeKey> edges,
+  required Paint paint,
+}) {
+  _drawPreviewMeshEdgeIfPresent(
+    canvas: canvas,
+    vertices: vertices,
+    edges: edges,
+    first: triangle.a,
+    second: triangle.b,
+    paint: paint,
+  );
+  _drawPreviewMeshEdgeIfPresent(
+    canvas: canvas,
+    vertices: vertices,
+    edges: edges,
+    first: triangle.b,
+    second: triangle.c,
+    paint: paint,
+  );
+  _drawPreviewMeshEdgeIfPresent(
+    canvas: canvas,
+    vertices: vertices,
+    edges: edges,
+    first: triangle.c,
+    second: triangle.a,
+    paint: paint,
+  );
+}
+
+void _drawPreviewMeshEdgeIfPresent({
+  required Canvas canvas,
+  required List<_PreviewMeshVertex> vertices,
+  required Set<PreviewMeshEdgeKey> edges,
+  required int first,
+  required int second,
+  required Paint paint,
+}) {
+  if (!edges.contains(PreviewMeshEdgeKey(first, second))) {
+    return;
+  }
+
+  canvas.drawLine(vertices[first].point, vertices[second].point, paint);
+}
+
 List<_PreviewMeshVertex>? _projectPreviewMeshVertices({
   required PreviewMesh mesh,
   required ViewportState viewportState,
@@ -7576,7 +7650,7 @@ double _previewTriangleShade(PreviewMesh mesh, int a, int b, int c) {
   const lightY = -0.48;
   const lightZ = 0.80;
   final dot = (nx * lightX + ny * lightY + nz * lightZ) / normalLength;
-  return (0.48 + dot.abs() * 0.34).clamp(0.34, 0.86).toDouble();
+  return (0.54 + dot.abs() * 0.22).clamp(0.42, 0.78).toDouble();
 }
 
 double _previewMeshX(PreviewMesh mesh, int index) => mesh.vertices[index * 3];

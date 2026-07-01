@@ -42,6 +42,95 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-07-01 - M95 Native preview mesh de-noise
+
+### Goal
+Reduce the visible triangle-wire noise in the current native preview while
+keeping generated mesh data display-only and preserving semantic selection.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`docs/33_VIEWPORT_MVP.md`, `lib/ui/shell/workspace_shell.dart`, and
+`lib/viewport/viewport_controller.dart`.
+
+### Changes made
+- `lib/viewport/preview_mesh_edges.dart`:
+  - Added a small helper that derives boundary edges from preview mesh
+    triangles.
+  - Keeps internal shared triangle edges out of the rendered contour.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Uses preview mesh boundary edges instead of stroking every unselected
+    triangle.
+  - Draws selected semantic-range boundary edges instead of selected internal
+    triangle wire.
+  - Softened preview triangle shade contrast to reduce the debug-mesh look.
+- `test/preview_mesh_edges_test.dart`:
+  - Added unit coverage for shared-edge removal, selected-range contours, and
+    invalid triangle/index handling.
+- Docs/tasks:
+  - Added M95 to `ROADMAP.md`, marked the related task items in `TASKS.md`, and
+    updated viewport docs to describe boundary-edge rendering.
+
+### Tests run
+- `dart format lib\viewport\preview_mesh_edges.dart lib\ui\shell\workspace_shell.dart test\preview_mesh_edges_test.dart`:
+  - Passed; formatted the new helper and test.
+- `flutter test test\preview_mesh_edges_test.dart --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "selected surface highlights mapped preview mesh range" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "native preview mesh click selects mapped semantic feature" --reporter compact`:
+  - Passed.
+- Initial parallel targeted Flutter test attempt:
+  - Reported a Flutter startup-lock/ephemeral cleanup conflict; rerun
+    sequentially and passed.
+- `flutter pub get`:
+  - Passed.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 69 files checked, 0 changed.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed; all tests passed.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed; latest Windows bundle rebuilt at
+    `releases/latest/windows/shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git diff --check`:
+  - Passed; only the existing `ROADMAP.md` line-ending warning was reported.
+
+### Validation
+- Geometry checked?
+  - Not changed; this is viewport rendering only.
+- Serialization checked?
+  - No project/protocol serialization changed.
+- UI checked?
+  - Boundary-edge helper unit tests, native preview widget tests, analyzer, and
+    full suite passed.
+- Export checked?
+  - Latest Windows bundle was rebuilt; export flows were not changed.
+
+### Known issues
+- Issue: The native preview still uses the interim `CustomPaint` mesh renderer,
+  so some faceted shading remains.
+  - Severity: Medium.
+  - Next action: Later move to a proper depth-aware 3D viewport/material path.
+- Issue: The generated top lid is still a fit-preview/exploded plate, not final
+  flush mating geometry.
+  - Severity: Medium.
+  - Next action: Keep for a later geometry chunk focused on lid fit/seat.
+
+### Next step
+Manually check that the native body no longer reads like a triangle debug mesh
+while mapped selection highlights still work, then continue with the later lid
+fit/seat geometry chunk.
+
+### Notes for future Codex sessions
+Do not reintroduce raw triangle-wire display as the default native preview.
+Triangle IDs remain transient preview details; selection should stay semantic.
+
+---
+
 ## 2026-06-30 - M94 Native mesh semantic picking
 
 ### Goal
