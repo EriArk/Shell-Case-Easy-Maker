@@ -103,6 +103,21 @@ class GeometryRequest {
     );
   }
 
+  factory GeometryRequest.exportStl(
+    ProjectModel project, {
+    required String requestId,
+    required String outputPath,
+    Map<String, Object?> options = const {},
+  }) {
+    return GeometryRequest(
+      requestId: requestId,
+      operation: GeometryOperation.exportStl,
+      project: project.toJson(),
+      featureIntents: GeometryFeatureIntent.fromProject(project),
+      options: {'outputPath': outputPath, ...options},
+    );
+  }
+
   factory GeometryRequest.fromJson(Map<String, Object?> json) {
     return GeometryRequest(
       schema: readString(

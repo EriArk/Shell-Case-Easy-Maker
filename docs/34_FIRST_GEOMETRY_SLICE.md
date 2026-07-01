@@ -156,7 +156,20 @@ editable project source.
 
 The workspace toolbar now exposes the same `export_step` operation through a
 STEP save-location dialog. That UI path still exports the whole generated
-preview assembly; STL export and part selection remain later slices.
+preview assembly; user-facing STL format selection and part selection remain
+later slices.
+
+The first native STL export path is covered by:
+
+```powershell
+flutter test test\native_occt_stl_export_test.dart --reporter compact
+```
+
+That test sends an `export_stl` request, verifies that the response returns an
+`stl` artifact, and checks the binary STL byte layout from the 80-byte header,
+little-endian triangle count, and `84 + triangleCount * 50` file size. STL
+files are generated artifacts only; they are not stored as the editable project
+source.
 
 The current native response returns deterministic bounds, dimensions, surface
 area, volume, disposable preview mesh data, and first-pass semantic surface
@@ -457,7 +470,8 @@ Expected sample dimensions:
   same lid, and plunger-style groups now add first-pass generated cap/stem,
   guide-sleeve, and travel-stop preview detail. A real separable lid/body split
   with full mating geometry,
-  protected recess islands, richer mount variants, STL export, and richer face
-  mapping are still planned.
+  protected recess islands, richer mount variants, and richer face mapping are
+  still planned.
 - STEP/STL export operations intentionally return unsupported in the mock
-  backend. Native OCCT now supports the first `export_step` artifact path.
+  backend. Native OCCT now supports the first `export_step` and `export_stl`
+  artifact paths.

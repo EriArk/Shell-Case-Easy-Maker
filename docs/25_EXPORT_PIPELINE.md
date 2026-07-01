@@ -26,6 +26,15 @@ Do not use exported STL as source for future editing.
 
 Generated from B-Rep tessellation.
 
+Current native status:
+- `occt_worker_native_occt` supports the first `export_stl` operation.
+- The request must provide `options.outputPath`.
+- The response returns a binary `stl` artifact generated from OCCT B-Rep
+  tessellation.
+- The exported STL file is output only and is not editable project state.
+- The app toolbar does not expose STL yet; a user-facing format choice is still
+  pending.
+
 Options:
 - preview quality,
 - print quality,
@@ -44,7 +53,7 @@ Current native status:
 - The toolbar export command now opens a STEP save-location dialog and sends
   `GeometryRequest.exportStep` through `GeometryService`.
 - The toolbar path exports the whole generated sample assembly for now.
-- STL, format selection, and part-selection options are still future work.
+- Format selection and part-selection options are still future work.
 
 Options:
 - entire device,

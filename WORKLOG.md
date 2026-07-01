@@ -42,6 +42,110 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-07-01 - M101 Native STL export slice
+
+### Goal
+Add the first native OCCT STL artifact export behind the worker protocol,
+without adding editable STL, mesh, B-Rep, or topology IDs to the project model.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/geometry/geometry_protocol.dart`, `test/geometry_protocol_test.dart`,
+`test/occt_native_target_scaffold_test.dart`,
+`test/support/native_occt_geometry_fixture.dart`,
+`occt_worker/native/src/occt_main.cpp`,
+`occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/StlAPI_Writer.hxx`,
+`occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/StlAPI.hxx`,
+`occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepMesh_IncrementalMesh.hxx`,
+`occt_worker/README.md`, `docs/04_GEOMETRY_ENGINE_OCCT.md`,
+`docs/05_PROJECT_FILE_FORMAT.md`, `docs/25_EXPORT_PIPELINE.md`,
+`docs/27_RESEARCH_AND_REFERENCES.md`, `docs/31_COMMANDS_AND_UNDO.md`, and
+`docs/34_FIRST_GEOMETRY_SLICE.md`.
+
+### Changes made
+- `lib/geometry/geometry_protocol.dart`:
+  - Added `GeometryRequest.exportStl`, which carries semantic project JSON,
+    derived feature intents, and explicit `options.outputPath`.
+- `occt_worker/native/src/occt_main.cpp`:
+  - Added `export_stl` support to native OCCT capabilities and request parsing.
+  - Requires non-empty `options.outputPath` for STL export.
+  - Meshes the same generated semantic B-Rep assembly with deterministic
+    first-pass STL deflection values.
+  - Writes binary STL through `StlAPI_Writer`.
+  - Returns an `stl` `GeometryArtifact` plus export metrics and keeps
+    `editableGeneratedGeometry=false`.
+- Tests:
+  - Added protocol coverage for `GeometryRequest.exportStl`.
+  - Added native STL export coverage that writes a temporary `.stl` file and
+    validates binary STL header/count/byte-size layout.
+  - Extended native source-contract coverage for the STL path.
+- Docs/tasks:
+  - Marked STL export done at the worker MVP level in `TASKS.md`.
+  - Added M101 to `ROADMAP.md`.
+  - Updated OCCT/export/project-file/commands docs and added an STL export
+    research note.
+
+### Tests run
+- `dart format lib\geometry\geometry_protocol.dart test\geometry_protocol_test.dart test\native_occt_stl_export_test.dart test\occt_native_target_scaffold_test.dart`:
+  - Passed; 0 changed.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`:
+  - Passed; rebuilt the native OCCT worker and deployed `TKDESTL.dll`.
+- `flutter test test\geometry_protocol_test.dart --plain-name "STL export request carries output path and semantic feature intents" --reporter compact`:
+  - Passed.
+- `flutter test test\occt_native_target_scaffold_test.dart --plain-name "OCCT target source emits deterministic rounded enclosure preview mesh" --reporter compact`:
+  - Passed.
+- `flutter test test\native_occt_stl_export_test.dart --reporter compact`:
+  - Passed.
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`:
+  - Passed; native capabilities include `preview_mesh`, `export_step`, and
+    `export_stl`.
+- `flutter pub get`:
+  - Passed; package solver reported only newer incompatible package notices.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 73 files checked, 0 changed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed; 207 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed; refreshed `releases/latest/windows/shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git status --short --ignored releases`:
+  - Passed; `releases/` is ignored.
+- `git diff --check`:
+  - Passed with CRLF normalization warnings only for docs.
+
+### Validation
+- Geometry checked?
+  - Native worker rebuild, metrics smoke test, targeted STL export test, full
+    Flutter test suite, and latest Windows bundle build passed.
+- Serialization checked?
+  - `GeometryRequest.exportStl` round-trip coverage passed.
+- UI checked?
+  - No new app UI is exposed in this backend slice.
+- Export checked?
+  - Native STL artifact test writes and validates a temporary binary STL file;
+    latest Windows bundle was refreshed.
+
+### Known issues
+- Issue: Toolbar export is still STEP-only.
+  - Severity: Medium.
+  - Next action: Add a user-facing format choice for STEP/STL.
+- Issue: STL export uses one first-pass binary quality profile.
+  - Severity: Medium.
+  - Next action: Add export quality presets after manual file checks.
+
+### Next step
+Commit and push M101, then start the user-facing STEP/STL export format choice.
+
+### Notes for future Codex sessions
+Keep STL output as an artifact only. Do not write STL paths, triangle IDs, or
+generated meshes into `ProjectModel` unless a future explicit export-history
+feature is designed.
+
+---
+
 ## 2026-07-01 - M100 Toolbar STEP export
 
 ### Goal

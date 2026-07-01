@@ -57,6 +57,64 @@ Use `templates/RESEARCH_NOTE_TEMPLATE.md`.
 
 ---
 
+## 2026-07-01 - OCCT native STL export artifact
+
+## Question
+
+How should the native worker write the first STL artifact while keeping STL as
+generated output and preserving the semantic project model as the editable
+source of truth?
+
+## Sources checked
+
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/StlAPI_Writer.hxx`
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/StlAPI.hxx`
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepMesh_IncrementalMesh.hxx`
+- Existing native worker preview assembly path in
+  `occt_worker/native/src/occt_main.cpp`.
+- `docs/25_EXPORT_PIPELINE.md`.
+
+## Findings
+
+- `StlAPI_Writer` writes a `TopoDS_Shape` to STL and exposes `ASCIIMode()` for
+  choosing ASCII or binary output.
+- Binary STL is a compact first artifact for print workflows. The test can
+  validate the binary layout through the 80-byte header, little-endian triangle
+  count, and `84 + triangleCount * 50` byte size.
+- `BRepMesh_IncrementalMesh` can explicitly tessellate the generated B-Rep
+  before STL writing with known linear and angular deflection values.
+- The STL triangle mesh is an export artifact only. It must not be stored as
+  editable project state and must not become the source for future edits.
+- The request should require an explicit output path. The worker should not
+  silently choose persistent export locations.
+
+## License / compatibility notes
+
+- OCCT headers are from the project-local vcpkg dependency. They are LGPL 2.1
+  with OCCT exception / commercial alternative, matching the existing OCCT
+  dependency evaluation.
+- No external project code was copied.
+
+## Decision
+
+Implement `export_stl` in `occt_worker_native_occt` as an artifact-producing
+operation with explicit `options.outputPath`. Mesh the same semantic B-Rep
+preview assembly with deterministic first-pass deflection values, write binary
+STL through `StlAPI_Writer`, and return a `GeometryArtifact` with `type=stl`,
+path, byte count, triangle count, binary flag, and generated-output metrics.
+Keep STL files as output only, not editable project state.
+
+## Follow-up tasks
+
+- Add a user-facing export format choice so the toolbar can select STEP or STL.
+- Add STL quality presets after first manual checks.
+- Add package license notices before distributing OCCT DLLs broadly.
+
+---
+
 ## 2026-07-01 - OCCT native STEP export artifact
 
 ## Question
@@ -111,8 +169,8 @@ metrics. Keep STEP files as output only, not editable project state.
 
 ## Follow-up tasks
 
-- Add user-facing save/export commands that pass `options.outputPath`.
-- Add STL export after deciding tessellation quality presets.
+- Add user-facing format/part selection on top of the first STEP/STL artifact
+  paths.
 - Add package license notices before distributing OCCT DLLs broadly.
 
 ---

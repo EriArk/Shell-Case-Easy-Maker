@@ -188,8 +188,8 @@ dart run occt_worker\bin\occt_worker.dart --capabilities
 
 The capability response marks the Dart mock backend as available for
 `preview_mesh` and the native OCCT worker as an opt-in backend. Native preview
-mesh and the first native STEP artifact export are implemented; STL export and
-validation remain planned.
+mesh plus the first native STEP and binary STL artifact exports are
+implemented; geometry validation remains planned.
 Capability JSON is metadata; it must not contain raw OCCT topology IDs or
 generated B-Rep.
 `GeometryWorkerProcessClient.queryCapabilities()` consumes this JSON through the
@@ -253,9 +253,9 @@ settings, rerun the OCCT build command with `-AllowVcpkgInstall -Clean`.
 This builds `occt_worker_native_occt`, a separate opt-in OCCT target. It now
 builds the first semantic rounded enclosure B-Rep internally and returns a
 disposable preview mesh plus deterministic metrics for `preview_mesh` requests.
-It also supports `export_step` with an explicit `options.outputPath`, returning
-a generated STEP artifact response from the same B-Rep pipeline. It does not
-replace the stub, and it still does not return STL artifacts or editable
+It also supports `export_step` and `export_stl` with an explicit
+`options.outputPath`, returning generated artifacts from the same B-Rep
+pipeline. It does not replace the stub, and it still does not return editable
 generated geometry.
 
 Native OCCT metrics smoke command:

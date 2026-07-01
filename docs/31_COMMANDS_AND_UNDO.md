@@ -170,7 +170,8 @@ visible and disabled, instead of running empty callbacks.
   feature parameter edits, first button/mount feature-group parameter edits,
   and first enclosure creation/component placement/USB-C cutout/button
   group/glass recess/mount group only.
-- Export is currently first-pass STEP only. STL and a user-facing format/part
-  selector are still pending.
+- The toolbar export command is currently first-pass STEP only. The native
+  backend can produce STL artifacts, but a user-facing format/part selector is
+  still pending.
 - Selection and active surface context are available from the shell selection
   model, but most editing commands are not wired yet.

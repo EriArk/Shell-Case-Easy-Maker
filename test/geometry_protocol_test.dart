@@ -159,6 +159,29 @@ void main() {
     },
   );
 
+  test(
+    'STL export request carries output path and semantic feature intents',
+    () {
+      final request = GeometryRequest.exportStl(
+        ProjectModel.initial(),
+        requestId: 'stl_export',
+        outputPath: r'C:\tmp\sample.stl',
+      );
+      final decoded = GeometryRequest.fromJson(
+        jsonDecode(jsonEncode(request.toJson())) as Map<String, Object?>,
+      );
+
+      expect(decoded.operation, GeometryOperation.exportStl);
+      expect(decoded.options['outputPath'], r'C:\tmp\sample.stl');
+      expect(decoded.featureIntents.map((intent) => intent.id), [
+        'front_usb_c',
+        'abxy_buttons',
+      ]);
+      expect(jsonEncode(decoded.toJson()), contains('export_stl'));
+      expect(jsonEncode(decoded.toJson()), contains('outputPath'));
+    },
+  );
+
   test('standoff group intents can expand from component template holes', () {
     final project = ProjectModel.initial().replaceFeatureGroup(
       const FeatureGroup(

@@ -119,6 +119,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M98 - Native OCCT Geometry Regression Test
 - [x] M99 - Native STEP Export Slice
 - [x] M100 - Toolbar STEP Export
+- [x] M101 - Native STL Export Slice
 
 ---
 
@@ -4653,3 +4654,49 @@ as an output artifact, not editable project state.
 - Confirm a `.step` file is created and the bottom status says STEP was
   exported.
 - Try clicking export twice quickly; only one save dialog should appear.
+
+---
+
+## M101 - Native STL Export Slice
+
+### Goal
+Add the first native OCCT `export_stl` artifact path behind the worker boundary
+so the generated B-Rep can produce a binary STL without making STL editable
+project state.
+
+### Tasks
+- [x] Add `GeometryRequest.exportStl` with explicit `outputPath`.
+- [x] Teach the native OCCT worker to accept `export_stl` requests and require
+      `options.outputPath`.
+- [x] Mesh the generated preview assembly deterministically before STL write.
+- [x] Export binary STL through `StlAPI_Writer`.
+- [x] Return a `GeometryArtifact` for the generated STL file.
+- [x] Add native STL export coverage and update docs/tasks/worklog.
+
+### Done Criteria
+- The native OCCT worker capabilities list `export_stl` as supported.
+- A semantic sample request writes a real binary `.stl` file.
+- The test validates the STL header, triangle count, and expected byte size.
+- The response returns artifact metadata, export metrics, and
+  `editableGeneratedGeometry=false`.
+- The response does not include preview mesh data, raw OCCT topology IDs, or
+  stable triangle IDs.
+- The app toolbar remains STEP-only until a user-facing format chooser is added.
+
+### Tests
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`
+- `flutter test test\geometry_protocol_test.dart --plain-name "STL export request carries output path and semantic feature intents" --reporter compact`
+- `flutter test test\occt_native_target_scaffold_test.dart --plain-name "OCCT target source emits deterministic rounded enclosure preview mesh" --reporter compact`
+- `flutter test test\native_occt_stl_export_test.dart --reporter compact`
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- No new app UI is exposed in this chunk.
+- Native STL is verified by test. Manual STL export becomes useful after the
+  next UI format-choice chunk.

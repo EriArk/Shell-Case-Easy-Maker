@@ -17,6 +17,7 @@
 #include <Standard_Version.hxx>
 #include <STEPControl_StepModelType.hxx>
 #include <STEPControl_Writer.hxx>
+#include <StlAPI_Writer.hxx>
 #include <TopAbs_ShapeEnum.hxx>
 #include <TopExp_Explorer.hxx>
 #include <TopLoc_Location.hxx>
@@ -59,6 +60,8 @@ constexpr const char* kBackend = "occt_worker_native_occt";
 constexpr const char* kInvalidRequestId = "invalid_request";
 constexpr double kPreviewLinearDeflection = 0.3;
 constexpr double kPreviewAngularDeflection = 0.35;
+constexpr double kExportStlLinearDeflection = 0.3;
+constexpr double kExportStlAngularDeflection = 0.35;
 constexpr double kDefaultButtonRingWidth = 1.2;
 constexpr double kButtonRingInnerClearance = 0.05;
 constexpr double kDefaultButtonRingProtrusion = 0.45;
@@ -348,6 +351,15 @@ struct StepExportResult {
   std::string path;
   std::uintmax_t byte_count = 0;
   std::string transfer_status;
+  std::string write_status;
+};
+
+struct StlExportResult {
+  std::string path;
+  std::uintmax_t byte_count = 0;
+  int triangle_count = 0;
+  int mesher_status = 0;
+  bool binary = true;
   std::string write_status;
 };
 
@@ -983,21 +995,24 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
   }
   result.request.operation = *operation;
 
-  if (*operation != "preview_mesh" && *operation != "export_step") {
+  if (*operation != "preview_mesh" && *operation != "export_step" &&
+      *operation != "export_stl") {
     result.issue_code = "worker.backend.occt_operation_not_implemented";
     result.issue_message =
-        "The native OCCT worker currently implements preview_mesh and "
-        "export_step for the first enclosure body.";
+        "The native OCCT worker currently implements preview_mesh, "
+        "export_step, and export_stl for the first enclosure body.";
     return result;
   }
 
-  if (*operation == "export_step") {
+  if (*operation == "export_step" || *operation == "export_stl") {
     const std::optional<std::string> options =
         ExtractTopLevelObjectField(payload, "options");
     if (!options.has_value()) {
       result.issue_code = "worker.export.missing_output_path";
-      result.issue_message =
-          "Native OCCT STEP export requires options.outputPath.";
+      result.issue_message = "Native OCCT " +
+                             (*operation == "export_step" ? std::string("STEP")
+                                                           : std::string("STL")) +
+                             " export requires options.outputPath.";
       return result;
     }
 
@@ -1005,8 +1020,10 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
         ExtractTopLevelStringField(*options, "outputPath").value_or("");
     if (result.export_output_path.empty()) {
       result.issue_code = "worker.export.missing_output_path";
-      result.issue_message =
-          "Native OCCT STEP export requires a non-empty options.outputPath.";
+      result.issue_message = "Native OCCT " +
+                             (*operation == "export_step" ? std::string("STEP")
+                                                           : std::string("STL")) +
+                             " export requires a non-empty options.outputPath.";
       return result;
     }
   }
@@ -4580,6 +4597,71 @@ StepExportResult ExportStepFile(const TopoDS_Shape& shape,
   return result;
 }
 
+int CountShapeTriangles(const TopoDS_Shape& shape) {
+  int triangle_count = 0;
+  for (TopExp_Explorer explorer(shape, TopAbs_FACE); explorer.More();
+       explorer.Next()) {
+    const TopoDS_Face face = TopoDS::Face(explorer.Current());
+    TopLoc_Location location;
+    const opencascade::handle<Poly_Triangulation> triangulation =
+        BRep_Tool::Triangulation(face, location);
+    if (triangulation.IsNull()) {
+      continue;
+    }
+
+    triangle_count += triangulation->NbTriangles();
+  }
+
+  return triangle_count;
+}
+
+StlExportResult ExportStlFile(const TopoDS_Shape& shape,
+                              const std::string& output_path) {
+  if (shape.IsNull()) {
+    throw std::runtime_error("OCCT cannot export a null STL shape.");
+  }
+  if (output_path.empty()) {
+    throw std::runtime_error("STL export output path is empty.");
+  }
+
+  const std::filesystem::path stl_path(output_path);
+  const std::filesystem::path parent_path = stl_path.parent_path();
+  if (!parent_path.empty()) {
+    std::filesystem::create_directories(parent_path);
+  }
+
+  const BRepMesh_IncrementalMesh mesher(shape,
+                                        kExportStlLinearDeflection,
+                                        false,
+                                        kExportStlAngularDeflection,
+                                        false);
+  const int triangle_count = CountShapeTriangles(shape);
+  if (triangle_count <= 0) {
+    throw std::runtime_error("OCCT STL meshing produced no triangles.");
+  }
+
+  bool write_ok = false;
+  {
+    std::ostringstream occt_stdout;
+    ScopedCoutRedirect suppress_occt_stdout(occt_stdout);
+    StlAPI_Writer writer;
+    writer.ASCIIMode() = false;
+    write_ok = writer.Write(shape, output_path.c_str());
+  }
+  if (!write_ok) {
+    throw std::runtime_error("OCCT STL write failed.");
+  }
+
+  StlExportResult result;
+  result.path = output_path;
+  result.byte_count = std::filesystem::file_size(stl_path);
+  result.triangle_count = triangle_count;
+  result.mesher_status = mesher.GetStatusFlags();
+  result.binary = true;
+  result.write_status = "done";
+  return result;
+}
+
 void WriteCapabilities() {
   std::cout
       << "{\n"
@@ -4601,7 +4683,8 @@ void WriteCapabilities() {
       << "      \"status\": \"preview_mesh_smoke\",\n"
       << "      \"supportedOperations\": [\n"
       << "        \"preview_mesh\",\n"
-      << "        \"export_step\"\n"
+      << "        \"export_step\",\n"
+      << "        \"export_stl\"\n"
       << "      ],\n"
       << "      \"plannedOperations\": [\n"
       << "        \"preview_mesh\",\n"
@@ -4626,7 +4709,8 @@ void WriteCapabilities() {
       << "      \"notes\": [\n"
       << "        \"OCCT-linked native target is available.\",\n"
       << "        \"preview_mesh returns a disposable triangulated preview mesh, first-pass semantic surface ranges, and deterministic rounded enclosure metrics.\",\n"
-      << "        \"export_step writes a generated STEP artifact from the same semantic B-Rep pipeline to an explicit output path.\"\n"
+      << "        \"export_step writes a generated STEP artifact from the same semantic B-Rep pipeline to an explicit output path.\",\n"
+      << "        \"export_stl writes a generated binary STL artifact from the same semantic B-Rep pipeline to an explicit output path.\"\n"
       << "      ]\n"
       << "    }\n"
       << "  ],\n"
@@ -5006,6 +5090,113 @@ void WriteRoundedEnclosureStepExportResponse(
             << "}\n";
 }
 
+void WriteRoundedEnclosureStlExportResponse(
+    const NativeRequestEnvelope& request,
+    const EnclosureRequest& enclosure,
+    const ShapeMetrics& metrics,
+    const StlExportResult& export_result) {
+  std::cout << "{\n"
+            << "  \"schema\": \"" << kResponseSchema << "\",\n"
+            << "  \"version\": 1,\n"
+            << "  \"requestId\": \"" << EscapeJsonString(request.request_id)
+            << "\",\n"
+            << "  \"status\": \"ok\",\n"
+            << "  \"backend\": \"" << kBackend << "\",\n"
+            << "  \"artifacts\": [\n"
+            << "    {\n"
+            << "      \"type\": \"stl\",\n"
+            << "      \"path\": \"" << EscapeJsonString(export_result.path)
+            << "\",\n"
+            << "      \"format\": \"STL\",\n"
+            << "      \"source\": \"occt_brep_tessellation\",\n"
+            << "      \"units\": \"mm\",\n"
+            << "      \"binary\": "
+            << (export_result.binary ? "true" : "false") << ",\n"
+            << "      \"byteCount\": " << export_result.byte_count << ",\n"
+            << "      \"triangleCount\": " << export_result.triangle_count
+            << "\n"
+            << "    }\n"
+            << "  ],\n"
+            << "  \"issues\": [],\n"
+            << "  \"metrics\": {\n"
+            << "    \"requestedBackend\": \"native\",\n"
+            << "    \"executable\": \"occt_worker_native_occt\",\n"
+            << "    \"requestedOperation\": \""
+            << EscapeJsonString(request.operation) << "\",\n"
+            << "    \"occtVersion\": \""
+            << EscapeJsonString(OCC_VERSION_COMPLETE) << "\",\n"
+            << "    \"generator\": \"occt.rounded_enclosure.stl_export.v1\",\n"
+            << "    \"bodyId\": \"" << EscapeJsonString(enclosure.id)
+            << "\",\n"
+            << "    \"shape\": \"" << EscapeJsonString(enclosure.shape)
+            << "\",\n"
+            << "    \"inputSize\": ";
+  WriteDoubleArray(enclosure.size);
+  std::cout << ",\n"
+            << "    \"wallThickness\": "
+            << FormatDouble(enclosure.wall_thickness) << ",\n"
+            << "    \"cornerRadius\": "
+            << FormatDouble(enclosure.corner_radius) << ",\n"
+            << "    \"cornerRadiusApplied\": "
+            << (metrics.corner_radius_applied ? "true" : "false") << ",\n"
+            << "    \"filletedEdgeCount\": " << metrics.filleted_edge_count
+            << ",\n"
+            << "    \"shellCavityApplied\": "
+            << (metrics.shell_cavity_applied ? "true" : "false") << ",\n"
+            << "    \"shellCavityValid\": "
+            << (metrics.shell_cavity_valid ? "true" : "false") << ",\n"
+            << "    \"shellCavityToolCount\": "
+            << metrics.shell_cavity_tool_count << ",\n"
+            << "    \"shellOpening\": \"top\",\n"
+            << "    \"featureIntentCount\": "
+            << metrics.feature_intent_count << ",\n"
+            << "    \"nativeFeatureCutCount\": "
+            << metrics.native_feature_cut_count << ",\n"
+            << "    \"nativeGeneratedLidPlateCount\": "
+            << metrics.native_generated_lid_plate_count << ",\n"
+            << "    \"nativeGeneratedLidSeatCount\": "
+            << metrics.native_generated_lid_seat_count << ",\n"
+            << "    \"nativeGeneratedLidFitPreviewGap\": "
+            << FormatDouble(metrics.native_generated_lid_fit_preview_gap)
+            << ",\n"
+            << "    \"bounds\": {\n"
+            << "      \"min\": ";
+  WriteDoubleArray(metrics.bounds_min);
+  std::cout << ",\n"
+            << "      \"max\": ";
+  WriteDoubleArray(metrics.bounds_max);
+  std::cout << "\n"
+            << "    },\n"
+            << "    \"dimensions\": ";
+  WriteDoubleArray(metrics.dimensions);
+  std::cout << ",\n"
+            << "    \"surfaceArea\": " << FormatDouble(metrics.surface_area)
+            << ",\n"
+            << "    \"volume\": " << FormatDouble(metrics.volume) << ",\n"
+            << "    \"exportFormat\": \"stl\",\n"
+            << "    \"exportArtifactCount\": 1,\n"
+            << "    \"exportPath\": \""
+            << EscapeJsonString(export_result.path) << "\",\n"
+            << "    \"exportByteCount\": " << export_result.byte_count
+            << ",\n"
+            << "    \"exportBinary\": "
+            << (export_result.binary ? "true" : "false") << ",\n"
+            << "    \"exportTriangleCount\": "
+            << export_result.triangle_count << ",\n"
+            << "    \"exportMesherStatus\": "
+            << export_result.mesher_status << ",\n"
+            << "    \"exportLinearDeflection\": "
+            << FormatDouble(kExportStlLinearDeflection) << ",\n"
+            << "    \"exportAngularDeflection\": "
+            << FormatDouble(kExportStlAngularDeflection) << ",\n"
+            << "    \"exportWriteStatus\": \""
+            << EscapeJsonString(export_result.write_status) << "\",\n"
+            << "    \"previewMeshEmitted\": false,\n"
+            << "    \"editableGeneratedGeometry\": false\n"
+            << "  }\n"
+            << "}\n";
+}
+
 void WriteInvalidArgumentResponse(const std::string& argument) {
   WriteIssueResponse(kInvalidRequestId,
                      "worker.cli.invalid_arguments",
@@ -5151,6 +5342,14 @@ int main(int argc, char* argv[]) {
                                               parsed_request.enclosure,
                                               metrics,
                                               export_result);
+    } else if (parsed_request.request.operation == "export_stl") {
+      const StlExportResult export_result =
+          ExportStlFile(preview_assembly.shape,
+                        parsed_request.export_output_path);
+      WriteRoundedEnclosureStlExportResponse(parsed_request.request,
+                                             parsed_request.enclosure,
+                                             metrics,
+                                             export_result);
     } else {
       const PreviewMeshData mesh =
           BuildPreviewMesh(preview_assembly.shape,

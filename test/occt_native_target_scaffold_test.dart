@@ -37,6 +37,7 @@ void main() {
       expect(source, contains('Poly_Triangulation'));
       expect(source, contains('STEPControl_Writer'));
       expect(source, contains('STEPControl_AsIs'));
+      expect(source, contains('StlAPI_Writer'));
       expect(source, contains('BRepBndLib'));
       expect(source, contains('BRepGProp'));
       expect(source, contains('GProp_GProps'));
@@ -84,6 +85,7 @@ void main() {
       expect(source, contains('ApplyNativeFeatureCutouts'));
       expect(source, contains('BuildPreviewMesh'));
       expect(source, contains('ExportStepFile'));
+      expect(source, contains('ExportStlFile'));
       expect(source, contains('FaceIntersectsUsbCCutout'));
       expect(source, contains('FaceIntersectsLidScrewBoss'));
       expect(source, contains('FaceIntersectsGeneratedLidSeat'));
@@ -126,6 +128,7 @@ void main() {
       expect(source, contains('WritePreviewMesh'));
       expect(source, contains('WritePreviewSurfaceMappings'));
       expect(source, contains('WriteRoundedEnclosureStepExportResponse'));
+      expect(source, contains('WriteRoundedEnclosureStlExportResponse'));
       expect(source, contains('worker.backend.occt_operation_not_implemented'));
       expect(source, contains('worker.export.missing_output_path'));
       expect(source, contains('worker.geometry.invalid_enclosure_dimensions'));
