@@ -68,10 +68,9 @@ When a selected surface workplane point is active, new `circular_cutout`
 and `rectangular_cutout` features start from that clicked face-local X/Y, but
 the snap target itself is not saved as project state.
 The native OCCT worker consumes supported front-wall and top-lid
-`circular_cutout` feature intents as generated B-Rep subtraction tools; the
-editable source remains the semantic feature parameters above. Generic
-`rectangular_cutout` is currently semantic UI/mock preview/operation-plan data;
-native generated subtraction is intentionally a separate follow-up slice.
+`circular_cutout` and `rectangular_cutout` feature intents as generated B-Rep
+subtraction tools; the editable source remains the semantic feature parameters
+above.
 
 ## Feature groups
 

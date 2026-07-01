@@ -116,8 +116,9 @@ operations before real B-Rep generation exists:
 The mock backend exposes this plan in response metrics for testing and worker
 development. The native OCCT worker now consumes front-wall `usb_c_cutout`
 intents, first-pass front-wall and top-lid `glass_recess` intents,
-front-wall/top-lid `circular_cutout` intents, and front-wall `button_group`
-item intents as real generated B-Rep. Front-wall and
+front-wall/top-lid `circular_cutout` intents, front-wall/top-lid
+`rectangular_cutout` intents, and front-wall `button_group` item intents as
+real generated B-Rep. Front-wall and
 top-lid glass recesses both use semantic `ledgeWidth` to leave a generated
 support ledge around an inner through-window. It also
 consumes bottom-inside `standoff_mounts` item intents as positive generated
@@ -141,11 +142,9 @@ one editable semantic object; circular holes remain semantic features; lid
 screw bosses, lid plate, lid screw holes,
 lid locating lip, body lid seat, lid fit preview, generated top-lid recesses,
 generated front/top glass windows, generated circular cutouts, generated
-top-lid button holes, and
+rounded-rectangular cutouts, generated top-lid button holes, and
 plunger-style cap/stem/guide/stop preview parts remain generated enclosure
-detail, not separate editable solids. Generic `rectangular_cutout` is an
-operation-plan intent for now; real rounded rectangular B-Rep subtraction is a
-follow-up native slice. The worker only consumes semantic parameters and
+detail, not separate editable solids. The worker only consumes semantic parameters and
 derived item positions as disposable generator input. A real
 mating lid/body split, protected recess islands, and richer mount variants
 remain next slices. The plan is disposable backend input. It must not be saved

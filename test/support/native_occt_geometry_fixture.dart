@@ -14,6 +14,16 @@ const nativeOcctExpectedSurfaceArea = 56226.302206;
 const nativeOcctExpectedVolume = 53188.934617;
 const nativeOcctExpectedFitPreviewGap = 0.08;
 
+const nativeOcctRectangularCutoutExpectedPreviewVertexCount = 4510;
+const nativeOcctRectangularCutoutExpectedPreviewTriangleCount = 4940;
+const nativeOcctRectangularCutoutExpectedSurfaceMappingCount = 10;
+const nativeOcctRectangularCutoutExpectedMappedTriangleCount = 7648;
+const nativeOcctRectangularCutoutExpectedBoundsMin = [-60.0, -35.0, 0.0];
+const nativeOcctRectangularCutoutExpectedBoundsMax = [60.0, 35.0, 30.08];
+const nativeOcctRectangularCutoutExpectedDimensions = [120.0, 70.0, 30.08];
+const nativeOcctRectangularCutoutExpectedSurfaceArea = 54833.278006;
+const nativeOcctRectangularCutoutExpectedVolume = 53202.341646;
+
 const nativeOcctExpectedSurfaceIds = {
   'main_enclosure.top_lid.outer',
   'main_enclosure.front_wall.outer',
@@ -31,6 +41,19 @@ const nativeOcctExpectedSurfaceIds = {
   'front_round_hole',
   'front_buttons',
   'standoff_mounts_1',
+};
+
+const nativeOcctRectangularCutoutExpectedSurfaceIds = {
+  'main_enclosure.generated_top_lid_seat',
+  'main_enclosure.generated_top_lid_locating_lip',
+  'main_enclosure.front_wall.outer',
+  'front_rect_slot',
+  'main_enclosure.lid_screw_bosses',
+  'main_enclosure.bottom_inside',
+  'main_enclosure.generated_top_lid',
+  'main_enclosure.top_lid.outer',
+  'main_enclosure.generated_top_lid_screw_holes',
+  'top_rect_slot',
 };
 
 String nativeOcctExecutablePath(
@@ -235,6 +258,44 @@ ProjectModel nativeOcctRegressionProject() {
           },
         ),
       );
+}
+
+ProjectModel nativeOcctRectangularCutoutProject() {
+  return ProjectModel.initial().copyWith(
+    features: const [
+      SemanticFeature(
+        id: 'front_rect_slot',
+        type: 'rectangular_cutout',
+        targetSurface: 'main_enclosure.front_wall.outer',
+        operation: 'negative',
+        parameters: {
+          'width': 18.0,
+          'height': 8.0,
+          'depth': 3.0,
+          'cornerRadius': 2.0,
+          'positionX': 28.0,
+          'positionY': 0.0,
+          'clearanceProfile': 'fdm_normal',
+        },
+      ),
+      SemanticFeature(
+        id: 'top_rect_slot',
+        type: 'rectangular_cutout',
+        targetSurface: 'main_enclosure.top_lid.outer',
+        operation: 'negative',
+        parameters: {
+          'width': 22.0,
+          'height': 10.0,
+          'depth': 3.0,
+          'cornerRadius': 2.0,
+          'positionX': -28.0,
+          'positionY': 0.0,
+          'clearanceProfile': 'fdm_normal',
+        },
+      ),
+    ],
+    featureGroups: const [],
+  );
 }
 
 int nativeOcctMappedTriangleCount(PreviewMesh mesh) {

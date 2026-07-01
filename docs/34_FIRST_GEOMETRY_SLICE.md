@@ -361,10 +361,13 @@ The first native OCCT slices now:
 27. Cut first-pass generic `circular_cutout` features through the front wall or
     generated top lid plate using cylindrical OCCT cut tools, keyed by the
     original semantic feature ids.
-28. Add first-pass separate preview cap/stem solids for semantic
+28. Cut first-pass generic `rectangular_cutout` features through the front wall
+    or generated top lid plate using rounded rectangular OCCT box tools, keyed
+    by the original semantic feature ids.
+29. Add first-pass separate preview cap/stem solids for semantic
     `button_group` items whose `itemPrototype.mode` is `plunger`, while keeping
     those solids mapped to the original group ids.
-29. Add first-pass generated guide sleeves and travel-stop collars from
+30. Add first-pass generated guide sleeves and travel-stop collars from
     semantic plunger travel/clearance values, while keeping those generated
     parts mapped to the original group ids.
 
@@ -488,5 +491,6 @@ Expected sample dimensions:
   surface-projected handles remain follow-up UX slices.
 - Generic `rectangular_cutout` is wired through semantic UI, inspector,
   operation planning, mock viewport selection, semantic validation, and
-  workplane-seeded X/Y. Native front-wall/top-lid rounded-rectangular
-  subtraction is intentionally the next geometry slice.
+  workplane-seeded X/Y. Native OCCT now consumes supported front-wall and
+  generated-top-lid rectangular cutouts as rounded-rectangular subtraction
+  tools and maps generated cut faces back to the original semantic feature ids.

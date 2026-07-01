@@ -157,9 +157,8 @@ from that target's face-local X/Y; the target itself stays transient UI state
 and is not saved. The inspector also exposes a compact `Отверстие` action from
 the active snap section for the same command path.
 The result remains semantic project state. Native OCCT now consumes supported
-front-wall and top-lid circular targets as generated subtraction geometry
-behind the `GeometryService` boundary; rectangular targets are operation-plan
-and mock-preview ready, with native subtraction left to the next geometry slice.
+front-wall and top-lid circular and rectangular targets as generated
+subtraction geometry behind the `GeometryService` boundary.
 
 `mount.generate` is the first component-driven command. It is available only
 when the selected object is a component placement whose template has mounting

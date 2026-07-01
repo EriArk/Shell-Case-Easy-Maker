@@ -42,6 +42,102 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-07-01 - M107 Native rectangular cutout geometry
+
+### Goal
+Make semantic `rectangular_cutout` features generate native OCCT
+rounded-rectangular cut geometry on supported front-wall and generated top-lid
+surfaces without exposing Boolean tools, B-Rep, mesh, or OCCT topology IDs as
+editable project state.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`occt_worker/native/src/occt_main.cpp`,
+`test/native_occt_geometry_regression_test.dart`,
+`test/support/native_occt_geometry_fixture.dart`,
+`docs/04_GEOMETRY_ENGINE_OCCT.md`, `docs/05_PROJECT_FILE_FORMAT.md`,
+`docs/06_FEATURE_SYSTEM.md`, `docs/27_RESEARCH_AND_REFERENCES.md`,
+`docs/31_COMMANDS_AND_UNDO.md`, and `docs/34_FIRST_GEOMETRY_SLICE.md`.
+
+### Changes made
+- `occt_worker/native/src/occt_main.cpp`:
+  - Added `RectangularCutoutRequest` parsing for `rectangular_cutout` feature
+    intents.
+  - Validates target surface, width, height, depth, corner radius, and
+    face-local placement for front-wall and top-lid targets.
+  - Builds rounded rectangular OCCT box cut tools and subtracts them from the
+    body shell or generated top lid plate.
+  - Maps generated cut faces back to the original semantic feature ids.
+  - Reports body and generated-lid rectangular cutout metrics.
+- `test/support/native_occt_geometry_fixture.dart` and
+  `test/native_occt_geometry_regression_test.dart`:
+  - Added a native regression project with one front-wall and one top-lid
+    rectangular cutout.
+  - Checks known vertex/triangle counts, bounds, dimensions, surface area,
+    volume, surface mappings, and rectangular cut metrics.
+- Docs/tasks:
+  - Added M107 to `ROADMAP.md`.
+  - Marked native rectangular cutout geometry complete in `TASKS.md`.
+  - Updated geometry/project/feature/command docs and added an OCCT research
+    note.
+
+### Tests run
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`:
+  - Passed; rebuilt `occt_worker_native_occt.exe`.
+- Manual native worker JSON smoke with front/top `rectangular_cutout` intents:
+  - Passed; response status `ok`, 4510 vertices, 4940 triangles, 10 surface
+    mappings.
+- `flutter test test\native_occt_geometry_regression_test.dart --reporter compact`:
+  - Passed; 2 tests.
+- `flutter pub get`:
+  - Passed; dependency notices only.
+- `dart format test\native_occt_geometry_regression_test.dart test\support\native_occt_geometry_fixture.dart`:
+  - Applied formatting to the new test.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 73 files checked, 0 changed.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed; 218 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed; refreshed `releases/latest/windows/shell_case_easy_maker.exe`.
+
+### Validation
+- Geometry checked?
+  - Yes. Native OCCT regression covers deterministic rectangular cut metrics,
+    bounds, dimensions, area, volume, and semantic preview mappings.
+- Serialization checked?
+  - Existing semantic feature request serialization remains unchanged; the
+    native worker now consumes the existing `rectangular_cutout` intent.
+- UI checked?
+  - Existing rectangular cutout widget coverage still runs in the full suite.
+    Manual poke is now meaningful in the latest native build.
+- Export checked?
+  - Latest native Windows bundle was rebuilt. STEP/STL export paths use the same
+    generated preview assembly and remain covered by existing tests.
+
+### Known issues
+- Issue: Rectangular cutouts still use numeric X/Y edits and first-pass preview
+  face mapping rather than direct native face handles.
+  - Severity: Low.
+  - Next action: Add richer surface-projected handles/picking after placement UX
+    settles.
+- Issue: Only the generic rounded-rectangle shape is generated.
+  - Severity: Low.
+  - Next action: Add semantic slot/access variants such as oval, finger notch,
+    countersink, and panel opening presets later.
+
+### Next step
+Commit and push M107, then continue with a placement/handle or richer access
+cutout slice.
+
+### Notes for future Codex sessions
+Keep rectangular cutouts semantic. The native worker should remain a generator
+that consumes feature intents and returns disposable preview/export data; do
+not expose OCCT topology or Boolean operations in the default UX.
+
+---
+
 ## 2026-07-01 - M106 Semantic rounded rectangular cutout
 
 ### Goal

@@ -57,6 +57,67 @@ Use `templates/RESEARCH_NOTE_TEMPLATE.md`.
 
 ---
 
+## 2026-07-01 - OCCT native rectangular cutout geometry
+
+## Question
+
+How should generic semantic `rectangular_cutout` features become native
+rounded-rectangular front-wall and top-lid cuts without exposing Boolean
+operations, generated B-Rep, or topology IDs to Flutter?
+
+## Sources checked
+
+- OpenCascade reference:
+  [BRepPrimAPI_MakeBox](https://dev.opencascade.org/doc/refman/html/class_b_rep_prim_a_p_i___make_box.html)
+- OpenCascade reference:
+  [BRepFilletAPI_MakeFillet](https://dev.opencascade.org/doc/refman/html/class_b_rep_fillet_a_p_i___make_fillet.html)
+- OpenCascade reference:
+  [BRepAlgoAPI_Cut](https://dev.opencascade.org/doc/refman/html/class_b_rep_algo_a_p_i___cut.html)
+- Existing native worker slices in `occt_worker/native/src/occt_main.cpp` for
+  USB-C rounded-rectangle cuts, glass recess/window tools, circular cutouts,
+  generated top-lid cuts, preview mapping, and generated-output metrics.
+- `docs/34_FIRST_GEOMETRY_SLICE.md` and `docs/06_FEATURE_SYSTEM.md`.
+
+## Findings
+
+- `BRepPrimAPI_MakeBox` is sufficient for a deterministic first-pass rectangular
+  cut tool when the semantic generator supplies target surface, width, height,
+  depth, radius, and face-local X/Y.
+- `BRepFilletAPI_MakeFillet` can round only the tool edges parallel to the cut
+  direction, producing a rounded-rectangle silhouette while keeping the tool
+  simple and disposable.
+- The existing `BRepAlgoAPI_Cut` path used by USB-C, glass, circular, and
+  button features remains the right generator-owned subtraction boundary.
+- Front-wall tools cut along +Y through or into the body shell. Generated
+  top-lid tools cut along +Z through or into the generated lid preview plate.
+- Preview face classification can use deterministic bounding boxes around the
+  generated cut volume and should map faces back to the original semantic
+  feature ids, such as `front_rect_slot` and `top_rect_slot`.
+
+## License / compatibility notes
+
+- OCCT is consumed through the existing project-local vcpkg dependency.
+- No GPL/AGPL project code or external source snippets were copied.
+- Generated rectangular cutout B-Rep remains worker-owned output and is never
+  saved as editable project state.
+
+## Decision
+
+Parse `rectangular_cutout` feature intents in the native worker. Validate
+supported target surfaces and dimensions, build rounded box cut tools for the
+front wall and generated top lid, subtract them with `BRepAlgoAPI_Cut`, report
+body and generated-lid rectangular cut metrics, and map preview mesh ranges to
+the original semantic feature ids.
+
+## Follow-up tasks
+
+- Add richer slot/access presets such as oval, finger notch, countersink, and
+  panel opening variants as semantic generators.
+- Improve native face picking/handles so placement edits feel like manipulating
+  the semantic cutout instead of editing numeric fields.
+
+---
+
 ## 2026-07-01 - OCCT native STL export artifact
 
 ## Question

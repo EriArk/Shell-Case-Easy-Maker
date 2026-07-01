@@ -174,4 +174,84 @@ void main() {
         : 'Native OCCT worker executable not built. Run tools/build_occt_worker_occt.ps1 -AllowVcpkgInstall.',
     timeout: const Timeout(Duration(seconds: 90)),
   );
+
+  test(
+    'native OCCT preview cuts semantic rectangular cutouts',
+    () async {
+      final client = nativeOcctWorkerClient(repoRoot);
+      final response = await client.buildGeometry(
+        GeometryRequest.previewMesh(
+          nativeOcctRectangularCutoutProject(),
+          requestId: 'native_occt_rectangular_cutouts',
+        ),
+      );
+
+      expect(response.requestId, 'native_occt_rectangular_cutouts');
+      expect(response.status, GeometryResponseStatus.ok);
+      expect(response.backend, 'occt_worker_native_occt');
+      expect(response.hasErrors, isFalse);
+
+      final mesh = response.previewMesh;
+      expect(mesh, isNotNull);
+      expect(mesh!.units, 'mm');
+      expect(
+        mesh.vertexCount,
+        nativeOcctRectangularCutoutExpectedPreviewVertexCount,
+      );
+      expect(
+        mesh.triangleCount,
+        nativeOcctRectangularCutoutExpectedPreviewTriangleCount,
+      );
+      expect(mesh.bounds.min, nativeOcctRectangularCutoutExpectedBoundsMin);
+      expect(mesh.bounds.max, nativeOcctRectangularCutoutExpectedBoundsMax);
+      expect(
+        mesh.surfaces,
+        hasLength(nativeOcctRectangularCutoutExpectedSurfaceMappingCount),
+      );
+      expect(nativeOcctTriangleRangesAreValid(mesh), isTrue);
+      expect(
+        nativeOcctMappedTriangleCount(mesh),
+        nativeOcctRectangularCutoutExpectedMappedTriangleCount,
+      );
+
+      final surfaceIds = mesh.surfaces
+          .map((surface) => surface.semanticId)
+          .toSet();
+      expect(
+        surfaceIds,
+        containsAll(nativeOcctRectangularCutoutExpectedSurfaceIds),
+      );
+
+      final metrics = response.metrics;
+      expect(metrics['featureIntentCount'], 2);
+      expect(metrics['nativeFeatureCutCount'], 1);
+      expect(metrics['nativeGeneratedLidFeatureCutCount'], 1);
+      expect(metrics['nativeIgnoredFeatureIntentCount'], 0);
+      expect(metrics['nativeRectangularCutoutCount'], 1);
+      expect(metrics['nativeRectangularCutoutFilletedEdgeCount'], 8);
+      expect(metrics['nativeGeneratedLidRectangularCutoutCount'], 1);
+      expect(
+        metrics['nativeGeneratedLidRectangularCutoutFilletedEdgeCount'],
+        8,
+      );
+      expect(
+        nativeOcctReadDoubleList(metrics['dimensions']),
+        nativeOcctRectangularCutoutExpectedDimensions,
+      );
+      expect(
+        nativeOcctReadNumber(metrics['surfaceArea']),
+        closeTo(nativeOcctRectangularCutoutExpectedSurfaceArea, 0.001),
+      );
+      expect(
+        nativeOcctReadNumber(metrics['volume']),
+        closeTo(nativeOcctRectangularCutoutExpectedVolume, 0.001),
+      );
+      expect(metrics, isNot(contains('topologyId')));
+      expect(metrics, isNot(contains('triangleId')));
+    },
+    skip: hasNativeWorker
+        ? false
+        : 'Native OCCT worker executable not built. Run tools/build_occt_worker_occt.ps1 -AllowVcpkgInstall.',
+    timeout: const Timeout(Duration(seconds: 90)),
+  );
 }

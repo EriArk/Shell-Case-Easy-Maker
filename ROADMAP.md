@@ -125,6 +125,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M104 - Native Circular Cutout Geometry
 - [x] M105 - Snap-Seeded Circular Cutout Placement
 - [x] M106 - Semantic Rounded Rectangular Cutout
+- [x] M107 - Native Rectangular Cutout Geometry
 
 ---
 
@@ -4971,3 +4972,59 @@ and leaving native OCCT subtraction for a separate geometry slice.
   inspector exposes width/height/depth/radius/X/Y.
 - Expect native 3D subtraction to come in the next geometry slice; this chunk
   is the semantic/editing layer.
+
+---
+
+## M107 - Native Rectangular Cutout Geometry
+
+### Goal
+Make semantic `rectangular_cutout` features generate native OCCT
+rounded-rectangular subtraction on the supported front-wall and generated
+top-lid surfaces, while keeping the editable project semantic.
+
+### Tasks
+- [x] Add native `RectangularCutoutRequest` parsing from geometry feature
+      intents.
+- [x] Validate supported target surfaces, positive width/height/depth, corner
+      radius, and face-local placement bounds in the native worker.
+- [x] Build front-wall rounded rectangular cut tools and subtract them from the
+      shell with `BRepAlgoAPI_Cut`.
+- [x] Build generated-top-lid rounded rectangular cut tools and subtract them
+      from the generated lid plate.
+- [x] Map generated cut faces back to the original semantic feature ids.
+- [x] Add native metrics for body and generated-lid rectangular cutouts.
+- [x] Add native regression coverage with known counts, bounds, area, volume,
+      and semantic mappings.
+- [x] Update docs/tasks/worklog.
+
+### Done Criteria
+- `rectangular_cutout` remains a normal semantic feature; no mesh/B-Rep/STL or
+  OCCT topology is saved as editable state.
+- Native front-wall rectangular cutouts reduce the generated body shell.
+- Native top-lid rectangular cutouts reduce the generated lid preview plate.
+- Preview mesh mappings include the original semantic ids such as
+  `front_rect_slot` and `top_rect_slot`.
+- Metrics report `nativeRectangularCutoutCount` and
+  `nativeGeneratedLidRectangularCutoutCount`.
+
+### Tests
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`
+- `flutter test test\native_occt_geometry_regression_test.dart --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Select `Top lid`.
+- Click `Отверстия`.
+- Change `Форма` to `Прямоугольное`.
+- Create a visible rectangular cutout, for example width `24`, height `12`,
+  radius `2`.
+- Confirm the native preview model shows a rounded rectangular cut, not only a
+  2D marker.
+- Orbit the view and select the cutout/feature from the browser to confirm the
+  inspector still edits the semantic feature.
