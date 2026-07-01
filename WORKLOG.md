@@ -42,6 +42,90 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-07-01 - M108 Slot cutout preset
+
+### Goal
+Expose a first-pass `Слот` option in the surface `Отверстия` workflow while
+keeping the editable project semantic and reusing the native-backed
+`rectangular_cutout` path.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/ui/shell/workspace_shell.dart`,
+`lib/selection/project_selection_resolver.dart`,
+`test/widget_test.dart`, `docs/05_PROJECT_FILE_FORMAT.md`,
+`docs/06_FEATURE_SYSTEM.md`, and `docs/32_USABLE_SHELL.md`.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added `Слот` as a third cutout dialog shape.
+  - Defaults the slot preset to a 24 x 8 mm pill-like opening.
+  - Builds slots as semantic `rectangular_cutout` features with
+    `parameters.preset=slot`.
+  - Derives slot corner radius from `min(width, height) / 2`.
+  - Clamps normal rectangular corner radius at creation time so the dialog does
+    not create an impossible rounded rectangle.
+  - Labels slot features as `Слот` in the browser and undo command label.
+- `lib/selection/project_selection_resolver.dart`:
+  - Shows selected slot features as `Слот` in the selection details/status.
+- `test/widget_test.dart`:
+  - Added create/select/save/undo coverage for the slot preset and verifies the
+    saved semantic JSON values.
+- `ROADMAP.md`, `TASKS.md`, `docs/05_PROJECT_FILE_FORMAT.md`,
+  `docs/06_FEATURE_SYSTEM.md`, and `docs/32_USABLE_SHELL.md`:
+  - Recorded M108 and documented slot-as-rectangular-cutout semantics.
+
+### Tests run
+- `flutter test test\widget_test.dart --plain-name "slot cutout preset creates pill-shaped semantic rectangle" --reporter compact`:
+  - Passed.
+- `flutter pub get`:
+  - Passed.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter analyze`:
+  - Passed, no issues found.
+- `flutter test --reporter compact`:
+  - Passed, 219 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and copied the latest bundle to `releases/latest/windows`.
+- `git diff --check`:
+  - Passed; PowerShell reported only the existing CRLF normalization warning for
+    `ROADMAP.md`.
+
+### Validation
+- Geometry checked?
+  - Reused existing native `rectangular_cutout` generation path; latest Windows
+    bundle includes the native OCCT worker.
+- Serialization checked?
+  - Widget coverage saves the project and verifies `preset=slot`, width, height,
+    position, and derived corner radius.
+- UI checked?
+  - Widget coverage verifies the dialog shape option, derived radius control,
+    browser/selection label, marker selection, and undo.
+- Export checked?
+  - Latest Windows build completed; no new export-specific behavior was added.
+
+### Known issues
+- Issue: Slot placement still uses the current first-pass X/Y numeric workflow.
+  - Severity: Medium.
+  - Next action: Improve face-local picking/snapping for rectangular and slot
+    cutouts together.
+- Issue: The command id remains `slot.generate` even though the rail label is
+  now the broader `Отверстия` command.
+  - Severity: Low.
+  - Next action: Consider an internal command id rename only if a migration-safe
+    command namespace cleanup is already happening.
+
+### Next step
+Continue with richer access cutout variants or placement polish for generic
+cutouts.
+
+### Notes for future Codex sessions
+`Слот` is intentionally not a new feature type. Keep it as a semantic preset on
+`rectangular_cutout` unless there is a real data-model reason to split it.
+
+---
+
 ## 2026-07-01 - M107 Native rectangular cutout geometry
 
 ### Goal

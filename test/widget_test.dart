@@ -2417,6 +2417,123 @@ void main() {
     expect(find.text('rectangular_cutout_1'), findsNothing);
   });
 
+  testWidgets('slot cutout preset creates pill-shaped semantic rectangle', (
+    tester,
+  ) async {
+    final fileService = _MemoryProjectFileService();
+    final dialog = _FakeProjectFileDialogService(saveFile: File('slot_case'));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkspaceShell(
+          project: ProjectModel.initial(),
+          geometryService: const MockGeometryService(),
+          projectFileService: fileService,
+          projectFileDialogService: dialog,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final generateSlotButton = find.byKey(
+      const ValueKey('rail-command-${CommandIds.generateSlot}'),
+    );
+    final undoButton = find.byKey(
+      const ValueKey('toolbar-command-${CommandIds.undo}'),
+    );
+
+    await tester.tap(find.text('Top lid').first);
+    await tester.pumpAndSettle();
+    await tester.tap(generateSlotButton);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('cutout-shape')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Слот').last);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('slot-cutout-derived-radius')),
+      findsOneWidget,
+    );
+    expect(_dialogNumberText(tester, 'rectangular-cutout-width'), '24');
+    expect(_dialogNumberText(tester, 'rectangular-cutout-height'), '8');
+
+    await tester.enterText(
+      find.byKey(const ValueKey('rectangular-cutout-width')),
+      '32',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('rectangular-cutout-height')),
+      '8',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('rectangular-cutout-position-x')),
+      '12',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('rectangular-cutout-position-y')),
+      '-4',
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('circular-cutout-confirm')));
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('rectangular_cutout_1'), findsWidgets);
+    expect(find.text('Слот'), findsWidgets);
+    expect(tester.widget<IconButton>(undoButton).onPressed, isNotNull);
+
+    final canvasFinder = find.byKey(const ValueKey('mock-viewport-canvas'));
+    final canvasTopLeft = tester.getTopLeft(canvasFinder);
+    final canvasSize = tester.getSize(canvasFinder);
+    final layout = MockViewportLayout.fromSize(
+      canvasSize,
+      const ViewportState(),
+    );
+    const createdSlot = MockViewportFeaturePreview(
+      semanticId: 'rectangular_cutout_1',
+      kind: MockViewportFeatureKind.rectangularCutout,
+      targetSurfaceId: 'main_enclosure.top_lid.outer',
+      width: 32,
+      height: 8,
+      cornerRadius: 4,
+      position: Offset(12, -4),
+    );
+
+    await tester.tap(find.text('main_enclosure').first);
+    await tester.pumpAndSettle();
+    await tester.tapAt(canvasTopLeft + layout.featureRect(createdSlot).center);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Слот'), findsWidgets);
+    expect(find.text('cornerRadius'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('toolbar-command-${CommandIds.saveProject}')),
+    );
+    await _pumpAsyncUi(tester);
+
+    final savedProject = await fileService.readProject(
+      File('slot_case.enclosure.json'),
+    );
+    final savedSlot = savedProject.features.firstWhere(
+      (feature) => feature.id == 'rectangular_cutout_1',
+    );
+
+    expect(savedSlot.type, 'rectangular_cutout');
+    expect(savedSlot.parameters['preset'], 'slot');
+    expect(savedSlot.parameters['width'], 32.0);
+    expect(savedSlot.parameters['height'], 8.0);
+    expect(savedSlot.parameters['cornerRadius'], 4.0);
+    expect(savedSlot.parameters['positionX'], 12.0);
+    expect(savedSlot.parameters['positionY'], -4.0);
+
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('rectangular_cutout_1'), findsNothing);
+  });
+
   testWidgets('unimplemented rail commands are visible but disabled', (
     tester,
   ) async {

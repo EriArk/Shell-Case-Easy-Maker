@@ -710,9 +710,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
 
     _commitProjectEdit(
       id: CommandIds.generateSlot,
-      label: feature.type == 'rectangular_cutout'
-          ? 'Прямоугольное отверстие'
-          : 'Круглое отверстие',
+      label: _cutoutCommandLabel(feature),
       nextState: _project.replaceFeature(feature),
       selection: SelectionModel.feature(feature.id),
     );
@@ -2612,7 +2610,7 @@ class _ProjectBrowser extends StatelessWidget {
           for (final feature in project.features)
             _BrowserRow(
               icon: _featureIcon(feature.type),
-              title: _featureTitle(feature.type),
+              title: _featureTitleForFeature(feature),
               subtitle: feature.id,
               selected:
                   selection.kind == SelectionKind.feature &&
@@ -2775,6 +2773,19 @@ String _featureTitle(String type) {
     'standoff_mounts' => 'Крепёж',
     _ => type.replaceAll('_', ' '),
   };
+}
+
+String _featureTitleForFeature(SemanticFeature feature) {
+  if (_isSlotCutoutFeature(feature)) {
+    return 'Слот';
+  }
+
+  return _featureTitle(feature.type);
+}
+
+bool _isSlotCutoutFeature(SemanticFeature feature) {
+  return feature.type == 'rectangular_cutout' &&
+      feature.parameters['preset'] == 'slot';
 }
 
 class _ViewportArea extends StatefulWidget {
@@ -5419,7 +5430,7 @@ class _UsbCCutoutDialogState extends State<_UsbCCutoutDialog> {
   }
 }
 
-enum _CutoutShape { circular, rectangular }
+enum _CutoutShape { circular, rectangular, slot }
 
 class _CutoutShapeOption {
   const _CutoutShapeOption(this.shape, this.label);
@@ -5464,6 +5475,7 @@ class _CutoutDialogState extends State<_CutoutDialog> {
   static const _shapes = [
     _CutoutShapeOption(_CutoutShape.circular, 'Круглое'),
     _CutoutShapeOption(_CutoutShape.rectangular, 'Прямоугольное'),
+    _CutoutShapeOption(_CutoutShape.slot, 'Слот'),
   ];
 
   @override
@@ -5531,6 +5543,15 @@ class _CutoutDialogState extends State<_CutoutDialog> {
                 onChanged: (value) {
                   if (value != null) {
                     setState(() {
+                      if (value == _CutoutShape.slot &&
+                          _shape != _CutoutShape.slot &&
+                          _rectangularWidth == 18.0 &&
+                          _rectangularHeight == 10.0 &&
+                          _rectangularCornerRadius == 2.0) {
+                        _rectangularWidth = 24.0;
+                        _rectangularHeight = 8.0;
+                        _rectangularCornerRadius = 4.0;
+                      }
                       _shape = value;
                     });
                   }
@@ -5648,6 +5669,8 @@ class _CutoutDialogState extends State<_CutoutDialog> {
   }
 
   Widget _buildRectangularFields() {
+    final isSlot = _shape == _CutoutShape.slot;
+
     return Column(
       children: [
         Row(
@@ -5655,7 +5678,7 @@ class _CutoutDialogState extends State<_CutoutDialog> {
             Expanded(
               child: _DialogNumberField(
                 key: const ValueKey('rectangular-cutout-width'),
-                label: 'Ширина',
+                label: isSlot ? 'Длина' : 'Ширина',
                 value: _rectangularWidth,
                 onChanged: (value) {
                   setState(() {
@@ -5668,7 +5691,7 @@ class _CutoutDialogState extends State<_CutoutDialog> {
             Expanded(
               child: _DialogNumberField(
                 key: const ValueKey('rectangular-cutout-height'),
-                label: 'Высота',
+                label: isSlot ? 'Ширина' : 'Высота',
                 value: _rectangularHeight,
                 onChanged: (value) {
                   setState(() {
@@ -5696,16 +5719,18 @@ class _CutoutDialogState extends State<_CutoutDialog> {
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: _DialogNumberField(
-                key: const ValueKey('rectangular-cutout-corner-radius'),
-                label: 'Радиус',
-                value: _rectangularCornerRadius,
-                onChanged: (value) {
-                  setState(() {
-                    _rectangularCornerRadius = value;
-                  });
-                },
-              ),
+              child: isSlot
+                  ? _buildSlotCornerRadiusPreview()
+                  : _DialogNumberField(
+                      key: const ValueKey('rectangular-cutout-corner-radius'),
+                      label: 'Радиус',
+                      value: _rectangularCornerRadius,
+                      onChanged: (value) {
+                        setState(() {
+                          _rectangularCornerRadius = value;
+                        });
+                      },
+                    ),
             ),
           ],
         ),
@@ -5753,6 +5778,21 @@ class _CutoutDialogState extends State<_CutoutDialog> {
     );
   }
 
+  Widget _buildSlotCornerRadiusPreview() {
+    final radius = _slotCornerRadius(_rectangularWidth, _rectangularHeight);
+
+    return InputDecorator(
+      key: const ValueKey('slot-cutout-derived-radius'),
+      decoration: InputDecoration(
+        labelText: 'Радиус',
+        isDense: true,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      ),
+      child: Text(radius.toStringAsFixed(1)),
+    );
+  }
+
   Widget _buildClearanceProfileField({
     required Key key,
     required String value,
@@ -5784,6 +5824,7 @@ class _CutoutDialogState extends State<_CutoutDialog> {
     return switch (_shape) {
       _CutoutShape.circular => _buildCircularFeature(),
       _CutoutShape.rectangular => _buildRectangularFeature(),
+      _CutoutShape.slot => _buildSlotFeature(),
     };
   }
 
@@ -5809,6 +5850,14 @@ class _CutoutDialogState extends State<_CutoutDialog> {
 
   SemanticFeature _buildRectangularFeature() {
     final feature = widget.initialRectangularFeature;
+    final width = _clampDouble(_rectangularWidth, 2, 120);
+    final height = _clampDouble(_rectangularHeight, 2, 100);
+    final cornerRadius = _clampDouble(
+      _rectangularCornerRadius,
+      0,
+      _slotCornerRadius(width, height),
+    );
+
     return SemanticFeature(
       id: feature.id,
       type: feature.type,
@@ -5818,16 +5867,57 @@ class _CutoutDialogState extends State<_CutoutDialog> {
       placement: feature.placement,
       metadata: feature.metadata,
       parameters: {
-        'width': _clampDouble(_rectangularWidth, 2, 120),
-        'height': _clampDouble(_rectangularHeight, 2, 100),
+        'width': width,
+        'height': height,
         'depth': _clampDouble(_rectangularDepth, 0.2, 80),
-        'cornerRadius': _clampDouble(_rectangularCornerRadius, 0, 40),
+        'cornerRadius': cornerRadius,
         'positionX': _clampDouble(_rectangularPositionX, -150, 150),
         'positionY': _clampDouble(_rectangularPositionY, -150, 150),
         'clearanceProfile': _rectangularClearanceProfile,
       },
     );
   }
+
+  SemanticFeature _buildSlotFeature() {
+    final feature = widget.initialRectangularFeature;
+    final width = _clampDouble(_rectangularWidth, 2, 120);
+    final height = _clampDouble(_rectangularHeight, 2, 100);
+
+    return SemanticFeature(
+      id: feature.id,
+      type: feature.type,
+      targetSurface: feature.targetSurface,
+      operation: feature.operation,
+      source: feature.source,
+      placement: feature.placement,
+      metadata: feature.metadata,
+      parameters: {
+        'width': width,
+        'height': height,
+        'depth': _clampDouble(_rectangularDepth, 0.2, 80),
+        'cornerRadius': _slotCornerRadius(width, height),
+        'positionX': _clampDouble(_rectangularPositionX, -150, 150),
+        'positionY': _clampDouble(_rectangularPositionY, -150, 150),
+        'clearanceProfile': _rectangularClearanceProfile,
+        'preset': 'slot',
+      },
+    );
+  }
+
+  double _slotCornerRadius(double width, double height) {
+    return math.min(width, height) / 2;
+  }
+}
+
+String _cutoutCommandLabel(SemanticFeature feature) {
+  if (_isSlotCutoutFeature(feature)) {
+    return 'Слот';
+  }
+  if (feature.type == 'rectangular_cutout') {
+    return 'Прямоугольное отверстие';
+  }
+
+  return 'Круглое отверстие';
 }
 
 class _ButtonGroupDialog extends StatefulWidget {

@@ -185,6 +185,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Add generic circular cutout.
 - [x] Snap-seed generic circular cutout placement from selected surfaces.
 - [x] Add generic rectangular rounded cutout.
+- [x] Add first-pass slot cutout preset.
 - [x] First-pass USB-C cutout command.
 - [x] First-pass USB-C viewport marker.
 - [x] First-pass USB-C inspector parameter editing.

@@ -126,6 +126,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M105 - Snap-Seeded Circular Cutout Placement
 - [x] M106 - Semantic Rounded Rectangular Cutout
 - [x] M107 - Native Rectangular Cutout Geometry
+- [x] M108 - Slot Cutout Preset
 
 ---
 
@@ -5028,3 +5029,55 @@ top-lid surfaces, while keeping the editable project semantic.
   2D marker.
 - Orbit the view and select the cutout/feature from the browser to confirm the
   inspector still edits the semantic feature.
+
+---
+
+## M108 - Slot Cutout Preset
+
+### Goal
+Make the surface `Отверстия` workflow expose a first-pass slot preset while
+keeping the editable project semantic and backed by the existing native
+`rectangular_cutout` generator.
+
+### Tasks
+- [x] Add `Слот` as a third cutout dialog shape.
+- [x] Store the confirmed slot as `type=rectangular_cutout` with
+      `parameters.preset=slot`.
+- [x] Auto-derive slot corner radius as half of the smaller width/height.
+- [x] Keep the normal rectangular path editable and clamp its radius to a valid
+      maximum at creation time.
+- [x] Label slot features as `Слот` in the project browser and selection
+      details without adding a new editable geometry type.
+- [x] Add widget coverage for create/select/save/undo of the slot preset.
+- [x] Update docs/tasks/worklog.
+
+### Done Criteria
+- Selecting `Top lid` and clicking `Отверстия` offers `Круглое`,
+  `Прямоугольное`, and `Слот`.
+- Choosing `Слот` defaults to a pill-like 24 x 8 mm opening.
+- Confirming a slot creates a normal semantic `rectangular_cutout` feature with
+  `preset=slot` and `cornerRadius = min(width, height) / 2`.
+- The native OCCT path can consume the slot through the existing
+  `rectangular_cutout` operation; no mesh, B-Rep, or OCCT topology is saved in
+  the project.
+
+### Tests
+- `flutter test test\widget_test.dart --plain-name "slot cutout preset creates pill-shaped semantic rectangle" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Select `Top lid`.
+- Click `Отверстия`.
+- Change `Форма` to `Слот`.
+- Confirm the fields switch to `Длина`, `Ширина`, `Глубина`, and derived
+  `Радиус`.
+- Create a slot such as 32 x 8 mm.
+- Confirm the browser/right inspector calls it `Слот`, while the id remains
+  `rectangular_cutout_1`.
+- Orbit the model and confirm the native preview has a pill-shaped cutout.

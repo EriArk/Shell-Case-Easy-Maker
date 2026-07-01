@@ -197,11 +197,13 @@ class ProjectSelectionResolver {
       return _missingDetails('Фича', id);
     }
 
+    final title = _humanizeFeature(feature);
+
     return ProjectSelectionDetails(
-      title: _humanizeFeatureType(feature.type),
+      title: title,
       subtitle: feature.id,
       iconKey: 'feature',
-      status: 'Выбрана фича ${_humanizeFeatureType(feature.type)}',
+      status: 'Выбрана фича $title',
       properties: [
         ProjectSelectionProperty(label: 'Тип', value: feature.type),
         ProjectSelectionProperty(label: 'Грань', value: feature.targetSurface),
@@ -282,6 +284,15 @@ String _humanizeFeatureType(String type) {
     'standoff_mounts' => 'Крепёж',
     _ => type.replaceAll('_', ' '),
   };
+}
+
+String _humanizeFeature(SemanticFeature feature) {
+  if (feature.type == 'rectangular_cutout' &&
+      feature.parameters['preset'] == 'slot') {
+    return 'Слот';
+  }
+
+  return _humanizeFeatureType(feature.type);
 }
 
 List<ProjectSelectionProperty> _parameterProperties(

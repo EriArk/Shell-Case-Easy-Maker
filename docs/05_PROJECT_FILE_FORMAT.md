@@ -122,7 +122,8 @@ Current behavior:
   at a selected semantic surface,
 - the `Отверстия` rail command can append semantic `circular_cutout` and
   `rectangular_cutout` features with editable dimensions, depth, and face-local
-  X/Y parameters,
+  X/Y parameters; the `Слот` preset is stored as `rectangular_cutout` with
+  `parameters.preset=slot` and a derived full corner radius,
 - the `Крепёж` rail command can append semantic `standoff_mounts` feature
   groups sourced from a selected component placement's template mounting holes,
 - toolbar STEP/STL export writes an external generated artifact and does not
@@ -130,10 +131,10 @@ Current behavior:
 - generated previews are refreshed from the loaded semantic model.
 
 Native OCCT preview/export now consumes supported `circular_cutout` and
-`rectangular_cutout` features on the front wall and generated top lid as
-disposable B-Rep subtraction tools. The project file still stores only the
-semantic feature parameters, not generated cylinders, rounded boxes, meshes,
-Boolean tools, or OCCT topology ids.
+`rectangular_cutout` features, including slot presets, on the front wall and
+generated top lid as disposable B-Rep subtraction tools. The project file still
+stores only the semantic feature parameters, not generated cylinders, rounded
+boxes, meshes, Boolean tools, or OCCT topology ids.
 
 Current limitations:
 - no separate "Save As" command yet,

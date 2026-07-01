@@ -232,16 +232,19 @@ the generated `usb_c_cutout`. The editable result is still a normal semantic
 feature, not generated geometry.
 
 Clicking `Отверстия` is enabled after selecting a semantic surface. It opens a
-compact cutout dialog with `Круглое` and `Прямоугольное` shape options. The
-circular option appends a semantic `circular_cutout` feature with editable
+compact cutout dialog with `Круглое`, `Прямоугольное`, and `Слот` shape options.
+The circular option appends a semantic `circular_cutout` feature with editable
 diameter, depth, and face-local X/Y parameters. The rectangular option appends a
 semantic `rectangular_cutout` feature with editable width, height, depth, corner
-radius, and face-local X/Y parameters. If a surface workplane point was clicked
-first, the dialog starts from that X/Y. The mock viewport draws circular or
+radius, and face-local X/Y parameters. The slot option stores the same semantic
+`rectangular_cutout` type with `parameters.preset=slot` and derives the corner
+radius as half of the smaller side, so it stays editable without introducing a
+new B-Rep/mesh source. If a surface workplane point was clicked first, the
+dialog starts from that X/Y. The mock viewport draws circular or
 rounded-rectangular markers and hit-tests them by semantic feature ID. Native
-OCCT now consumes supported front-wall and top-lid circular cutouts as generated
-subtraction geometry while keeping the editable source semantic; rectangular
-native subtraction remains a follow-up slice.
+OCCT consumes supported front-wall and top-lid circular and rectangular/slot
+cutouts as generated subtraction geometry while keeping the editable source
+semantic.
 
 Clicking `Кнопки` is enabled only after selecting a semantic surface such as
 `Top lid`. The command opens a compact button group dialog and appends a
