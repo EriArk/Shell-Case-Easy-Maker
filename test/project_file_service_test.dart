@@ -53,9 +53,19 @@ void main() {
     );
   });
 
-  test('export dialog helper preserves or adds STEP extension', () {
+  test('export dialog helper preserves or adds export extensions', () {
     expect(ensureStepFileExtension(File('case.step')).path, 'case.step');
     expect(ensureStepFileExtension(File('case.stp')).path, 'case.stp');
     expect(ensureStepFileExtension(File('case')).path, 'case.step');
+    expect(ensureStlFileExtension(File('case.stl')).path, 'case.stl');
+    expect(ensureStlFileExtension(File('case')).path, 'case.stl');
+    expect(
+      ensureExportFileExtension(File('case'), ProjectExportFormat.step).path,
+      'case.step',
+    );
+    expect(
+      ensureExportFileExtension(File('case'), ProjectExportFormat.stl).path,
+      'case.stl',
+    );
   });
 }

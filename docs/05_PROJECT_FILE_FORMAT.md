@@ -122,11 +122,10 @@ Current behavior:
   at a selected semantic surface,
 - the `Крепёж` rail command can append semantic `standoff_mounts` feature
   groups sourced from a selected component placement's template mounting holes,
-- toolbar STEP export writes an external generated artifact and does not update
-  the clean project baseline,
+- toolbar STEP/STL export writes an external generated artifact and does not
+  update the clean project baseline,
 - generated previews are refreshed from the loaded semantic model.
 
 Current limitations:
 - no separate "Save As" command yet,
-- user-facing STL export and export format/part selection are still future
-  work.
+- export part selection and STL quality presets are still future work.

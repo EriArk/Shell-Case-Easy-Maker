@@ -998,16 +998,44 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     }
   }
 
-  Future<void> _exportStepProject() async {
+  Future<void> _chooseExportFormat() async {
+    if (_fileBusy) {
+      return;
+    }
+
+    final format = await showModalBottomSheet<ProjectExportFormat>(
+      context: context,
+      constraints: const BoxConstraints(maxWidth: 360),
+      showDragHandle: true,
+      builder: (_) => const _ExportFormatSheet(),
+    );
+    if (!mounted) {
+      return;
+    }
+
+    if (format == null) {
+      setState(() {
+        _fileStatusMessage = 'Экспорт отменён';
+      });
+      return;
+    }
+
+    await _exportProject(format);
+  }
+
+  Future<void> _exportProject(ProjectExportFormat format) async {
     if (_fileBusy) {
       return;
     }
 
     _fileBusy = true;
+    final label = format.label;
 
     try {
-      final selectedFile = await widget.projectFileDialogService
-          .pickExportStepFile(suggestedName: _suggestedStepFileName(_project));
+      final selectedFile = await widget.projectFileDialogService.pickExportFile(
+        format: format,
+        suggestedName: _suggestedExportFileName(_project, format),
+      );
       if (!mounted) {
         _fileBusy = false;
         return;
@@ -1021,17 +1049,24 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
         return;
       }
 
-      final file = ensureStepFileExtension(selectedFile);
+      final file = ensureExportFileExtension(selectedFile, format);
       setState(() {
-        _fileStatusMessage = 'Экспорт STEP...';
+        _fileStatusMessage = 'Экспорт $label...';
       });
 
       final response = await widget.geometryService.buildGeometry(
-        GeometryRequest.exportStep(
-          _project,
-          requestId: 'toolbar_export_step',
-          outputPath: file.path,
-        ),
+        switch (format) {
+          ProjectExportFormat.step => GeometryRequest.exportStep(
+            _project,
+            requestId: 'toolbar_export_step',
+            outputPath: file.path,
+          ),
+          ProjectExportFormat.stl => GeometryRequest.exportStl(
+            _project,
+            requestId: 'toolbar_export_stl',
+            outputPath: file.path,
+          ),
+        },
       );
       if (!mounted) {
         _fileBusy = false;
@@ -1039,7 +1074,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       }
 
       final artifact = response.artifacts
-          .where((artifact) => artifact.type == 'step')
+          .where((artifact) => artifact.type == format.artifactType)
           .firstOrNull;
       final exportedPath = artifact?.path.isNotEmpty == true
           ? artifact!.path
@@ -1048,8 +1083,8 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       setState(() {
         _fileBusy = false;
         _fileStatusMessage = response.hasErrors || artifact == null
-            ? 'Не удалось экспортировать STEP'
-            : 'STEP экспортирован: ${_fileName(File(exportedPath))}';
+            ? 'Не удалось экспортировать $label'
+            : '$label экспортирован: ${_fileName(File(exportedPath))}';
       });
     } catch (_) {
       if (!mounted) {
@@ -1058,7 +1093,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
 
       setState(() {
         _fileBusy = false;
-        _fileStatusMessage = 'Не удалось экспортировать STEP';
+        _fileStatusMessage = 'Не удалось экспортировать $label';
       });
     }
   }
@@ -1124,7 +1159,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                   fileBusy: _fileBusy,
                   onOpen: _openProject,
                   onSave: _saveProject,
-                  onExportStep: _exportStepProject,
+                  onExport: _chooseExportFormat,
                   onUndo: _undo,
                   onRedo: _redo,
                 ),
@@ -1494,8 +1529,11 @@ String _suggestedProjectFileName(ProjectModel project) {
   return '${_safeFileName(project.projectName, fallback: 'project')}.enclosure.json';
 }
 
-String _suggestedStepFileName(ProjectModel project) {
-  return '${_safeFileName(project.projectName, fallback: 'project')}.step';
+String _suggestedExportFileName(
+  ProjectModel project,
+  ProjectExportFormat format,
+) {
+  return '${_safeFileName(project.projectName, fallback: 'project')}.${format.defaultExtension}';
 }
 
 String _safeFileName(String value, {required String fallback}) {
@@ -2053,7 +2091,7 @@ class _TopToolbar extends StatelessWidget {
     required this.fileBusy,
     required this.onOpen,
     required this.onSave,
-    required this.onExportStep,
+    required this.onExport,
     required this.onUndo,
     required this.onRedo,
   });
@@ -2064,7 +2102,7 @@ class _TopToolbar extends StatelessWidget {
   final bool fileBusy;
   final VoidCallback onOpen;
   final VoidCallback onSave;
-  final VoidCallback onExportStep;
+  final VoidCallback onExport;
   final VoidCallback onUndo;
   final VoidCallback onRedo;
 
@@ -2131,10 +2169,73 @@ class _TopToolbar extends StatelessWidget {
           _ToolbarCommand(
             command: registry.byId(CommandIds.exportProject),
             context: commandContext,
-            onPressed: fileBusy ? null : onExportStep,
+            onPressed: fileBusy ? null : onExport,
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ExportFormatSheet extends StatelessWidget {
+  const _ExportFormatSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Экспорт',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            _ExportFormatTile(
+              key: const ValueKey('export-format-step'),
+              format: ProjectExportFormat.step,
+              icon: Icons.view_in_ar_outlined,
+              extensionLabel: '.step / .stp',
+            ),
+            _ExportFormatTile(
+              key: const ValueKey('export-format-stl'),
+              format: ProjectExportFormat.stl,
+              icon: Icons.print_outlined,
+              extensionLabel: '.stl',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ExportFormatTile extends StatelessWidget {
+  const _ExportFormatTile({
+    super.key,
+    required this.format,
+    required this.icon,
+    required this.extensionLabel,
+  });
+
+  final ProjectExportFormat format;
+  final IconData icon;
+  final String extensionLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Icon(icon),
+      title: Text(format.label),
+      trailing: Text(extensionLabel),
+      onTap: () => Navigator.of(context).pop(format),
     );
   }
 }

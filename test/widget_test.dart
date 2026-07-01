@@ -2274,7 +2274,7 @@ void main() {
     final dialog = _FakeProjectFileDialogService(
       exportStepFile: File('exported_case'),
     );
-    final geometryService = _ExportStepGeometryService();
+    final geometryService = _ExportGeometryService();
 
     await tester.pumpWidget(
       MaterialApp(
@@ -2291,6 +2291,9 @@ void main() {
     await tester.tap(
       find.byKey(const ValueKey('toolbar-command-${CommandIds.exportProject}')),
     );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('export-format-step')));
     await _pumpAsyncUi(tester);
 
     final undoButton = find.byKey(
@@ -2312,12 +2315,64 @@ void main() {
     expect(find.textContaining('STEP экспортирован:'), findsOneWidget);
   });
 
+  testWidgets('export command writes STL artifact through geometry service', (
+    tester,
+  ) async {
+    final fileService = _MemoryProjectFileService();
+    final dialog = _FakeProjectFileDialogService(
+      exportStlFile: File('print_case'),
+    );
+    final geometryService = _ExportGeometryService();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkspaceShell(
+          project: ProjectModel.initial(),
+          geometryService: geometryService,
+          projectFileService: fileService,
+          projectFileDialogService: dialog,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('toolbar-command-${CommandIds.exportProject}')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('export-format-step')), findsOneWidget);
+    expect(find.byKey(const ValueKey('export-format-stl')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('export-format-stl')));
+    await _pumpAsyncUi(tester);
+
+    final undoButton = find.byKey(
+      const ValueKey('toolbar-command-${CommandIds.undo}'),
+    );
+
+    expect(dialog.exportStlCount, 1);
+    expect(dialog.lastExportStlSuggestedName, 'sample_button_board_case.stl');
+    expect(geometryService.exportCount, 1);
+    expect(
+      geometryService.lastExportRequest?.operation,
+      GeometryOperation.exportStl,
+    );
+    expect(
+      geometryService.lastExportRequest?.options['outputPath'],
+      'print_case.stl',
+    );
+    expect(fileService.hasFile(File('print_case.enclosure.json')), isFalse);
+    expect(tester.widget<IconButton>(undoButton).onPressed, isNull);
+    expect(find.textContaining('STL экспортирован:'), findsOneWidget);
+  });
+
   testWidgets('export picker opens without pre-picker status rebuild', (
     tester,
   ) async {
     final fileService = _MemoryProjectFileService();
     final dialog = _BlockingProjectFileDialogService();
-    final geometryService = _ExportStepGeometryService();
+    final geometryService = _ExportGeometryService();
 
     await tester.pumpWidget(
       MaterialApp(
@@ -2336,6 +2391,12 @@ void main() {
     );
 
     await tester.tap(exportButton);
+    await tester.pumpAndSettle();
+
+    expect(dialog.exportStepCount, 0);
+    expect(find.byKey(const ValueKey('export-format-step')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('export-format-step')));
     await tester.pump();
 
     expect(dialog.exportStepCount, 1);
@@ -2359,6 +2420,40 @@ void main() {
       isFalse,
     );
     expect(find.textContaining('STEP экспортирован:'), findsOneWidget);
+  });
+
+  testWidgets('export format chooser can be cancelled before file picker', (
+    tester,
+  ) async {
+    final dialog = _FakeProjectFileDialogService(
+      exportStepFile: File('unused_step'),
+      exportStlFile: File('unused_stl'),
+    );
+    final geometryService = _ExportGeometryService();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkspaceShell(
+          project: ProjectModel.initial(),
+          geometryService: geometryService,
+          projectFileDialogService: dialog,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('toolbar-command-${CommandIds.exportProject}')),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+
+    expect(dialog.exportStepCount, 0);
+    expect(dialog.exportStlCount, 0);
+    expect(geometryService.exportCount, 0);
+    expect(find.textContaining('Экспорт отменён'), findsOneWidget);
   });
 
   testWidgets('open command loads semantic project file and resets undo', (
@@ -2563,16 +2658,20 @@ class _FakeProjectFileDialogService implements ProjectFileDialogService {
     this.openFile,
     this.saveFile,
     this.exportStepFile,
+    this.exportStlFile,
   });
 
   final File? openFile;
   final File? saveFile;
   final File? exportStepFile;
+  final File? exportStlFile;
   int openCount = 0;
   int saveCount = 0;
   int exportStepCount = 0;
+  int exportStlCount = 0;
   String? lastSuggestedName;
   String? lastExportStepSuggestedName;
+  String? lastExportStlSuggestedName;
 
   @override
   Future<File?> pickOpenProjectFile() async {
@@ -2588,18 +2687,30 @@ class _FakeProjectFileDialogService implements ProjectFileDialogService {
   }
 
   @override
-  Future<File?> pickExportStepFile({required String suggestedName}) async {
-    exportStepCount += 1;
-    lastExportStepSuggestedName = suggestedName;
-    return exportStepFile;
+  Future<File?> pickExportFile({
+    required ProjectExportFormat format,
+    required String suggestedName,
+  }) async {
+    switch (format) {
+      case ProjectExportFormat.step:
+        exportStepCount += 1;
+        lastExportStepSuggestedName = suggestedName;
+        return exportStepFile;
+      case ProjectExportFormat.stl:
+        exportStlCount += 1;
+        lastExportStlSuggestedName = suggestedName;
+        return exportStlFile;
+    }
   }
 }
 
 class _BlockingProjectFileDialogService implements ProjectFileDialogService {
   final Completer<File?> _saveCompleter = Completer<File?>();
   final Completer<File?> _exportStepCompleter = Completer<File?>();
+  final Completer<File?> _exportStlCompleter = Completer<File?>();
   int saveCount = 0;
   int exportStepCount = 0;
+  int exportStlCount = 0;
 
   void completeSave(File? file) {
     _saveCompleter.complete(file);
@@ -2621,9 +2732,18 @@ class _BlockingProjectFileDialogService implements ProjectFileDialogService {
   }
 
   @override
-  Future<File?> pickExportStepFile({required String suggestedName}) async {
-    exportStepCount += 1;
-    return _exportStepCompleter.future;
+  Future<File?> pickExportFile({
+    required ProjectExportFormat format,
+    required String suggestedName,
+  }) async {
+    switch (format) {
+      case ProjectExportFormat.step:
+        exportStepCount += 1;
+        return _exportStepCompleter.future;
+      case ProjectExportFormat.stl:
+        exportStlCount += 1;
+        return _exportStlCompleter.future;
+    }
   }
 }
 
@@ -2654,37 +2774,44 @@ class _MemoryProjectFileService extends ProjectFileService {
   }
 }
 
-class _ExportStepGeometryService extends MockGeometryService {
+class _ExportGeometryService extends MockGeometryService {
   int exportCount = 0;
   GeometryRequest? lastExportRequest;
 
   @override
   Future<GeometryResponse> buildGeometry(GeometryRequest request) async {
-    if (request.operation != GeometryOperation.exportStep) {
+    if (request.operation != GeometryOperation.exportStep &&
+        request.operation != GeometryOperation.exportStl) {
       return super.buildGeometry(request);
     }
 
     exportCount += 1;
     lastExportRequest = request;
     final outputPath = request.options['outputPath'] as String? ?? '';
+    final artifactType = switch (request.operation) {
+      GeometryOperation.exportStep => 'step',
+      GeometryOperation.exportStl => 'stl',
+      _ => 'artifact',
+    };
+    final formatLabel = artifactType.toUpperCase();
 
     return GeometryResponse(
       requestId: request.requestId,
       status: GeometryResponseStatus.ok,
-      backend: 'fake_step_export',
+      backend: 'fake_${artifactType}_export',
       artifacts: [
         GeometryArtifact(
-          type: 'step',
+          type: artifactType,
           path: outputPath,
-          metadata: const {
-            'format': 'STEP',
+          metadata: {
+            'format': formatLabel,
             'source': 'occt_brep',
             'units': 'mm',
           },
         ),
       ],
-      metrics: const {
-        'requestedOperation': 'export_step',
+      metrics: {
+        'requestedOperation': request.operation.wireName,
         'editableGeneratedGeometry': false,
       },
     );

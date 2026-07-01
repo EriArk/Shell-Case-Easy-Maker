@@ -154,10 +154,10 @@ That test sends an `export_step` request, verifies that the response returns a
 payload. STEP files are generated artifacts only; they are not stored as the
 editable project source.
 
-The workspace toolbar now exposes the same `export_step` operation through a
-STEP save-location dialog. That UI path still exports the whole generated
-preview assembly; user-facing STL format selection and part selection remain
-later slices.
+The workspace toolbar now exposes export through a compact STEP/STL format
+chooser. Choosing STEP sends `export_step`; choosing STL sends `export_stl`.
+Both UI paths still export the whole generated preview assembly. Part selection
+remains a later slice.
 
 The first native STL export path is covered by:
 

@@ -120,6 +120,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M99 - Native STEP Export Slice
 - [x] M100 - Toolbar STEP Export
 - [x] M101 - Native STL Export Slice
+- [x] M102 - Toolbar STEP/STL Export Format Choice
 
 ---
 
@@ -4700,3 +4701,53 @@ project state.
 - No new app UI is exposed in this chunk.
 - Native STL is verified by test. Manual STL export becomes useful after the
   next UI format-choice chunk.
+
+---
+
+## M102 - Toolbar STEP/STL Export Format Choice
+
+### Goal
+Expose STL export through the existing toolbar export command while keeping
+STEP/STL files as output artifacts outside saved project JSON and undo/redo.
+
+### Tasks
+- [x] Add a small export format chooser for STEP/STL from the toolbar export
+      icon.
+- [x] Generalize export file dialogs to use `ProjectExportFormat`.
+- [x] Add `.stl` extension handling alongside `.step/.stp`.
+- [x] Route STEP to `GeometryRequest.exportStep` and STL to
+      `GeometryRequest.exportStl`.
+- [x] Keep export outside project save, dirty baseline, undo/redo, and
+      semantic project JSON.
+- [x] Add widget coverage for STEP, STL, picker guard, and chooser cancel.
+
+### Done Criteria
+- Clicking the toolbar export icon opens a compact STEP/STL chooser.
+- Choosing STEP opens a STEP save dialog and sends `export_step`.
+- Choosing STL opens an STL save dialog and sends `export_stl`.
+- Missing extensions are filled as `.step` or `.stl`.
+- Canceling the chooser does not open a native save dialog.
+- Export success reports the chosen format in the status bar.
+- Export does not save a project file, mark the project clean, or create an
+  undo entry.
+
+### Tests
+- `flutter test test\project_file_service_test.dart --plain-name "export dialog helper preserves or adds export extensions" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "export command writes STEP artifact through geometry service" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "export command writes STL artifact through geometry service" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "export picker opens without pre-picker status rebuild" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "export format chooser can be cancelled before file picker" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Click the top toolbar export/download icon.
+- Choose `STL`, save with a name that has no extension, and confirm a `.stl`
+  file is created.
+- Repeat with `STEP` and confirm a `.step` file is created.
+- Cancel the format chooser once; no native save dialog should open.

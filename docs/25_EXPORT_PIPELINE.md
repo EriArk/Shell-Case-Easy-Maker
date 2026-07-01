@@ -32,8 +32,8 @@ Current native status:
 - The response returns a binary `stl` artifact generated from OCCT B-Rep
   tessellation.
 - The exported STL file is output only and is not editable project state.
-- The app toolbar does not expose STL yet; a user-facing format choice is still
-  pending.
+- The app toolbar export command exposes STL through the STEP/STL format
+  chooser and sends `GeometryRequest.exportStl` through `GeometryService`.
 
 Options:
 - preview quality,
@@ -50,10 +50,11 @@ Current native status:
 - The request must provide `options.outputPath`.
 - The response returns a `step` artifact generated from OCCT B-Rep.
 - The exported STEP file is output only and is not editable project state.
-- The toolbar export command now opens a STEP save-location dialog and sends
-  `GeometryRequest.exportStep` through `GeometryService`.
+- The toolbar export command opens a STEP/STL format chooser. Choosing STEP
+  opens a STEP save-location dialog and sends `GeometryRequest.exportStep`
+  through `GeometryService`.
 - The toolbar path exports the whole generated sample assembly for now.
-- Format selection and part-selection options are still future work.
+- Part-selection options are still future work.
 
 Options:
 - entire device,

@@ -141,8 +141,8 @@ warnings do not confuse the snap preview.
 The top toolbar now wires project open/save/export commands:
 - open loads `.enclosure.json` into semantic shell state,
 - save writes the current semantic project,
-- export opens a STEP save dialog and asks `GeometryService` to generate a
-  disposable artifact,
+- export opens a STEP/STL format chooser, then asks `GeometryService` to
+  generate the selected disposable artifact,
 - open resets undo/redo history for the loaded file,
 - open asks before discarding unsaved semantic edits,
 - the status bar reports unsaved changes when the project differs from the

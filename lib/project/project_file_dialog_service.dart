@@ -7,7 +7,43 @@ abstract interface class ProjectFileDialogService {
 
   Future<File?> pickSaveProjectFile({required String suggestedName});
 
-  Future<File?> pickExportStepFile({required String suggestedName});
+  Future<File?> pickExportFile({
+    required ProjectExportFormat format,
+    required String suggestedName,
+  });
+}
+
+enum ProjectExportFormat {
+  step(
+    label: 'STEP',
+    typeGroupLabel: 'STEP geometry',
+    extensions: ['step', 'stp'],
+    defaultExtension: 'step',
+    confirmButtonText: 'Export STEP',
+  ),
+  stl(
+    label: 'STL',
+    typeGroupLabel: 'STL print file',
+    extensions: ['stl'],
+    defaultExtension: 'stl',
+    confirmButtonText: 'Export STL',
+  );
+
+  const ProjectExportFormat({
+    required this.label,
+    required this.typeGroupLabel,
+    required this.extensions,
+    required this.defaultExtension,
+    required this.confirmButtonText,
+  });
+
+  final String label;
+  final String typeGroupLabel;
+  final List<String> extensions;
+  final String defaultExtension;
+  final String confirmButtonText;
+
+  String get artifactType => name;
 }
 
 class FileSelectorProjectFileDialogService implements ProjectFileDialogService {
@@ -16,10 +52,6 @@ class FileSelectorProjectFileDialogService implements ProjectFileDialogService {
   static const projectTypeGroup = XTypeGroup(
     label: 'Shell Case project',
     extensions: ['json'],
-  );
-  static const stepTypeGroup = XTypeGroup(
-    label: 'STEP geometry',
-    extensions: ['step', 'stp'],
   );
 
   @override
@@ -46,16 +78,21 @@ class FileSelectorProjectFileDialogService implements ProjectFileDialogService {
   }
 
   @override
-  Future<File?> pickExportStepFile({required String suggestedName}) async {
+  Future<File?> pickExportFile({
+    required ProjectExportFormat format,
+    required String suggestedName,
+  }) async {
     final location = await getSaveLocation(
-      acceptedTypeGroups: const [stepTypeGroup],
+      acceptedTypeGroups: [
+        XTypeGroup(label: format.typeGroupLabel, extensions: format.extensions),
+      ],
       suggestedName: suggestedName,
-      confirmButtonText: 'Export STEP',
+      confirmButtonText: format.confirmButtonText,
     );
 
     return location == null
         ? null
-        : ensureStepFileExtension(File(location.path));
+        : ensureExportFileExtension(File(location.path), format);
   }
 }
 
@@ -70,11 +107,19 @@ File ensureProjectFileExtension(File file) {
 }
 
 File ensureStepFileExtension(File file) {
+  return ensureExportFileExtension(file, ProjectExportFormat.step);
+}
+
+File ensureStlFileExtension(File file) {
+  return ensureExportFileExtension(file, ProjectExportFormat.stl);
+}
+
+File ensureExportFileExtension(File file, ProjectExportFormat format) {
   final path = file.path;
   final lowerPath = path.toLowerCase();
-  if (lowerPath.endsWith('.step') || lowerPath.endsWith('.stp')) {
+  if (format.extensions.any((extension) => lowerPath.endsWith('.$extension'))) {
     return file;
   }
 
-  return File('$path.step');
+  return File('$path.${format.defaultExtension}');
 }

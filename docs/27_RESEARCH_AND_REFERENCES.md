@@ -109,7 +109,7 @@ Keep STL files as output only, not editable project state.
 
 ## Follow-up tasks
 
-- Add a user-facing export format choice so the toolbar can select STEP or STL.
+- Add export part selection after the whole-assembly path settles.
 - Add STL quality presets after first manual checks.
 - Add package license notices before distributing OCCT DLLs broadly.
 
@@ -169,8 +169,7 @@ metrics. Keep STEP files as output only, not editable project state.
 
 ## Follow-up tasks
 
-- Add user-facing format/part selection on top of the first STEP/STL artifact
-  paths.
+- Add user-facing part selection on top of the first STEP/STL artifact paths.
 - Add package license notices before distributing OCCT DLLs broadly.
 
 ---

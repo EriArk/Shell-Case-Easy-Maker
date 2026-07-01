@@ -42,6 +42,113 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-07-01 - M102 Toolbar STEP/STL export format choice
+
+### Goal
+Expose STL from the existing toolbar export command while keeping STEP/STL as
+generated output artifacts outside project JSON, undo/redo, and editable
+semantic state.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/project/project_file_dialog_service.dart`,
+`lib/ui/shell/workspace_shell.dart`, `test/project_file_service_test.dart`,
+`test/widget_test.dart`, `docs/05_PROJECT_FILE_FORMAT.md`,
+`docs/25_EXPORT_PIPELINE.md`, `docs/27_RESEARCH_AND_REFERENCES.md`,
+`docs/31_COMMANDS_AND_UNDO.md`, `docs/32_USABLE_SHELL.md`, and
+`docs/34_FIRST_GEOMETRY_SLICE.md`.
+
+### Changes made
+- `lib/project/project_file_dialog_service.dart`:
+  - Added `ProjectExportFormat` for STEP/STL file dialog filters, confirm
+    labels, artifact types, and default extensions.
+  - Replaced the STEP-only export picker with `pickExportFile`.
+  - Added shared export extension handling plus the STL helper.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Replaced direct toolbar STEP export with a compact STEP/STL chooser.
+  - Constrained the chooser width so desktop export stays a compact command
+    surface instead of a full-width band.
+  - Routed STEP to `GeometryRequest.exportStep` and STL to
+    `GeometryRequest.exportStl`.
+  - Kept export paths outside project save, dirty baseline, and undo history.
+- Tests:
+  - Expanded export extension helper coverage for `.stl`.
+  - Added widget coverage for toolbar STL export.
+  - Updated STEP export and picker-guard tests to pass through the chooser.
+  - Added chooser-cancel coverage before the native file picker opens.
+- Docs/tasks:
+  - Marked user-facing STL export complete in `TASKS.md`.
+  - Added M102 to `ROADMAP.md`.
+  - Updated export, project-file, commands/undo, shell, geometry-slice, and
+    research follow-up docs.
+
+### Tests run
+- `dart format lib\project\project_file_dialog_service.dart lib\ui\shell\workspace_shell.dart test\project_file_service_test.dart test\widget_test.dart`:
+  - Passed; 0 changed.
+- `flutter test test\project_file_service_test.dart --plain-name "export dialog helper preserves or adds export extensions" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "export command writes STEP artifact through geometry service" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "export command writes STL artifact through geometry service" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "export picker opens without pre-picker status rebuild" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "export format chooser can be cancelled before file picker" --reporter compact`:
+  - First run failed because `WidgetTester.pageBack()` expects a Cupertino back
+    button; test was corrected to dismiss the bottom sheet via barrier tap.
+  - Passed after correction.
+- `flutter pub get`:
+  - Passed; package solver reported only newer incompatible package notices.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 73 files checked, 0 changed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed; 209 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed; refreshed `releases/latest/windows/shell_case_easy_maker.exe`.
+- After chooser width polish, `dart format --output=none --set-exit-if-changed lib test tool occt_worker`, `flutter analyze`, `flutter test --reporter compact`, and `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed again; full suite remained at 209 tests and the latest Windows
+    bundle was refreshed again.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git status --short --ignored releases`:
+  - Passed; `releases/` is ignored.
+- `git diff --check`:
+  - Passed with CRLF normalization warnings only for docs.
+
+### Validation
+- Geometry checked?
+  - Targeted fake-service widget paths checked STEP/STL request routing; the
+    full suite includes existing native STEP/STL artifact tests.
+- Serialization checked?
+  - No project schema changes; export paths remain outside project JSON.
+- UI checked?
+  - Targeted widget tests and full test suite cover chooser, cancel, STEP, STL,
+    and picker guard.
+- Export checked?
+  - Toolbar paths send `export_step` and `export_stl` with explicit output
+    paths and format-specific file extensions; latest Windows bundle was
+    refreshed.
+
+### Known issues
+- Issue: Export still writes the whole generated assembly.
+  - Severity: Medium.
+  - Next action: Add part/body selection after the whole-assembly path settles.
+- Issue: STL export still has one backend quality profile.
+  - Severity: Medium.
+  - Next action: Add quality presets after manual STL checks.
+
+### Next step
+Commit and push M102, then manually poke STEP/STL export from the latest exe.
+
+### Notes for future Codex sessions
+Keep export format choice as UI/output flow only. Do not write chosen file paths
+or exported mesh/STEP data into `ProjectModel` without an explicit export
+history design.
+
+---
+
 ## 2026-07-01 - M101 Native STL export slice
 
 ### Goal
