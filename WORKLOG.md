@@ -10161,3 +10161,115 @@ component-driven switch/button cutout propagation.
 Component-driven port creation should remain semantic and traceable. Do not
 flatten it into generated mesh or OCCT topology; source IDs are the bridge for
 future regeneration/update behavior.
+
+---
+
+## 2026-07-01 - M112 Snap-Seeded Glass and Button Placement
+
+### Goal
+Extend the active face-local snap target workflow from USB-C/cutouts to manual
+glass recesses and button groups, while keeping project data semantic and
+independent from generated mesh or OCCT topology IDs.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/ui/shell/workspace_shell.dart`, `lib/viewport/viewport_controller.dart`,
+`lib/geometry/geometry_protocol.dart`,
+`lib/validation/project_semantic_validator.dart`, `test/widget_test.dart`,
+`test/geometry_protocol_test.dart`, `test/project_semantic_validator_test.dart`,
+and docs for project format, feature system, commands, viewport, usable shell,
+and testing.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added active snap actions for glass recesses and manual button groups.
+  - Saves `placement.projectionMode=surface_snap_target`,
+    `placement.surfacePosition`, and surface axes for snap-seeded glass/button
+    creation.
+  - Preserves placement/source metadata when the glass dialog confirms.
+  - Moves mock glass and button markers to the saved face-local position.
+- `lib/viewport/viewport_controller.dart`:
+  - Allows mock button group previews to carry a semantic surface offset.
+  - Uses saved glass/button surface positions for selectable mock markers.
+- `lib/geometry/geometry_protocol.dart`:
+  - Offsets manual button group operation items by saved
+    `placement.surfacePosition`.
+- `lib/validation/project_semantic_validator.dart`:
+  - Validates snap-seeded glass recess anchors and manual button group button
+    centers against supported enclosure surfaces.
+- Tests:
+  - Added protocol, validator, and widget coverage for snap-seeded glass and
+    manual button placement.
+- Docs/tasks/roadmap:
+  - Recorded M112 behavior, tests, current limitations, and poke checklist.
+
+### Tests run
+- `flutter test test\geometry_protocol_test.dart --plain-name "manual button group items include saved surface position offset"`:
+  - Passed.
+- `flutter test test\project_semantic_validator_test.dart --plain-name "snap-seeded glass recess anchor outside surface reports an error"`:
+  - Passed.
+- `flutter test test\project_semantic_validator_test.dart --plain-name "manual button group surface anchor outside lid reports an error"`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "snap-seeded USB-C stores front wall surface position"`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "snap-seeded glass recess stores top lid surface position"`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "snap-seeded button group stores top lid surface position"`:
+  - Passed.
+- `flutter test test\geometry_protocol_test.dart test\project_semantic_validator_test.dart test\viewport_controller_test.dart`:
+  - Passed, 49 tests.
+- `flutter test test\widget_test.dart --plain-name "snap-seeded"`:
+  - Passed, 5 tests.
+- `flutter pub get`:
+  - Passed; 4 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed, 227 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git status --short --ignored releases`:
+  - Passed; `releases/` is ignored.
+- `git diff --check`:
+  - Passed with only the existing ROADMAP CRLF warning.
+
+### Validation
+- Geometry checked?
+  - Protocol tests confirm manual button group operation positions include the
+    semantic snap offset. Generated B-Rep cutting is not changed in this slice.
+- Serialization checked?
+  - Widget tests save semantic project JSON and verify glass/button
+    `surface_snap_target` placement metadata.
+- UI checked?
+  - Widget tests confirm active snap panel actions create/select markers from
+    the clicked top-lid point.
+- Export checked?
+  - Latest Windows bundle rebuilt; STEP/STL export behavior unchanged.
+
+### Known issues
+- Issue: Glass and button snap placement currently uses semantic 2D/overlay
+  markers, not direct picking of generated OCCT faces.
+  - Severity: Expected first-pass limitation.
+  - Next action: move toward true generated-geometry picking/mapping when the
+    viewport supports robust semantic face hits.
+- Issue: Manual button group geometry protocol positions are now offset, but
+  native generated button cuts still need broader deterministic regression
+  coverage before they become a user-facing guarantee.
+  - Severity: Expected.
+  - Next action: add native geometry tests around manual group placement before
+    tightening export behavior.
+
+### Next step
+Commit and push M112, then continue toward stronger generated-geometry mapping
+and user-facing placement feedback.
+
+### Notes for future Codex sessions
+Snap-seeded glass/buttons should remain semantic `surface_snap_target`
+placements. Do not couple them to triangle IDs or generated mesh hit IDs; use
+stable semantic surface IDs and face-local coordinates.

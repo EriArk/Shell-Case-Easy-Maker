@@ -119,9 +119,12 @@ Current behavior:
   manual USB-C features also store `placement.surfacePosition`,
   `placement.surfaceAxes`, and `projectionMode=surface_snap_target`,
 - the `Кнопки` rail command can append semantic `button_group` feature groups
-  with editable pattern and item prototype data,
+  with editable pattern and item prototype data; when launched from a surface
+  snap target, manual button groups store `placement.surfacePosition`,
+  `placement.surfaceAxes`, and `projectionMode=surface_snap_target`,
 - the `Стекло` rail command can append semantic `glass_recess` features targeted
-  at a selected semantic surface,
+  at a selected semantic surface; when launched from a surface snap target,
+  glass recesses store the same semantic surface placement metadata,
 - the `Отверстия` rail command can append semantic `circular_cutout` and
   `rectangular_cutout` features with editable dimensions, depth, and face-local
   X/Y parameters; the `Слот` preset is stored as `rectangular_cutout` with

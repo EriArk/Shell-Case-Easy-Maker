@@ -365,6 +365,66 @@ void main() {
     );
   });
 
+  test('snap-seeded glass recess anchor outside surface reports an error', () {
+    final project = ProjectModel.initial().replaceFeature(
+      const SemanticFeature(
+        id: 'snap_glass_far',
+        type: 'glass_recess',
+        targetSurface: 'main_enclosure.top_lid.outer',
+        operation: 'recess',
+        placement: {
+          'projectionMode': 'surface_snap_target',
+          'surfacePosition': [55.0, 0.0],
+          'surfaceAxes': ['x', 'y'],
+        },
+        parameters: {
+          'width': 42.0,
+          'height': 24.0,
+          'recessDepth': 1.2,
+          'ledgeWidth': 1.5,
+          'cornerRadius': 2.0,
+        },
+      ),
+    );
+
+    final report = ProjectSemanticValidator.validate(project);
+
+    expect(report.hasErrors, isTrue);
+    expect(
+      report.messages.map((message) => message.code),
+      contains('feature.projected_anchor.outside_surface'),
+    );
+  });
+
+  test('manual button group surface anchor outside lid reports an error', () {
+    final project = ProjectModel.initial().copyWith(
+      features: const [],
+      featureGroups: const [
+        FeatureGroup(
+          id: 'manual_buttons_far',
+          type: 'button_group',
+          targetSurface: 'main_enclosure.top_lid.outer',
+          pattern: {'layout': 'diamond', 'count': 4, 'spacing': 14.0},
+          itemPrototype: {'diameter': 8.0, 'ringWidth': 1.2},
+          placement: {
+            'anchor': 'surface_snap_target',
+            'projectionMode': 'surface_snap_target',
+            'surfacePosition': [55.0, 0.0],
+            'surfaceAxes': ['x', 'y'],
+          },
+        ),
+      ],
+    );
+
+    final report = ProjectSemanticValidator.validate(project);
+
+    expect(report.hasErrors, isTrue);
+    expect(
+      report.messages.map((message) => message.code),
+      contains('group.surface_anchor.outside_surface'),
+    );
+  });
+
   test('button plunger travel and guide fit are validated', () {
     final project = ProjectModel.initial().copyWith(
       features: const [],

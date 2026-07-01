@@ -694,7 +694,7 @@ void main() {
 
     expect(created.targetSurface, 'main_enclosure.front_wall.outer');
     expect(created.placement?['projectionMode'], 'surface_snap_target');
-    expect(created.placement?['surfacePosition'], [-48.0, 10.0]);
+    expect(created.placement?['surfacePosition'], [-48.0, 24.0]);
     expect(created.placement?['surfaceAxes'], ['x', 'z']);
 
     await tester.tap(find.text('main_enclosure').first);
@@ -716,13 +716,177 @@ void main() {
       height: 4.2,
       cornerRadius: 1,
       referenceHeight: 28,
-      position: Offset(-48, 10),
+      position: Offset(-48, 24),
     );
 
     await tester.tapAt(canvasTopLeft + layout.featureRect(createdUsbC).center);
     await tester.pumpAndSettle();
 
     expect(find.text('width'), findsOneWidget);
+  });
+
+  testWidgets('snap-seeded glass recess stores top lid surface position', (
+    tester,
+  ) async {
+    final fileService = _MemoryProjectFileService();
+    final saveFile = File('snap_glass.enclosure.json');
+    final dialog = _FakeProjectFileDialogService(saveFile: saveFile);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkspaceShell(
+          project: ProjectModel.initial(),
+          geometryService: const MockGeometryService(),
+          projectFileService: fileService,
+          projectFileDialogService: dialog,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Top lid').first);
+    await tester.pumpAndSettle();
+    await _tapTopLidWorkplane(tester, const Offset(-34, 16));
+
+    final createGlassFromSnap = find.byKey(
+      const ValueKey('active-snap-create-glass-recess'),
+    );
+    expect(createGlassFromSnap, findsOneWidget);
+
+    await tester.ensureVisible(createGlassFromSnap);
+    await tester.pumpAndSettle();
+    await tester.tap(createGlassFromSnap);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('glass-recess-confirm')));
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('glass_recess_1'), findsWidgets);
+
+    await tester.tap(
+      find.byKey(const ValueKey('toolbar-command-${CommandIds.saveProject}')),
+    );
+    await _pumpAsyncUi(tester);
+
+    final saved = await fileService.readProject(saveFile);
+    final created = saved.features.singleWhere(
+      (feature) => feature.id == 'glass_recess_1',
+    );
+
+    expect(created.placement?['projectionMode'], 'surface_snap_target');
+    expect(created.placement?['surfacePosition'], [-34.0, 16.0]);
+    expect(created.placement?['surfaceAxes'], ['x', 'y']);
+
+    await tester.tap(find.text('main_enclosure').first);
+    await tester.pumpAndSettle();
+    expect(find.text('ledgeWidth'), findsNothing);
+
+    final canvasFinder = find.byKey(const ValueKey('mock-viewport-canvas'));
+    final canvasTopLeft = tester.getTopLeft(canvasFinder);
+    final canvasSize = tester.getSize(canvasFinder);
+    final layout = MockViewportLayout.fromSize(
+      canvasSize,
+      const ViewportState(),
+    );
+    const createdGlass = MockViewportFeaturePreview(
+      semanticId: 'glass_recess_1',
+      kind: MockViewportFeatureKind.glassRecess,
+      targetSurfaceId: 'main_enclosure.top_lid.outer',
+      width: 42,
+      height: 24,
+      cornerRadius: 2,
+      position: Offset(-34, 16),
+    );
+
+    await tester.tapAt(canvasTopLeft + layout.featureRect(createdGlass).center);
+    await tester.pumpAndSettle();
+
+    expect(find.text('ledgeWidth'), findsOneWidget);
+  });
+
+  testWidgets('snap-seeded button group stores top lid surface position', (
+    tester,
+  ) async {
+    final fileService = _MemoryProjectFileService();
+    final saveFile = File('snap_buttons.enclosure.json');
+    final dialog = _FakeProjectFileDialogService(saveFile: saveFile);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkspaceShell(
+          project: ProjectModel.initial(),
+          geometryService: const MockGeometryService(),
+          projectFileService: fileService,
+          projectFileDialogService: dialog,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Top lid').first);
+    await tester.pumpAndSettle();
+    await _tapTopLidWorkplane(tester, const Offset(-36, 10));
+
+    final createButtonsFromSnap = find.byKey(
+      const ValueKey('active-snap-create-button-group'),
+    );
+    expect(createButtonsFromSnap, findsOneWidget);
+
+    await tester.ensureVisible(createButtonsFromSnap);
+    await tester.pumpAndSettle();
+    await tester.tap(createButtonsFromSnap);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('button-group-confirm')));
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('button_group_1'), findsWidgets);
+
+    await tester.tap(
+      find.byKey(const ValueKey('toolbar-command-${CommandIds.saveProject}')),
+    );
+    await _pumpAsyncUi(tester);
+
+    final saved = await fileService.readProject(saveFile);
+    final created = saved.featureGroups.singleWhere(
+      (group) => group.id == 'button_group_1',
+    );
+
+    expect(created.placement['projectionMode'], 'surface_snap_target');
+    expect(created.placement['surfacePosition'], [-36.0, 10.0]);
+    expect(created.placement['surfaceAxes'], ['x', 'y']);
+
+    await tester.tap(find.text('main_enclosure').first);
+    await tester.pumpAndSettle();
+
+    const modeFieldKey = ValueKey('feature-group-param-button_group_1-mode');
+    expect(find.byKey(modeFieldKey, skipOffstage: false), findsNothing);
+
+    final canvasFinder = find.byKey(const ValueKey('mock-viewport-canvas'));
+    final canvasTopLeft = tester.getTopLeft(canvasFinder);
+    final canvasSize = tester.getSize(canvasFinder);
+    final layout = MockViewportLayout.fromSize(
+      canvasSize,
+      const ViewportState(),
+    );
+    const createdButtonGroup = MockViewportFeatureGroupPreview(
+      semanticId: 'button_group_1',
+      kind: MockViewportFeatureGroupKind.buttonGroup,
+      sourcePositions: [Offset(14, 0)],
+      referenceWidth: 120,
+      referenceHeight: 70,
+      itemDiameter: 8,
+      position: Offset(-36, 10),
+    );
+
+    await tester.tapAt(
+      canvasTopLeft + layout.featureGroupCenters(createdButtonGroup).first,
+    );
+    await tester.pumpAndSettle();
+
+    final modeField = find.byKey(modeFieldKey, skipOffstage: false);
+    await tester.ensureVisible(modeField);
+    await tester.pump();
+
+    expect(modeField, findsOneWidget);
   });
 
   testWidgets('snap-seeded placement dialog can align a component anchor', (

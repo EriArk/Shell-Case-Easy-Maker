@@ -105,9 +105,9 @@ The mock viewport draws selectable markers for semantic features:
 - `rectangular_cutout`.
 
 The marker data is derived from semantic feature parameters such as width,
-height, diameter, face-local X/Y, saved USB-C `surfacePosition`, and corner
-radius. The markers are only viewport affordances; clicking one selects the
-semantic feature ID.
+height, diameter, face-local X/Y, saved USB-C/glass `surfacePosition`, and
+corner radius. The markers are only viewport affordances; clicking one selects
+the semantic feature ID.
 
 ## Feature Group Markers
 
@@ -136,6 +136,8 @@ holes. The viewport keeps only the mock screen-space conversion and hit zones.
 
 The markers are a viewport affordance only. Clicking one marker selects the
 whole feature group, not an individual mesh primitive or flattened hole.
+Manual button groups with saved `placement.surfacePosition` offset the whole
+pattern around that semantic surface point.
 
 ## Current Controls
 
@@ -151,6 +153,8 @@ whole feature group, not an individual mesh primitive or flattened hole.
   the clicked surface point.
 - Use the inspector USB-C action on a front-wall snap target: open the USB-C
   dialog seeded from the clicked surface point.
+- Use the inspector glass or button actions on a surface snap target: open the
+  normal semantic dialogs and save the clicked point as feature/group placement.
 - Active snap target: show a transient component footprint preview.
 - Open placement dialog: show a transient candidate footprint until cancel or
   confirm.

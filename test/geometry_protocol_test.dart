@@ -136,6 +136,39 @@ void main() {
     expect(buttonIntent.items.first.source['direction'], 'top');
   });
 
+  test('manual button group items include saved surface position offset', () {
+    final project = ProjectModel.initial().copyWith(
+      features: const [],
+      featureGroups: const [
+        FeatureGroup(
+          id: 'snap_buttons',
+          type: 'button_group',
+          targetSurface: 'main_enclosure.top_lid.outer',
+          pattern: {'layout': 'row', 'count': 2, 'spacing': 10.0},
+          itemPrototype: {'type': 'button', 'diameter': 8.0},
+          placement: {
+            'anchor': 'surface_snap_target',
+            'projectionMode': 'surface_snap_target',
+            'surfacePosition': [20.0, -5.0],
+            'surfaceAxes': ['x', 'y'],
+          },
+        ),
+      ],
+    );
+    final request = GeometryRequest.previewMesh(
+      project,
+      requestId: 'preview_snap_buttons',
+    );
+
+    final buttonIntent = request.featureIntents.singleWhere(
+      (intent) => intent.id == 'snap_buttons',
+    );
+
+    expect(buttonIntent.items, hasLength(2));
+    expect(buttonIntent.items[0].position, [15.0, -5.0]);
+    expect(buttonIntent.items[1].position, [25.0, -5.0]);
+  });
+
   test(
     'STEP export request carries output path and semantic feature intents',
     () {

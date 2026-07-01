@@ -588,6 +588,10 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
         targetSurfaceId == null) {
       return;
     }
+    final snapTarget = _surfaceSnapTargetFor(
+      _activeSnapTarget,
+      targetSurfaceId,
+    );
 
     final group = await showDialog<FeatureGroup>(
       context: context,
@@ -595,6 +599,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
         initialGroup: _defaultButtonGroup(
           id: _nextFeatureGroupId(_project, 'button_group'),
           targetSurfaceId: targetSurfaceId,
+          snapTarget: snapTarget,
         ),
       ),
     );
@@ -661,6 +666,10 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
         targetSurfaceId == null) {
       return;
     }
+    final snapTarget = _surfaceSnapTargetFor(
+      _activeSnapTarget,
+      targetSurfaceId,
+    );
 
     final feature = await showDialog<SemanticFeature>(
       context: context,
@@ -668,6 +677,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
         initialFeature: _defaultGlassRecessFeature(
           id: _nextFeatureId(_project, 'glass_recess'),
           targetSurfaceId: targetSurfaceId,
+          snapTarget: snapTarget,
         ),
       ),
     );
@@ -1281,6 +1291,26 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                                 _runAddUsbCCommand(_selection);
                               }
                             : null,
+                        onCreateGlassRecessFromSnap:
+                            _surfaceSnapTargetFor(
+                                  _activeSnapTarget,
+                                  _selection.id ?? '',
+                                ) !=
+                                null
+                            ? () {
+                                _runCreateGlassRecessCommand(_selection);
+                              }
+                            : null,
+                        onCreateButtonGroupFromSnap:
+                            _surfaceSnapTargetFor(
+                                  _activeSnapTarget,
+                                  _selection.id ?? '',
+                                ) !=
+                                null
+                            ? () {
+                                _runCreateButtonGroupCommand(_selection);
+                              }
+                            : null,
                         onClearSnapTarget: _clearActiveSnapTarget,
                         onEnclosureParameterChanged: _updateEnclosureParameter,
                         onComponentPlacementParameterChanged:
@@ -1382,6 +1412,7 @@ class _ActiveSnapTarget {
     required this.workplaneId,
     required this.workplaneKind,
     required this.localPosition,
+    required this.surfacePosition,
     required this.projectPosition,
     required this.z,
     required this.mountingSide,
@@ -1391,6 +1422,7 @@ class _ActiveSnapTarget {
   final String workplaneId;
   final MockViewportWorkplaneKind workplaneKind;
   final Offset localPosition;
+  final Offset surfacePosition;
   final Offset projectPosition;
   final double z;
   final String mountingSide;
@@ -1402,6 +1434,7 @@ class _ActiveSnapTarget {
         other.workplaneId == workplaneId &&
         other.workplaneKind == workplaneKind &&
         other.localPosition == localPosition &&
+        other.surfacePosition == surfacePosition &&
         other.projectPosition == projectPosition &&
         other.z == z &&
         other.mountingSide == mountingSide &&
@@ -1414,6 +1447,7 @@ class _ActiveSnapTarget {
       workplaneId,
       workplaneKind,
       localPosition,
+      surfacePosition,
       projectPosition,
       z,
       mountingSide,
@@ -1437,6 +1471,7 @@ _ActiveSnapTarget? _snapTargetFromViewportHit(
       workplaneId: hit.semanticId,
       workplaneKind: kind,
       localPosition: localPosition,
+      surfacePosition: localPosition,
       projectPosition: localPosition,
       z: 4,
       mountingSide: 'top_lid_inside',
@@ -1446,6 +1481,7 @@ _ActiveSnapTarget? _snapTargetFromViewportHit(
       workplaneId: hit.semanticId,
       workplaneKind: kind,
       localPosition: localPosition,
+      surfacePosition: _frontWallSurfacePosition(project, localPosition),
       projectPosition: localPosition,
       z: 4,
       mountingSide: 'free',
@@ -1483,11 +1519,18 @@ _ActiveSnapTarget? _componentPlacementSnapTarget(
     workplaneId: hit.semanticId,
     workplaneKind: kind,
     localPosition: localPosition,
+    surfacePosition: localPosition,
     projectPosition: projectPosition,
     z: _positionAt(placement.position, 2),
     mountingSide: placement.mountingSide,
     label: 'плата ${_formatSnapPoint(localPosition)}',
   );
+}
+
+Offset _frontWallSurfacePosition(ProjectModel project, Offset localPosition) {
+  final enclosure = project.bodies.firstOrNull;
+  final height = enclosure == null ? 28.0 : _sizeAt(enclosure, 2, 28);
+  return Offset(localPosition.dx, height / 2 + localPosition.dy);
 }
 
 Offset _rotateLocalOffset(Offset point, double degrees) {
@@ -1505,6 +1548,14 @@ String _formatSnapPoint(Offset point) {
 }
 
 bool _snapTargetCanCreateCircularCutout(_ActiveSnapTarget? target) {
+  return switch (target?.workplaneKind) {
+    MockViewportWorkplaneKind.topLid ||
+    MockViewportWorkplaneKind.frontWall => true,
+    MockViewportWorkplaneKind.componentPlacement || null => false,
+  };
+}
+
+bool _snapTargetCanCreateSurfaceFeature(_ActiveSnapTarget? target) {
   return switch (target?.workplaneKind) {
     MockViewportWorkplaneKind.topLid ||
     MockViewportWorkplaneKind.frontWall => true,
@@ -1533,6 +1584,18 @@ _ActiveSnapTarget? _circularCutoutSnapTargetFor(
   return target;
 }
 
+_ActiveSnapTarget? _surfaceSnapTargetFor(
+  _ActiveSnapTarget? target,
+  String targetSurfaceId,
+) {
+  if (!_snapTargetCanCreateSurfaceFeature(target) ||
+      target?.workplaneId != targetSurfaceId) {
+    return null;
+  }
+
+  return target;
+}
+
 _ActiveSnapTarget? _usbCSnapTargetFor(
   _ActiveSnapTarget? target,
   String targetSurfaceId,
@@ -1543,6 +1606,33 @@ _ActiveSnapTarget? _usbCSnapTargetFor(
   }
 
   return target;
+}
+
+Map<String, Object?>? _surfacePlacementForSnapTarget(
+  _ActiveSnapTarget? snapTarget,
+) {
+  final surfacePosition = snapTarget?.surfacePosition;
+  if (surfacePosition == null) {
+    return null;
+  }
+
+  return {
+    'anchor': 'surface_snap_target',
+    'projectionMode': 'surface_snap_target',
+    'surfacePosition': [
+      _snapCoordinate(surfacePosition.dx),
+      _snapCoordinate(surfacePosition.dy),
+    ],
+    'surfaceAxes': _surfaceAxesForWorkplaneKind(snapTarget!.workplaneKind),
+  };
+}
+
+List<String> _surfaceAxesForWorkplaneKind(MockViewportWorkplaneKind kind) {
+  return switch (kind) {
+    MockViewportWorkplaneKind.frontWall => const ['x', 'z'],
+    MockViewportWorkplaneKind.topLid => const ['x', 'y'],
+    MockViewportWorkplaneKind.componentPlacement => const ['x', 'y'],
+  };
 }
 
 String _mountingSideLabel(String mountingSide) {
@@ -1856,7 +1946,7 @@ SemanticFeature _defaultUsbCCutoutFeature({
   required String targetSurfaceId,
   _ActiveSnapTarget? snapTarget,
 }) {
-  final surfacePosition = snapTarget?.localPosition;
+  final surfacePosition = snapTarget?.surfacePosition;
 
   return SemanticFeature(
     id: id,
@@ -1965,12 +2055,14 @@ String _mapString(Map<String, Object?> values, String key, String fallback) {
 SemanticFeature _defaultGlassRecessFeature({
   required String id,
   required String targetSurfaceId,
+  _ActiveSnapTarget? snapTarget,
 }) {
   return SemanticFeature(
     id: id,
     type: 'glass_recess',
     targetSurface: targetSurfaceId,
     operation: 'recess',
+    placement: _surfacePlacementForSnapTarget(snapTarget),
     parameters: const {
       'width': 42.0,
       'height': 24.0,
@@ -2055,6 +2147,7 @@ String _nextFeatureId(ProjectModel project, String type) {
 FeatureGroup _defaultButtonGroup({
   required String id,
   required String targetSurfaceId,
+  _ActiveSnapTarget? snapTarget,
 }) {
   return FeatureGroup(
     id: id,
@@ -2076,7 +2169,9 @@ FeatureGroup _defaultButtonGroup({
       'guideClearance': 0.25,
       'mode': 'plunger',
     },
-    placement: const {'anchor': 'center'},
+    placement:
+        _surfacePlacementForSnapTarget(snapTarget) ??
+        const {'anchor': 'center'},
   );
 }
 
@@ -3377,6 +3472,8 @@ class _Inspector extends StatelessWidget {
     required this.onPlaceComponentFromSnap,
     required this.onCreateCircularCutoutFromSnap,
     required this.onCreateUsbCFromSnap,
+    required this.onCreateGlassRecessFromSnap,
+    required this.onCreateButtonGroupFromSnap,
     required this.onClearSnapTarget,
     required this.onEnclosureParameterChanged,
     required this.onComponentPlacementParameterChanged,
@@ -3392,6 +3489,8 @@ class _Inspector extends StatelessWidget {
   final VoidCallback? onPlaceComponentFromSnap;
   final VoidCallback? onCreateCircularCutoutFromSnap;
   final VoidCallback? onCreateUsbCFromSnap;
+  final VoidCallback? onCreateGlassRecessFromSnap;
+  final VoidCallback? onCreateButtonGroupFromSnap;
   final VoidCallback onClearSnapTarget;
   final void Function(String enclosureId, String parameterId, Object? value)
   onEnclosureParameterChanged;
@@ -3474,6 +3573,8 @@ class _Inspector extends StatelessWidget {
               onPlaceComponent: onPlaceComponentFromSnap,
               onCreateCircularCutout: onCreateCircularCutoutFromSnap,
               onCreateUsbC: onCreateUsbCFromSnap,
+              onCreateGlassRecess: onCreateGlassRecessFromSnap,
+              onCreateButtonGroup: onCreateButtonGroupFromSnap,
               onClear: onClearSnapTarget,
             ),
           ],
@@ -3545,6 +3646,8 @@ class _ActiveSnapTargetPanel extends StatelessWidget {
     required this.onPlaceComponent,
     required this.onCreateCircularCutout,
     required this.onCreateUsbC,
+    required this.onCreateGlassRecess,
+    required this.onCreateButtonGroup,
     required this.onClear,
   });
 
@@ -3553,6 +3656,8 @@ class _ActiveSnapTargetPanel extends StatelessWidget {
   final VoidCallback? onPlaceComponent;
   final VoidCallback? onCreateCircularCutout;
   final VoidCallback? onCreateUsbC;
+  final VoidCallback? onCreateGlassRecess;
+  final VoidCallback? onCreateButtonGroup;
   final VoidCallback onClear;
 
   @override
@@ -3638,6 +3743,30 @@ class _ActiveSnapTargetPanel extends StatelessWidget {
               onPressed: onCreateUsbC,
               icon: const Icon(Icons.usb_rounded, size: 18),
               label: const Text('USB-C'),
+            ),
+          ),
+        ],
+        if (onCreateGlassRecess != null) ...[
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              key: const ValueKey('active-snap-create-glass-recess'),
+              onPressed: onCreateGlassRecess,
+              icon: const Icon(Icons.crop_square_rounded, size: 18),
+              label: const Text('Стекло'),
+            ),
+          ),
+        ],
+        if (onCreateButtonGroup != null) ...[
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              key: const ValueKey('active-snap-create-button-group'),
+              onPressed: onCreateButtonGroup,
+              icon: const Icon(Icons.radio_button_checked_rounded, size: 18),
+              label: const Text('Кнопки'),
             ),
           ),
         ],
@@ -6759,6 +6888,9 @@ class _GlassRecessDialogState extends State<_GlassRecessDialog> {
               type: widget.initialFeature.type,
               targetSurface: widget.initialFeature.targetSurface,
               operation: widget.initialFeature.operation,
+              source: widget.initialFeature.source,
+              placement: widget.initialFeature.placement,
+              metadata: widget.initialFeature.metadata,
               parameters: {
                 'width': _clampDouble(_width, 8, 180),
                 'height': _clampDouble(_height, 8, 140),
@@ -9032,6 +9164,7 @@ MockViewportFeaturePreview? _mockFeaturePreview(
       width: _featureDouble(feature.parameters, 'width', 42),
       height: _featureDouble(feature.parameters, 'height', 24),
       cornerRadius: _featureDouble(feature.parameters, 'cornerRadius', 2),
+      position: _featureSurfacePosition(feature),
       referenceWidth: referenceWidth,
       referenceHeight: referenceHeight,
       slotIndex: slotIndex,
@@ -9130,6 +9263,7 @@ MockViewportFeatureGroupPreview? _mockButtonGroupPreview(
     referenceWidth: enclosure == null ? 120 : _sizeAt(enclosure, 0, 120),
     referenceHeight: enclosure == null ? 70 : _sizeAt(enclosure, 1, 70),
     itemDiameter: _featureDouble(group.itemPrototype, 'diameter', 8),
+    position: _featureGroupSurfacePosition(group),
   );
 }
 
@@ -9200,6 +9334,18 @@ List<Offset> _buttonGroupPatternPositions(FeatureGroup group) {
     for (final point in PatternLayoutEngine.buttonGroupPositions(group))
       Offset(point.x, point.y),
   ];
+}
+
+Offset _featureGroupSurfacePosition(FeatureGroup group) {
+  final position = readDoubleList(
+    group.placement['surfacePosition'],
+    fallback: const [],
+  );
+  if (position.length < 2 || !position[0].isFinite || !position[1].isFinite) {
+    return Offset.zero;
+  }
+
+  return Offset(position[0], position[1]);
 }
 
 double _sizeAt(Enclosure enclosure, int index, double fallback) {

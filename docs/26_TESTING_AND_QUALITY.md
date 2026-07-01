@@ -74,6 +74,11 @@ Use deterministic test fixtures.
 - Snap-seeded manual USB-C creation stores front-wall face-local
   `surfacePosition` metadata and keeps the viewport marker selectable at that
   saved point.
+- Snap-seeded glass recess creation preserves surface placement through the
+  dialog and keeps the viewport marker selectable at the saved point.
+- Snap-seeded manual button groups store one group-level surface position,
+  offset backend item intents from that center, and keep marker selection
+  grouped.
 - Component-driven USB-C cutout generation preserves source placement/template
   data and projected surface anchors in saved project JSON.
 - Component-driven button group generation preserves source switch centers in

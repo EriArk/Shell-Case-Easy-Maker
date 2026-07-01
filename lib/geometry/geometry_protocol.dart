@@ -627,13 +627,19 @@ List<GeometryFeatureItemIntent> _featureGroupItems(
 List<GeometryFeatureItemIntent> _buttonGroupItems(FeatureGroup group) {
   final positions = PatternLayoutEngine.buttonGroupPositions(group);
   final sourceEntries = readJsonMapList(group.pattern['switchPositions']);
+  final surfacePosition = readDoubleList(
+    group.placement['surfacePosition'],
+    fallback: const [],
+  );
+  final offsetX = surfacePosition.length >= 2 ? surfacePosition[0] : 0.0;
+  final offsetY = surfacePosition.length >= 2 ? surfacePosition[1] : 0.0;
 
   return [
     for (var index = 0; index < positions.length; index++)
       GeometryFeatureItemIntent(
         id: _itemId(group.id, index, sourceEntries),
         index: index,
-        position: [positions[index].x, positions[index].y],
+        position: [positions[index].x + offsetX, positions[index].y + offsetY],
         parameters: group.itemPrototype,
         source: _sourceEntryAt(sourceEntries, index),
       ),

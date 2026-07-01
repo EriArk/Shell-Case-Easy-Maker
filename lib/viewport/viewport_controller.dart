@@ -312,6 +312,7 @@ class MockViewportFeatureGroupPreview {
     required this.referenceWidth,
     required this.referenceHeight,
     required this.itemDiameter,
+    this.position = Offset.zero,
   });
 
   final String semanticId;
@@ -320,6 +321,7 @@ class MockViewportFeatureGroupPreview {
   final double referenceWidth;
   final double referenceHeight;
   final double itemDiameter;
+  final Offset position;
 
   @override
   bool operator ==(Object other) {
@@ -329,7 +331,8 @@ class MockViewportFeatureGroupPreview {
         _offsetListsEqual(other.sourcePositions, sourcePositions) &&
         other.referenceWidth == referenceWidth &&
         other.referenceHeight == referenceHeight &&
-        other.itemDiameter == itemDiameter;
+        other.itemDiameter == itemDiameter &&
+        other.position == position;
   }
 
   @override
@@ -341,6 +344,7 @@ class MockViewportFeatureGroupPreview {
       referenceWidth,
       referenceHeight,
       itemDiameter,
+      position,
     );
   }
 }
@@ -519,7 +523,7 @@ class MockViewportLayout {
       for (final position in group.sourcePositions)
         _featureGroupLocalToCanvas(
           group.kind,
-          position,
+          group.position + position,
           referenceWidth: group.referenceWidth,
           referenceHeight: group.referenceHeight,
         ),
@@ -722,22 +726,30 @@ class MockViewportLayout {
   }
 
   Rect _glassRecessFeatureRect(MockViewportFeaturePreview feature) {
+    final targetRect = feature.targetSurfaceId.contains('front_wall')
+        ? frontWallRect
+        : lidRect;
     final safeWidth = feature.referenceWidth.clamp(1, 1000).toDouble();
     final safeHeight = feature.referenceHeight.clamp(1, 1000).toDouble();
-    final width = (feature.width / safeWidth * lidRect.width)
-        .clamp(24 * zoom, lidRect.width * 0.88)
+    final width = (feature.width / safeWidth * targetRect.width)
+        .clamp(24 * zoom, targetRect.width * 0.88)
         .toDouble();
-    final height = (feature.height / safeHeight * lidRect.height)
-        .clamp(18 * zoom, lidRect.height * 0.82)
+    final height = (feature.height / safeHeight * targetRect.height)
+        .clamp(18 * zoom, targetRect.height * 0.82)
         .toDouble();
-    return Rect.fromCenter(
-      center: lidRect.center.translate(
-        feature.slotIndex * 10 * zoom,
-        -feature.slotIndex * 8 * zoom,
-      ),
-      width: width,
-      height: height,
-    );
+    final position = feature.position;
+    final center = position == null
+        ? targetRect.center.translate(
+            feature.slotIndex * 10 * zoom,
+            -feature.slotIndex * 8 * zoom,
+          )
+        : Offset(
+            targetRect.center.dx + (position.dx / safeWidth) * targetRect.width,
+            targetRect.center.dy -
+                (position.dy / safeHeight) * targetRect.height,
+          );
+
+    return Rect.fromCenter(center: center, width: width, height: height);
   }
 
   Rect _circularCutoutFeatureRect(MockViewportFeaturePreview feature) {

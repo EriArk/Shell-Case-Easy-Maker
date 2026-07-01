@@ -137,8 +137,11 @@ projected world/surface coordinates on the generated cutout. Both paths commit
 one undoable project snapshot.
 
 The next rail command is `button.create_group`. From a semantic surface it
-creates a manual `button_group` `FeatureGroup` with editable pattern data. From
-a selected component placement with switch features, it creates one sourced
+creates a manual `button_group` `FeatureGroup` with editable pattern data. If
+the surface command starts from an active snap target, the group records
+`placement.projectionMode=surface_snap_target`, `placement.surfacePosition`, and
+`surfaceAxes`; the snap target itself remains transient shell state. From a
+selected component placement with switch features, it creates one sourced
 `button_group` using projected switch centers in `pattern.switchPositions`.
 Both paths commit one undoable project snapshot, and repeated buttons are not
 flattened into independent features.
@@ -146,7 +149,9 @@ flattened into independent features.
 `glass.create_recess` is the first glass/insert command. It is available only
 when a semantic surface is selected. The command creates a `glass_recess`
 `SemanticFeature` targeted at that surface and commits it as one undoable
-project snapshot.
+project snapshot. If the command starts from an active snap target, the feature
+records the same `surface_snap_target` placement metadata and the dialog
+preserves it through confirmation.
 
 `slot.generate` is currently wired as the first generic hole command. It is
 available only when a semantic surface is selected. The command opens one

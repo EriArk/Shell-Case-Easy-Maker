@@ -234,7 +234,7 @@ class ProjectSemanticValidator {
         case 'usb_c_cutout':
           _validateUsbC(project, feature, enclosure, messages);
         case 'glass_recess':
-          _validateGlassRecess(feature, enclosure, messages);
+          _validateGlassRecess(project, feature, enclosure, messages);
         case 'circular_cutout':
           _validateCircularCutout(project, feature, enclosure, messages);
         case 'rectangular_cutout':
@@ -304,6 +304,7 @@ class ProjectSemanticValidator {
   }
 
   static void _validateGlassRecess(
+    ProjectModel project,
     SemanticFeature feature,
     Enclosure enclosure,
     List<ValidationMessage> messages,
@@ -324,8 +325,10 @@ class ProjectSemanticValidator {
     );
     final availableWidth =
         _sizeAt(enclosure, 0, 120) - enclosure.wallThickness * 2;
+    final targetsFront = feature.targetSurface.contains('front_wall');
     final availableDepth =
-        _sizeAt(enclosure, 1, 70) - enclosure.wallThickness * 2;
+        (targetsFront ? _sizeAt(enclosure, 2, 28) : _sizeAt(enclosure, 1, 70)) -
+        enclosure.wallThickness * 2;
 
     if (width > availableWidth || height > availableDepth) {
       messages.add(
@@ -370,6 +373,15 @@ class ProjectSemanticValidator {
         ),
       );
     }
+
+    _validateProjectedFeatureAnchor(
+      project: project,
+      enclosure: enclosure,
+      feature: feature,
+      sizeA: width,
+      sizeB: height,
+      messages: messages,
+    );
   }
 
   static void _validateCircularCutout(
@@ -581,7 +593,26 @@ class ProjectSemanticValidator {
     _validateButtonPlunger(group, messages);
 
     final layout = readString(group.pattern['layout'], fallback: '');
+    final diameter = readDouble(group.itemPrototype['diameter'], fallback: 8);
+    final ringWidth = readDouble(
+      group.itemPrototype['ringWidth'],
+      fallback: 1.2,
+    );
+    final capDiameter = readDouble(
+      group.itemPrototype['capDiameter'],
+      fallback: math.max(0.8, diameter - 0.6),
+    );
+    final outerDiameter = math.max(
+      diameter + (ringWidth + 0.05) * 2,
+      capDiameter,
+    );
     if (layout != 'from_component_switches') {
+      _validateManualButtonGroupSurfaceFit(
+        enclosure: enclosure,
+        group: group,
+        outerDiameter: outerDiameter,
+        messages: messages,
+      );
       return;
     }
 
@@ -600,19 +631,6 @@ class ProjectSemanticValidator {
       return;
     }
 
-    final diameter = readDouble(group.itemPrototype['diameter'], fallback: 8);
-    final ringWidth = readDouble(
-      group.itemPrototype['ringWidth'],
-      fallback: 1.2,
-    );
-    final capDiameter = readDouble(
-      group.itemPrototype['capDiameter'],
-      fallback: math.max(0.8, diameter - 0.6),
-    );
-    final outerDiameter = math.max(
-      diameter + (ringWidth + 0.05) * 2,
-      capDiameter,
-    );
     for (final switchPosition in switchPositions) {
       final position = readDoubleList(
         switchPosition['position'],
@@ -649,6 +667,58 @@ class ProjectSemanticValidator {
             severity: ValidationSeverity.error,
             code: 'group.projected_anchor.outside_surface',
             message: 'Центр кнопки выходит за доступную поверхность корпуса.',
+            targetId: group.id,
+          ),
+        );
+        return;
+      }
+    }
+  }
+
+  static void _validateManualButtonGroupSurfaceFit({
+    required Enclosure enclosure,
+    required FeatureGroup group,
+    required double outerDiameter,
+    required List<ValidationMessage> messages,
+  }) {
+    final positions = PatternLayoutEngine.buttonGroupPositions(group);
+    if (positions.isEmpty) {
+      return;
+    }
+
+    final surfacePosition = readDoubleList(
+      group.placement['surfacePosition'],
+      fallback: const [0, 0],
+    );
+    final anchor =
+        surfacePosition.length >= 2 && _isFinitePosition(surfacePosition)
+        ? surfacePosition
+        : const [0.0, 0.0];
+    final axes = _readStringList(group.placement['surfaceAxes']).length >= 2
+        ? _projectedAnchorAxes(
+            rawAxes: group.placement['surfaceAxes'],
+            targetSurface: group.targetSurface,
+            targetId: group.id,
+            messages: messages,
+            codePrefix: 'group',
+          )
+        : _expectedAxesForSurface(group.targetSurface);
+
+    for (final position in positions) {
+      final anchoredPosition = [anchor[0] + position.x, anchor[1] + position.y];
+      if (!_projectedAnchorFitsSurface(
+        enclosure: enclosure,
+        axes: axes,
+        position: anchoredPosition,
+        sizeA: outerDiameter,
+        sizeB: outerDiameter,
+      )) {
+        messages.add(
+          ValidationMessage(
+            severity: ValidationSeverity.error,
+            code: 'group.surface_anchor.outside_surface',
+            message:
+                'Ð¦ÐµÐ½Ñ‚Ñ€ ÐºÐ½Ð¾Ð¿ÐºÐ¸ Ð²Ñ‹Ñ…Ð¾Ð´Ð¸Ñ‚ Ð·Ð° Ð´Ð¾ÑÑ‚ÑƒÐ¿Ð½ÑƒÑŽ Ð¿Ð¾Ð²ÐµÑ€Ñ…Ð½Ð¾ÑÑ‚ÑŒ ÐºÐ¾Ñ€Ð¿ÑƒÑÐ°.',
             targetId: group.id,
           ),
         );
@@ -846,11 +916,14 @@ class ProjectSemanticValidator {
       placement['projectionMode'],
       fallback: '',
     );
-    if (projectionMode != 'component_feature_surface_projection') {
+    if (projectionMode != 'component_feature_surface_projection' &&
+        projectionMode != 'surface_snap_target') {
       return;
     }
 
-    _validateProjectedFeatureSource(project, feature, messages);
+    if (projectionMode == 'component_feature_surface_projection') {
+      _validateProjectedFeatureSource(project, feature, messages);
+    }
 
     final position = readDoubleList(
       placement['surfacePosition'],

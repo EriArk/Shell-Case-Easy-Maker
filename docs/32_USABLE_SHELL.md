@@ -122,15 +122,18 @@ opens the placement dialog with a snap label and seeded X/Y/Z plus mounting
 side. Starting `Отверстия` from a surface snap target opens the circular cutout
 dialog with the picked face-local X/Y. Starting `Порты` from a supported
 front-wall snap target opens the USB-C dialog and stores that face-local point
-as semantic placement metadata. Normal selection, undo, redo, and project edits
-clear the transient snap target so stale UI state is not saved or replayed.
+as semantic placement metadata. Starting `Стекло` or manual `Кнопки` from a
+surface snap target stores the same semantic surface placement on the generated
+feature/group. Normal selection, undo, redo, and project edits clear the
+transient snap target so stale UI state is not saved or replayed.
 
 When an active snap target exists, the inspector shows a compact `Точка
 привязки` section with the snap label, seeded project position, mounting side,
 a direct `Разместить компонент` action, a direct `Отверстие` action for surface
 targets, a direct `USB-C` action for supported front-wall snap targets, and a
-clear action. These actions still open the normal semantic dialogs; confirming
-them creates regular semantic project objects, not saved snap references.
+direct `Стекло` and `Кнопки` action for surface snap targets, and a clear
+action. These actions still open the normal semantic dialogs; confirming them
+creates regular semantic project objects, not saved snap references.
 
 The viewport mirrors the same transient state with a translucent component
 footprint preview. It uses the first component template's board outline and the
@@ -233,6 +236,10 @@ If a front-wall snap target is active when `Порты` starts, the new manual
 that saved face-local position, while features without saved placement keep the
 older slot-style marker fallback.
 
+Front-wall snap targets convert the workplane-local vertical coordinate into
+absolute surface Z before saving `surfacePosition`. This keeps generated
+front-wall geometry aligned with the native worker's `x,z` surface coordinates.
+
 `Порты` is also available when a selected component placement's template has a
 USB-C feature with `cutout` metadata. In that context the same USB-C dialog is
 pre-filled from the component template, targets the first semantic enclosure
@@ -264,6 +271,12 @@ group remains one semantic object rather than becoming several unrelated
 button holes. The mock viewport derives schematic markers from that pattern;
 clicking one marker selects the whole button group.
 
+If a surface snap target is active when manual `Кнопки` starts, the created
+group stores `placement.projectionMode=surface_snap_target`,
+`placement.surfacePosition`, and `surfaceAxes`. The button layout remains
+editable as one pattern, and mock/backend item positions are offset from the
+saved group center instead of flattening the buttons.
+
 `Кнопки` is also available when a selected component placement's template has
 switch features. In that context the dialog starts from
 `from_component_switches`, stores the switch centers in
@@ -281,6 +294,11 @@ command opens a compact glass recess dialog and appends a semantic
 `glass_recess` feature with window size, recess depth, ledge width, radius,
 insert thickness, and clearance profile data. The mock viewport draws a
 schematic recess marker; clicking it selects the semantic feature.
+
+If a surface snap target is active when `Стекло` starts, the feature stores
+`placement.projectionMode=surface_snap_target`, `placement.surfacePosition`, and
+`surfaceAxes`. The glass dialog preserves that placement when confirmed, and the
+mock marker is drawn at the saved point.
 
 Clicking `Крепёж` is enabled only after selecting a component placement whose
 template has mounting holes. The command opens a compact mount dialog and
@@ -312,13 +330,12 @@ disabled until their semantic command behavior is implemented and tested.
   from active snap targets. Other USB-C target surfaces still depend on future
   geometry support. Component-sourced USB-C cutouts also store projected
   surface coordinates. The visible marker is a mock viewport affordance.
-- Button group placement still uses centered dialog defaults rather than
-  face-local picking/snapping. Component-sourced button groups do store
-  projected switch centers for mock marker layout and supported native top-lid
-  button generation.
-- Glass recess placement still uses selected surface and dialog dimensions
-  rather than face-local picking/snapping. The visible marker is a mock
-  viewport affordance.
+- Button group placement supports first-pass face-local picking/snapping for
+  manual surface groups. Component-sourced button groups also store projected
+  switch centers for mock marker layout and supported native top-lid button
+  generation.
+- Glass recess placement supports first-pass face-local picking/snapping from
+  active surface snap targets. The visible marker is a mock viewport affordance.
 - Mount generation currently creates semantic standoff group data only; real
   B-Rep/mesh stand-off geometry is still future geometry-service work. The
   visible markers are mock viewport affordances.

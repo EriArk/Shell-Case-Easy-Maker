@@ -130,6 +130,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M109 - Slot Inspector Semantics
 - [x] M110 - Native Switch-Sourced Button Cutouts
 - [x] M111 - USB-C Snap-Seeded Placement
+- [x] M112 - Snap-Seeded Glass and Button Placement
 
 ---
 
@@ -5234,3 +5235,67 @@ geometry behind `GeometryService`.
   selectable there.
 - Save/reopen later if desired; the cutout should keep its saved face-local
   position.
+
+---
+
+## M112 - Snap-Seeded Glass and Button Placement
+
+### Goal
+Extend active surface snap targets from holes/USB-C into manual `Стекло` and
+`Кнопки`, so the common surface generators can start from a clicked face-local
+point without adding low-level CAD controls.
+
+### Tasks
+- [x] Reuse active top-lid/front-wall snap targets when launching `Стекло`.
+- [x] Reuse active top-lid/front-wall snap targets when launching manual
+      `Кнопки`.
+- [x] Preserve `placement.surfacePosition`, `surfaceAxes`, and
+      `projectionMode=surface_snap_target` through the glass dialog.
+- [x] Store manual button group center placement as semantic group placement.
+- [x] Move mock glass markers and button-group markers to saved surface
+      positions.
+- [x] Offset button-group `GeometryFeatureIntent.items` by saved
+      `surfacePosition` so backend generation sees the same semantic placement.
+- [x] Convert front-wall snap local Y to absolute surface Z for saved
+      `surfacePosition`.
+- [x] Add validation for snap-seeded glass anchors and manual button group
+      surface fit.
+- [x] Add widget, geometry protocol, and semantic validator coverage.
+- [x] Update docs/tasks/worklog.
+
+### Done Criteria
+- Starting `Стекло` from an active snap target creates a normal semantic
+  `glass_recess` with saved surface placement.
+- Starting `Кнопки` from an active snap target creates one editable
+  `button_group` with saved surface placement.
+- The active snap target remains transient UI state and clears after commit.
+- Mock markers are selectable at the saved surface positions.
+- Geometry feature intents for manual button groups include the saved placement
+  offset.
+- Out-of-surface snap placements report semantic validation errors.
+
+### Tests
+- `flutter test test\widget_test.dart --plain-name "snap-seeded glass recess stores top lid surface position"`
+- `flutter test test\widget_test.dart --plain-name "snap-seeded button group stores top lid surface position"`
+- `flutter test test\widget_test.dart --plain-name "snap-seeded USB-C stores front wall surface position"`
+- `flutter test test\geometry_protocol_test.dart --plain-name "manual button group items include saved surface position offset"`
+- `flutter test test\project_semantic_validator_test.dart --plain-name "snap-seeded glass recess anchor outside surface reports an error"`
+- `flutter test test\project_semantic_validator_test.dart --plain-name "manual button group surface anchor outside lid reports an error"`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Select `Top lid`.
+- Click a free point on the top-lid workplane, away from the board.
+- In the snap section, click `Стекло`, confirm, and verify the new glass marker
+  appears at that point.
+- Click another free point, click `Кнопки`, confirm, and verify the whole
+  button pattern appears around that point and remains one selectable group.
+- Optional: select `Front wall`, click near the middle height, and create
+  `USB-C`; it should now save/use absolute Z rather than treating the center as
+  z=0.
