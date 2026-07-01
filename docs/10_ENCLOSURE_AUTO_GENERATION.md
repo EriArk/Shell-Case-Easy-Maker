@@ -33,7 +33,7 @@ with `lid.type: top_screw_lid`, it also generates four default lid screw bosses
 and a separate top lid preview plate with matching screw clearance holes and an
 underside locating lip from the enclosure lid spec. The body also gets a
 matching shallow generated lid seat around the top opening, and the generated
-lid is positioned in a small fit-preview gap for inspection. Semantic
+lid is positioned in a near-flush fit-preview gap for inspection. Semantic
 front-wall and top-lid `glass_recess` features can cut a shallow generated
 seat plus an inner window, leaving a support ledge from semantic `ledgeWidth`.
 Front-wall and top-lid `button_group` features can cut generated circular holes

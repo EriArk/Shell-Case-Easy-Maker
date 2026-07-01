@@ -394,6 +394,53 @@ triangle IDs in `ProjectModel`.
 
 ---
 
+## 2026-07-01 - OCCT near-flush top lid fit preview
+
+## Question
+
+How should the first generated top lid preview be tightened after manual
+inspection showed the `0.35 mm` gap reads like a detached lid?
+
+## Sources checked
+
+- Existing generated top lid fit helper and native smoke metrics in
+  `occt_worker/native/src/occt_main.cpp`.
+- Existing top lid plate, locating lip, screw-hole, body-side seat, and
+  preview mapping code paths.
+- Previous `2026-06-30 - OCCT generated top lid fit preview` note.
+
+## Findings
+
+- A fully closed zero-gap preview risks coplanar/z-fighting artifacts in the
+  interim mesh preview and hides that the lid is still a generated preview
+  member, not editable assembly state.
+- The sample `0.35 mm` gap is mechanically small but visually reads too open in
+  the current viewport scale.
+- Reducing the derived fit-preview gap to a `0.06-0.12 mm` band keeps a tiny
+  inspection separation while making the lid read as near-flush.
+
+## License / compatibility notes
+
+- No new dependency or external source code was used.
+- Existing OCCT usage remains through the project-local vcpkg dependency.
+
+## Decision
+
+Position the generated top lid with a near-flush fit-preview gap derived from
+wall thickness. For the sample enclosure this gap is `0.08 mm`, giving preview
+bounds of `[-60, -36.65, 0]` to `[60, 35, 31.73]`. Keep this as disposable
+generated preview output; do not save lid assembly state, topology IDs, or
+triangle IDs in `ProjectModel`.
+
+## Follow-up tasks
+
+- Add explicit lid/body assembly semantics before making the lid fully closed
+  or independently selectable as a generated part.
+- Add printable chamfers/fillets after the near-flush fit relationship is
+  stable.
+
+---
+
 ## 2026-06-30 - OCCT generated top lid body seat
 
 ## Question

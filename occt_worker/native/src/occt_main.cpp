@@ -910,8 +910,8 @@ double GeneratedTopLidLipHeight(const EnclosureRequest& enclosure) {
 double GeneratedTopLidFitPreviewGap(const EnclosureRequest& enclosure,
                                     double lip_height) {
   const double inspection_gap =
-      std::min(0.35, std::max(0.2, enclosure.wall_thickness * 0.175));
-  return std::max(0.1, std::min(lip_height - 0.2, inspection_gap));
+      std::min(0.12, std::max(0.06, enclosure.wall_thickness * 0.04));
+  return std::max(0.04, std::min(lip_height - 0.2, inspection_gap));
 }
 
 NativeRequestParseResult ReadNativeRequest(const std::string& payload) {

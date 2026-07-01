@@ -141,6 +141,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Generate first native top lid locating lip.
 - [x] Generate first native top lid body seat/groove.
 - [x] Position first native top lid in fit-preview state.
+- [x] Tighten first native top lid fit-preview gap.
 - [x] Generate first native top lid button group cutouts.
 - [x] Generate first native button rings/bezels.
 - [x] Generate first native button cap/stem previews.

@@ -114,6 +114,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M93 - Native Surface Workplane Softening
 - [x] M94 - Native Mesh Semantic Picking
 - [x] M95 - Native Preview Mesh De-Noise
+- [x] M96 - Native Top Lid Near-Flush Fit Preview
 
 ---
 
@@ -4424,3 +4425,47 @@ protocols.
   still highlight clearly.
 - Some faceting will remain because this is still the interim `CustomPaint`
   renderer, not a final shaded 3D viewport.
+
+---
+
+## M96 - Native Top Lid Near-Flush Fit Preview
+
+### Goal
+Tighten the generated top lid fit-preview position so the sample lid reads as
+near-flush instead of visibly detached, while keeping the generated lid
+disposable and not adding editable assembly state.
+
+### Tasks
+- [x] Revisit the generated top lid fit-preview gap formula.
+- [x] Reduce the sample gap from `0.35 mm` to `0.08 mm` while keeping a tiny
+      non-zero inspection separation.
+- [x] Rebuild the native OCCT worker and update deterministic smoke
+      expectations for bounds/dimensions.
+- [x] Record the near-flush fit decision in the OCCT research note.
+- [x] Update first-geometry docs, task tracker, roadmap, and worklog.
+
+### Done Criteria
+- Native smoke reports `nativeGeneratedLidFitPreviewGap=0.08`.
+- Native smoke preview bounds are `[-60, -36.65, 0]` to `[60, 35, 31.73]`.
+- Preview mesh topology counts remain deterministic.
+- No semantic project model, protocol schema, editable assembly state, or raw
+  topology IDs are introduced.
+
+### Tests
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open
+  `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- Orbit around the top edge; the generated lid should sit much closer to the
+  body than before.
+- Check that the lid is still visibly a separate generated preview member, not
+  a new editable assembly object.
+- Select mapped lid/feature ranges and confirm highlighting still works.

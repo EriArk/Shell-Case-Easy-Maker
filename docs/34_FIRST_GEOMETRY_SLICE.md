@@ -134,7 +134,7 @@ area, volume, disposable preview mesh data, and first-pass semantic surface
 ranges for the first semantic enclosure. For the sample enclosure it emits a
 top-open rounded shell/cavity with native USB-C, glass, button, standoff, lid,
 plunger cap/stem, guide, and travel-stop preview detail: 13882 vertices, 14384
-triangles, 14 surface mappings, and 20758 mapped triangles. It still does not
+triangles, 14 surface mappings, and 21240 mapped triangles. It still does not
 return STL, B-Rep, OCCT topology IDs, or triangle IDs as stable editable
 references.
 
@@ -335,7 +335,7 @@ Expected sample dimensions:
 - size: `120 x 70 x 28 mm`,
 - wall thickness: `2 mm`,
 - corner radius: `4 mm`,
-- native preview assembly bounds: `[-60, -36.65, 0]` to `[60, 35, 32]`,
+- native preview assembly bounds: `[-60, -36.65, 0]` to `[60, 35, 31.73]`,
 - native preview volume after lid screw bosses, USB-C, front glass
   recess/window, front button cutouts/rings/caps/stems/guides/stops, bottom
   standoff bosses, generated lid plate, lid screw holes, underside locating lip,
@@ -350,13 +350,13 @@ Expected sample dimensions:
   window: `56020.328695 mm^2`,
 - native preview surface mappings after feature ranges: `14`,
 - native preview mesh size: `13882` vertices, `14384` triangles,
-- native preview mapped triangles after feature ranges: `20758`,
+- native preview mapped triangles after feature ranges: `21240`,
 - native feature metrics: `featureIntentCount=7`,
   `nativeFeatureCutCount=9`, `nativeIgnoredFeatureIntentCount=1`,
   `nativeLidScrewBossCount=4`, `nativeLidScrewPilotCount=4`,
   `nativeGeneratedLidPlateCount=1`,
   `nativeGeneratedLidSeatCount=1`,
-  `nativeGeneratedLidFitPreviewGap=0.35`,
+  `nativeGeneratedLidFitPreviewGap=0.08`,
   `nativeGeneratedLidLipCount=1`,
   `nativeGeneratedLidScrewHoleCount=4`,
   `nativeGeneratedLidFeatureCutCount=6`,

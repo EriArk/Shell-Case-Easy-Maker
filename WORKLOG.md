@@ -42,6 +42,89 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-07-01 - M96 Native top lid near-flush fit preview
+
+### Goal
+Make the generated top lid preview sit closer to the body so it reads as a
+near-flush fit instead of a detached plate, without introducing editable lid
+assembly state.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`docs/04_GEOMETRY_ENGINE_OCCT.md`, `docs/10_ENCLOSURE_AUTO_GENERATION.md`,
+`docs/27_RESEARCH_AND_REFERENCES.md`,
+`docs/34_FIRST_GEOMETRY_SLICE.md`,
+`occt_worker/native/src/occt_main.cpp`, and
+`tool/native_occt_worker_metrics_smoke.dart`.
+
+### Changes made
+- `occt_worker/native/src/occt_main.cpp`:
+  - Tightened `GeneratedTopLidFitPreviewGap` from the old `0.2-0.35 mm`
+    inspection band to a near-flush `0.06-0.12 mm` band.
+  - The sample enclosure now reports a `0.08 mm` generated lid fit-preview gap.
+- `tool/native_occt_worker_metrics_smoke.dart`:
+  - Updated deterministic expectations for the new sample gap and preview
+    bounds/dimensions.
+- Docs/tasks:
+  - Added M96 to `ROADMAP.md`, marked the fit-preview tightening task in
+    `TASKS.md`, added a research note, and updated first-geometry/current OCCT
+    docs.
+
+### Tests run
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1`:
+  - Reported that manifest OCCT install requires `-AllowVcpkgInstall`.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`:
+  - Passed; rebuilt `occt_worker_native_occt.exe`.
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`:
+  - First run failed only because expected Z bounds still referenced the old
+    gap.
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`:
+  - Passed after updating expectations; reports `nativeGeneratedLidFitPreviewGap=0.08`,
+    `13882` vertices, `14384` triangles, `14` mappings, `21240` mapped
+    triangles, bounds `[-60, -36.65, 0]` to `[60, 35, 31.73]`, surface area
+    `56020.328695`, and volume `53230.754103`.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 69 files checked, 0 changed.
+- `flutter pub get`:
+  - Passed.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed; all tests passed.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed; latest Windows bundle rebuilt at
+    `releases/latest/windows/shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git diff --check`:
+  - Passed; only existing markdown line-ending warnings were reported.
+
+### Validation
+- Geometry checked?
+  - Native OCCT worker rebuilt and native smoke passed.
+- Serialization checked?
+  - No project/protocol serialization changed.
+- UI checked?
+  - Analyzer and full Flutter suite passed.
+- Export checked?
+  - Latest Windows bundle was rebuilt; export flows were not changed.
+
+### Known issues
+- Issue: The generated lid is still a generated preview member, not a real
+  editable lid/body assembly.
+  - Severity: Medium.
+  - Next action: Add explicit lid/body assembly semantics in a later chunk.
+
+### Next step
+Manually check that the generated top lid now sits much closer to the body.
+
+### Notes for future Codex sessions
+Keep `nativeGeneratedLidFitPreviewGap` generated-output metadata. Do not store
+lid assembly state, generated lid B-Rep, OCCT topology IDs, or triangle IDs in
+`ProjectModel`.
+
+---
+
 ## 2026-07-01 - M95 Native preview mesh de-noise
 
 ### Goal

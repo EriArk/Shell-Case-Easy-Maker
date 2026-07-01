@@ -125,7 +125,7 @@ separate generated top lid preview plate to the native preview assembly with
 through that plate from the same screw-boss positions, and fuses a first-pass
 underside locating lip into the generated lid. It also cuts a shallow
 body-side locating seat around the top opening from the same semantic lid
-spec and positions the generated lid in a small fit-preview gap so the
+spec and positions the generated lid in a near-flush fit-preview gap so the
 lip/seat relationship is readable. Top-lid `glass_recess` intents cut a
 shallow rounded outer seat plus an inner through-window from semantic
 `ledgeWidth`, top-lid `button_group` intents cut through-holes through that

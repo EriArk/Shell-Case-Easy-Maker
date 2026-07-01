@@ -234,7 +234,7 @@ Future<void> main(List<String> args) async {
     );
     _expectDoubleList(
       previewMesh.bounds.max,
-      const [60, 35, 32],
+      const [60, 35, 31.73],
       'previewMesh.bounds.max',
       failures,
     );
@@ -308,7 +308,7 @@ Future<void> main(List<String> args) async {
   );
   _expectClose(
     _readNumber(metrics['nativeGeneratedLidFitPreviewGap']),
-    0.35,
+    0.08,
     0.000001,
     'nativeGeneratedLidFitPreviewGap',
     failures,
@@ -555,7 +555,7 @@ Future<void> main(List<String> args) async {
   );
   _expectDoubleList(
     metrics['dimensions'],
-    const [120, 71.65, 32],
+    const [120, 71.65, 31.73],
     'dimensions',
     failures,
   );
@@ -567,7 +567,12 @@ Future<void> main(List<String> args) async {
     'bounds.min',
     failures,
   );
-  _expectDoubleList(bounds['max'], const [60, 35, 32], 'bounds.max', failures);
+  _expectDoubleList(
+    bounds['max'],
+    const [60, 35, 31.73],
+    'bounds.max',
+    failures,
+  );
   _expectClose(
     _readNumber(metrics['surfaceArea']),
     56020.328695,
