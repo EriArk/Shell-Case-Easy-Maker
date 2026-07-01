@@ -110,17 +110,22 @@ This is not saved project data and not an advanced sketch plane. It is a mock
 interaction affordance that prepares the UI for later viewport picking and
 snapping while keeping the editable project semantic.
 
-Snap hints are now selectable. Clicking one stores a transient active snap
-target in shell state, highlights the dot, and updates the status hint. Starting
-`Компоненты` from that state opens the placement dialog with a snap label and
-seeded X/Y/Z plus mounting side. Normal selection, undo, redo, and project edits
-clear the transient snap target so stale UI state is not saved or replayed.
+Snap hints are now selectable, and selected top-lid/front-wall workplanes also
+accept clicks inside the workplane area as face-local points. Clicking one
+stores a transient active snap target in shell state, highlights the dot or
+picked point, and updates the status hint. Starting `Компоненты` from that state
+opens the placement dialog with a snap label and seeded X/Y/Z plus mounting
+side. Starting `Отверстия` from a surface snap target opens the circular cutout
+dialog with the picked face-local X/Y. Normal selection, undo, redo, and
+project edits clear the transient snap target so stale UI state is not saved or
+replayed.
 
 When an active snap target exists, the inspector shows a compact `Точка
 привязки` section with the snap label, seeded project position, mounting side,
-a direct `Разместить компонент` action, and a clear action. The action still
-opens the normal semantic placement dialog; confirming that dialog creates a
-regular `ComponentPlacement`, not a saved snap reference.
+a direct `Разместить компонент` action, a direct `Отверстие` action for surface
+targets, and a clear action. These actions still open the normal semantic
+dialogs; confirming them creates regular semantic project objects, not saved
+snap references.
 
 The viewport mirrors the same transient state with a translucent component
 footprint preview. It uses the first component template's board outline and the
@@ -227,9 +232,10 @@ feature, not generated geometry.
 
 Clicking `Отверстия` is enabled after selecting a semantic surface. It opens a
 compact circular cutout dialog and appends a semantic `circular_cutout` feature
-with editable diameter, depth, and face-local X/Y parameters. The mock viewport
-draws a circular marker and hit-tests it by semantic feature ID. Native OCCT
-now consumes supported front-wall and top-lid circular cutouts as generated
+with editable diameter, depth, and face-local X/Y parameters. If a surface
+workplane point was clicked first, the dialog starts from that X/Y. The mock
+viewport draws a circular marker and hit-tests it by semantic feature ID. Native
+OCCT now consumes supported front-wall and top-lid circular cutouts as generated
 subtraction geometry while keeping the editable source semantic.
 
 Clicking `Кнопки` is enabled only after selecting a semantic surface such as

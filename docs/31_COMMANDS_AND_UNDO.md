@@ -146,6 +146,10 @@ project snapshot.
 available only when a semantic surface is selected. The command creates a
 `circular_cutout` `SemanticFeature` with editable diameter, depth, and
 face-local X/Y parameters, then commits it as one undoable project snapshot.
+If the selected surface has an active workplane click target, the dialog starts
+from that target's face-local X/Y; the target itself stays transient UI state
+and is not saved. The inspector also exposes a compact `Отверстие` action from
+the active snap section for the same command path.
 The result remains semantic project state; native OCCT now consumes supported
 front-wall and top-lid targets as generated subtraction geometry behind the
 `GeometryService` boundary.

@@ -42,6 +42,98 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-07-01 - M105 Snap-seeded circular cutout placement
+
+### Goal
+Let selected surface workplane clicks seed generic circular cutout X/Y so the
+first hole workflow starts from a picked face-local point instead of manual
+coordinate guessing.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/ui/shell/workspace_shell.dart`, `lib/viewport/viewport_controller.dart`,
+`test/widget_test.dart`, `test/viewport_controller_test.dart`,
+`docs/06_FEATURE_SYSTEM.md`, `docs/31_COMMANDS_AND_UNDO.md`,
+`docs/32_USABLE_SHELL.md`, `docs/33_VIEWPORT_MVP.md`, and
+`docs/34_FIRST_GEOMETRY_SLICE.md`.
+
+### Changes made
+- `lib/viewport/viewport_controller.dart`:
+  - Added workplane canvas-to-local conversion.
+  - Maps arbitrary clicks inside selected top-lid/front-wall workplanes to
+    transient `snapPoint` hits with face-local coordinates.
+  - Leaves component-placement workplanes on explicit snap hints only.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Seeds the circular cutout dialog from an active surface snap target.
+  - Adds an inspector `Отверстие` action beside the active snap target.
+  - Keeps confirmed holes as normal semantic `circular_cutout` parameters and
+    clears transient snap state after commit.
+- Tests:
+  - Added viewport coverage for arbitrary surface workplane hit coordinates.
+  - Added widget coverage for snap-seeded circular cutout creation and marker
+    selection at the seeded position.
+- Docs/tasks:
+  - Added M105 to `ROADMAP.md`.
+  - Updated `TASKS.md`, shell/command/viewport/feature docs, and geometry notes.
+
+### Tests run
+- `flutter test test\viewport_controller_test.dart --plain-name "mock hit tester maps surface workplane clicks to local positions" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "snap-seeded circular cutout starts from clicked surface point" --reporter compact`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; dependency notices only.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 73 files checked, 0 changed.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed; 215 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed; refreshed `releases/latest/windows/shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git status --short --ignored releases`:
+  - Passed; `releases/` is ignored.
+- `git diff --check`:
+  - Passed with CRLF normalization warnings only for markdown files.
+
+### Validation
+- Geometry checked?
+  - This slice does not change OCCT generation. It feeds semantic X/Y into the
+    already native-backed `circular_cutout` path.
+- Serialization checked?
+  - No schema change; the confirmed result remains a normal semantic feature
+    with editable parameters.
+- UI checked?
+  - Widget coverage verifies click target, seeded dialog fields, semantic
+    commit, snap clearing, and marker hit-test selection.
+- Export checked?
+  - Export code unchanged; latest native Windows bundle was rebuilt so existing
+    native export paths use the same semantic cutout.
+
+### Known issues
+- Issue: This is still workplane-assisted picking, not final projected native
+  face picking from OCCT surface topology.
+  - Severity: Medium.
+  - Next action: Add richer native face handles/picking once preview surface
+    projection is ready.
+- Issue: Generic rectangular rounded cutouts are still not implemented.
+  - Severity: Medium.
+  - Next action: Add a semantic rectangular cutout command and then native
+    subtraction slice.
+
+### Next step
+Commit and push M105, then continue with either generic rounded-rectangle
+cutouts or richer face/feature picking polish.
+
+### Notes for future Codex sessions
+Do not serialize active snap targets. They are only launch context for semantic
+commands; the saved project source of truth remains `SemanticFeature`
+parameters and normal semantic IDs.
+
+---
+
 ## 2026-07-01 - M104 Native circular cutout geometry
 
 ### Goal

@@ -141,7 +141,11 @@ whole feature group, not an individual mesh primitive or flattened hole.
 - Mouse wheel: zoom.
 - Click viewport mock objects: select semantic object.
 - Click a visible snap hint: select/highlight that transient snap target.
+- Click inside a selected top-lid/front-wall workplane: select a transient
+  face-local target for surface commands.
 - Use the inspector snap action: open the snap-seeded component placement dialog.
+- Use the inspector hole action: open the circular cutout dialog seeded from
+  the clicked surface point.
 - Active snap target: show a transient component footprint preview.
 - Open placement dialog: show a transient candidate footprint until cancel or
   confirm.
@@ -197,10 +201,11 @@ mapping, desktop stability, license, and packaging complexity.
   zones when no mapped mesh range is hit.
 - Component placement previews are semantic mock rectangles, not generated
   board meshes or OCCT bodies.
-- Workplane overlays and snap hints are mock interaction affordances. They can
-  seed the component placement dialog, but they are not a saved sketch/workplane
-  subsystem yet. In native preview mode, passive surface workplanes are hidden
-  because they are not projected onto real generated faces.
+- Workplane overlays and snap hints are mock interaction affordances. Surface
+  workplane clicks can seed component placement and circular cutout dialogs, but
+  they are not a saved sketch/workplane subsystem yet. In native preview mode,
+  passive surface workplanes are hidden because they are not projected onto real
+  generated faces.
 - Snap placement footprints are schematic rectangles derived from component
   template board outlines, not generated board meshes or collision-aware
   previews. Current feedback checks the same coarse semantic placement bounds as

@@ -483,5 +483,6 @@ Expected sample dimensions:
   artifact paths.
 - Generic `circular_cutout` is wired through semantic UI, inspector, operation
   planning, mock viewport selection, native front-wall subtraction, and native
-  generated-top-lid subtraction. Direct click-to-place on a face remains a
-  follow-up UX slice; current placement is parameter-driven X/Y.
+  generated-top-lid subtraction. First-pass click-to-place now seeds X/Y from
+  selected surface workplane clicks; richer native face picking and final
+  surface-projected handles remain follow-up UX slices.

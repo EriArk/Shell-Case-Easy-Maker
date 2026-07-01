@@ -123,6 +123,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M102 - Toolbar STEP/STL Export Format Choice
 - [x] M103 - Semantic Circular Cutout Command
 - [x] M104 - Native Circular Cutout Geometry
+- [x] M105 - Snap-Seeded Circular Cutout Placement
 
 ---
 
@@ -4866,3 +4867,52 @@ the editable project semantic and keeping Flutter behind `GeometryService`.
 - Select the cutout marker/range and confirm the inspector still edits the
   semantic `circular_cutout`.
 - Export STL or STEP and confirm the exported artifact includes the cutout.
+
+---
+
+## M105 - Snap-Seeded Circular Cutout Placement
+
+### Goal
+Let a selected surface workplane click seed the first generic circular cutout
+position, so the user can click where the hole should start instead of typing
+X/Y from scratch.
+
+### Tasks
+- [x] Map arbitrary clicks inside selected top-lid/front-wall workplanes to
+      face-local positions.
+- [x] Keep component-placement workplanes on explicit snap hints only.
+- [x] Seed the circular cutout dialog from the active surface snap target.
+- [x] Add a compact `Отверстие` action to the active snap inspector section.
+- [x] Keep the result as normal semantic `circular_cutout` parameters.
+- [x] Add viewport and widget coverage for snap-seeded placement.
+- [x] Update docs/tasks/worklog.
+
+### Done Criteria
+- Clicking inside a selected top-lid/front-wall workplane creates a transient
+  active snap target with local X/Y.
+- Starting `Отверстия` from that target opens the dialog with seeded X/Y.
+- Confirming creates one undoable semantic `circular_cutout`.
+- The mock marker appears at the seeded position and remains selectable by
+  semantic feature ID.
+- No editable mesh/STL/B-Rep, raw OCCT topology ID, or triangle ID is stored.
+
+### Tests
+- `flutter test test\viewport_controller_test.dart --plain-name "mock hit tester maps surface workplane clicks to local positions" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "snap-seeded circular cutout starts from clicked surface point" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Select `Top lid`.
+- Click a point inside the highlighted workplane, away from the center board
+  marker.
+- In the inspector, click `Отверстие`.
+- Confirm the dialog starts with that point's X/Y.
+- Create the cutout and confirm the marker appears there.
+- Orbit/export if desired; native OCCT still generates the actual circular
+  cutout from the semantic X/Y.

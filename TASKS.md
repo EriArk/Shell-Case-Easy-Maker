@@ -92,6 +92,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Implement grid overlay.
 - [x] Implement basic snapping visual hints.
 - [x] Implement first-pass clickable snap hints.
+- [x] Seed surface feature commands from clicked workplane points.
 - [x] Implement transient snap placement footprint preview.
 - [x] Implement semantic fit feedback for snap placement previews.
 - [x] Implement focus/fit view.
@@ -181,6 +182,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Add first-pass generated top lid button cutouts.
 - [x] Add first-pass generated top lid glass recess.
 - [x] Add generic circular cutout.
+- [x] Snap-seed generic circular cutout placement from selected surfaces.
 - [ ] Add generic rectangular rounded cutout.
 - [x] First-pass USB-C cutout command.
 - [x] First-pass USB-C viewport marker.

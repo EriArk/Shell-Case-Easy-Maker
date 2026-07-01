@@ -202,6 +202,36 @@ void main() {
     expect(hit?.localPosition, const Offset(30, 0));
   });
 
+  test('mock hit tester maps surface workplane clicks to local positions', () {
+    const state = ViewportState();
+    const size = Size(900, 600);
+    final layout = MockViewportLayout.fromSize(size, state);
+    const workplane = MockViewportWorkplaneOverlay(
+      semanticId: 'main_enclosure.top_lid.outer',
+      kind: MockViewportWorkplaneKind.topLid,
+      width: 120,
+      height: 70,
+      snapPoints: [Offset.zero],
+    );
+    const hitTester = MockViewportHitTester();
+    const localPoint = Offset(24, -14);
+
+    final hit = hitTester.hitTest(
+      position: layout.workplaneLocalToCanvas(workplane, localPoint),
+      size: size,
+      state: state,
+      workplaneOverlay: workplane,
+      componentPlacements: const [],
+    );
+
+    expect(hit?.kind, ViewportHitKind.snapPoint);
+    expect(hit?.semanticId, 'main_enclosure.top_lid.outer');
+    expect(hit?.workplaneKind, MockViewportWorkplaneKind.topLid);
+    expect(hit?.snapIndex, isNull);
+    expect(hit?.localPosition?.dx, closeTo(localPoint.dx, 0.001));
+    expect(hit?.localPosition?.dy, closeTo(localPoint.dy, 0.001));
+  });
+
   test(
     'mock hit tester keeps visible placements above overlapping snap points',
     () {

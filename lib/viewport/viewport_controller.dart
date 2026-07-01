@@ -617,6 +617,31 @@ class MockViewportLayout {
     );
   }
 
+  Offset workplaneCanvasToLocal(
+    MockViewportWorkplaneOverlay workplane,
+    Offset position,
+  ) {
+    final rect = workplaneRect(workplane);
+    final safeWidth = workplane.width.clamp(1, 1000).toDouble();
+    final safeHeight = workplane.height.clamp(1, 1000).toDouble();
+    final unrotated =
+        workplane.kind == MockViewportWorkplaneKind.componentPlacement
+        ? _rotateOffset(
+            point: position,
+            center: rect.center,
+            degrees: -workplane.rotationZDegrees,
+          )
+        : position;
+
+    final x = ((unrotated.dx - rect.center.dx) / rect.width) * safeWidth;
+    final y = -((unrotated.dy - rect.center.dy) / rect.height) * safeHeight;
+
+    return Offset(
+      x.clamp(-safeWidth / 2, safeWidth / 2).toDouble(),
+      y.clamp(-safeHeight / 2, safeHeight / 2).toDouble(),
+    );
+  }
+
   bool containsComponentPlacement(
     MockViewportComponentPlacementPreview placement,
     Offset position, {
@@ -887,6 +912,16 @@ class MockViewportHitTester {
             localPosition: localPoints[index],
           );
         }
+      }
+
+      if (workplane.kind != MockViewportWorkplaneKind.componentPlacement &&
+          layout.workplaneRect(workplane).contains(position)) {
+        return ViewportHitResult(
+          kind: ViewportHitKind.snapPoint,
+          semanticId: workplane.semanticId,
+          workplaneKind: workplane.kind,
+          localPosition: layout.workplaneCanvasToLocal(workplane, position),
+        );
       }
     }
 

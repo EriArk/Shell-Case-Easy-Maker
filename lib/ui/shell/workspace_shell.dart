@@ -684,6 +684,10 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
         targetSurfaceId == null) {
       return;
     }
+    final snapTarget = _circularCutoutSnapTargetFor(
+      _activeSnapTarget,
+      targetSurfaceId,
+    );
 
     final feature = await showDialog<SemanticFeature>(
       context: context,
@@ -691,6 +695,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
         initialFeature: _defaultCircularCutoutFeature(
           id: _nextFeatureId(_project, 'circular_cutout'),
           targetSurfaceId: targetSurfaceId,
+          snapTarget: snapTarget,
         ),
       ),
     );
@@ -1246,6 +1251,14 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                                 _runPlaceComponentCommand();
                               }
                             : null,
+                        onCreateCircularCutoutFromSnap:
+                            _snapTargetCanCreateCircularCutout(
+                              _activeSnapTarget,
+                            )
+                            ? () {
+                                _runCreateCircularCutoutCommand(_selection);
+                              }
+                            : null,
                         onClearSnapTarget: _clearActiveSnapTarget,
                         onEnclosureParameterChanged: _updateEnclosureParameter,
                         onComponentPlacementParameterChanged:
@@ -1467,6 +1480,26 @@ Offset _rotateLocalOffset(Offset point, double degrees) {
 
 String _formatSnapPoint(Offset point) {
   return '${_formatNumber(point.dx)} x ${_formatNumber(point.dy)} mm';
+}
+
+bool _snapTargetCanCreateCircularCutout(_ActiveSnapTarget? target) {
+  return switch (target?.workplaneKind) {
+    MockViewportWorkplaneKind.topLid ||
+    MockViewportWorkplaneKind.frontWall => true,
+    MockViewportWorkplaneKind.componentPlacement || null => false,
+  };
+}
+
+_ActiveSnapTarget? _circularCutoutSnapTargetFor(
+  _ActiveSnapTarget? target,
+  String targetSurfaceId,
+) {
+  if (!_snapTargetCanCreateCircularCutout(target) ||
+      target?.workplaneId != targetSurfaceId) {
+    return null;
+  }
+
+  return target;
 }
 
 String _mountingSideLabel(String mountingSide) {
@@ -1894,20 +1927,27 @@ SemanticFeature _defaultGlassRecessFeature({
 SemanticFeature _defaultCircularCutoutFeature({
   required String id,
   required String targetSurfaceId,
+  _ActiveSnapTarget? snapTarget,
 }) {
+  final initialPosition = snapTarget?.localPosition ?? Offset.zero;
+
   return SemanticFeature(
     id: id,
     type: 'circular_cutout',
     targetSurface: targetSurfaceId,
     operation: 'negative',
-    parameters: const {
+    parameters: {
       'diameter': 8.0,
       'depth': 3.0,
-      'positionX': 0.0,
-      'positionY': 0.0,
       'clearanceProfile': 'fdm_normal',
+      'positionX': _snapCoordinate(initialPosition.dx),
+      'positionY': _snapCoordinate(initialPosition.dy),
     },
   );
+}
+
+double _snapCoordinate(double value) {
+  return value.abs() < 0.000001 ? 0.0 : value;
 }
 
 String _nextFeatureId(ProjectModel project, String type) {
@@ -3232,6 +3272,7 @@ class _Inspector extends StatelessWidget {
     required this.activeSnapTarget,
     required this.activeSnapPlacementIssue,
     required this.onPlaceComponentFromSnap,
+    required this.onCreateCircularCutoutFromSnap,
     required this.onClearSnapTarget,
     required this.onEnclosureParameterChanged,
     required this.onComponentPlacementParameterChanged,
@@ -3245,6 +3286,7 @@ class _Inspector extends StatelessWidget {
   final _ActiveSnapTarget? activeSnapTarget;
   final ValidationMessage? activeSnapPlacementIssue;
   final VoidCallback? onPlaceComponentFromSnap;
+  final VoidCallback? onCreateCircularCutoutFromSnap;
   final VoidCallback onClearSnapTarget;
   final void Function(String enclosureId, String parameterId, Object? value)
   onEnclosureParameterChanged;
@@ -3325,6 +3367,7 @@ class _Inspector extends StatelessWidget {
               target: activeSnapTarget!,
               placementIssue: activeSnapPlacementIssue,
               onPlaceComponent: onPlaceComponentFromSnap,
+              onCreateCircularCutout: onCreateCircularCutoutFromSnap,
               onClear: onClearSnapTarget,
             ),
           ],
@@ -3394,12 +3437,14 @@ class _ActiveSnapTargetPanel extends StatelessWidget {
     required this.target,
     required this.placementIssue,
     required this.onPlaceComponent,
+    required this.onCreateCircularCutout,
     required this.onClear,
   });
 
   final _ActiveSnapTarget target;
   final ValidationMessage? placementIssue;
   final VoidCallback? onPlaceComponent;
+  final VoidCallback? onCreateCircularCutout;
   final VoidCallback onClear;
 
   @override
@@ -3464,6 +3509,18 @@ class _ActiveSnapTargetPanel extends StatelessWidget {
             label: const Text('Разместить компонент'),
           ),
         ),
+        if (onCreateCircularCutout != null) ...[
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              key: const ValueKey('active-snap-create-circular-cutout'),
+              onPressed: onCreateCircularCutout,
+              icon: const Icon(Icons.radio_button_unchecked_rounded, size: 18),
+              label: const Text('Отверстие'),
+            ),
+          ),
+        ],
       ],
     );
   }

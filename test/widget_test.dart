@@ -581,6 +581,63 @@ void main() {
     );
   });
 
+  testWidgets('snap-seeded circular cutout starts from clicked surface point', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const CaseMakerApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Top lid').first);
+    await tester.pumpAndSettle();
+    await _tapTopLidWorkplane(tester, const Offset(42, 20));
+
+    final createHoleFromSnap = find.byKey(
+      const ValueKey('active-snap-create-circular-cutout'),
+    );
+    expect(createHoleFromSnap, findsOneWidget);
+
+    await tester.tap(createHoleFromSnap);
+    await tester.pumpAndSettle();
+
+    expect(_dialogNumberText(tester, 'circular-cutout-position-x'), '42.00');
+    expect(_dialogNumberText(tester, 'circular-cutout-position-y'), '20.00');
+
+    await tester.tap(find.byKey(const ValueKey('circular-cutout-confirm')));
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('circular_cutout_1'), findsWidgets);
+    expect(
+      find.byKey(const ValueKey('active-snap-target-panel')),
+      findsNothing,
+    );
+
+    await tester.tap(find.text('main_enclosure').first);
+    await tester.pumpAndSettle();
+    expect(find.text('diameter'), findsNothing);
+
+    final canvasFinder = find.byKey(const ValueKey('mock-viewport-canvas'));
+    final canvasTopLeft = tester.getTopLeft(canvasFinder);
+    final canvasSize = tester.getSize(canvasFinder);
+    final layout = MockViewportLayout.fromSize(
+      canvasSize,
+      const ViewportState(),
+    );
+    const createdHole = MockViewportFeaturePreview(
+      semanticId: 'circular_cutout_1',
+      kind: MockViewportFeatureKind.circularCutout,
+      targetSurfaceId: 'main_enclosure.top_lid.outer',
+      width: 8,
+      height: 8,
+      cornerRadius: 4,
+      position: Offset(42, 20),
+    );
+
+    await tester.tapAt(canvasTopLeft + layout.featureRect(createdHole).center);
+    await tester.pumpAndSettle();
+
+    expect(find.text('diameter'), findsOneWidget);
+  });
+
   testWidgets('snap-seeded placement dialog can align a component anchor', (
     tester,
   ) async {
@@ -2722,6 +2779,13 @@ Future<void> _pumpAsyncUi(WidgetTester tester) async {
 }
 
 Future<void> _tapTopLidSnap(WidgetTester tester, Offset localPosition) async {
+  await _tapTopLidWorkplane(tester, localPosition);
+}
+
+Future<void> _tapTopLidWorkplane(
+  WidgetTester tester,
+  Offset localPosition,
+) async {
   final canvasFinder = find.byKey(const ValueKey('mock-viewport-canvas'));
   final canvasTopLeft = tester.getTopLeft(canvasFinder);
   final canvasSize = tester.getSize(canvasFinder);

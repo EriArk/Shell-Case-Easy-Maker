@@ -61,6 +61,9 @@ The contextual inspector can edit the first numeric parameter banks for:
 These edits update the selected `SemanticFeature.parameters` map and commit a
 semantic undo snapshot. They do not edit generated geometry directly. The mock
 viewport marker is rebuilt from semantic parameters after the project changes.
+When a selected surface workplane point is active, new `circular_cutout`
+features start from that clicked face-local X/Y, but the snap target itself is
+not saved as project state.
 The native OCCT worker consumes supported front-wall and top-lid
 `circular_cutout` feature intents as generated B-Rep subtraction tools; the
 editable source remains the semantic feature parameters above.
