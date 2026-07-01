@@ -152,6 +152,10 @@ depth, and face-local X/Y parameters, or a `rectangular_cutout`
 `SemanticFeature` with editable width, height, depth, corner radius, and
 face-local X/Y parameters. The confirmed result commits as one undoable project
 snapshot.
+When the rectangular feature carries `parameters.preset=slot`, the inspector
+uses a `Слот` parameter bank with length, width, depth, and face-local X/Y only;
+corner radius remains derived from the current length/width and is updated in
+the same undoable snapshot.
 If the selected surface has an active workplane click target, the dialog starts
 from that target's face-local X/Y; the target itself stays transient UI state
 and is not saved. The inspector also exposes a compact `Отверстие` action from

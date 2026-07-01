@@ -62,7 +62,8 @@ The contextual inspector can edit the first numeric parameter banks for:
   face-local Y.
 - `rectangular_cutout` with `parameters.preset=slot`: the first-pass slot
   preset; width/height/depth/X/Y remain editable semantic parameters and corner
-  radius is derived as half of the smaller side at creation time.
+  radius is derived as half of the smaller side at creation time and after
+  inspector size edits.
 
 These edits update the selected `SemanticFeature.parameters` map and commit a
 semantic undo snapshot. They do not edit generated geometry directly. The mock

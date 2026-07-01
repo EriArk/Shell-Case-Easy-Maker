@@ -127,6 +127,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M106 - Semantic Rounded Rectangular Cutout
 - [x] M107 - Native Rectangular Cutout Geometry
 - [x] M108 - Slot Cutout Preset
+- [x] M109 - Slot Inspector Semantics
 
 ---
 
@@ -5081,3 +5082,52 @@ keeping the editable project semantic and backed by the existing native
 - Confirm the browser/right inspector calls it `Слот`, while the id remains
   `rectangular_cutout_1`.
 - Orbit the model and confirm the native preview has a pill-shaped cutout.
+
+---
+
+## M109 - Slot Inspector Semantics
+
+### Goal
+Keep slot presets semantically stable after inspector edits, so a slot remains a
+pill-shaped `rectangular_cutout` instead of drifting into a generic rounded
+rectangle.
+
+### Tasks
+- [x] Add a feature-aware parameter schema path for selected semantic features.
+- [x] Give `parameters.preset=slot` cutouts a `Слот` inspector schema with
+      length/width/depth/X/Y only.
+- [x] Hide direct corner-radius editing for slot presets.
+- [x] Recompute slot `cornerRadius` from `min(width, height) / 2` after
+      inspector edits.
+- [x] Clamp normal rectangular cutout corner radius after inspector edits so it
+      stays inside valid rounded-rectangle bounds.
+- [x] Add widget coverage for slot inspector edit/save/undo behavior.
+- [x] Update docs/tasks/worklog.
+
+### Done Criteria
+- Slot features still save as `type=rectangular_cutout` with
+  `parameters.preset=slot`.
+- Editing slot length or width in the inspector automatically updates
+  `cornerRadius`.
+- Slot inspector no longer exposes `cornerRadius` as a user-editable field.
+- Generic rectangular cutouts remain editable and cannot keep an impossible
+  radius after size changes.
+
+### Tests
+- `flutter test test\widget_test.dart --plain-name "slot inspector keeps derived corner radius after edits" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "slot cutout preset creates pill-shaped semantic rectangle" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Create a `Слот` from `Top lid` or select an existing one.
+- In the right inspector, confirm the editor title is `Слот`.
+- Confirm there is no editable `Радиус` field in that parameter bank.
+- Change `Длина` and `Ширина`.
+- Save/reopen later if desired; the slot should stay pill-shaped in the native
+  preview.

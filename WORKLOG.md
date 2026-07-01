@@ -42,6 +42,94 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-07-01 - M109 Slot inspector semantics
+
+### Goal
+Keep slot presets stable after inspector edits: a slot should remain a
+pill-shaped semantic `rectangular_cutout`, with its corner radius derived from
+current length/width rather than edited independently.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/ui/shell/workspace_shell.dart`, `test/widget_test.dart`,
+`docs/05_PROJECT_FILE_FORMAT.md`, `docs/06_FEATURE_SYSTEM.md`,
+`docs/31_COMMANDS_AND_UNDO.md`, and `docs/32_USABLE_SHELL.md`.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added feature-aware parameter schema selection for semantic feature
+    inspector editors.
+  - Added a dedicated `Слот` schema for `rectangular_cutout` features with
+    `parameters.preset=slot`.
+  - Removed direct slot `cornerRadius` editing from the inspector parameter
+    bank.
+  - Recomputes slot `cornerRadius` as `min(width, height) / 2` after inspector
+    edits.
+  - Clamps generic rectangular cutout `cornerRadius` after inspector edits so
+    size changes cannot leave an invalid rounded rectangle.
+  - Reused one `_roundedRectangleMaxCornerRadius` helper for dialog creation and
+    inspector updates.
+- `test/widget_test.dart`:
+  - Added widget coverage for slot inspector edit/save/undo behavior.
+- `ROADMAP.md`, `TASKS.md`, `docs/05_PROJECT_FILE_FORMAT.md`,
+  `docs/06_FEATURE_SYSTEM.md`, `docs/31_COMMANDS_AND_UNDO.md`, and
+  `docs/32_USABLE_SHELL.md`:
+  - Recorded M109 and documented live slot radius semantics.
+
+### Tests run
+- `flutter test test\widget_test.dart --plain-name "slot inspector keeps derived corner radius after edits" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "slot cutout preset creates pill-shaped semantic rectangle" --reporter compact`:
+  - Passed.
+- `flutter pub get`:
+  - Passed.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter analyze`:
+  - Passed, no issues found.
+- `flutter test --reporter compact`:
+  - Passed, 220 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and copied the latest bundle to `releases/latest/windows`.
+- `git diff --check`:
+  - Passed; PowerShell reported only the existing CRLF normalization warning for
+    `ROADMAP.md`.
+
+### Validation
+- Geometry checked?
+  - No new native geometry operation was added; slot output still flows through
+    the native `rectangular_cutout` path.
+- Serialization checked?
+  - Widget coverage saves the edited slot and verifies `preset=slot`,
+    width/height, and derived `cornerRadius`.
+- UI checked?
+  - Widget coverage verifies the slot inspector exists, hides the radius field,
+    supports edits, and restores shape semantics through undo.
+- Export checked?
+  - Latest Windows build completed with the native OCCT worker bundled.
+
+### Known issues
+- Issue: Slot placement still uses numeric face-local X/Y editing.
+  - Severity: Medium.
+  - Next action: Improve direct face picking/snapping for generic cutouts as one
+    shared placement slice.
+- Issue: Slot is still a pill-style rounded rectangle, not a separate
+  edge-bound semicircle/finger notch generator.
+  - Severity: Low.
+  - Next action: Add richer access cutout presets as separate semantic presets
+    when placement semantics are ready.
+
+### Next step
+Continue with face-local cutout placement polish or richer access cutout
+presets on top of the now-stable slot semantics.
+
+### Notes for future Codex sessions
+Do not expose slot `cornerRadius` as an ordinary editable field unless the user
+explicitly converts the slot back to a generic rounded rectangle. The live
+`preset=slot` invariant is: `cornerRadius == min(width, height) / 2`.
+
+---
+
 ## 2026-07-01 - M108 Slot cutout preset
 
 ### Goal

@@ -61,6 +61,9 @@ are `usb_c_cutout`, `glass_recess`, `circular_cutout`, and
 in the semantic project model and commits the edit through the same undo
 history. The mock viewport marker is refreshed from semantic parameters; no
 generated mesh, B-Rep, or topology ID becomes editable state.
+Slot presets are still `rectangular_cutout` features, but the inspector shows a
+`Слот` parameter bank without a manual radius field and recomputes the radius
+from the current length/width.
 
 When a supported semantic feature group is selected, the inspector renders a
 group-specific parameter bank. The first supported group editors are
@@ -238,9 +241,10 @@ diameter, depth, and face-local X/Y parameters. The rectangular option appends a
 semantic `rectangular_cutout` feature with editable width, height, depth, corner
 radius, and face-local X/Y parameters. The slot option stores the same semantic
 `rectangular_cutout` type with `parameters.preset=slot` and derives the corner
-radius as half of the smaller side, so it stays editable without introducing a
-new B-Rep/mesh source. If a surface workplane point was clicked first, the
-dialog starts from that X/Y. The mock viewport draws circular or
+radius as half of the smaller side. Later inspector edits keep that radius
+derived, so it stays editable without introducing a new B-Rep/mesh source. If a
+surface workplane point was clicked first, the dialog starts from that X/Y. The
+mock viewport draws circular or
 rounded-rectangular markers and hit-tests them by semantic feature ID. Native
 OCCT consumes supported front-wall and top-lid circular and rectangular/slot
 cutouts as generated subtraction geometry while keeping the editable source

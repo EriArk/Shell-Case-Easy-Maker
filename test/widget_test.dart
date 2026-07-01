@@ -2534,6 +2534,113 @@ void main() {
     expect(find.text('rectangular_cutout_1'), findsNothing);
   });
 
+  testWidgets('slot inspector keeps derived corner radius after edits', (
+    tester,
+  ) async {
+    final fileService = _MemoryProjectFileService();
+    final dialog = _FakeProjectFileDialogService(
+      saveFile: File('edited_slot_case'),
+    );
+    final project = ProjectModel.initial().replaceFeature(
+      const SemanticFeature(
+        id: 'rectangular_cutout_1',
+        type: 'rectangular_cutout',
+        targetSurface: 'main_enclosure.top_lid.outer',
+        operation: 'negative',
+        parameters: {
+          'width': 32.0,
+          'height': 8.0,
+          'depth': 3.0,
+          'cornerRadius': 4.0,
+          'positionX': 12.0,
+          'positionY': -4.0,
+          'preset': 'slot',
+        },
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkspaceShell(
+          project: project,
+          geometryService: const MockGeometryService(),
+          projectFileService: fileService,
+          projectFileDialogService: dialog,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final undoButton = find.byKey(
+      const ValueKey('toolbar-command-${CommandIds.undo}'),
+    );
+    final slotRow = find.text('rectangular_cutout_1', skipOffstage: false);
+    await tester.ensureVisible(slotRow);
+    await tester.pump();
+    await tester.tap(slotRow.first);
+    await tester.pumpAndSettle();
+
+    final widthField = find.byKey(
+      const ValueKey('feature-param-rectangular_cutout_1-width'),
+    );
+    final heightField = find.byKey(
+      const ValueKey('feature-param-rectangular_cutout_1-height'),
+    );
+
+    expect(find.text('Слот'), findsWidgets);
+    expect(widthField, findsOneWidget);
+    expect(heightField, findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey('feature-param-rectangular_cutout_1-cornerRadius'),
+      ),
+      findsNothing,
+    );
+
+    await tester.enterText(widthField, '48');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await _pumpAsyncUi(tester);
+
+    await tester.enterText(heightField, '12');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await _pumpAsyncUi(tester);
+
+    await tester.tap(
+      find.byKey(const ValueKey('toolbar-command-${CommandIds.saveProject}')),
+    );
+    await _pumpAsyncUi(tester);
+
+    var savedProject = await fileService.readProject(
+      File('edited_slot_case.enclosure.json'),
+    );
+    var savedSlot = savedProject.features.firstWhere(
+      (feature) => feature.id == 'rectangular_cutout_1',
+    );
+
+    expect(savedSlot.parameters['preset'], 'slot');
+    expect(savedSlot.parameters['width'], 48.0);
+    expect(savedSlot.parameters['height'], 12.0);
+    expect(savedSlot.parameters['cornerRadius'], 6.0);
+    expect(tester.widget<IconButton>(undoButton).onPressed, isNotNull);
+
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+    await tester.tap(
+      find.byKey(const ValueKey('toolbar-command-${CommandIds.saveProject}')),
+    );
+    await _pumpAsyncUi(tester);
+
+    savedProject = await fileService.readProject(
+      File('edited_slot_case.enclosure.json'),
+    );
+    savedSlot = savedProject.features.firstWhere(
+      (feature) => feature.id == 'rectangular_cutout_1',
+    );
+
+    expect(savedSlot.parameters['height'], 8.0);
+    expect(savedSlot.parameters['cornerRadius'], 4.0);
+  });
+
   testWidgets('unimplemented rail commands are visible but disabled', (
     tester,
   ) async {

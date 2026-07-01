@@ -209,22 +209,26 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       return;
     }
 
-    final parameter = _featureParameterSchema(
-      feature.type,
+    final parameter = _featureParameterSchemaForFeature(
+      feature,
     )?.parameters.where((parameter) => parameter.id == parameterId).firstOrNull;
     if (parameter == null) {
       return;
     }
 
+    final nextParameters = _normalizeFeatureParametersAfterEdit(
+      feature: feature,
+      parameters: {
+        ...feature.parameters,
+        parameterId: parameter.normalize(value),
+      },
+    );
     final updatedFeature = SemanticFeature(
       id: feature.id,
       type: feature.type,
       targetSurface: feature.targetSurface,
       operation: feature.operation,
-      parameters: {
-        ...feature.parameters,
-        parameterId: parameter.normalize(value),
-      },
+      parameters: nextParameters,
       source: feature.source,
       placement: feature.placement,
       metadata: feature.metadata,
@@ -3442,7 +3446,7 @@ class _Inspector extends StatelessWidget {
             ),
           ],
           if (selectedFeature != null &&
-              _featureParameterSchema(selectedFeature.type) != null) ...[
+              _featureParameterSchemaForFeature(selectedFeature) != null) ...[
             const SizedBox(height: 14),
             _FeatureParameterEditor(
               feature: selectedFeature,
@@ -3782,7 +3786,7 @@ class _FeatureParameterEditor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final schema = _featureParameterSchema(feature.type);
+    final schema = _featureParameterSchemaForFeature(feature);
     if (schema == null) {
       return const SizedBox.shrink();
     }
@@ -4002,6 +4006,37 @@ ParameterSchema? _featureParameterSchema(String type) {
   };
 }
 
+ParameterSchema? _featureParameterSchemaForFeature(SemanticFeature feature) {
+  if (_isSlotCutoutFeature(feature)) {
+    return _slotCutoutParameterSchema;
+  }
+
+  return _featureParameterSchema(feature.type);
+}
+
+Map<String, Object?> _normalizeFeatureParametersAfterEdit({
+  required SemanticFeature feature,
+  required Map<String, Object?> parameters,
+}) {
+  if (feature.type != 'rectangular_cutout') {
+    return parameters;
+  }
+
+  final width = _featureDouble(parameters, 'width', 18.0);
+  final height = _featureDouble(parameters, 'height', 10.0);
+  final maxRadius = _roundedRectangleMaxCornerRadius(width, height);
+
+  if (_isSlotCutoutFeature(feature)) {
+    return {...parameters, 'cornerRadius': maxRadius, 'preset': 'slot'};
+  }
+
+  final cornerRadius = _featureDouble(parameters, 'cornerRadius', 2.0);
+  return {
+    ...parameters,
+    'cornerRadius': _clampDouble(cornerRadius, 0, maxRadius),
+  };
+}
+
 const _usbCParameterSchema = ParameterSchema(
   id: 'feature.usb_c_cutout',
   label: 'USB-C',
@@ -4162,6 +4197,53 @@ const _rectangularCutoutParameterSchema = ParameterSchema(
       unit: 'mm',
       defaultValue: 2.0,
       range: ParameterRange(min: 0, max: 30, step: 0.1),
+    ),
+    ParameterDefinition(
+      id: 'positionX',
+      label: 'X',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 0.0,
+      range: ParameterRange(min: -150, max: 150, step: 0.1),
+    ),
+    ParameterDefinition(
+      id: 'positionY',
+      label: 'Y',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 0.0,
+      range: ParameterRange(min: -150, max: 150, step: 0.1),
+    ),
+  ],
+);
+
+const _slotCutoutParameterSchema = ParameterSchema(
+  id: 'feature.rectangular_cutout.slot',
+  label: 'Слот',
+  parameters: [
+    ParameterDefinition(
+      id: 'width',
+      label: 'Длина',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 24.0,
+      range: ParameterRange(min: 2, max: 120, step: 0.1),
+    ),
+    ParameterDefinition(
+      id: 'height',
+      label: 'Ширина',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 8.0,
+      range: ParameterRange(min: 2, max: 100, step: 0.1),
+    ),
+    ParameterDefinition(
+      id: 'depth',
+      label: 'Глубина',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 3.0,
+      range: ParameterRange(min: 0.2, max: 80, step: 0.1),
     ),
     ParameterDefinition(
       id: 'positionX',
@@ -5779,7 +5861,10 @@ class _CutoutDialogState extends State<_CutoutDialog> {
   }
 
   Widget _buildSlotCornerRadiusPreview() {
-    final radius = _slotCornerRadius(_rectangularWidth, _rectangularHeight);
+    final radius = _roundedRectangleMaxCornerRadius(
+      _rectangularWidth,
+      _rectangularHeight,
+    );
 
     return InputDecorator(
       key: const ValueKey('slot-cutout-derived-radius'),
@@ -5855,7 +5940,7 @@ class _CutoutDialogState extends State<_CutoutDialog> {
     final cornerRadius = _clampDouble(
       _rectangularCornerRadius,
       0,
-      _slotCornerRadius(width, height),
+      _roundedRectangleMaxCornerRadius(width, height),
     );
 
     return SemanticFeature(
@@ -5895,17 +5980,13 @@ class _CutoutDialogState extends State<_CutoutDialog> {
         'width': width,
         'height': height,
         'depth': _clampDouble(_rectangularDepth, 0.2, 80),
-        'cornerRadius': _slotCornerRadius(width, height),
+        'cornerRadius': _roundedRectangleMaxCornerRadius(width, height),
         'positionX': _clampDouble(_rectangularPositionX, -150, 150),
         'positionY': _clampDouble(_rectangularPositionY, -150, 150),
         'clearanceProfile': _rectangularClearanceProfile,
         'preset': 'slot',
       },
     );
-  }
-
-  double _slotCornerRadius(double width, double height) {
-    return math.min(width, height) / 2;
   }
 }
 
@@ -6733,6 +6814,10 @@ String _featureString(
 
 double _clampDouble(double value, double min, double max) {
   return value.clamp(min, max).toDouble();
+}
+
+double _roundedRectangleMaxCornerRadius(double width, double height) {
+  return math.min(width, height) / 2;
 }
 
 class _ParameterNumberField extends StatefulWidget {

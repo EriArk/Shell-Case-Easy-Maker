@@ -123,7 +123,8 @@ Current behavior:
 - the `Отверстия` rail command can append semantic `circular_cutout` and
   `rectangular_cutout` features with editable dimensions, depth, and face-local
   X/Y parameters; the `Слот` preset is stored as `rectangular_cutout` with
-  `parameters.preset=slot` and a derived full corner radius,
+  `parameters.preset=slot` and a full corner radius derived from its current
+  length/width,
 - the `Крепёж` rail command can append semantic `standoff_mounts` feature
   groups sourced from a selected component placement's template mounting holes,
 - toolbar STEP/STL export writes an external generated artifact and does not
