@@ -114,10 +114,11 @@ class CoreCommands {
     ),
     AppCommand(
       id: CommandIds.generateSlot,
-      label: 'Слоты',
+      label: 'Отверстия',
       icon: 'slot',
-      scopes: {CommandScope.workspace, CommandScope.feature},
+      scopes: {CommandScope.surface},
       undoBehavior: UndoBehavior.singleTransaction,
+      availability: {CommandAvailability.activeSurface},
     ),
     AppCommand(
       id: CommandIds.createGlassRecess,

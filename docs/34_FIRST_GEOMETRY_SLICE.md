@@ -475,3 +475,6 @@ Expected sample dimensions:
 - STEP/STL export operations intentionally return unsupported in the mock
   backend. Native OCCT now supports the first `export_step` and `export_stl`
   artifact paths.
+- Generic `circular_cutout` is currently wired through semantic UI, inspector,
+  operation planning, and mock viewport selection only. Native OCCT subtraction
+  for this feature remains a follow-up geometry slice.

@@ -2172,7 +2172,7 @@ void main() {
     expect(tester.widget<IconButton>(undoButton).onPressed, isNull);
   });
 
-  testWidgets('unimplemented rail commands are visible but disabled', (
+  testWidgets('circular cutout rail command commits through undo history', (
     tester,
   ) async {
     await tester.pumpWidget(const CaseMakerApp());
@@ -2181,9 +2181,112 @@ void main() {
     final generateSlotButton = find.byKey(
       const ValueKey('rail-command-${CommandIds.generateSlot}'),
     );
+    final undoButton = find.byKey(
+      const ValueKey('toolbar-command-${CommandIds.undo}'),
+    );
 
-    expect(generateSlotButton, findsOneWidget);
     expect(tester.widget<IconButton>(generateSlotButton).onPressed, isNull);
+
+    await tester.tap(find.text('Top lid').first);
+    await tester.pumpAndSettle();
+
+    expect(tester.widget<IconButton>(generateSlotButton).onPressed, isNotNull);
+
+    await tester.tap(generateSlotButton);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('circular-cutout-confirm')),
+      findsOneWidget,
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('circular-cutout-diameter')),
+      '14',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('circular-cutout-position-x')),
+      '8',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('circular-cutout-position-y')),
+      '-6',
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('circular-cutout-confirm')));
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('circular_cutout_1'), findsWidgets);
+    expect(find.text('14.0'), findsWidgets);
+    expect(tester.widget<IconButton>(undoButton).onPressed, isNotNull);
+
+    await tester.tap(find.text('main_enclosure').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('diameter'), findsNothing);
+
+    final canvasFinder = find.byKey(const ValueKey('mock-viewport-canvas'));
+    final canvasTopLeft = tester.getTopLeft(canvasFinder);
+    final canvasSize = tester.getSize(canvasFinder);
+    final layout = MockViewportLayout.fromSize(
+      canvasSize,
+      const ViewportState(),
+    );
+    const createdHole = MockViewportFeaturePreview(
+      semanticId: 'circular_cutout_1',
+      kind: MockViewportFeatureKind.circularCutout,
+      targetSurfaceId: 'main_enclosure.top_lid.outer',
+      width: 14,
+      height: 14,
+      cornerRadius: 7,
+      position: Offset(8, -6),
+    );
+
+    await tester.tapAt(canvasTopLeft + layout.featureRect(createdHole).center);
+    await tester.pumpAndSettle();
+
+    expect(find.text('diameter'), findsOneWidget);
+
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('circular_cutout_1'), findsNothing);
+  });
+
+  testWidgets('circular cutout rail command can be cancelled', (tester) async {
+    await tester.pumpWidget(const CaseMakerApp());
+    await tester.pumpAndSettle();
+
+    final generateSlotButton = find.byKey(
+      const ValueKey('rail-command-${CommandIds.generateSlot}'),
+    );
+    final undoButton = find.byKey(
+      const ValueKey('toolbar-command-${CommandIds.undo}'),
+    );
+
+    await tester.tap(find.text('Top lid').first);
+    await tester.pumpAndSettle();
+    await tester.tap(generateSlotButton);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('circular-cutout-cancel')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('circular_cutout_1'), findsNothing);
+    expect(tester.widget<IconButton>(undoButton).onPressed, isNull);
+  });
+
+  testWidgets('unimplemented rail commands are visible but disabled', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const CaseMakerApp());
+    await tester.pumpAndSettle();
+
+    final generateCaseButton = find.byKey(
+      const ValueKey('rail-command-${CommandIds.generateCase}'),
+    );
+
+    expect(generateCaseButton, findsOneWidget);
+    expect(tester.widget<IconButton>(generateCaseButton).onPressed, isNull);
   });
 
   testWidgets('save command writes current semantic project file', (

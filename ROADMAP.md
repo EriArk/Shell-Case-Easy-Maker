@@ -121,6 +121,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M100 - Toolbar STEP Export
 - [x] M101 - Native STL Export Slice
 - [x] M102 - Toolbar STEP/STL Export Format Choice
+- [x] M103 - Semantic Circular Cutout Command
 
 ---
 
@@ -4751,3 +4752,59 @@ STEP/STL files as output artifacts outside saved project JSON and undo/redo.
   file is created.
 - Repeat with `STEP` and confirm a `.step` file is created.
 - Cancel the format chooser once; no native save dialog should open.
+
+---
+
+## M103 - Semantic Circular Cutout Command
+
+### Goal
+Add the first generic circular cutout command as editable semantic project
+state, visible in the shell, inspector, operation planner, and mock viewport,
+without introducing editable mesh/STL/B-Rep data.
+
+### Tasks
+- [x] Reuse the `slot.generate` rail action as an `Отверстия` surface command.
+- [x] Add a compact circular cutout dialog with diameter, depth, X/Y, and
+      clearance profile.
+- [x] Store the result as a `SemanticFeature` with `type=circular_cutout`.
+- [x] Add inspector parameter schema for diameter, depth, and face-local X/Y.
+- [x] Add mock viewport preview and hit-test support for circular cutouts.
+- [x] Teach the operation planner to emit `cutout.circular` operations.
+- [x] Add command, planner, viewport, and widget coverage.
+- [x] Update docs/tasks/worklog.
+
+### Done Criteria
+- The `Отверстия` rail command is disabled until a semantic surface is
+  selected.
+- Choosing it from a surface opens the circular cutout dialog.
+- Confirming creates `circular_cutout_1`, selects it, refreshes preview, and
+  creates one undo entry.
+- Canceling does not create a feature or undo entry.
+- The inspector can edit circular cutout parameters.
+- The mock viewport marker is selectable by semantic ID.
+- Geometry request planning preserves the feature as `cutout.circular`.
+- Native OCCT does not yet subtract this feature; that is a separate M104
+  geometry slice.
+
+### Tests
+- `flutter test test\command_registry_test.dart --plain-name "slot command creates holes only from active surface context" --reporter compact`
+- `flutter test test\geometry_protocol_test.dart --plain-name "operation planner creates deterministic backend operations" --reporter compact`
+- `flutter test test\viewport_controller_test.dart --plain-name "mock hit tester returns semantic feature marker ids" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "circular cutout rail command commits through undo history" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "circular cutout rail command can be cancelled" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "unimplemented rail commands are visible but disabled" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Select `Top lid`.
+- Click `Отверстия`.
+- Create a circular cutout with a visible diameter such as `14`.
+- Select the new marker in the viewport and confirm the inspector shows
+  diameter/depth/X/Y.
+- Press undo and confirm the cutout disappears.

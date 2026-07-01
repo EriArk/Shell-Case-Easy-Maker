@@ -56,7 +56,7 @@ extension ViewportViewPresetProperties on ViewportViewPreset {
   }
 }
 
-enum MockViewportFeatureKind { usbC, glassRecess }
+enum MockViewportFeatureKind { usbC, glassRecess, circularCutout }
 
 enum MockViewportFeatureGroupKind { buttonGroup, standoffMounts }
 
@@ -250,6 +250,7 @@ class MockViewportFeaturePreview {
     required this.width,
     required this.height,
     this.cornerRadius = 0,
+    this.position = Offset.zero,
     this.referenceWidth = 120,
     this.referenceHeight = 70,
     this.slotIndex = 0,
@@ -261,6 +262,7 @@ class MockViewportFeaturePreview {
   final double width;
   final double height;
   final double cornerRadius;
+  final Offset position;
   final double referenceWidth;
   final double referenceHeight;
   final int slotIndex;
@@ -274,6 +276,7 @@ class MockViewportFeaturePreview {
         other.width == width &&
         other.height == height &&
         other.cornerRadius == cornerRadius &&
+        other.position == position &&
         other.referenceWidth == referenceWidth &&
         other.referenceHeight == referenceHeight &&
         other.slotIndex == slotIndex;
@@ -288,6 +291,7 @@ class MockViewportFeaturePreview {
       width,
       height,
       cornerRadius,
+      position,
       referenceWidth,
       referenceHeight,
       slotIndex,
@@ -640,6 +644,9 @@ class MockViewportLayout {
     return switch (feature.kind) {
       MockViewportFeatureKind.usbC => _usbCFeatureRect(feature),
       MockViewportFeatureKind.glassRecess => _glassRecessFeatureRect(feature),
+      MockViewportFeatureKind.circularCutout => _circularCutoutFeatureRect(
+        feature,
+      ),
     };
   }
 
@@ -650,6 +657,8 @@ class MockViewportLayout {
       MockViewportFeatureKind.glassRecess =>
         (feature.cornerRadius / feature.referenceWidth.clamp(1, 1000)) *
             lidRect.width,
+      MockViewportFeatureKind.circularCutout =>
+        featureRect(feature).shortestSide / 2,
     };
   }
 
@@ -680,6 +689,25 @@ class MockViewportLayout {
       width: width,
       height: height,
     );
+  }
+
+  Rect _circularCutoutFeatureRect(MockViewportFeaturePreview feature) {
+    final targetRect = feature.targetSurfaceId.contains('front_wall')
+        ? frontWallRect
+        : lidRect;
+    final safeWidth = feature.referenceWidth.clamp(1, 1000).toDouble();
+    final safeHeight = feature.referenceHeight.clamp(1, 1000).toDouble();
+    final diameter = (feature.width / safeWidth * targetRect.width)
+        .clamp(8 * zoom, targetRect.shortestSide * 0.72)
+        .toDouble();
+    final center = Offset(
+      targetRect.center.dx +
+          (feature.position.dx / safeWidth) * targetRect.width,
+      targetRect.center.dy -
+          (feature.position.dy / safeHeight) * targetRect.height,
+    ).translate(feature.slotIndex * 8 * zoom, -feature.slotIndex * 6 * zoom);
+
+    return Rect.fromCircle(center: center, radius: diameter / 2);
   }
 
   static MockViewportLayout fromSize(

@@ -176,7 +176,8 @@ becomes a warning.
 
 The left tool rail now executes the first semantic generator commands:
 `enclosure.create`, `component.place`, `port.add_usb_c`, and
-`button.create_group`, `glass.create_recess`, and `mount.generate`.
+`button.create_group`, `glass.create_recess`, `slot.generate`, and
+`mount.generate`.
 
 Clicking `Корпус` opens a compact create-enclosure dialog using the same rounded
 enclosure parameter schema as the inspector. Confirming the dialog updates the
@@ -223,6 +224,12 @@ surface implied by the connector direction, and preserves source placement,
 template, component feature IDs, and projected `surfacePosition` metadata on
 the generated `usb_c_cutout`. The editable result is still a normal semantic
 feature, not generated geometry.
+
+Clicking `Отверстия` is enabled after selecting a semantic surface. It opens a
+compact circular cutout dialog and appends a semantic `circular_cutout` feature
+with editable diameter, depth, and face-local X/Y parameters. The mock viewport
+draws a circular marker and hit-tests it by semantic feature ID. Native OCCT
+subtraction for this generic feature is still a separate geometry slice.
 
 Clicking `Кнопки` is enabled only after selecting a semantic surface such as
 `Top lid`. The command opens a compact button group dialog and appends a

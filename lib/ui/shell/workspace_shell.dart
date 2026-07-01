@@ -371,6 +371,12 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                 _runCreateGlassRecessCommand(_selection);
               }
             : null,
+      CommandIds.generateSlot =>
+        _selection.kind == SelectionKind.surface
+            ? () {
+                _runCreateCircularCutoutCommand(_selection);
+              }
+            : null,
       CommandIds.generateMount => _mountCommandAction(),
       _ => null,
     };
@@ -665,6 +671,36 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     _commitProjectEdit(
       id: CommandIds.createGlassRecess,
       label: 'Посадка под стекло',
+      nextState: _project.replaceFeature(feature),
+      selection: SelectionModel.feature(feature.id),
+    );
+  }
+
+  Future<void> _runCreateCircularCutoutCommand(
+    SelectionModel surfaceSelection,
+  ) async {
+    final targetSurfaceId = surfaceSelection.id;
+    if (surfaceSelection.kind != SelectionKind.surface ||
+        targetSurfaceId == null) {
+      return;
+    }
+
+    final feature = await showDialog<SemanticFeature>(
+      context: context,
+      builder: (context) => _CircularCutoutDialog(
+        initialFeature: _defaultCircularCutoutFeature(
+          id: _nextFeatureId(_project, 'circular_cutout'),
+          targetSurfaceId: targetSurfaceId,
+        ),
+      ),
+    );
+    if (!mounted || feature == null) {
+      return;
+    }
+
+    _commitProjectEdit(
+      id: CommandIds.generateSlot,
+      label: 'Круглое отверстие',
       nextState: _project.replaceFeature(feature),
       selection: SelectionModel.feature(feature.id),
     );
@@ -1855,6 +1891,25 @@ SemanticFeature _defaultGlassRecessFeature({
   );
 }
 
+SemanticFeature _defaultCircularCutoutFeature({
+  required String id,
+  required String targetSurfaceId,
+}) {
+  return SemanticFeature(
+    id: id,
+    type: 'circular_cutout',
+    targetSurface: targetSurfaceId,
+    operation: 'negative',
+    parameters: const {
+      'diameter': 8.0,
+      'depth': 3.0,
+      'positionX': 0.0,
+      'positionY': 0.0,
+      'clearanceProfile': 'fdm_normal',
+    },
+  );
+}
+
 String _nextFeatureId(ProjectModel project, String type) {
   final safeType = _safeIdPart(type);
   var index =
@@ -2632,6 +2687,7 @@ IconData _featureIcon(String type) {
     'usb_c_cutout' => Icons.settings_input_component_rounded,
     'button_group' => Icons.radio_button_checked_rounded,
     'glass_recess' => Icons.crop_square_rounded,
+    'circular_cutout' => Icons.radio_button_unchecked_rounded,
     'standoff_mounts' => Icons.construction_rounded,
     _ => Icons.extension_rounded,
   };
@@ -2642,6 +2698,7 @@ String _featureTitle(String type) {
     'usb_c_cutout' => 'USB-C',
     'button_group' => 'Группа кнопок',
     'glass_recess' => 'Посадка под стекло',
+    'circular_cutout' => 'Круглое отверстие',
     'standoff_mounts' => 'Крепёж',
     _ => type.replaceAll('_', ' '),
   };
@@ -3838,6 +3895,7 @@ ParameterSchema? _featureParameterSchema(String type) {
   return switch (type) {
     'usb_c_cutout' => _usbCParameterSchema,
     'glass_recess' => _glassRecessParameterSchema,
+    'circular_cutout' => _circularCutoutParameterSchema,
     _ => null,
   };
 }
@@ -3924,6 +3982,45 @@ const _glassRecessParameterSchema = ParameterSchema(
       unit: 'mm',
       defaultValue: 1.0,
       range: ParameterRange(min: 0.2, max: 8, step: 0.1),
+    ),
+  ],
+);
+
+const _circularCutoutParameterSchema = ParameterSchema(
+  id: 'feature.circular_cutout',
+  label: 'Круглое отверстие',
+  parameters: [
+    ParameterDefinition(
+      id: 'diameter',
+      label: 'Диаметр',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 8.0,
+      range: ParameterRange(min: 1, max: 80, step: 0.1),
+    ),
+    ParameterDefinition(
+      id: 'depth',
+      label: 'Глубина',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 3.0,
+      range: ParameterRange(min: 0.2, max: 80, step: 0.1),
+    ),
+    ParameterDefinition(
+      id: 'positionX',
+      label: 'X',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 0.0,
+      range: ParameterRange(min: -150, max: 150, step: 0.1),
+    ),
+    ParameterDefinition(
+      id: 'positionY',
+      label: 'Y',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 0.0,
+      range: ParameterRange(min: -150, max: 150, step: 0.1),
     ),
   ],
 );
@@ -5170,6 +5267,164 @@ class _UsbCCutoutDialogState extends State<_UsbCCutoutDialog> {
             ),
           ),
           child: const Text('Добавить'),
+        ),
+      ],
+    );
+  }
+}
+
+class _CircularCutoutDialog extends StatefulWidget {
+  const _CircularCutoutDialog({required this.initialFeature});
+
+  final SemanticFeature initialFeature;
+
+  @override
+  State<_CircularCutoutDialog> createState() => _CircularCutoutDialogState();
+}
+
+class _CircularCutoutDialogState extends State<_CircularCutoutDialog> {
+  late double _diameter;
+  late double _depth;
+  late double _positionX;
+  late double _positionY;
+  late String _clearanceProfile;
+
+  static const _profiles = [
+    _ClearanceProfileOption('fdm_normal', 'FDM обычный'),
+    _ClearanceProfileOption('fdm_loose', 'FDM свободный'),
+    _ClearanceProfileOption('resin_normal', 'Resin обычный'),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    final parameters = widget.initialFeature.parameters;
+    _diameter = _featureDouble(parameters, 'diameter', 8.0);
+    _depth = _featureDouble(parameters, 'depth', 3.0);
+    _positionX = _featureDouble(parameters, 'positionX', 0.0);
+    _positionY = _featureDouble(parameters, 'positionY', 0.0);
+    _clearanceProfile = _featureString(
+      parameters,
+      'clearanceProfile',
+      'fdm_normal',
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Круглое отверстие'),
+      content: SizedBox(
+        width: 340,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: _DialogNumberField(
+                      key: const ValueKey('circular-cutout-diameter'),
+                      label: 'Диаметр',
+                      value: _diameter,
+                      onChanged: (value) => setState(() => _diameter = value),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _DialogNumberField(
+                      key: const ValueKey('circular-cutout-depth'),
+                      label: 'Глубина',
+                      value: _depth,
+                      onChanged: (value) => setState(() => _depth = value),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: _DialogNumberField(
+                      key: const ValueKey('circular-cutout-position-x'),
+                      label: 'X',
+                      value: _positionX,
+                      onChanged: (value) => setState(() => _positionX = value),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _DialogNumberField(
+                      key: const ValueKey('circular-cutout-position-y'),
+                      label: 'Y',
+                      value: _positionY,
+                      onChanged: (value) => setState(() => _positionY = value),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                key: const ValueKey('circular-cutout-clearance-profile'),
+                initialValue: _clearanceProfile,
+                isExpanded: true,
+                items: [
+                  for (final profile in _profiles)
+                    DropdownMenuItem(
+                      value: profile.id,
+                      child: Text(profile.label),
+                    ),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _clearanceProfile = value;
+                    });
+                  }
+                },
+                decoration: InputDecoration(
+                  labelText: 'Зазор',
+                  isDense: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 9,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          key: const ValueKey('circular-cutout-cancel'),
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Отмена'),
+        ),
+        FilledButton(
+          key: const ValueKey('circular-cutout-confirm'),
+          onPressed: () => Navigator.of(context).pop(
+            SemanticFeature(
+              id: widget.initialFeature.id,
+              type: widget.initialFeature.type,
+              targetSurface: widget.initialFeature.targetSurface,
+              operation: widget.initialFeature.operation,
+              source: widget.initialFeature.source,
+              placement: widget.initialFeature.placement,
+              metadata: widget.initialFeature.metadata,
+              parameters: {
+                'diameter': _clampDouble(_diameter, 1, 80),
+                'depth': _clampDouble(_depth, 0.2, 80),
+                'positionX': _clampDouble(_positionX, -150, 150),
+                'positionY': _clampDouble(_positionY, -150, 150),
+                'clearanceProfile': _clearanceProfile,
+              },
+            ),
+          ),
+          child: const Text('Создать'),
         ),
       ],
     );
@@ -7129,6 +7384,17 @@ class _ViewportPainter extends CustomPainter {
         ).withValues(alpha: annotationMode ? (selected ? 0.72 : 0.18) : 0.86)
         ..style = PaintingStyle.stroke
         ..strokeWidth = annotationMode ? (selected ? 1.7 : 1.0) : 2;
+      final circularFill = Paint()
+        ..color = colorScheme.secondary.withValues(
+          alpha: annotationMode ? (selected ? 0.24 : 0.05) : 0.20,
+        )
+        ..style = PaintingStyle.fill;
+      final circularStroke = Paint()
+        ..color = colorScheme.secondary.withValues(
+          alpha: annotationMode ? (selected ? 0.88 : 0.24) : 0.86,
+        )
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = annotationMode ? (selected ? 1.9 : 1.1) : 2;
       final darkInset = Paint()
         ..color = Colors.black.withValues(
           alpha: annotationMode ? (selected ? 0.12 : 0.035) : 0.25,
@@ -7158,6 +7424,21 @@ class _ViewportPainter extends CustomPainter {
                 ..color = Colors.black.withValues(alpha: 0.12)
                 ..style = PaintingStyle.stroke
                 ..strokeWidth = 1,
+            );
+          }
+        case MockViewportFeatureKind.circularCutout:
+          canvas.drawOval(rect, circularFill);
+          canvas.drawOval(rect, circularStroke);
+          if (!annotationMode || selected) {
+            canvas.drawLine(
+              Offset(rect.center.dx, rect.top + 3),
+              Offset(rect.center.dx, rect.bottom - 3),
+              circularStroke,
+            );
+            canvas.drawLine(
+              Offset(rect.left + 3, rect.center.dy),
+              Offset(rect.right - 3, rect.center.dy),
+              circularStroke,
             );
           }
       }
@@ -8070,7 +8351,11 @@ MockViewportFeaturePreview? _mockFeaturePreview(
 ) {
   final enclosure = project.bodies.firstOrNull;
   final referenceWidth = enclosure == null ? 120.0 : _sizeAt(enclosure, 0, 120);
-  final referenceHeight = enclosure == null ? 70.0 : _sizeAt(enclosure, 1, 70);
+  final referenceHeight = enclosure == null
+      ? 70.0
+      : feature.targetSurface.contains('front_wall')
+      ? _sizeAt(enclosure, 2, 28)
+      : _sizeAt(enclosure, 1, 70);
 
   return switch (feature.type) {
     'usb_c_cutout' => MockViewportFeaturePreview(
@@ -8091,6 +8376,21 @@ MockViewportFeaturePreview? _mockFeaturePreview(
       width: _featureDouble(feature.parameters, 'width', 42),
       height: _featureDouble(feature.parameters, 'height', 24),
       cornerRadius: _featureDouble(feature.parameters, 'cornerRadius', 2),
+      referenceWidth: referenceWidth,
+      referenceHeight: referenceHeight,
+      slotIndex: slotIndex,
+    ),
+    'circular_cutout' => MockViewportFeaturePreview(
+      semanticId: feature.id,
+      kind: MockViewportFeatureKind.circularCutout,
+      targetSurfaceId: feature.targetSurface,
+      width: _featureDouble(feature.parameters, 'diameter', 8),
+      height: _featureDouble(feature.parameters, 'diameter', 8),
+      cornerRadius: _featureDouble(feature.parameters, 'diameter', 8) / 2,
+      position: Offset(
+        _featureDouble(feature.parameters, 'positionX', 0),
+        _featureDouble(feature.parameters, 'positionY', 0),
+      ),
       referenceWidth: referenceWidth,
       referenceHeight: referenceHeight,
       slotIndex: slotIndex,

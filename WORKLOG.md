@@ -42,6 +42,118 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-07-01 - M103 Semantic circular cutout command
+
+### Goal
+Add the first generic circular cutout as editable semantic project state,
+available from the surface tool rail and visible in inspector/mock viewport,
+without adding editable mesh, STL, generated B-Rep, or native topology IDs.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`,
+`lib/app/app_strings.dart`,
+`lib/commands/command_registry.dart`,
+`lib/geometry/geometry_operation_plan.dart`,
+`lib/ui/shell/workspace_shell.dart`, `lib/viewport/viewport_controller.dart`,
+`test/command_registry_test.dart`, `test/geometry_protocol_test.dart`,
+`test/viewport_controller_test.dart`, `test/widget_test.dart`,
+`docs/05_PROJECT_FILE_FORMAT.md`, `docs/31_COMMANDS_AND_UNDO.md`,
+`docs/32_USABLE_SHELL.md`, and `docs/34_FIRST_GEOMETRY_SLICE.md`.
+
+### Changes made
+- `lib/app/app_strings.dart`:
+  - Updated the stale rail label from slots to `Отверстия`.
+- `lib/commands/command_registry.dart`:
+  - Reframed `slot.generate` as the first `Отверстия` surface command.
+  - Kept it contextual: available only from an active semantic surface.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Wired `slot.generate` to a new circular cutout dialog.
+  - Added semantic `circular_cutout` defaults with diameter, depth, X/Y, and
+    clearance profile.
+  - Added circular cutout inspector schema and feature title/icon labels.
+  - Added mock viewport marker generation for circular cutouts.
+- `lib/viewport/viewport_controller.dart`:
+  - Added `MockViewportFeatureKind.circularCutout`.
+  - Added circular feature layout, hit-test participation, and face-local
+    position support.
+- `lib/geometry/geometry_operation_plan.dart`:
+  - Mapped `circular_cutout` to `cutout.circular`.
+- Tests:
+  - Added command availability coverage.
+  - Extended operation planner and viewport marker/hit-test coverage.
+  - Added widget coverage for create/cancel/undo and semantic marker selection.
+- Docs/tasks:
+  - Marked generic circular cutout complete at the semantic UI level.
+  - Added M103 to `ROADMAP.md`.
+  - Documented that native OCCT subtraction remains a follow-up geometry slice.
+
+### Tests run
+- `dart format lib\commands\command_registry.dart lib\geometry\geometry_operation_plan.dart lib\viewport\viewport_controller.dart lib\ui\shell\workspace_shell.dart test\command_registry_test.dart test\geometry_protocol_test.dart test\viewport_controller_test.dart test\widget_test.dart`:
+  - Passed; formatted `lib\viewport\viewport_controller.dart`.
+- `flutter test test\command_registry_test.dart --plain-name "slot command creates holes only from active surface context" --reporter compact`:
+  - Passed.
+- `flutter test test\geometry_protocol_test.dart --plain-name "operation planner creates deterministic backend operations" --reporter compact`:
+  - Passed.
+- `flutter test test\viewport_controller_test.dart --plain-name "mock hit tester returns semantic feature marker ids" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "circular cutout rail command commits through undo history" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "circular cutout rail command can be cancelled" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "unimplemented rail commands are visible but disabled" --reporter compact`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; dependency notices only.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 73 files checked, 0 changed.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed; 212 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed; refreshed `releases/latest/windows/shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git status --short --ignored releases`:
+  - Passed; `releases/` is ignored.
+- `git diff --check`:
+  - Passed with CRLF normalization warnings only for `ROADMAP.md` and
+    `docs/34_FIRST_GEOMETRY_SLICE.md`.
+
+### Validation
+- Geometry checked?
+  - Operation planner emits `cutout.circular`; full tests passed. Native OCCT
+    subtraction is intentionally left for the next geometry slice.
+- Serialization checked?
+  - The feature is stored as normal `SemanticFeature` data; no schema migration
+    was required, and full project-file/widget coverage stayed green.
+- UI checked?
+  - Targeted widget tests cover create, cancel, undo, inspector selection, and
+    marker hit-test flow.
+- Export checked?
+  - Export flows were not changed in this slice; full suite and latest Windows
+    bundle build still passed.
+
+### Known issues
+- Issue: `circular_cutout` is not yet consumed by the native OCCT worker.
+  - Severity: Medium.
+  - Next action: Add native circular cutout subtraction against supported
+    semantic surfaces.
+- Issue: The first position fields are manual X/Y values instead of direct
+  click-to-place on a face.
+  - Severity: Medium.
+  - Next action: Reuse workplane snap/hit data to seed face-local placement.
+
+### Next step
+Commit and push M103, then start M104 native circular cutout geometry.
+
+### Notes for future Codex sessions
+Keep generic holes semantic. Do not store generated cylinders, meshes, or OCCT
+topology in `ProjectModel`; native geometry should consume `cutout.circular`
+through `GeometryFeatureIntent`.
+
+---
+
 ## 2026-07-01 - M102 Toolbar STEP/STL export format choice
 
 ### Goal

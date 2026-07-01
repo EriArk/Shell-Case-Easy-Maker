@@ -9,7 +9,7 @@ class AppStrings {
   static const toolPorts = 'Порты';
   static const toolButtons = 'Кнопки';
   static const toolMounts = 'Крепёж';
-  static const toolSlots = 'Слоты';
+  static const toolSlots = 'Отверстия';
   static const toolGlass = 'Стекло';
   static const toolCases = 'Чехлы';
   static const inspectorTitle = 'Корпус';

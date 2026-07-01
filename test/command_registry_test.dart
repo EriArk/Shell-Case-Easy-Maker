@@ -97,6 +97,29 @@ void main() {
     );
   });
 
+  test('slot command creates holes only from active surface context', () {
+    final registry = CommandRegistry.core;
+    final generateSlot = registry.byId(CommandIds.generateSlot);
+
+    expect(generateSlot.label, 'Отверстия');
+    expect(
+      generateSlot.isAvailable(
+        const CommandContext(activeScope: CommandScope.workspace),
+      ),
+      isFalse,
+    );
+    expect(
+      generateSlot.isAvailable(
+        const CommandContext(
+          activeScope: CommandScope.surface,
+          selectedObjectId: 'main_enclosure.top_lid.outer',
+          activeSurfaceId: 'main_enclosure.top_lid.outer',
+        ),
+      ),
+      isTrue,
+    );
+  });
+
   test(
     'place component command works from workspace, enclosure, and surface context',
     () {

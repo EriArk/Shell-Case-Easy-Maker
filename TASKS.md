@@ -180,7 +180,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Add first-pass generated top lid fit-preview positioning.
 - [x] Add first-pass generated top lid button cutouts.
 - [x] Add first-pass generated top lid glass recess.
-- [ ] Add generic circular cutout.
+- [x] Add generic circular cutout.
 - [ ] Add generic rectangular rounded cutout.
 - [x] First-pass USB-C cutout command.
 - [x] First-pass USB-C viewport marker.
@@ -233,6 +233,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] First-pass native top-lid button group cutouts.
 - [x] First-pass semantic button group from component switch centers.
 - [x] First-pass keepout warnings.
+- [ ] Generate native circular cutout geometry.
 - [ ] Generate support ribs from drawn line.
 - [ ] Generate rectangular structural rib grid.
 - [x] First-pass component placement locking.

@@ -292,6 +292,14 @@ void main() {
       height: 24,
       cornerRadius: 2,
     );
+    const circularCutout = MockViewportFeaturePreview(
+      semanticId: 'circular_cutout_1',
+      kind: MockViewportFeatureKind.circularCutout,
+      targetSurfaceId: 'main_enclosure.top_lid.outer',
+      width: 10,
+      height: 10,
+      position: Offset(16, -8),
+    );
     const hitTester = MockViewportHitTester();
 
     expect(
@@ -299,12 +307,16 @@ void main() {
       lessThan(layout.portRect.center.dy),
     );
     expect(layout.lidRect.contains(layout.featureRect(glass).center), isTrue);
+    expect(
+      layout.lidRect.contains(layout.featureRect(circularCutout).center),
+      isTrue,
+    );
 
     final usbHit = hitTester.hitTest(
       position: layout.featureRect(usbC).center,
       size: size,
       state: state,
-      features: const [usbC, glass],
+      features: const [usbC, glass, circularCutout],
     );
     expect(usbHit?.kind, ViewportHitKind.feature);
     expect(usbHit?.semanticId, 'usb_c_cutout_2');
@@ -313,10 +325,19 @@ void main() {
       position: layout.featureRect(glass).center,
       size: size,
       state: state,
-      features: const [usbC, glass],
+      features: const [usbC, glass, circularCutout],
     );
     expect(glassHit?.kind, ViewportHitKind.feature);
     expect(glassHit?.semanticId, 'glass_recess_1');
+
+    final circularHit = hitTester.hitTest(
+      position: layout.featureRect(circularCutout).center,
+      size: size,
+      state: state,
+      features: const [usbC, glass, circularCutout],
+    );
+    expect(circularHit?.kind, ViewportHitKind.feature);
+    expect(circularHit?.semanticId, 'circular_cutout_1');
   });
 
   test('mock hit tester returns semantic feature group ids', () {

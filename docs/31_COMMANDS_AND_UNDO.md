@@ -142,6 +142,13 @@ when a semantic surface is selected. The command creates a `glass_recess`
 `SemanticFeature` targeted at that surface and commits it as one undoable
 project snapshot.
 
+`slot.generate` is currently wired as the first generic hole command. It is
+available only when a semantic surface is selected. The command creates a
+`circular_cutout` `SemanticFeature` with editable diameter, depth, and
+face-local X/Y parameters, then commits it as one undoable project snapshot.
+The result remains semantic project state; native OCCT subtraction is a later
+geometry slice.
+
 `mount.generate` is the first component-driven command. It is available only
 when the selected object is a component placement whose template has mounting
 holes. The command creates a `standoff_mounts` `FeatureGroup` sourced from the
@@ -168,9 +175,9 @@ visible and disabled, instead of running empty callbacks.
 - There is still no central command dispatcher; the shell has a small explicit
   action map for the first generator commands.
 - Undo history is wired for first enclosure parameter edits, first USB-C/glass
-  feature parameter edits, first button/mount feature-group parameter edits,
-  and first enclosure creation/component placement/USB-C cutout/button
-  group/glass recess/mount group only.
+  circular-cutout feature parameter edits, first button/mount feature-group
+  parameter edits, and first enclosure creation/component placement/USB-C
+  cutout/button group/glass recess/circular cutout/mount group only.
 - The toolbar export command currently exports the whole generated assembly.
   Part selection is still pending.
 - Selection and active surface context are available from the shell selection

@@ -120,6 +120,8 @@ Current behavior:
   with editable pattern and item prototype data,
 - the `Стекло` rail command can append semantic `glass_recess` features targeted
   at a selected semantic surface,
+- the `Отверстия` rail command can append semantic `circular_cutout` features
+  with diameter, depth, and face-local X/Y parameters,
 - the `Крепёж` rail command can append semantic `standoff_mounts` feature
   groups sourced from a selected component placement's template mounting holes,
 - toolbar STEP/STL export writes an external generated artifact and does not
