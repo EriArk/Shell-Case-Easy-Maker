@@ -237,6 +237,8 @@ class ProjectSemanticValidator {
           _validateGlassRecess(feature, enclosure, messages);
         case 'circular_cutout':
           _validateCircularCutout(project, feature, enclosure, messages);
+        case 'rectangular_cutout':
+          _validateRectangularCutout(project, feature, enclosure, messages);
       }
     }
   }
@@ -449,6 +451,108 @@ class ProjectSemanticValidator {
       feature: feature,
       sizeA: diameter,
       sizeB: diameter,
+      messages: messages,
+    );
+  }
+
+  static void _validateRectangularCutout(
+    ProjectModel project,
+    SemanticFeature feature,
+    Enclosure enclosure,
+    List<ValidationMessage> messages,
+  ) {
+    final width = readDouble(feature.parameters['width'], fallback: 18);
+    final height = readDouble(feature.parameters['height'], fallback: 10);
+    final depth = readDouble(feature.parameters['depth'], fallback: 3);
+    final cornerRadius = readDouble(
+      feature.parameters['cornerRadius'],
+      fallback: 2,
+    );
+    final positionX = readDouble(feature.parameters['positionX'], fallback: 0);
+    final positionY = readDouble(feature.parameters['positionY'], fallback: 0);
+    final targetsFront = feature.targetSurface.contains('front_wall');
+    final targetsTop = feature.targetSurface.contains('top_lid');
+    final availableWidth =
+        _sizeAt(enclosure, 0, 120) - enclosure.wallThickness * 2;
+    final availableSecondary = targetsFront
+        ? _sizeAt(enclosure, 2, 28) - enclosure.wallThickness * 2
+        : _sizeAt(enclosure, 1, 70) - enclosure.wallThickness * 2;
+
+    if (!targetsFront && !targetsTop) {
+      messages.add(
+        ValidationMessage(
+          severity: ValidationSeverity.error,
+          code: 'feature.rectangular_cutout.surface.unsupported',
+          message:
+              'Прямоугольное отверстие пока поддерживает переднюю стенку и крышку.',
+          targetId: feature.id,
+        ),
+      );
+      return;
+    }
+
+    if (width <= 0 || height <= 0 || depth <= 0 || cornerRadius < 0) {
+      messages.add(
+        ValidationMessage(
+          severity: ValidationSeverity.error,
+          code: 'feature.rectangular_cutout.dimension.invalid',
+          message:
+              'Размеры прямоугольного отверстия должны быть больше нуля, а радиус не может быть отрицательным.',
+          targetId: feature.id,
+        ),
+      );
+      return;
+    }
+
+    if (width > availableWidth || height > availableSecondary) {
+      messages.add(
+        ValidationMessage(
+          severity: ValidationSeverity.error,
+          code: 'feature.rectangular_cutout.size.too_large',
+          message:
+              'Прямоугольное отверстие больше доступной поверхности корпуса.',
+          targetId: feature.id,
+        ),
+      );
+    }
+
+    if (cornerRadius * 2 > (width < height ? width : height)) {
+      messages.add(
+        ValidationMessage(
+          severity: ValidationSeverity.error,
+          code: 'feature.rectangular_cutout.radius.too_large',
+          message:
+              'Радиус прямоугольного отверстия больше половины его размера.',
+          targetId: feature.id,
+        ),
+      );
+    }
+
+    if (!_fitsCenteredRect(
+      centerX: positionX,
+      centerY: positionY,
+      width: width,
+      depth: height,
+      spaceWidth: availableWidth,
+      spaceDepth: availableSecondary,
+    )) {
+      messages.add(
+        ValidationMessage(
+          severity: ValidationSeverity.error,
+          code: 'feature.rectangular_cutout.position.outside_surface',
+          message:
+              'Центр прямоугольного отверстия выходит за доступную поверхность.',
+          targetId: feature.id,
+        ),
+      );
+    }
+
+    _validateProjectedFeatureAnchor(
+      project: project,
+      enclosure: enclosure,
+      feature: feature,
+      sizeA: width,
+      sizeB: height,
       messages: messages,
     );
   }

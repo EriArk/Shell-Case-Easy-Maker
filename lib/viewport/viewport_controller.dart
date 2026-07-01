@@ -56,7 +56,12 @@ extension ViewportViewPresetProperties on ViewportViewPreset {
   }
 }
 
-enum MockViewportFeatureKind { usbC, glassRecess, circularCutout }
+enum MockViewportFeatureKind {
+  usbC,
+  glassRecess,
+  circularCutout,
+  rectangularCutout,
+}
 
 enum MockViewportFeatureGroupKind { buttonGroup, standoffMounts }
 
@@ -672,6 +677,8 @@ class MockViewportLayout {
       MockViewportFeatureKind.circularCutout => _circularCutoutFeatureRect(
         feature,
       ),
+      MockViewportFeatureKind.rectangularCutout =>
+        _rectangularCutoutFeatureRect(feature),
     };
   }
 
@@ -684,6 +691,9 @@ class MockViewportLayout {
             lidRect.width,
       MockViewportFeatureKind.circularCutout =>
         featureRect(feature).shortestSide / 2,
+      MockViewportFeatureKind.rectangularCutout =>
+        (feature.cornerRadius / feature.referenceWidth.clamp(1, 1000)) *
+            featureRect(feature).width,
     };
   }
 
@@ -733,6 +743,28 @@ class MockViewportLayout {
     ).translate(feature.slotIndex * 8 * zoom, -feature.slotIndex * 6 * zoom);
 
     return Rect.fromCircle(center: center, radius: diameter / 2);
+  }
+
+  Rect _rectangularCutoutFeatureRect(MockViewportFeaturePreview feature) {
+    final targetRect = feature.targetSurfaceId.contains('front_wall')
+        ? frontWallRect
+        : lidRect;
+    final safeWidth = feature.referenceWidth.clamp(1, 1000).toDouble();
+    final safeHeight = feature.referenceHeight.clamp(1, 1000).toDouble();
+    final width = (feature.width / safeWidth * targetRect.width)
+        .clamp(12 * zoom, targetRect.width * 0.82)
+        .toDouble();
+    final height = (feature.height / safeHeight * targetRect.height)
+        .clamp(8 * zoom, targetRect.height * 0.72)
+        .toDouble();
+    final center = Offset(
+      targetRect.center.dx +
+          (feature.position.dx / safeWidth) * targetRect.width,
+      targetRect.center.dy -
+          (feature.position.dy / safeHeight) * targetRect.height,
+    ).translate(feature.slotIndex * 8 * zoom, -feature.slotIndex * 6 * zoom);
+
+    return Rect.fromCenter(center: center, width: width, height: height);
   }
 
   static MockViewportLayout fromSize(

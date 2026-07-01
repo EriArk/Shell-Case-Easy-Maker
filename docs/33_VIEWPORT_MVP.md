@@ -100,11 +100,13 @@ temporary what-if placement.
 
 The mock viewport draws selectable markers for semantic features:
 - `usb_c_cutout`,
-- `glass_recess`.
+- `glass_recess`,
+- `circular_cutout`,
+- `rectangular_cutout`.
 
 The marker data is derived from semantic feature parameters such as width,
-height, and corner radius. The markers are only viewport affordances; clicking
-one selects the semantic feature ID.
+height, diameter, face-local X/Y, and corner radius. The markers are only
+viewport affordances; clicking one selects the semantic feature ID.
 
 ## Feature Group Markers
 
@@ -202,7 +204,7 @@ mapping, desktop stability, license, and packaging complexity.
 - Component placement previews are semantic mock rectangles, not generated
   board meshes or OCCT bodies.
 - Workplane overlays and snap hints are mock interaction affordances. Surface
-  workplane clicks can seed component placement and circular cutout dialogs, but
+  workplane clicks can seed component placement and hole/cutout dialogs, but
   they are not a saved sketch/workplane subsystem yet. In native preview mode,
   passive surface workplanes are hidden because they are not projected onto real
   generated faces.
@@ -212,8 +214,8 @@ mapping, desktop stability, license, and packaging complexity.
   committed components.
 - Dialog candidate footprints are also transient and are not included in
   viewport hit-testing.
-- Surface feature markers are schematic rectangles, not generated cut/recess
-  B-Rep.
+- Surface feature markers are schematic circles/rounded rectangles, not
+  generated cut/recess B-Rep.
 - Button-group marker expansion supports first-pass diamond, row, and grid
   layouts only.
 - Standoff markers are schematic circles, not generated B-Rep bosses.

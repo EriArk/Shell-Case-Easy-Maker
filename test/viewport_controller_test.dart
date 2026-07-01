@@ -330,6 +330,15 @@ void main() {
       height: 10,
       position: Offset(16, -8),
     );
+    const rectangularCutout = MockViewportFeaturePreview(
+      semanticId: 'rectangular_cutout_1',
+      kind: MockViewportFeatureKind.rectangularCutout,
+      targetSurfaceId: 'main_enclosure.top_lid.outer',
+      width: 18,
+      height: 10,
+      cornerRadius: 2,
+      position: Offset(-20, 10),
+    );
     const hitTester = MockViewportHitTester();
 
     expect(
@@ -341,12 +350,16 @@ void main() {
       layout.lidRect.contains(layout.featureRect(circularCutout).center),
       isTrue,
     );
+    expect(
+      layout.lidRect.contains(layout.featureRect(rectangularCutout).center),
+      isTrue,
+    );
 
     final usbHit = hitTester.hitTest(
       position: layout.featureRect(usbC).center,
       size: size,
       state: state,
-      features: const [usbC, glass, circularCutout],
+      features: const [usbC, glass, circularCutout, rectangularCutout],
     );
     expect(usbHit?.kind, ViewportHitKind.feature);
     expect(usbHit?.semanticId, 'usb_c_cutout_2');
@@ -355,7 +368,7 @@ void main() {
       position: layout.featureRect(glass).center,
       size: size,
       state: state,
-      features: const [usbC, glass, circularCutout],
+      features: const [usbC, glass, circularCutout, rectangularCutout],
     );
     expect(glassHit?.kind, ViewportHitKind.feature);
     expect(glassHit?.semanticId, 'glass_recess_1');
@@ -364,10 +377,19 @@ void main() {
       position: layout.featureRect(circularCutout).center,
       size: size,
       state: state,
-      features: const [usbC, glass, circularCutout],
+      features: const [usbC, glass, circularCutout, rectangularCutout],
     );
     expect(circularHit?.kind, ViewportHitKind.feature);
     expect(circularHit?.semanticId, 'circular_cutout_1');
+
+    final rectangularHit = hitTester.hitTest(
+      position: layout.featureRect(rectangularCutout).center,
+      size: size,
+      state: state,
+      features: const [usbC, glass, circularCutout, rectangularCutout],
+    );
+    expect(rectangularHit?.kind, ViewportHitKind.feature);
+    expect(rectangularHit?.semanticId, 'rectangular_cutout_1');
   });
 
   test('mock hit tester returns semantic feature group ids', () {

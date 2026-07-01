@@ -109,6 +109,7 @@ operations before real B-Rep generation exists:
 - `usb_c_cutout` -> `cutout.usb_c`,
 - `glass_recess` -> `recess.glass`,
 - `circular_cutout` -> `cutout.circular`,
+- `rectangular_cutout` -> `cutout.rectangular`,
 - `button_group` items -> `cutout.button`,
 - `standoff_mounts` items -> `mount.standoff`.
 
@@ -142,8 +143,10 @@ lid locating lip, body lid seat, lid fit preview, generated top-lid recesses,
 generated front/top glass windows, generated circular cutouts, generated
 top-lid button holes, and
 plunger-style cap/stem/guide/stop preview parts remain generated enclosure
-detail, not separate editable solids. The native worker only consumes semantic
-parameters and derived item positions as disposable generator input. A real
+detail, not separate editable solids. Generic `rectangular_cutout` is an
+operation-plan intent for now; real rounded rectangular B-Rep subtraction is a
+follow-up native slice. The worker only consumes semantic parameters and
+derived item positions as disposable generator input. A real
 mating lid/body split, protected recess islands, and richer mount variants
 remain next slices. The plan is disposable backend input. It must not be saved
 as the editable project model and must not contain OCCT topology IDs.

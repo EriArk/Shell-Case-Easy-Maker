@@ -241,6 +241,18 @@ void main() {
           operation: 'negative',
           parameters: {'diameter': 8.0, 'depth': 3.0},
         ),
+        SemanticFeature(
+          id: 'top_rect_slot',
+          type: 'rectangular_cutout',
+          targetSurface: 'main_enclosure.top_lid.outer',
+          operation: 'negative',
+          parameters: {
+            'width': 18.0,
+            'height': 10.0,
+            'depth': 3.0,
+            'cornerRadius': 2.0,
+          },
+        ),
       ],
       featureGroups: const [
         FeatureGroup(
@@ -286,12 +298,14 @@ void main() {
       'front_usb_c',
       'top_glass',
       'top_round_hole',
+      'top_rect_slot',
       'projected_buttons.sw_a',
     ]);
     expect(operations.map((operation) => operation.kind), [
       'cutout.usb_c',
       'recess.glass',
       'cutout.circular',
+      'cutout.rectangular',
       'cutout.button',
     ]);
     expect(operations.last.parentId, 'projected_buttons');

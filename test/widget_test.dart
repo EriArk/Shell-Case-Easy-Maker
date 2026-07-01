@@ -2332,6 +2332,91 @@ void main() {
     expect(tester.widget<IconButton>(undoButton).onPressed, isNull);
   });
 
+  testWidgets('rectangular cutout rail command commits through undo history', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const CaseMakerApp());
+    await tester.pumpAndSettle();
+
+    final generateSlotButton = find.byKey(
+      const ValueKey('rail-command-${CommandIds.generateSlot}'),
+    );
+    final undoButton = find.byKey(
+      const ValueKey('toolbar-command-${CommandIds.undo}'),
+    );
+
+    await tester.tap(find.text('Top lid').first);
+    await tester.pumpAndSettle();
+    await tester.tap(generateSlotButton);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('cutout-shape')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Прямоугольное').last);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('rectangular-cutout-width')),
+      findsOneWidget,
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('rectangular-cutout-width')),
+      '24',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('rectangular-cutout-height')),
+      '12',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('rectangular-cutout-position-x')),
+      '-18',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('rectangular-cutout-position-y')),
+      '10',
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('circular-cutout-confirm')));
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('rectangular_cutout_1'), findsWidgets);
+    expect(find.text('24.0'), findsWidgets);
+    expect(tester.widget<IconButton>(undoButton).onPressed, isNotNull);
+
+    await tester.tap(find.text('main_enclosure').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('width'), findsNothing);
+
+    final canvasFinder = find.byKey(const ValueKey('mock-viewport-canvas'));
+    final canvasTopLeft = tester.getTopLeft(canvasFinder);
+    final canvasSize = tester.getSize(canvasFinder);
+    final layout = MockViewportLayout.fromSize(
+      canvasSize,
+      const ViewportState(),
+    );
+    const createdSlot = MockViewportFeaturePreview(
+      semanticId: 'rectangular_cutout_1',
+      kind: MockViewportFeatureKind.rectangularCutout,
+      targetSurfaceId: 'main_enclosure.top_lid.outer',
+      width: 24,
+      height: 12,
+      cornerRadius: 2,
+      position: Offset(-18, 10),
+    );
+
+    await tester.tapAt(canvasTopLeft + layout.featureRect(createdSlot).center);
+    await tester.pumpAndSettle();
+
+    expect(find.text('width'), findsOneWidget);
+
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('rectangular_cutout_1'), findsNothing);
+  });
+
   testWidgets('unimplemented rail commands are visible but disabled', (
     tester,
   ) async {

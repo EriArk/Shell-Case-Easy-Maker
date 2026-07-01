@@ -124,6 +124,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M103 - Semantic Circular Cutout Command
 - [x] M104 - Native Circular Cutout Geometry
 - [x] M105 - Snap-Seeded Circular Cutout Placement
+- [x] M106 - Semantic Rounded Rectangular Cutout
 
 ---
 
@@ -4916,3 +4917,57 @@ X/Y from scratch.
 - Create the cutout and confirm the marker appears there.
 - Orbit/export if desired; native OCCT still generates the actual circular
   cutout from the semantic X/Y.
+
+---
+
+## M106 - Semantic Rounded Rectangular Cutout
+
+### Goal
+Extend the `Отверстия` generator from circular holes to the first generic
+rounded-rectangular slot/cutout, while keeping the editable project semantic
+and leaving native OCCT subtraction for a separate geometry slice.
+
+### Tasks
+- [x] Add `rectangular_cutout` semantic defaults with width, height, depth,
+      corner radius, clearance profile, and face-local X/Y.
+- [x] Add a compact shape selector to the existing `Отверстия` dialog.
+- [x] Add inspector parameter editing for rectangular cutouts.
+- [x] Add mock viewport marker drawing and hit-testing for rectangular cutouts.
+- [x] Map operation planning to `cutout.rectangular`.
+- [x] Add semantic validation for supported target surfaces, dimensions,
+      radius, and placement bounds.
+- [x] Add targeted planner, validator, viewport, and widget tests.
+- [x] Update docs/tasks/worklog.
+
+### Done Criteria
+- `Отверстия` still defaults to the circular workflow.
+- Choosing `Прямоугольное` creates `rectangular_cutout_1`.
+- The feature stores only semantic parameters, not generated mesh/B-Rep.
+- The inspector edits width, height, depth, radius, X, and Y.
+- Mock marker hit-testing selects the semantic feature ID.
+- Operation planner emits `cutout.rectangular`.
+- Native OCCT does not yet subtract `rectangular_cutout`; that remains M107.
+
+### Tests
+- `flutter test test\geometry_protocol_test.dart --plain-name "operation planner creates deterministic backend operations" --reporter compact`
+- `flutter test test\project_semantic_validator_test.dart --plain-name "oversized rectangular cutout reports semantic errors" --reporter compact`
+- `flutter test test\viewport_controller_test.dart --plain-name "mock hit tester returns semantic feature marker ids" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "rectangular cutout rail command commits through undo history" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "circular cutout rail command commits through undo history" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Select `Top lid`.
+- Click `Отверстия`.
+- Change `Форма` to `Прямоугольное`.
+- Set a visible size such as width `24`, height `12`, radius `2`, and create.
+- Confirm the new rectangular marker appears, can be selected, and the
+  inspector exposes width/height/depth/radius/X/Y.
+- Expect native 3D subtraction to come in the next geometry slice; this chunk
+  is the semantic/editing layer.

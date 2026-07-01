@@ -44,7 +44,8 @@ exportable — produces manufacturing profile or part
 The mock viewport derives transient markers from semantic features:
 - `usb_c_cutout`,
 - `glass_recess`,
-- `circular_cutout`.
+- `circular_cutout`,
+- `rectangular_cutout`.
 
 These markers are selectable affordances only. They return semantic feature IDs
 to the selection model and are not saved geometry, mesh IDs, triangle IDs, or
@@ -56,17 +57,21 @@ The contextual inspector can edit the first numeric parameter banks for:
 - `usb_c_cutout`: width, height, corner radius,
 - `glass_recess`: width, height, recess depth, ledge width, corner radius,
   insert thickness,
-- `circular_cutout`: diameter, depth, face-local X, and face-local Y.
+- `circular_cutout`: diameter, depth, face-local X, and face-local Y,
+- `rectangular_cutout`: width, height, depth, corner radius, face-local X, and
+  face-local Y.
 
 These edits update the selected `SemanticFeature.parameters` map and commit a
 semantic undo snapshot. They do not edit generated geometry directly. The mock
 viewport marker is rebuilt from semantic parameters after the project changes.
 When a selected surface workplane point is active, new `circular_cutout`
-features start from that clicked face-local X/Y, but the snap target itself is
-not saved as project state.
+and `rectangular_cutout` features start from that clicked face-local X/Y, but
+the snap target itself is not saved as project state.
 The native OCCT worker consumes supported front-wall and top-lid
 `circular_cutout` feature intents as generated B-Rep subtraction tools; the
-editable source remains the semantic feature parameters above.
+editable source remains the semantic feature parameters above. Generic
+`rectangular_cutout` is currently semantic UI/mock preview/operation-plan data;
+native generated subtraction is intentionally a separate follow-up slice.
 
 ## Feature groups
 

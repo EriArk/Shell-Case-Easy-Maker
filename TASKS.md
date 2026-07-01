@@ -150,6 +150,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Add first-pass semantic plunger travel/clearance controls.
 - [x] Generate first native plunger guide/travel-stop previews.
 - [x] Generate first native top lid glass recess.
+- [ ] Generate native rectangular rounded cutout geometry.
 - [x] Export STEP.
 - [x] Export STL.
 - [x] Define response issues/warnings model.
@@ -183,7 +184,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Add first-pass generated top lid glass recess.
 - [x] Add generic circular cutout.
 - [x] Snap-seed generic circular cutout placement from selected surfaces.
-- [ ] Add generic rectangular rounded cutout.
+- [x] Add generic rectangular rounded cutout.
 - [x] First-pass USB-C cutout command.
 - [x] First-pass USB-C viewport marker.
 - [x] First-pass USB-C inspector parameter editing.

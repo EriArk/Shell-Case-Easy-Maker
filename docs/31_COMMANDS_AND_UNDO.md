@@ -65,7 +65,9 @@ Feature inspector edits use the same semantic snapshot path. The first supported
 feature parameter edits are:
 - `usb_c_cutout`: width, height, corner radius,
 - `glass_recess`: width, height, recess depth, ledge width, corner radius,
-  insert thickness.
+  insert thickness,
+- `circular_cutout`: diameter, depth, face-local X/Y,
+- `rectangular_cutout`: width, height, depth, corner radius, face-local X/Y.
 
 Submitting a changed value replaces the selected `SemanticFeature` in
 `ProjectModel.features`; submitting an unchanged value is ignored by the shared
@@ -143,16 +145,21 @@ when a semantic surface is selected. The command creates a `glass_recess`
 project snapshot.
 
 `slot.generate` is currently wired as the first generic hole command. It is
-available only when a semantic surface is selected. The command creates a
-`circular_cutout` `SemanticFeature` with editable diameter, depth, and
-face-local X/Y parameters, then commits it as one undoable project snapshot.
+available only when a semantic surface is selected. The command opens one
+compact `Отверстия` dialog with circular and rounded-rectangular shape options.
+It creates either a `circular_cutout` `SemanticFeature` with editable diameter,
+depth, and face-local X/Y parameters, or a `rectangular_cutout`
+`SemanticFeature` with editable width, height, depth, corner radius, and
+face-local X/Y parameters. The confirmed result commits as one undoable project
+snapshot.
 If the selected surface has an active workplane click target, the dialog starts
 from that target's face-local X/Y; the target itself stays transient UI state
 and is not saved. The inspector also exposes a compact `Отверстие` action from
 the active snap section for the same command path.
-The result remains semantic project state; native OCCT now consumes supported
-front-wall and top-lid targets as generated subtraction geometry behind the
-`GeometryService` boundary.
+The result remains semantic project state. Native OCCT now consumes supported
+front-wall and top-lid circular targets as generated subtraction geometry
+behind the `GeometryService` boundary; rectangular targets are operation-plan
+and mock-preview ready, with native subtraction left to the next geometry slice.
 
 `mount.generate` is the first component-driven command. It is available only
 when the selected object is a component placement whose template has mounting

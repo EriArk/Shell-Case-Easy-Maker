@@ -56,10 +56,11 @@ the inspector and mock preview after restoring a snapshot.
 
 When a supported semantic feature is selected, the inspector also renders a
 feature-specific numeric parameter bank. The first supported feature editors
-are `usb_c_cutout` and `glass_recess`. Submitting a value replaces the selected
-`SemanticFeature` in the semantic project model and commits the edit through the
-same undo history. The mock viewport marker is refreshed from semantic
-parameters; no generated mesh, B-Rep, or topology ID becomes editable state.
+are `usb_c_cutout`, `glass_recess`, `circular_cutout`, and
+`rectangular_cutout`. Submitting a value replaces the selected `SemanticFeature`
+in the semantic project model and commits the edit through the same undo
+history. The mock viewport marker is refreshed from semantic parameters; no
+generated mesh, B-Rep, or topology ID becomes editable state.
 
 When a supported semantic feature group is selected, the inspector renders a
 group-specific parameter bank. The first supported group editors are
@@ -231,12 +232,16 @@ the generated `usb_c_cutout`. The editable result is still a normal semantic
 feature, not generated geometry.
 
 Clicking `Отверстия` is enabled after selecting a semantic surface. It opens a
-compact circular cutout dialog and appends a semantic `circular_cutout` feature
-with editable diameter, depth, and face-local X/Y parameters. If a surface
-workplane point was clicked first, the dialog starts from that X/Y. The mock
-viewport draws a circular marker and hit-tests it by semantic feature ID. Native
+compact cutout dialog with `Круглое` and `Прямоугольное` shape options. The
+circular option appends a semantic `circular_cutout` feature with editable
+diameter, depth, and face-local X/Y parameters. The rectangular option appends a
+semantic `rectangular_cutout` feature with editable width, height, depth, corner
+radius, and face-local X/Y parameters. If a surface workplane point was clicked
+first, the dialog starts from that X/Y. The mock viewport draws circular or
+rounded-rectangular markers and hit-tests them by semantic feature ID. Native
 OCCT now consumes supported front-wall and top-lid circular cutouts as generated
-subtraction geometry while keeping the editable source semantic.
+subtraction geometry while keeping the editable source semantic; rectangular
+native subtraction remains a follow-up slice.
 
 Clicking `Кнопки` is enabled only after selecting a semantic surface such as
 `Top lid`. The command opens a compact button group dialog and appends a

@@ -691,9 +691,14 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
 
     final feature = await showDialog<SemanticFeature>(
       context: context,
-      builder: (context) => _CircularCutoutDialog(
-        initialFeature: _defaultCircularCutoutFeature(
+      builder: (context) => _CutoutDialog(
+        initialCircularFeature: _defaultCircularCutoutFeature(
           id: _nextFeatureId(_project, 'circular_cutout'),
+          targetSurfaceId: targetSurfaceId,
+          snapTarget: snapTarget,
+        ),
+        initialRectangularFeature: _defaultRectangularCutoutFeature(
+          id: _nextFeatureId(_project, 'rectangular_cutout'),
           targetSurfaceId: targetSurfaceId,
           snapTarget: snapTarget,
         ),
@@ -705,7 +710,9 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
 
     _commitProjectEdit(
       id: CommandIds.generateSlot,
-      label: 'Круглое отверстие',
+      label: feature.type == 'rectangular_cutout'
+          ? 'Прямоугольное отверстие'
+          : 'Круглое отверстие',
       nextState: _project.replaceFeature(feature),
       selection: SelectionModel.feature(feature.id),
     );
@@ -1946,6 +1953,30 @@ SemanticFeature _defaultCircularCutoutFeature({
   );
 }
 
+SemanticFeature _defaultRectangularCutoutFeature({
+  required String id,
+  required String targetSurfaceId,
+  _ActiveSnapTarget? snapTarget,
+}) {
+  final initialPosition = snapTarget?.localPosition ?? Offset.zero;
+
+  return SemanticFeature(
+    id: id,
+    type: 'rectangular_cutout',
+    targetSurface: targetSurfaceId,
+    operation: 'negative',
+    parameters: {
+      'width': 18.0,
+      'height': 10.0,
+      'depth': 3.0,
+      'cornerRadius': 2.0,
+      'clearanceProfile': 'fdm_normal',
+      'positionX': _snapCoordinate(initialPosition.dx),
+      'positionY': _snapCoordinate(initialPosition.dy),
+    },
+  );
+}
+
 double _snapCoordinate(double value) {
   return value.abs() < 0.000001 ? 0.0 : value;
 }
@@ -2728,6 +2759,7 @@ IconData _featureIcon(String type) {
     'button_group' => Icons.radio_button_checked_rounded,
     'glass_recess' => Icons.crop_square_rounded,
     'circular_cutout' => Icons.radio_button_unchecked_rounded,
+    'rectangular_cutout' => Icons.crop_16_9_rounded,
     'standoff_mounts' => Icons.construction_rounded,
     _ => Icons.extension_rounded,
   };
@@ -2739,6 +2771,7 @@ String _featureTitle(String type) {
     'button_group' => 'Группа кнопок',
     'glass_recess' => 'Посадка под стекло',
     'circular_cutout' => 'Круглое отверстие',
+    'rectangular_cutout' => 'Прямоугольное отверстие',
     'standoff_mounts' => 'Крепёж',
     _ => type.replaceAll('_', ' '),
   };
@@ -3953,6 +3986,7 @@ ParameterSchema? _featureParameterSchema(String type) {
     'usb_c_cutout' => _usbCParameterSchema,
     'glass_recess' => _glassRecessParameterSchema,
     'circular_cutout' => _circularCutoutParameterSchema,
+    'rectangular_cutout' => _rectangularCutoutParameterSchema,
     _ => null,
   };
 }
@@ -4062,6 +4096,61 @@ const _circularCutoutParameterSchema = ParameterSchema(
       unit: 'mm',
       defaultValue: 3.0,
       range: ParameterRange(min: 0.2, max: 80, step: 0.1),
+    ),
+    ParameterDefinition(
+      id: 'positionX',
+      label: 'X',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 0.0,
+      range: ParameterRange(min: -150, max: 150, step: 0.1),
+    ),
+    ParameterDefinition(
+      id: 'positionY',
+      label: 'Y',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 0.0,
+      range: ParameterRange(min: -150, max: 150, step: 0.1),
+    ),
+  ],
+);
+
+const _rectangularCutoutParameterSchema = ParameterSchema(
+  id: 'feature.rectangular_cutout',
+  label: 'Прямоугольное отверстие',
+  parameters: [
+    ParameterDefinition(
+      id: 'width',
+      label: 'Ширина',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 18.0,
+      range: ParameterRange(min: 2, max: 120, step: 0.1),
+    ),
+    ParameterDefinition(
+      id: 'height',
+      label: 'Высота',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 10.0,
+      range: ParameterRange(min: 2, max: 100, step: 0.1),
+    ),
+    ParameterDefinition(
+      id: 'depth',
+      label: 'Глубина',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 3.0,
+      range: ParameterRange(min: 0.2, max: 80, step: 0.1),
+    ),
+    ParameterDefinition(
+      id: 'cornerRadius',
+      label: 'Радиус',
+      kind: ParameterKind.length,
+      unit: 'mm',
+      defaultValue: 2.0,
+      range: ParameterRange(min: 0, max: 30, step: 0.1),
     ),
     ParameterDefinition(
       id: 'positionX',
@@ -5330,38 +5419,89 @@ class _UsbCCutoutDialogState extends State<_UsbCCutoutDialog> {
   }
 }
 
-class _CircularCutoutDialog extends StatefulWidget {
-  const _CircularCutoutDialog({required this.initialFeature});
+enum _CutoutShape { circular, rectangular }
 
-  final SemanticFeature initialFeature;
+class _CutoutShapeOption {
+  const _CutoutShapeOption(this.shape, this.label);
 
-  @override
-  State<_CircularCutoutDialog> createState() => _CircularCutoutDialogState();
+  final _CutoutShape shape;
+  final String label;
 }
 
-class _CircularCutoutDialogState extends State<_CircularCutoutDialog> {
-  late double _diameter;
-  late double _depth;
-  late double _positionX;
-  late double _positionY;
-  late String _clearanceProfile;
+class _CutoutDialog extends StatefulWidget {
+  const _CutoutDialog({
+    required this.initialCircularFeature,
+    required this.initialRectangularFeature,
+  });
+
+  final SemanticFeature initialCircularFeature;
+  final SemanticFeature initialRectangularFeature;
+
+  @override
+  State<_CutoutDialog> createState() => _CutoutDialogState();
+}
+
+class _CutoutDialogState extends State<_CutoutDialog> {
+  late _CutoutShape _shape;
+  late double _circularDiameter;
+  late double _circularDepth;
+  late double _circularPositionX;
+  late double _circularPositionY;
+  late String _circularClearanceProfile;
+  late double _rectangularWidth;
+  late double _rectangularHeight;
+  late double _rectangularDepth;
+  late double _rectangularCornerRadius;
+  late double _rectangularPositionX;
+  late double _rectangularPositionY;
+  late String _rectangularClearanceProfile;
 
   static const _profiles = [
     _ClearanceProfileOption('fdm_normal', 'FDM обычный'),
     _ClearanceProfileOption('fdm_loose', 'FDM свободный'),
     _ClearanceProfileOption('resin_normal', 'Resin обычный'),
   ];
+  static const _shapes = [
+    _CutoutShapeOption(_CutoutShape.circular, 'Круглое'),
+    _CutoutShapeOption(_CutoutShape.rectangular, 'Прямоугольное'),
+  ];
 
   @override
   void initState() {
     super.initState();
-    final parameters = widget.initialFeature.parameters;
-    _diameter = _featureDouble(parameters, 'diameter', 8.0);
-    _depth = _featureDouble(parameters, 'depth', 3.0);
-    _positionX = _featureDouble(parameters, 'positionX', 0.0);
-    _positionY = _featureDouble(parameters, 'positionY', 0.0);
-    _clearanceProfile = _featureString(
-      parameters,
+    _shape = _CutoutShape.circular;
+    final circularParameters = widget.initialCircularFeature.parameters;
+    _circularDiameter = _featureDouble(circularParameters, 'diameter', 8.0);
+    _circularDepth = _featureDouble(circularParameters, 'depth', 3.0);
+    _circularPositionX = _featureDouble(circularParameters, 'positionX', 0.0);
+    _circularPositionY = _featureDouble(circularParameters, 'positionY', 0.0);
+    _circularClearanceProfile = _featureString(
+      circularParameters,
+      'clearanceProfile',
+      'fdm_normal',
+    );
+
+    final rectangularParameters = widget.initialRectangularFeature.parameters;
+    _rectangularWidth = _featureDouble(rectangularParameters, 'width', 18.0);
+    _rectangularHeight = _featureDouble(rectangularParameters, 'height', 10.0);
+    _rectangularDepth = _featureDouble(rectangularParameters, 'depth', 3.0);
+    _rectangularCornerRadius = _featureDouble(
+      rectangularParameters,
+      'cornerRadius',
+      2.0,
+    );
+    _rectangularPositionX = _featureDouble(
+      rectangularParameters,
+      'positionX',
+      0.0,
+    );
+    _rectangularPositionY = _featureDouble(
+      rectangularParameters,
+      'positionY',
+      0.0,
+    );
+    _rectangularClearanceProfile = _featureString(
+      rectangularParameters,
       'clearanceProfile',
       'fdm_normal',
     );
@@ -5370,77 +5510,33 @@ class _CircularCutoutDialogState extends State<_CircularCutoutDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Круглое отверстие'),
+      title: const Text('Отверстие'),
       content: SizedBox(
         width: 340,
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: _DialogNumberField(
-                      key: const ValueKey('circular-cutout-diameter'),
-                      label: 'Диаметр',
-                      value: _diameter,
-                      onChanged: (value) => setState(() => _diameter = value),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _DialogNumberField(
-                      key: const ValueKey('circular-cutout-depth'),
-                      label: 'Глубина',
-                      value: _depth,
-                      onChanged: (value) => setState(() => _depth = value),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: _DialogNumberField(
-                      key: const ValueKey('circular-cutout-position-x'),
-                      label: 'X',
-                      value: _positionX,
-                      onChanged: (value) => setState(() => _positionX = value),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _DialogNumberField(
-                      key: const ValueKey('circular-cutout-position-y'),
-                      label: 'Y',
-                      value: _positionY,
-                      onChanged: (value) => setState(() => _positionY = value),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              DropdownButtonFormField<String>(
-                key: const ValueKey('circular-cutout-clearance-profile'),
-                initialValue: _clearanceProfile,
+              DropdownButtonFormField<_CutoutShape>(
+                key: const ValueKey('cutout-shape'),
+                initialValue: _shape,
                 isExpanded: true,
                 items: [
-                  for (final profile in _profiles)
+                  for (final option in _shapes)
                     DropdownMenuItem(
-                      value: profile.id,
-                      child: Text(profile.label),
+                      value: option.shape,
+                      child: Text(option.label),
                     ),
                 ],
                 onChanged: (value) {
                   if (value != null) {
                     setState(() {
-                      _clearanceProfile = value;
+                      _shape = value;
                     });
                   }
                 },
                 decoration: InputDecoration(
-                  labelText: 'Зазор',
+                  labelText: 'Форма',
                   isDense: true,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(6),
@@ -5451,6 +5547,11 @@ class _CircularCutoutDialogState extends State<_CircularCutoutDialog> {
                   ),
                 ),
               ),
+              const SizedBox(height: 10),
+              if (_shape == _CutoutShape.circular)
+                _buildCircularFields()
+              else
+                _buildRectangularFields(),
             ],
           ),
         ),
@@ -5463,27 +5564,268 @@ class _CircularCutoutDialogState extends State<_CircularCutoutDialog> {
         ),
         FilledButton(
           key: const ValueKey('circular-cutout-confirm'),
-          onPressed: () => Navigator.of(context).pop(
-            SemanticFeature(
-              id: widget.initialFeature.id,
-              type: widget.initialFeature.type,
-              targetSurface: widget.initialFeature.targetSurface,
-              operation: widget.initialFeature.operation,
-              source: widget.initialFeature.source,
-              placement: widget.initialFeature.placement,
-              metadata: widget.initialFeature.metadata,
-              parameters: {
-                'diameter': _clampDouble(_diameter, 1, 80),
-                'depth': _clampDouble(_depth, 0.2, 80),
-                'positionX': _clampDouble(_positionX, -150, 150),
-                'positionY': _clampDouble(_positionY, -150, 150),
-                'clearanceProfile': _clearanceProfile,
-              },
-            ),
-          ),
+          onPressed: () => Navigator.of(context).pop(_buildFeature()),
           child: const Text('Создать'),
         ),
       ],
+    );
+  }
+
+  Widget _buildCircularFields() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _DialogNumberField(
+                key: const ValueKey('circular-cutout-diameter'),
+                label: 'Диаметр',
+                value: _circularDiameter,
+                onChanged: (value) {
+                  setState(() {
+                    _circularDiameter = value;
+                  });
+                },
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _DialogNumberField(
+                key: const ValueKey('circular-cutout-depth'),
+                label: 'Глубина',
+                value: _circularDepth,
+                onChanged: (value) {
+                  setState(() {
+                    _circularDepth = value;
+                  });
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: _DialogNumberField(
+                key: const ValueKey('circular-cutout-position-x'),
+                label: 'X',
+                value: _circularPositionX,
+                onChanged: (value) {
+                  setState(() {
+                    _circularPositionX = value;
+                  });
+                },
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _DialogNumberField(
+                key: const ValueKey('circular-cutout-position-y'),
+                label: 'Y',
+                value: _circularPositionY,
+                onChanged: (value) {
+                  setState(() {
+                    _circularPositionY = value;
+                  });
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        _buildClearanceProfileField(
+          key: const ValueKey('circular-cutout-clearance-profile'),
+          value: _circularClearanceProfile,
+          onChanged: (value) {
+            setState(() {
+              _circularClearanceProfile = value;
+            });
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRectangularFields() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _DialogNumberField(
+                key: const ValueKey('rectangular-cutout-width'),
+                label: 'Ширина',
+                value: _rectangularWidth,
+                onChanged: (value) {
+                  setState(() {
+                    _rectangularWidth = value;
+                  });
+                },
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _DialogNumberField(
+                key: const ValueKey('rectangular-cutout-height'),
+                label: 'Высота',
+                value: _rectangularHeight,
+                onChanged: (value) {
+                  setState(() {
+                    _rectangularHeight = value;
+                  });
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: _DialogNumberField(
+                key: const ValueKey('rectangular-cutout-depth'),
+                label: 'Глубина',
+                value: _rectangularDepth,
+                onChanged: (value) {
+                  setState(() {
+                    _rectangularDepth = value;
+                  });
+                },
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _DialogNumberField(
+                key: const ValueKey('rectangular-cutout-corner-radius'),
+                label: 'Радиус',
+                value: _rectangularCornerRadius,
+                onChanged: (value) {
+                  setState(() {
+                    _rectangularCornerRadius = value;
+                  });
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: _DialogNumberField(
+                key: const ValueKey('rectangular-cutout-position-x'),
+                label: 'X',
+                value: _rectangularPositionX,
+                onChanged: (value) {
+                  setState(() {
+                    _rectangularPositionX = value;
+                  });
+                },
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _DialogNumberField(
+                key: const ValueKey('rectangular-cutout-position-y'),
+                label: 'Y',
+                value: _rectangularPositionY,
+                onChanged: (value) {
+                  setState(() {
+                    _rectangularPositionY = value;
+                  });
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        _buildClearanceProfileField(
+          key: const ValueKey('rectangular-cutout-clearance-profile'),
+          value: _rectangularClearanceProfile,
+          onChanged: (value) {
+            setState(() {
+              _rectangularClearanceProfile = value;
+            });
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildClearanceProfileField({
+    required Key key,
+    required String value,
+    required ValueChanged<String> onChanged,
+  }) {
+    return DropdownButtonFormField<String>(
+      key: key,
+      initialValue: value,
+      isExpanded: true,
+      items: [
+        for (final profile in _profiles)
+          DropdownMenuItem(value: profile.id, child: Text(profile.label)),
+      ],
+      onChanged: (value) {
+        if (value != null) {
+          onChanged(value);
+        }
+      },
+      decoration: InputDecoration(
+        labelText: 'Зазор',
+        isDense: true,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      ),
+    );
+  }
+
+  SemanticFeature _buildFeature() {
+    return switch (_shape) {
+      _CutoutShape.circular => _buildCircularFeature(),
+      _CutoutShape.rectangular => _buildRectangularFeature(),
+    };
+  }
+
+  SemanticFeature _buildCircularFeature() {
+    final feature = widget.initialCircularFeature;
+    return SemanticFeature(
+      id: feature.id,
+      type: feature.type,
+      targetSurface: feature.targetSurface,
+      operation: feature.operation,
+      source: feature.source,
+      placement: feature.placement,
+      metadata: feature.metadata,
+      parameters: {
+        'diameter': _clampDouble(_circularDiameter, 1, 80),
+        'depth': _clampDouble(_circularDepth, 0.2, 80),
+        'positionX': _clampDouble(_circularPositionX, -150, 150),
+        'positionY': _clampDouble(_circularPositionY, -150, 150),
+        'clearanceProfile': _circularClearanceProfile,
+      },
+    );
+  }
+
+  SemanticFeature _buildRectangularFeature() {
+    final feature = widget.initialRectangularFeature;
+    return SemanticFeature(
+      id: feature.id,
+      type: feature.type,
+      targetSurface: feature.targetSurface,
+      operation: feature.operation,
+      source: feature.source,
+      placement: feature.placement,
+      metadata: feature.metadata,
+      parameters: {
+        'width': _clampDouble(_rectangularWidth, 2, 120),
+        'height': _clampDouble(_rectangularHeight, 2, 100),
+        'depth': _clampDouble(_rectangularDepth, 0.2, 80),
+        'cornerRadius': _clampDouble(_rectangularCornerRadius, 0, 40),
+        'positionX': _clampDouble(_rectangularPositionX, -150, 150),
+        'positionY': _clampDouble(_rectangularPositionY, -150, 150),
+        'clearanceProfile': _rectangularClearanceProfile,
+      },
     );
   }
 }
@@ -7498,6 +7840,15 @@ class _ViewportPainter extends CustomPainter {
               circularStroke,
             );
           }
+        case MockViewportFeatureKind.rectangularCutout:
+          canvas.drawRRect(rrect, circularFill);
+          canvas.drawRRect(rrect, circularStroke);
+          if (!annotationMode || selected) {
+            canvas.drawRRect(
+              RRect.fromRectAndRadius(rect.deflate(3), radius),
+              darkInset,
+            );
+          }
       }
     }
   }
@@ -8444,6 +8795,21 @@ MockViewportFeaturePreview? _mockFeaturePreview(
       width: _featureDouble(feature.parameters, 'diameter', 8),
       height: _featureDouble(feature.parameters, 'diameter', 8),
       cornerRadius: _featureDouble(feature.parameters, 'diameter', 8) / 2,
+      position: Offset(
+        _featureDouble(feature.parameters, 'positionX', 0),
+        _featureDouble(feature.parameters, 'positionY', 0),
+      ),
+      referenceWidth: referenceWidth,
+      referenceHeight: referenceHeight,
+      slotIndex: slotIndex,
+    ),
+    'rectangular_cutout' => MockViewportFeaturePreview(
+      semanticId: feature.id,
+      kind: MockViewportFeatureKind.rectangularCutout,
+      targetSurfaceId: feature.targetSurface,
+      width: _featureDouble(feature.parameters, 'width', 18),
+      height: _featureDouble(feature.parameters, 'height', 10),
+      cornerRadius: _featureDouble(feature.parameters, 'cornerRadius', 2),
       position: Offset(
         _featureDouble(feature.parameters, 'positionX', 0),
         _featureDouble(feature.parameters, 'positionY', 0),

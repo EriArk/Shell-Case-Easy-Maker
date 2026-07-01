@@ -134,6 +134,7 @@ String _operationKindForFeature(String featureKind) {
   return switch (featureKind) {
     'usb_c_cutout' => 'cutout.usb_c',
     'circular_cutout' => 'cutout.circular',
+    'rectangular_cutout' => 'cutout.rectangular',
     'glass_recess' => 'recess.glass',
     _ => 'feature.$featureKind',
   };

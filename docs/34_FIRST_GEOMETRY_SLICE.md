@@ -486,3 +486,7 @@ Expected sample dimensions:
   generated-top-lid subtraction. First-pass click-to-place now seeds X/Y from
   selected surface workplane clicks; richer native face picking and final
   surface-projected handles remain follow-up UX slices.
+- Generic `rectangular_cutout` is wired through semantic UI, inspector,
+  operation planning, mock viewport selection, semantic validation, and
+  workplane-seeded X/Y. Native front-wall/top-lid rounded-rectangular
+  subtraction is intentionally the next geometry slice.

@@ -276,6 +276,8 @@ String _humanizeFeatureType(String type) {
   return switch (type) {
     'usb_c_cutout' => 'USB-C',
     'glass_recess' => 'Посадка под стекло',
+    'circular_cutout' => 'Круглое отверстие',
+    'rectangular_cutout' => 'Прямоугольное отверстие',
     'button_group' => 'Группа кнопок',
     'standoff_mounts' => 'Крепёж',
     _ => type.replaceAll('_', ' '),

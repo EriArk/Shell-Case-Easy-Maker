@@ -42,6 +42,105 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-07-01 - M106 Semantic rounded rectangular cutout
+
+### Goal
+Extend the `Отверстия` semantic generator from circular holes to the first
+generic rounded-rectangular cutout/slot without making generated geometry
+editable or coupling Flutter to OCCT internals.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/ui/shell/workspace_shell.dart`, `lib/viewport/viewport_controller.dart`,
+`lib/geometry/geometry_operation_plan.dart`,
+`lib/validation/project_semantic_validator.dart`,
+`lib/selection/project_selection_resolver.dart`, `test/widget_test.dart`,
+`test/viewport_controller_test.dart`, `test/geometry_protocol_test.dart`,
+`test/project_semantic_validator_test.dart`, `docs/04_GEOMETRY_ENGINE_OCCT.md`,
+`docs/05_PROJECT_FILE_FORMAT.md`, `docs/06_FEATURE_SYSTEM.md`,
+`docs/31_COMMANDS_AND_UNDO.md`, `docs/32_USABLE_SHELL.md`,
+`docs/33_VIEWPORT_MVP.md`, and `docs/34_FIRST_GEOMETRY_SLICE.md`.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Replaced the circle-only cutout dialog with one `Отверстие` dialog that
+    offers `Круглое` and `Прямоугольное` shape options.
+  - Added `rectangular_cutout` defaults with width, height, depth, corner
+    radius, clearance profile, and face-local X/Y.
+  - Added inspector parameter schema, title, icon, mock marker, and semantic
+    commit path for rectangular cutouts.
+- `lib/viewport/viewport_controller.dart`:
+  - Added a `rectangularCutout` marker kind and layout/hit-test support.
+- `lib/geometry/geometry_operation_plan.dart`:
+  - Maps `rectangular_cutout` to `cutout.rectangular`.
+- `lib/validation/project_semantic_validator.dart`:
+  - Validates supported surfaces, positive dimensions, radius bounds, size, and
+    face-local placement for rectangular cutouts.
+- `lib/selection/project_selection_resolver.dart`:
+  - Added human labels for circular and rectangular cutout selections.
+- Tests:
+  - Added planner, validator, viewport, and widget coverage.
+  - Re-ran the existing circular cutout widget test to confirm the default path
+    still works.
+- Docs/tasks:
+  - Added M106 to `ROADMAP.md`, marked the semantic rectangular cutout task
+    complete, and added native rectangular subtraction as a follow-up task.
+
+### Tests run
+- `flutter test test\geometry_protocol_test.dart --plain-name "operation planner creates deterministic backend operations" --reporter compact`:
+  - Passed.
+- `flutter test test\project_semantic_validator_test.dart --plain-name "oversized rectangular cutout reports semantic errors" --reporter compact`:
+  - Passed.
+- `flutter test test\viewport_controller_test.dart --plain-name "mock hit tester returns semantic feature marker ids" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "rectangular cutout rail command commits through undo history" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "circular cutout rail command commits through undo history" --reporter compact`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; dependency notices only.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 73 files checked, 0 changed.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed; 217 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed; refreshed `releases/latest/windows/shell_case_easy_maker.exe`.
+
+### Validation
+- Geometry checked?
+  - Semantic operation planning and mock viewport markers are covered. Native
+    OCCT rectangular subtraction is explicitly left for the next geometry slice.
+- Serialization checked?
+  - No schema migration was needed; `rectangular_cutout` is a normal
+    `SemanticFeature` with parameter maps.
+- UI checked?
+  - Widget coverage verifies create/select/inspect/undo for rectangular cutouts
+    and confirms the existing circular workflow remains intact.
+- Export checked?
+  - Export code was not changed; latest native Windows bundle was rebuilt.
+
+### Known issues
+- Issue: `rectangular_cutout` is not yet consumed by the native OCCT worker.
+  - Severity: Medium.
+  - Next action: Add native rounded-rectangular B-Rep subtraction for supported
+    front-wall/top-lid targets.
+- Issue: The `Отверстия` dialog uses a simple shape dropdown, not a richer
+  hole/slot preset gallery.
+  - Severity: Low.
+  - Next action: Revisit once more cutout variants exist.
+
+### Next step
+Commit and push M106, then implement native rounded-rectangular cutout geometry.
+
+### Notes for future Codex sessions
+Keep `rectangular_cutout` semantic. Native code should consume width, height,
+depth, corner radius, and face-local X/Y as disposable generator input and must
+not expose Boolean/sketch operations or OCCT topology IDs in default UI.
+
+---
+
 ## 2026-07-01 - M105 Snap-seeded circular cutout placement
 
 ### Goal

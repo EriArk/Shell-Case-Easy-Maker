@@ -120,8 +120,9 @@ Current behavior:
   with editable pattern and item prototype data,
 - the `Стекло` rail command can append semantic `glass_recess` features targeted
   at a selected semantic surface,
-- the `Отверстия` rail command can append semantic `circular_cutout` features
-  with diameter, depth, and face-local X/Y parameters,
+- the `Отверстия` rail command can append semantic `circular_cutout` and
+  `rectangular_cutout` features with editable dimensions, depth, and face-local
+  X/Y parameters,
 - the `Крепёж` rail command can append semantic `standoff_mounts` feature
   groups sourced from a selected component placement's template mounting holes,
 - toolbar STEP/STL export writes an external generated artifact and does not
@@ -132,6 +133,9 @@ Native OCCT preview/export now consumes supported `circular_cutout` features on
 the front wall and generated top lid as disposable B-Rep subtraction tools. The
 project file still stores only the semantic feature, not generated cylinders,
 meshes, Boolean tools, or OCCT topology ids.
+`rectangular_cutout` is currently semantic/editable project state and mock
+preview/operation-plan data; native OCCT subtraction is a follow-up geometry
+slice.
 
 Current limitations:
 - no separate "Save As" command yet,
