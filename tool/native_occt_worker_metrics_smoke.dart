@@ -98,12 +98,12 @@ Future<void> main(List<String> args) async {
       failures,
     );
     _expect(
-      previewMesh.vertexCount == 13882,
+      previewMesh.vertexCount == 13258,
       'previewMesh must contain the deterministic sample vertex count',
       failures,
     );
     _expect(
-      previewMesh.triangleCount == 14384,
+      previewMesh.triangleCount == 13480,
       'previewMesh must contain the deterministic sample triangle count',
       failures,
     );
@@ -575,14 +575,14 @@ Future<void> main(List<String> args) async {
   );
   _expectClose(
     _readNumber(metrics['surfaceArea']),
-    56020.328695,
+    56309.554412,
     0.001,
     'surfaceArea',
     failures,
   );
   _expectClose(
     _readNumber(metrics['volume']),
-    53230.754103,
+    53366.434601,
     0.001,
     'volume',
     failures,

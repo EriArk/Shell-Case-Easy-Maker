@@ -100,6 +100,7 @@ void main() {
       expect(source, contains('BuildGeneratedTopLidSeatTools'));
       expect(source, contains('ApplyGeneratedTopLidSeats'));
       expect(source, contains('BuildGeneratedTopLidPlateShape'));
+      expect(source, contains('BuildRoundedBoxVerticalEdgeShape'));
       expect(source, contains('BuildGeneratedTopLidLocatingLipShape'));
       expect(source, contains('GeneratedTopLidLipWidth'));
       expect(source, contains('GeneratedTopLidLipHeight'));

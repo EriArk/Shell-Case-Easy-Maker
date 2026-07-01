@@ -42,6 +42,97 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-07-01 - M97 Native top lid planar plate
+
+### Goal
+Make the generated top lid preview plate read as a flat lid with rounded
+outside corners instead of a pillow-like fully filleted thin box.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`docs/04_GEOMETRY_ENGINE_OCCT.md`, `docs/10_ENCLOSURE_AUTO_GENERATION.md`,
+`docs/27_RESEARCH_AND_REFERENCES.md`,
+`docs/34_FIRST_GEOMETRY_SLICE.md`,
+`occt_worker/native/src/occt_main.cpp`,
+`test/occt_native_target_scaffold_test.dart`, and
+`tool/native_occt_worker_metrics_smoke.dart`.
+
+### Changes made
+- `occt_worker/native/src/occt_main.cpp`:
+  - Added `BuildRoundedBoxVerticalEdgeShape`, which uses OCCT fillets only on
+    vertical box edges.
+  - Switched generated top lid plate construction to that helper so top and
+    bottom faces remain planar.
+  - Kept the main enclosure body and existing feature tools on the previous
+    rounded-box path.
+- `test/occt_native_target_scaffold_test.dart`:
+  - Added source-contract coverage for the new generated lid plate helper.
+- `tool/native_occt_worker_metrics_smoke.dart`:
+  - Updated deterministic native preview counts, area, and volume after the
+    lid plate became flatter.
+- Docs/tasks:
+  - Added M97 to `ROADMAP.md`, marked the task in `TASKS.md`, added an OCCT
+    research note, and updated geometry docs.
+
+### Tests run
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`:
+  - Passed; rebuilt `occt_worker_native_occt.exe`.
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`:
+  - First run failed only because deterministic counts/metrics still referenced
+    the previous fully filleted lid plate.
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`:
+  - Passed after updating expectations; reports `13258` vertices, `13480`
+    triangles, `14` mappings, `20072` mapped triangles,
+    `nativeGeneratedLidFitPreviewGap=0.08`, bounds `[-60, -36.65, 0]` to
+    `[60, 35, 31.73]`, surface area `56309.554412`, and volume
+    `53366.434601`.
+- `flutter pub get`:
+  - Passed.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; `69` files checked, `0` changed.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test test\occt_native_target_scaffold_test.dart --plain-name "OCCT target source emits deterministic rounded enclosure preview mesh" --reporter compact`:
+  - Passed.
+- `flutter test --reporter compact`:
+  - Passed; `199` tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed; rebuilt `releases/latest/windows/shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git status --short --ignored releases`:
+  - Passed; `releases/` remains ignored.
+- `git diff --check`:
+  - Passed with only CRLF-to-LF normalization warnings for markdown files.
+
+### Validation
+- Geometry checked?
+  - Native OCCT worker rebuilt and native smoke passed.
+- Serialization checked?
+  - No project/protocol serialization changed.
+- UI checked?
+  - Full widget/unit suite passed, including preview selection tests; latest
+    Windows bundle rebuilt for manual UI check.
+- Export checked?
+  - Not changed.
+
+### Known issues
+- Issue: The generated lid is still a preview member, not a full editable
+  lid/body assembly.
+  - Severity: Medium.
+  - Next action: Add explicit lid/body assembly semantics later.
+
+### Next step
+Manually check the latest Windows bundle: orbit around the top lid and confirm
+that the lid reads flatter while the body remains rounded.
+
+### Notes for future Codex sessions
+Use vertical-edge rounding for thin generated plates when the user needs a flat
+part with rounded plan-view corners. Do not make generated lid solids editable
+or store OCCT topology IDs in `ProjectModel`.
+
+---
+
 ## 2026-07-01 - M96 Native top lid near-flush fit preview
 
 ### Goal

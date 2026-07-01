@@ -137,6 +137,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Generate first native bottom standoff mounts.
 - [x] Generate first native top screw lid bosses.
 - [x] Generate first native top lid preview plate.
+- [x] Keep generated top lid preview plate top/bottom planar.
 - [x] Generate first native top lid screw clearance holes.
 - [x] Generate first native top lid locating lip.
 - [x] Generate first native top lid body seat/groove.

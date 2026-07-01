@@ -31,8 +31,9 @@ The native OCCT worker now generates the first bottom-inside
 `standoff_mounts` bosses from semantic mounting-hole groups. For enclosures
 with `lid.type: top_screw_lid`, it also generates four default lid screw bosses
 and a separate top lid preview plate with matching screw clearance holes and an
-underside locating lip from the enclosure lid spec. The body also gets a
-matching shallow generated lid seat around the top opening, and the generated
+underside locating lip from the enclosure lid spec. The generated lid plate has
+planar top/bottom faces with rounded vertical outside corners. The body also
+gets a matching shallow generated lid seat around the top opening, and the generated
 lid is positioned in a near-flush fit-preview gap for inspection. Semantic
 front-wall and top-lid `glass_recess` features can cut a shallow generated
 seat plus an inner window, leaving a support ledge from semantic `ledgeWidth`.

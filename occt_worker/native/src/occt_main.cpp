@@ -1620,6 +1620,50 @@ TopoDS_Shape BuildRoundedBoxShape(const gp_Pnt& origin,
   return fillet.Shape();
 }
 
+TopoDS_Shape BuildRoundedBoxVerticalEdgeShape(
+    const gp_Pnt& origin,
+    const std::array<double, 3>& size,
+    double corner_radius,
+    bool* corner_radius_applied,
+    int* filleted_edge_count) {
+  const TopoDS_Shape box =
+      BRepPrimAPI_MakeBox(origin, size[0], size[1], size[2]).Shape();
+
+  *corner_radius_applied = false;
+  *filleted_edge_count = 0;
+  const double max_radius = std::min(size[0], size[1]) / 2.0 - 0.001;
+  const double safe_radius = std::min(corner_radius, max_radius);
+  if (safe_radius <= 0.0) {
+    return box;
+  }
+
+  BRepFilletAPI_MakeFillet fillet(box);
+  for (TopExp_Explorer explorer(box, TopAbs_EDGE); explorer.More();
+       explorer.Next()) {
+    const TopoDS_Edge edge = TopoDS::Edge(explorer.Current());
+    const std::array<double, 3> edge_dimensions =
+        DimensionsFromBounds(ComputeTopoBounds(edge));
+    if (edge_dimensions[0] <= 0.001 && edge_dimensions[1] <= 0.001 &&
+        edge_dimensions[2] > 0.001) {
+      fillet.Add(safe_radius, edge);
+      ++(*filleted_edge_count);
+    }
+  }
+
+  if (*filleted_edge_count == 0) {
+    return box;
+  }
+
+  fillet.Build();
+  if (!fillet.IsDone()) {
+    throw std::runtime_error(
+        "OCCT vertical-edge fillet build did not complete.");
+  }
+
+  *corner_radius_applied = true;
+  return fillet.Shape();
+}
+
 TopoDS_Shape BuildRoundedEnclosureShape(const EnclosureRequest& enclosure,
                                         bool* corner_radius_applied,
                                         int* filleted_edge_count) {
@@ -1811,11 +1855,11 @@ NativeGeneratedLidPlateResult BuildGeneratedTopLidPlateShape(
   bool lid_radius_applied = false;
   int lid_filleted_edge_count = 0;
   const TopoDS_Shape lid_shape =
-      BuildRoundedBoxShape(lid_origin,
-                           lid_size,
-                           enclosure.corner_radius,
-                           &lid_radius_applied,
-                           &lid_filleted_edge_count);
+      BuildRoundedBoxVerticalEdgeShape(lid_origin,
+                                       lid_size,
+                                       enclosure.corner_radius,
+                                       &lid_radius_applied,
+                                       &lid_filleted_edge_count);
   if (lid_shape.IsNull()) {
     throw std::runtime_error("OCCT generated a null top lid plate.");
   }

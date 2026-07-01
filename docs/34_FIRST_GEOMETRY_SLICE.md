@@ -133,8 +133,8 @@ The current native response returns deterministic bounds, dimensions, surface
 area, volume, disposable preview mesh data, and first-pass semantic surface
 ranges for the first semantic enclosure. For the sample enclosure it emits a
 top-open rounded shell/cavity with native USB-C, glass, button, standoff, lid,
-plunger cap/stem, guide, and travel-stop preview detail: 13882 vertices, 14384
-triangles, 14 surface mappings, and 21240 mapped triangles. It still does not
+plunger cap/stem, guide, and travel-stop preview detail: 13258 vertices, 13480
+triangles, 14 surface mappings, and 20072 mapped triangles. It still does not
 return STL, B-Rep, OCCT topology IDs, or triangle IDs as stable editable
 references.
 
@@ -294,7 +294,9 @@ The first native OCCT slices now:
     ranges for highlighting.
 19. Add a separate generated top lid preview plate for `top_screw_lid`
     enclosures as an OCCT compound member keyed by
-    `main_enclosure.generated_top_lid`.
+    `main_enclosure.generated_top_lid`. The lid plate uses vertical-edge corner
+    rounding so its top and bottom faces stay planar instead of becoming a
+    pillow-shaped fully filleted thin box.
 20. Cut first-pass screw clearance holes through that generated lid plate,
     aligned to the generated lid screw boss positions and keyed by
     `main_enclosure.generated_top_lid_screw_holes`.
@@ -303,8 +305,8 @@ The first native OCCT slices now:
     `main_enclosure.generated_top_lid_locating_lip`.
 22. Cut a first-pass shallow body-side locating seat around the top opening,
     keyed by `main_enclosure.generated_top_lid_seat`.
-23. Position the generated top lid in a first-pass fit-preview state with a
-    small inspection gap, reported by `nativeGeneratedLidFitPreviewGap`.
+23. Position the generated top lid in a near-flush fit-preview state with a
+    tiny inspection gap, reported by `nativeGeneratedLidFitPreviewGap`.
 24. Cut first-pass circular top-lid button group holes through the generated
     lid plate when a semantic `button_group` targets
     `main_enclosure.top_lid.outer`.
@@ -341,16 +343,16 @@ Expected sample dimensions:
   standoff bosses, generated lid plate, lid screw holes, underside locating lip,
   body-side lid seat, fit-preview positioning, top-lid button
   holes/rings/caps/stems/guides/stops, top-lid glass recess, and top-lid glass
-  window: `53230.754103 mm^3`,
+  window: `53366.434601 mm^3`,
 - native preview surface area after lid screw bosses, USB-C, front glass
   recess/window, front button cutouts/rings/caps/stems/guides/stops, bottom
   standoff bosses, generated lid plate, lid screw holes, underside locating lip,
   body-side lid seat, fit-preview positioning, top-lid button
   holes/rings/caps/stems/guides/stops, top-lid glass recess, and top-lid glass
-  window: `56020.328695 mm^2`,
+  window: `56309.554412 mm^2`,
 - native preview surface mappings after feature ranges: `14`,
-- native preview mesh size: `13882` vertices, `14384` triangles,
-- native preview mapped triangles after feature ranges: `21240`,
+- native preview mesh size: `13258` vertices, `13480` triangles,
+- native preview mapped triangles after feature ranges: `20072`,
 - native feature metrics: `featureIntentCount=7`,
   `nativeFeatureCutCount=9`, `nativeIgnoredFeatureIntentCount=1`,
   `nativeLidScrewBossCount=4`, `nativeLidScrewPilotCount=4`,

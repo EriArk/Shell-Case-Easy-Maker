@@ -115,6 +115,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M94 - Native Mesh Semantic Picking
 - [x] M95 - Native Preview Mesh De-Noise
 - [x] M96 - Native Top Lid Near-Flush Fit Preview
+- [x] M97 - Native Top Lid Planar Plate
 
 ---
 
@@ -4468,4 +4469,48 @@ disposable and not adding editable assembly state.
   body than before.
 - Check that the lid is still visibly a separate generated preview member, not
   a new editable assembly object.
+- Select mapped lid/feature ranges and confirm highlighting still works.
+
+---
+
+## M97 - Native Top Lid Planar Plate
+
+### Goal
+Make the generated top lid plate read like a flat lid instead of a pillow-like
+fully filleted thin box, while preserving rounded outside corners and keeping
+generated geometry disposable.
+
+### Tasks
+- [x] Add a native OCCT helper that fillets only vertical box edges.
+- [x] Route generated top lid plate construction through that helper.
+- [x] Keep the main rounded enclosure body on the existing all-edge rounded box
+      path.
+- [x] Rebuild the native OCCT worker and update deterministic smoke
+      expectations.
+- [x] Record the decision in the OCCT research note and update docs/tasks.
+
+### Done Criteria
+- The generated top lid plate keeps planar top and bottom faces.
+- The generated top lid still has rounded outside corners in plan view.
+- Native smoke passes with deterministic counts and metrics.
+- No semantic project model, protocol schema, editable assembly state, or raw
+  topology IDs are introduced.
+
+### Tests
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`
+- `flutter test test\occt_native_target_scaffold_test.dart --plain-name "OCCT target source emits deterministic rounded enclosure preview mesh" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open
+  `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- Orbit above the lid; the generated top lid should look flatter and less like
+  a rounded pillow.
+- Confirm the body itself is still rounded.
 - Select mapped lid/feature ranges and confirm highlighting still works.

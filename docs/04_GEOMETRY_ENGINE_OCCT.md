@@ -121,8 +121,10 @@ consumes bottom-inside `standoff_mounts` item intents as positive generated
 boss geometry and generates first-pass lid screw bosses from the enclosure
 `top_screw_lid` semantic lid spec. For the first lid/body step, it also adds a
 separate generated top lid preview plate to the native preview assembly with
-`BRep_Builder`/`TopoDS_Compound`, then cuts generated screw clearance holes
-through that plate from the same screw-boss positions, and fuses a first-pass
+`BRep_Builder`/`TopoDS_Compound`. The generated lid plate keeps planar top and
+bottom faces while only its vertical outside corners are rounded, then cuts
+generated screw clearance holes through that plate from the same screw-boss
+positions, and fuses a first-pass
 underside locating lip into the generated lid. It also cuts a shallow
 body-side locating seat around the top opening from the same semantic lid
 spec and positions the generated lid in a near-flush fit-preview gap so the

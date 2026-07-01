@@ -441,6 +441,52 @@ triangle IDs in `ProjectModel`.
 
 ---
 
+## 2026-07-01 - OCCT generated top lid planar plate
+
+## Question
+
+How should the generated top lid plate be rounded without making a thin plate
+look like a pillow-shaped fully filleted box?
+
+## Sources checked
+
+- Existing `BuildRoundedBoxShape` and generated top lid plate path in
+  `occt_worker/native/src/occt_main.cpp`.
+- Existing OCCT fillet use through `BRepFilletAPI_MakeFillet`.
+- Existing face/edge bounds helpers used by native feature tool fillets.
+
+## Findings
+
+- `BuildRoundedBoxShape` fillets every edge. For a thin `2 mm` generated lid,
+  the radius is constrained by half the thickness and rounds top/bottom edges
+  as well as vertical corners.
+- A lid plate should keep planar top and bottom faces in this first preview
+  slice; the desired rounded shape is the XY outline, not a pillowed slab.
+- The existing edge bounds helper can identify vertical edges by checking for
+  near-zero X/Y span and positive Z span, so no new OCCT dependency is needed.
+
+## License / compatibility notes
+
+- No new dependency or external source code was used.
+- Existing OCCT usage remains through the project-local vcpkg dependency.
+
+## Decision
+
+Add a generated-output helper for rounded boxes that fillets only vertical
+edges, and use it for the generated top lid plate. Keep full-edge fillets for
+the main rounded enclosure body and existing feature tools. The sample now
+emits `13258` preview vertices, `13480` triangles, `20072` mapped triangles,
+surface area `56309.554412`, and volume `53366.434601`.
+
+## Follow-up tasks
+
+- Add real printable lid edge chamfers once the lid/body assembly semantics are
+  explicit.
+- Keep generated lid details disposable until the project has an editable lid
+  assembly model.
+
+---
+
 ## 2026-06-30 - OCCT generated top lid body seat
 
 ## Question
