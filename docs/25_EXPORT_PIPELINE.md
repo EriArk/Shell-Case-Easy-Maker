@@ -36,6 +36,13 @@ Options:
 
 Export B-Rep model for CAD interoperability.
 
+Current native status:
+- `occt_worker_native_occt` supports the first `export_step` operation.
+- The request must provide `options.outputPath`.
+- The response returns a `step` artifact generated from OCCT B-Rep.
+- The exported STEP file is output only and is not editable project state.
+- User-facing export commands and part-selection options are still future work.
+
 Options:
 - entire device,
 - individual parts,

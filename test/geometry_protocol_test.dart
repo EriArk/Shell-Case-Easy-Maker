@@ -136,6 +136,29 @@ void main() {
     expect(buttonIntent.items.first.source['direction'], 'top');
   });
 
+  test(
+    'STEP export request carries output path and semantic feature intents',
+    () {
+      final request = GeometryRequest.exportStep(
+        ProjectModel.initial(),
+        requestId: 'step_export',
+        outputPath: r'C:\tmp\sample.step',
+      );
+      final decoded = GeometryRequest.fromJson(
+        jsonDecode(jsonEncode(request.toJson())) as Map<String, Object?>,
+      );
+
+      expect(decoded.operation, GeometryOperation.exportStep);
+      expect(decoded.options['outputPath'], r'C:\tmp\sample.step');
+      expect(decoded.featureIntents.map((intent) => intent.id), [
+        'front_usb_c',
+        'abxy_buttons',
+      ]);
+      expect(jsonEncode(decoded.toJson()), contains('export_step'));
+      expect(jsonEncode(decoded.toJson()), contains('outputPath'));
+    },
+  );
+
   test('standoff group intents can expand from component template holes', () {
     final project = ProjectModel.initial().replaceFeatureGroup(
       const FeatureGroup(

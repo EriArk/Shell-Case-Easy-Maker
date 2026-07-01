@@ -42,6 +42,116 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-07-01 - M99 Native STEP export slice
+
+### Goal
+Add the first native OCCT STEP artifact export behind the worker protocol,
+without adding editable B-Rep, STEP paths, or topology IDs to the project
+model.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/geometry/geometry_protocol.dart`, `test/geometry_protocol_test.dart`,
+`test/occt_native_target_scaffold_test.dart`,
+`test/support/native_occt_geometry_fixture.dart`,
+`occt_worker/native/src/occt_main.cpp`,
+`occt_worker/README.md`, `docs/04_GEOMETRY_ENGINE_OCCT.md`,
+`docs/25_EXPORT_PIPELINE.md`, `docs/27_RESEARCH_AND_REFERENCES.md`, and
+`docs/34_FIRST_GEOMETRY_SLICE.md`.
+
+### Changes made
+- `lib/geometry/geometry_protocol.dart`:
+  - Added `GeometryRequest.exportStep`, which carries semantic project JSON,
+    derived feature intents, and explicit `options.outputPath`.
+- `occt_worker/native/src/occt_main.cpp`:
+  - Added `export_step` support to the native OCCT worker capabilities and
+    request parser.
+  - Requires non-empty `options.outputPath` for STEP export.
+  - Uses `STEPControl_Writer` with `STEPControl_AsIs` on the same generated
+    semantic B-Rep assembly used by preview.
+  - Redirects OCCT STEP writer stdout during transfer/write so worker stdout
+    stays valid protocol JSON.
+  - Returns a `step` `GeometryArtifact` plus export metrics and keeps
+    `editableGeneratedGeometry=false`.
+- Tests:
+  - Added protocol coverage for `GeometryRequest.exportStep`.
+  - Added native STEP export coverage that writes a temporary `.step` file and
+    verifies it is an `ISO-10303-21` payload.
+  - Extended native source-contract coverage for the STEP path.
+- Docs/tasks:
+  - Marked STEP export done at the worker MVP level in `TASKS.md`.
+  - Added M99 to `ROADMAP.md`.
+  - Updated OCCT/export docs and added a STEP export research note.
+
+### Tests run
+- `dart format lib\geometry\geometry_protocol.dart test\geometry_protocol_test.dart test\native_occt_step_export_test.dart test\occt_native_target_scaffold_test.dart`:
+  - Passed; formatted `test\geometry_protocol_test.dart`.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`:
+  - Passed; rebuilt the native OCCT worker and deployed STEP dependencies.
+- `flutter test test\geometry_protocol_test.dart --plain-name "STEP export request carries output path and semantic feature intents" --reporter compact`:
+  - Passed.
+- `flutter test test\occt_native_target_scaffold_test.dart --plain-name "OCCT target source emits deterministic rounded enclosure preview mesh" --reporter compact`:
+  - Passed.
+- `flutter test test\native_occt_step_export_test.dart --reporter compact`:
+  - First run failed because OCCT STEP writer statistics were printed to stdout
+    before the JSON response, making the worker response invalid JSON.
+- `flutter test test\native_occt_step_export_test.dart --reporter compact`:
+  - Passed after suppressing OCCT transfer/write stdout.
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`:
+  - Passed; native preview metrics stayed deterministic while capabilities now
+    include `preview_mesh` and `export_step`.
+- `flutter pub get`:
+  - Passed; Flutter reported only newer package versions outside current
+    dependency constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 72 files checked, 0 changed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed; 202 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed; rebuilt `releases/latest/windows` with the native OCCT worker
+    bundled.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git status --short --ignored releases`:
+  - Passed; `releases/` remains ignored.
+- `git diff --check`:
+  - Passed with CRLF normalization warnings only for existing text files.
+
+### Validation
+- Geometry checked?
+  - Native worker rebuild, targeted STEP export test, native metrics smoke, and
+    full Flutter suite passed.
+- Serialization checked?
+  - `GeometryRequest.exportStep` round-trip coverage passed.
+- UI checked?
+  - Full widget test suite passed. No manual UI poke is useful yet because STEP
+    export is worker/test-level only in this slice.
+- Export checked?
+  - Native STEP artifact test writes and validates a temporary STEP file, and
+    latest Windows bundle was rebuilt.
+
+### Known issues
+- Issue: STEP export is worker/test-level only; no app UI command is exposed
+  yet.
+  - Severity: Medium.
+  - Next action: Add user-facing export/save workflow in a later chunk.
+- Issue: STL export is still pending.
+  - Severity: Medium.
+  - Next action: Add native STL artifact path after STEP settles.
+
+### Next step
+Commit and push M99, then continue with a user-facing export workflow or the
+next artifact path.
+
+### Notes for future Codex sessions
+Keep worker stdout reserved for JSON. If OCCT import/export APIs write status
+text to stdout, wrap those calls in a temporary redirect before returning a
+protocol response.
+
+---
+
 ## 2026-07-01 - M98 Native OCCT geometry regression test
 
 ### Goal

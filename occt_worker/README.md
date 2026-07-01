@@ -125,8 +125,9 @@ mode settings.
 This builds `occt_worker_native_occt` under `build/occt_worker_native_occt`.
 The target references OCCT modeling APIs, reports `status=preview_mesh_smoke`,
 and returns a disposable rounded enclosure preview mesh plus deterministic
-metrics for `preview_mesh` requests. It still does not emit STEP/STL artifacts
-or editable generated geometry.
+metrics for `preview_mesh` requests. It also supports the first `export_step`
+operation, writing a generated STEP artifact to an explicit `options.outputPath`.
+It still does not emit STL artifacts or editable generated geometry.
 
 Native OCCT metrics smoke command:
 
@@ -149,6 +150,17 @@ The test launches the built native OCCT worker when it exists locally and
 checks the same known sample dimensions, mesh counts, mapped semantic ranges,
 and non-editable generated geometry contract. It is skipped on machines where
 the opt-in native worker has not been built.
+
+Native OCCT STEP export test:
+
+```powershell
+flutter test test\native_occt_step_export_test.dart --reporter compact
+```
+
+The test sends an `export_step` request with an explicit temporary
+`options.outputPath`, verifies that the worker returns a STEP artifact response,
+and checks that the generated file is an `ISO-10303-21` payload. STEP output is
+generated from OCCT B-Rep and is not editable project state.
 
 Process-client smoke command:
 
@@ -197,7 +209,7 @@ only when explicitly configured.
 - Consume deterministic operation-plan tasks derived from those feature
   intents.
 - Mesh B-Rep for disposable preview output.
-- Export STEP/STL later.
+- Export STL later.
 - Return `shell_case.geometry.response` JSON.
 - Map preview faces back to semantic IDs.
 

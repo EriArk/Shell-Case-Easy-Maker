@@ -35,6 +35,8 @@ void main() {
       expect(source, contains('BRepMesh_IncrementalMesh'));
       expect(source, contains('BRep_Tool'));
       expect(source, contains('Poly_Triangulation'));
+      expect(source, contains('STEPControl_Writer'));
+      expect(source, contains('STEPControl_AsIs'));
       expect(source, contains('BRepBndLib'));
       expect(source, contains('BRepGProp'));
       expect(source, contains('GProp_GProps'));
@@ -81,6 +83,7 @@ void main() {
       expect(source, contains('BuildStandoffMountShape'));
       expect(source, contains('ApplyNativeFeatureCutouts'));
       expect(source, contains('BuildPreviewMesh'));
+      expect(source, contains('ExportStepFile'));
       expect(source, contains('FaceIntersectsUsbCCutout'));
       expect(source, contains('FaceIntersectsLidScrewBoss'));
       expect(source, contains('FaceIntersectsGeneratedLidSeat'));
@@ -122,7 +125,9 @@ void main() {
       expect(source, contains('ComputeShapeMetrics'));
       expect(source, contains('WritePreviewMesh'));
       expect(source, contains('WritePreviewSurfaceMappings'));
+      expect(source, contains('WriteRoundedEnclosureStepExportResponse'));
       expect(source, contains('worker.backend.occt_operation_not_implemented'));
+      expect(source, contains('worker.export.missing_output_path'));
       expect(source, contains('worker.geometry.invalid_enclosure_dimensions'));
       expect(source, contains('cornerRadiusApplied'));
       expect(source, contains('filletedEdgeCount'));

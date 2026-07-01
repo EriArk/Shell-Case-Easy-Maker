@@ -15,6 +15,8 @@
 #include <Poly_Triangulation.hxx>
 #include <TopAbs_Orientation.hxx>
 #include <Standard_Version.hxx>
+#include <STEPControl_StepModelType.hxx>
+#include <STEPControl_Writer.hxx>
 #include <TopAbs_ShapeEnum.hxx>
 #include <TopExp_Explorer.hxx>
 #include <TopLoc_Location.hxx>
@@ -31,6 +33,8 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdint>
+#include <filesystem>
 #include <iomanip>
 #include <iostream>
 #include <iterator>
@@ -173,6 +177,7 @@ struct StandoffMountGroupRequest {
 struct NativeRequestParseResult {
   NativeRequestEnvelope request;
   EnclosureRequest enclosure;
+  std::string export_output_path;
   std::vector<UsbCCutoutRequest> usb_c_cutouts;
   std::vector<GlassRecessRequest> glass_recesses;
   std::vector<ButtonGroupCutoutRequest> button_groups;
@@ -337,6 +342,27 @@ struct PreviewMeshData {
 
   int vertex_count() const { return static_cast<int>(vertices.size() / 3); }
   int triangle_count() const { return static_cast<int>(triangles.size() / 3); }
+};
+
+struct StepExportResult {
+  std::string path;
+  std::uintmax_t byte_count = 0;
+  std::string transfer_status;
+  std::string write_status;
+};
+
+class ScopedCoutRedirect {
+ public:
+  explicit ScopedCoutRedirect(std::ostream& target)
+      : original_buffer_(std::cout.rdbuf(target.rdbuf())) {}
+
+  ScopedCoutRedirect(const ScopedCoutRedirect&) = delete;
+  ScopedCoutRedirect& operator=(const ScopedCoutRedirect&) = delete;
+
+  ~ScopedCoutRedirect() { std::cout.rdbuf(original_buffer_); }
+
+ private:
+  std::streambuf* original_buffer_;
 };
 
 struct FaceBounds {
@@ -957,12 +983,32 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
   }
   result.request.operation = *operation;
 
-  if (*operation != "preview_mesh") {
+  if (*operation != "preview_mesh" && *operation != "export_step") {
     result.issue_code = "worker.backend.occt_operation_not_implemented";
     result.issue_message =
-        "The native OCCT worker currently implements only preview_mesh "
-        "generation for the first enclosure body.";
+        "The native OCCT worker currently implements preview_mesh and "
+        "export_step for the first enclosure body.";
     return result;
+  }
+
+  if (*operation == "export_step") {
+    const std::optional<std::string> options =
+        ExtractTopLevelObjectField(payload, "options");
+    if (!options.has_value()) {
+      result.issue_code = "worker.export.missing_output_path";
+      result.issue_message =
+          "Native OCCT STEP export requires options.outputPath.";
+      return result;
+    }
+
+    result.export_output_path =
+        ExtractTopLevelStringField(*options, "outputPath").value_or("");
+    if (result.export_output_path.empty()) {
+      result.issue_code = "worker.export.missing_output_path";
+      result.issue_message =
+          "Native OCCT STEP export requires a non-empty options.outputPath.";
+      return result;
+    }
   }
 
   const std::optional<std::string> project =
@@ -4474,6 +4520,66 @@ TopoDS_Shape BuildNativeHealthShape() {
   return BRepPrimAPI_MakeBox(10.0, 20.0, 30.0).Shape();
 }
 
+std::string IFSelectStatusName(IFSelect_ReturnStatus status) {
+  switch (status) {
+    case IFSelect_RetVoid:
+      return "void";
+    case IFSelect_RetDone:
+      return "done";
+    case IFSelect_RetError:
+      return "error";
+    case IFSelect_RetFail:
+      return "fail";
+    case IFSelect_RetStop:
+      return "stop";
+  }
+
+  return "unknown";
+}
+
+StepExportResult ExportStepFile(const TopoDS_Shape& shape,
+                                const std::string& output_path) {
+  if (shape.IsNull()) {
+    throw std::runtime_error("OCCT cannot export a null STEP shape.");
+  }
+  if (output_path.empty()) {
+    throw std::runtime_error("STEP export output path is empty.");
+  }
+
+  const std::filesystem::path step_path(output_path);
+  const std::filesystem::path parent_path = step_path.parent_path();
+  if (!parent_path.empty()) {
+    std::filesystem::create_directories(parent_path);
+  }
+
+  IFSelect_ReturnStatus transfer_status = IFSelect_RetVoid;
+  IFSelect_ReturnStatus write_status = IFSelect_RetVoid;
+  {
+    std::ostringstream occt_stdout;
+    ScopedCoutRedirect suppress_occt_stdout(occt_stdout);
+    STEPControl_Writer writer;
+    transfer_status = writer.Transfer(shape, STEPControl_AsIs);
+    if (transfer_status != IFSelect_RetDone) {
+      throw std::runtime_error("OCCT STEP transfer failed with status " +
+                               IFSelectStatusName(transfer_status) + ".");
+    }
+
+    writer.CleanDuplicateEntities();
+    write_status = writer.Write(output_path.c_str());
+    if (write_status != IFSelect_RetDone) {
+      throw std::runtime_error("OCCT STEP write failed with status " +
+                               IFSelectStatusName(write_status) + ".");
+    }
+  }
+
+  StepExportResult result;
+  result.path = output_path;
+  result.byte_count = std::filesystem::file_size(step_path);
+  result.transfer_status = IFSelectStatusName(transfer_status);
+  result.write_status = IFSelectStatusName(write_status);
+  return result;
+}
+
 void WriteCapabilities() {
   std::cout
       << "{\n"
@@ -4494,7 +4600,8 @@ void WriteCapabilities() {
       << "      \"id\": \"native\",\n"
       << "      \"status\": \"preview_mesh_smoke\",\n"
       << "      \"supportedOperations\": [\n"
-      << "        \"preview_mesh\"\n"
+      << "        \"preview_mesh\",\n"
+      << "        \"export_step\"\n"
       << "      ],\n"
       << "      \"plannedOperations\": [\n"
       << "        \"preview_mesh\",\n"
@@ -4513,11 +4620,13 @@ void WriteCapabilities() {
       << "        \"worker.geometry.invalid_enclosure_dimensions\",\n"
       << "        \"worker.geometry.unsupported_enclosure_shape\",\n"
       << "        \"worker.geometry.occt_exception\",\n"
+      << "        \"worker.export.missing_output_path\",\n"
       << "        \"worker.backend.occt_operation_not_implemented\"\n"
       << "      ],\n"
       << "      \"notes\": [\n"
       << "        \"OCCT-linked native target is available.\",\n"
-      << "        \"preview_mesh returns a disposable triangulated preview mesh, first-pass semantic surface ranges, and deterministic rounded enclosure metrics.\"\n"
+      << "        \"preview_mesh returns a disposable triangulated preview mesh, first-pass semantic surface ranges, and deterministic rounded enclosure metrics.\",\n"
+      << "        \"export_step writes a generated STEP artifact from the same semantic B-Rep pipeline to an explicit output path.\"\n"
       << "      ]\n"
       << "    }\n"
       << "  ],\n"
@@ -4802,6 +4911,101 @@ void WriteRoundedEnclosurePreviewResponse(const NativeRequestEnvelope& request,
             << "}\n";
 }
 
+void WriteRoundedEnclosureStepExportResponse(
+    const NativeRequestEnvelope& request,
+    const EnclosureRequest& enclosure,
+    const ShapeMetrics& metrics,
+    const StepExportResult& export_result) {
+  std::cout << "{\n"
+            << "  \"schema\": \"" << kResponseSchema << "\",\n"
+            << "  \"version\": 1,\n"
+            << "  \"requestId\": \"" << EscapeJsonString(request.request_id)
+            << "\",\n"
+            << "  \"status\": \"ok\",\n"
+            << "  \"backend\": \"" << kBackend << "\",\n"
+            << "  \"artifacts\": [\n"
+            << "    {\n"
+            << "      \"type\": \"step\",\n"
+            << "      \"path\": \"" << EscapeJsonString(export_result.path)
+            << "\",\n"
+            << "      \"format\": \"STEP\",\n"
+            << "      \"source\": \"occt_brep\",\n"
+            << "      \"units\": \"mm\",\n"
+            << "      \"byteCount\": " << export_result.byte_count << "\n"
+            << "    }\n"
+            << "  ],\n"
+            << "  \"issues\": [],\n"
+            << "  \"metrics\": {\n"
+            << "    \"requestedBackend\": \"native\",\n"
+            << "    \"executable\": \"occt_worker_native_occt\",\n"
+            << "    \"requestedOperation\": \""
+            << EscapeJsonString(request.operation) << "\",\n"
+            << "    \"occtVersion\": \""
+            << EscapeJsonString(OCC_VERSION_COMPLETE) << "\",\n"
+            << "    \"generator\": \"occt.rounded_enclosure.step_export.v1\",\n"
+            << "    \"bodyId\": \"" << EscapeJsonString(enclosure.id)
+            << "\",\n"
+            << "    \"shape\": \"" << EscapeJsonString(enclosure.shape)
+            << "\",\n"
+            << "    \"inputSize\": ";
+  WriteDoubleArray(enclosure.size);
+  std::cout << ",\n"
+            << "    \"wallThickness\": "
+            << FormatDouble(enclosure.wall_thickness) << ",\n"
+            << "    \"cornerRadius\": "
+            << FormatDouble(enclosure.corner_radius) << ",\n"
+            << "    \"cornerRadiusApplied\": "
+            << (metrics.corner_radius_applied ? "true" : "false") << ",\n"
+            << "    \"filletedEdgeCount\": " << metrics.filleted_edge_count
+            << ",\n"
+            << "    \"shellCavityApplied\": "
+            << (metrics.shell_cavity_applied ? "true" : "false") << ",\n"
+            << "    \"shellCavityValid\": "
+            << (metrics.shell_cavity_valid ? "true" : "false") << ",\n"
+            << "    \"shellCavityToolCount\": "
+            << metrics.shell_cavity_tool_count << ",\n"
+            << "    \"shellOpening\": \"top\",\n"
+            << "    \"featureIntentCount\": "
+            << metrics.feature_intent_count << ",\n"
+            << "    \"nativeFeatureCutCount\": "
+            << metrics.native_feature_cut_count << ",\n"
+            << "    \"nativeGeneratedLidPlateCount\": "
+            << metrics.native_generated_lid_plate_count << ",\n"
+            << "    \"nativeGeneratedLidSeatCount\": "
+            << metrics.native_generated_lid_seat_count << ",\n"
+            << "    \"nativeGeneratedLidFitPreviewGap\": "
+            << FormatDouble(metrics.native_generated_lid_fit_preview_gap)
+            << ",\n"
+            << "    \"bounds\": {\n"
+            << "      \"min\": ";
+  WriteDoubleArray(metrics.bounds_min);
+  std::cout << ",\n"
+            << "      \"max\": ";
+  WriteDoubleArray(metrics.bounds_max);
+  std::cout << "\n"
+            << "    },\n"
+            << "    \"dimensions\": ";
+  WriteDoubleArray(metrics.dimensions);
+  std::cout << ",\n"
+            << "    \"surfaceArea\": " << FormatDouble(metrics.surface_area)
+            << ",\n"
+            << "    \"volume\": " << FormatDouble(metrics.volume) << ",\n"
+            << "    \"exportFormat\": \"step\",\n"
+            << "    \"exportArtifactCount\": 1,\n"
+            << "    \"exportPath\": \""
+            << EscapeJsonString(export_result.path) << "\",\n"
+            << "    \"exportByteCount\": " << export_result.byte_count
+            << ",\n"
+            << "    \"exportTransferStatus\": \""
+            << EscapeJsonString(export_result.transfer_status) << "\",\n"
+            << "    \"exportWriteStatus\": \""
+            << EscapeJsonString(export_result.write_status) << "\",\n"
+            << "    \"previewMeshEmitted\": false,\n"
+            << "    \"editableGeneratedGeometry\": false\n"
+            << "  }\n"
+            << "}\n";
+}
+
 void WriteInvalidArgumentResponse(const std::string& argument) {
   WriteIssueResponse(kInvalidRequestId,
                      "worker.cli.invalid_arguments",
@@ -4939,19 +5143,29 @@ int main(int argc, char* argv[]) {
                             preview_assembly.applied_feature_intent_count,
                             parsed_request.feature_intent_count,
                             feature_cuts);
-    const PreviewMeshData mesh =
-        BuildPreviewMesh(preview_assembly.shape,
-                         metrics,
-                         parsed_request.enclosure,
-                         parsed_request.lid_screw_bosses,
-                         parsed_request.generated_lid_seats,
-                         parsed_request.generated_lid_plates,
-                         parsed_request.usb_c_cutouts,
-                         parsed_request.glass_recesses,
-                         parsed_request.button_groups,
-                         parsed_request.standoff_groups);
-    WriteRoundedEnclosurePreviewResponse(
-        parsed_request.request, parsed_request.enclosure, metrics, mesh);
+    if (parsed_request.request.operation == "export_step") {
+      const StepExportResult export_result =
+          ExportStepFile(preview_assembly.shape,
+                         parsed_request.export_output_path);
+      WriteRoundedEnclosureStepExportResponse(parsed_request.request,
+                                              parsed_request.enclosure,
+                                              metrics,
+                                              export_result);
+    } else {
+      const PreviewMeshData mesh =
+          BuildPreviewMesh(preview_assembly.shape,
+                           metrics,
+                           parsed_request.enclosure,
+                           parsed_request.lid_screw_bosses,
+                           parsed_request.generated_lid_seats,
+                           parsed_request.generated_lid_plates,
+                           parsed_request.usb_c_cutouts,
+                           parsed_request.glass_recesses,
+                           parsed_request.button_groups,
+                           parsed_request.standoff_groups);
+      WriteRoundedEnclosurePreviewResponse(
+          parsed_request.request, parsed_request.enclosure, metrics, mesh);
+    }
     return 0;
   } catch (const std::exception& error) {
     WriteIssueResponse(parsed_request.request.request_id,

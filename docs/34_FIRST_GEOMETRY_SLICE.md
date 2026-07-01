@@ -119,7 +119,9 @@ readiness became true or before manifest mode was enabled.
 
 The target is `occt_worker_native_occt`. It is separate from
 `occt_worker_native_stub`, references OCCT modeling APIs, and now implements the
-first rounded enclosure preview mesh slice for `preview_mesh` requests.
+first rounded enclosure preview mesh slice for `preview_mesh` requests plus the
+first STEP artifact slice for `export_step` requests with an explicit
+`options.outputPath`.
 Capabilities report `status=preview_mesh_smoke`.
 
 The native OCCT smoke command verifies the built target through the Dart process
@@ -140,6 +142,17 @@ opt-in native worker and is skipped on machines where the worker has not been
 built. It checks native capabilities, bounds, dimensions, surface area, volume,
 mesh counts, mapped semantic ranges, and that generated geometry remains
 non-editable.
+
+The first native STEP export path is covered by:
+
+```powershell
+flutter test test\native_occt_step_export_test.dart --reporter compact
+```
+
+That test sends an `export_step` request, verifies that the response returns a
+`step` artifact, and checks that the generated file is an `ISO-10303-21` STEP
+payload. STEP files are generated artifacts only; they are not stored as the
+editable project source.
 
 The current native response returns deterministic bounds, dimensions, surface
 area, volume, disposable preview mesh data, and first-pass semantic surface
@@ -440,7 +453,7 @@ Expected sample dimensions:
   same lid, and plunger-style groups now add first-pass generated cap/stem,
   guide-sleeve, and travel-stop preview detail. A real separable lid/body split
   with full mating geometry,
-  protected recess islands, richer mount variants, and richer face mapping are
-  still planned.
+  protected recess islands, richer mount variants, STL export, and richer face
+  mapping are still planned.
 - STEP/STL export operations intentionally return unsupported in the mock
-  backend.
+  backend. Native OCCT now supports the first `export_step` artifact path.

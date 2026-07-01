@@ -57,6 +57,66 @@ Use `templates/RESEARCH_NOTE_TEMPLATE.md`.
 
 ---
 
+## 2026-07-01 - OCCT native STEP export artifact
+
+## Question
+
+How should the native worker write the first STEP artifact while keeping stdout
+reserved for protocol JSON and keeping exported files out of editable project
+state?
+
+## Sources checked
+
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/STEPControl_Writer.hxx`
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/STEPControl_StepModelType.hxx`
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/IFSelect_ReturnStatus.hxx`
+- Existing native worker preview assembly path in
+  `occt_worker/native/src/occt_main.cpp`.
+- `docs/25_EXPORT_PIPELINE.md`.
+
+## Findings
+
+- `STEPControl_Writer` translates a `TopoDS_Shape` to STEP with
+  `Transfer(shape, STEPControl_AsIs)` and writes with `Write(path)`.
+- `IFSelect_ReturnStatus` reports `IFSelect_RetDone` for successful transfer
+  and file writing.
+- The first generated preview assembly is already a B-Rep compound assembled
+  from semantic project data, so it can be exported without adding generated
+  B-Rep, STEP paths, or topology IDs to `ProjectModel`.
+- During local testing, OCCT STEP writing emitted transfer statistics to
+  stdout before the worker JSON response. The worker protocol uses stdout as
+  JSON transport, so STEP transfer/write must be wrapped with a temporary
+  stdout redirect.
+- The request should require an explicit output path. The worker should not
+  silently choose persistent export locations.
+
+## License / compatibility notes
+
+- OCCT headers are from the project-local vcpkg dependency. They are LGPL 2.1
+  with OCCT exception / commercial alternative, matching the existing OCCT
+  dependency evaluation.
+- No external project code was copied.
+
+## Decision
+
+Implement `export_step` in `occt_worker_native_occt` as an artifact-producing
+operation with explicit `options.outputPath`. Use the same semantic B-Rep
+pipeline as preview generation, call `STEPControl_Writer` with
+`STEPControl_AsIs`, suppress OCCT stdout during transfer/write, and return a
+`GeometryArtifact` with `type=step`, path, byte count, and generated-output
+metrics. Keep STEP files as output only, not editable project state.
+
+## Follow-up tasks
+
+- Add user-facing save/export commands that pass `options.outputPath`.
+- Add STL export after deciding tessellation quality presets.
+- Add package license notices before distributing OCCT DLLs broadly.
+
+---
+
 ## 2026-06-30 - OCCT front-wall glass ledge window
 
 ## Question

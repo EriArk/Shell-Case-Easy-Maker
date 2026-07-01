@@ -117,6 +117,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M96 - Native Top Lid Near-Flush Fit Preview
 - [x] M97 - Native Top Lid Planar Plate
 - [x] M98 - Native OCCT Geometry Regression Test
+- [x] M99 - Native STEP Export Slice
 
 ---
 
@@ -4557,3 +4558,51 @@ test path so sample geometry regressions are caught before STEP/STL work.
 - No new manual UI poke is needed for this chunk.
 - Keep using the latest Windows build for visual checks after geometry changes:
   `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+
+---
+
+## M99 - Native STEP Export Slice
+
+### Goal
+Add the first native OCCT `export_step` operation behind the worker boundary so
+the generated B-Rep can produce a STEP artifact without becoming editable
+project state.
+
+### Tasks
+- [x] Add `GeometryRequest.exportStep` with explicit `outputPath`.
+- [x] Teach the native OCCT worker to accept `export_step` requests and require
+      `options.outputPath`.
+- [x] Export the same semantic generated preview assembly through
+      `STEPControl_Writer`.
+- [x] Suppress OCCT transfer/write stdout so worker stdout remains valid JSON.
+- [x] Return a `GeometryArtifact` for the generated STEP file.
+- [x] Add native STEP export coverage and update docs/tasks/worklog.
+
+### Done Criteria
+- The native OCCT worker capabilities list `export_step` as supported.
+- A semantic sample request writes a real `.step` file containing an
+  `ISO-10303-21` STEP payload.
+- The response returns artifact metadata, export metrics, and
+  `editableGeneratedGeometry=false`.
+- The response does not include preview mesh data, raw OCCT topology IDs, or
+  stable triangle IDs.
+- Mock geometry still rejects export operations until mock export behavior is
+  deliberately added.
+
+### Tests
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`
+- `flutter test test\geometry_protocol_test.dart --plain-name "STEP export request carries output path and semantic feature intents" --reporter compact`
+- `flutter test test\occt_native_target_scaffold_test.dart --plain-name "OCCT target source emits deterministic rounded enclosure preview mesh" --reporter compact`
+- `flutter test test\native_occt_step_export_test.dart --reporter compact`
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- No new app UI is exposed in this chunk.
+- The generated STEP path is currently verified by test; manual export UI comes
+  in a later chunk.
