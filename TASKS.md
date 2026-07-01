@@ -163,7 +163,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] First-pass component placement and keepout semantic validation.
 - [x] Rotation-aware component placement bounds validation.
 - [x] First-pass projected component anchor validation.
-- [ ] Add OCCT geometry tests for known dimensions.
+- [x] Add OCCT geometry tests for known dimensions.
 
 ## Phase 5 — Enclosure-first MVP
 

@@ -139,6 +139,17 @@ The smoke command queries capabilities through
 request, and verifies bounds, dimensions, surface area, volume, preview mesh
 counts, request ID preservation, and `editableGeneratedGeometry=false`.
 
+Native OCCT geometry regression test:
+
+```powershell
+flutter test test\native_occt_geometry_regression_test.dart --reporter compact
+```
+
+The test launches the built native OCCT worker when it exists locally and
+checks the same known sample dimensions, mesh counts, mapped semantic ranges,
+and non-editable generated geometry contract. It is skipped on machines where
+the opt-in native worker has not been built.
+
 Process-client smoke command:
 
 ```powershell

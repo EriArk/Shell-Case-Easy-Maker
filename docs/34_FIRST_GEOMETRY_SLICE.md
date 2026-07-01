@@ -129,6 +129,18 @@ client:
 dart run tool\native_occt_worker_metrics_smoke.dart --skip-build
 ```
 
+The same known-dimensions native path also has a Flutter regression test:
+
+```powershell
+flutter test test\native_occt_geometry_regression_test.dart --reporter compact
+```
+
+That test runs when `build/occt_worker_native_occt/Release` contains the
+opt-in native worker and is skipped on machines where the worker has not been
+built. It checks native capabilities, bounds, dimensions, surface area, volume,
+mesh counts, mapped semantic ranges, and that generated geometry remains
+non-editable.
+
 The current native response returns deterministic bounds, dimensions, surface
 area, volume, disposable preview mesh data, and first-pass semantic surface
 ranges for the first semantic enclosure. For the sample enclosure it emits a

@@ -116,6 +116,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M95 - Native Preview Mesh De-Noise
 - [x] M96 - Native Top Lid Near-Flush Fit Preview
 - [x] M97 - Native Top Lid Planar Plate
+- [x] M98 - Native OCCT Geometry Regression Test
 
 ---
 
@@ -4514,3 +4515,45 @@ generated geometry disposable.
   a rounded pillow.
 - Confirm the body itself is still rounded.
 - Select mapped lid/feature ranges and confirm highlighting still works.
+
+---
+
+## M98 - Native OCCT Geometry Regression Test
+
+### Goal
+Turn the native OCCT known-dimensions smoke coverage into a normal Flutter
+test path so sample geometry regressions are caught before STEP/STL work.
+
+### Tasks
+- [x] Add a reusable native OCCT regression fixture for the current semantic
+      sample project, expected bounds, dimensions, mesh counts, and mapping ids.
+- [x] Add a Flutter test that launches the built native OCCT worker when it is
+      available locally.
+- [x] Keep the test skippable on machines where the opt-in native worker has
+      not been built.
+- [x] Mark the known-dimensions test task complete and document the command.
+
+### Done Criteria
+- The test verifies native capabilities, preview status, bounds, dimensions,
+  surface area, volume, mesh counts, mapped triangle ranges, and semantic
+  mapping ids.
+- The test verifies generated geometry remains non-editable and does not expose
+  raw topology or triangle IDs.
+- Clean CI without a local OCCT build can skip the integration test instead of
+  failing due to a missing executable.
+- The native smoke tool remains available as a CLI contract check.
+
+### Tests
+- `flutter test test\native_occt_geometry_regression_test.dart --reporter compact`
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- No new manual UI poke is needed for this chunk.
+- Keep using the latest Windows build for visual checks after geometry changes:
+  `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.

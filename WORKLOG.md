@@ -42,6 +42,97 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-07-01 - M98 Native OCCT geometry regression test
+
+### Goal
+Add a normal Flutter test path for the native OCCT known-dimensions sample so
+geometry regressions are caught before export work.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`tool/native_occt_worker_metrics_smoke.dart`,
+`test/geometry_worker_runtime_test.dart`,
+`test/occt_native_target_scaffold_test.dart`,
+`lib/geometry/geometry_service.dart`, `lib/geometry/geometry_protocol.dart`,
+`lib/geometry/geometry_worker_process_client.dart`,
+`occt_worker/README.md`, and `docs/34_FIRST_GEOMETRY_SLICE.md`.
+
+### Changes made
+- `test/support/native_occt_geometry_fixture.dart`:
+  - Added the reusable native OCCT regression sample project, expected
+    deterministic bounds, dimensions, mesh counts, mapped triangle count, and
+    semantic mapping ids.
+  - Added small helpers for the built native worker path, process client,
+    mapped triangle counting, range validation, and metrics reading.
+- `test/native_occt_geometry_regression_test.dart`:
+  - Added an integration-style Flutter test that launches the built native
+    OCCT worker when available.
+  - Checks native capabilities, preview response status, non-editable generated
+    geometry, bounds, dimensions, surface area, volume, mesh counts, mapped
+    ranges, semantic ids, and absence of topology/triangle ids in metrics.
+  - Skips when the opt-in native worker executable is not built locally, so a
+    clean non-OCCT machine can still run the default suite.
+- Docs/tasks:
+  - Marked the known-dimensions OCCT test task complete in `TASKS.md`.
+  - Added M98 to `ROADMAP.md`.
+  - Documented the regression test command in `occt_worker/README.md` and
+    `docs/34_FIRST_GEOMETRY_SLICE.md`.
+
+### Tests run
+- `dart format test\support\native_occt_geometry_fixture.dart test\native_occt_geometry_regression_test.dart`:
+  - Passed; formatted the new test file.
+- `flutter test test\native_occt_geometry_regression_test.dart --reporter compact`:
+  - Passed; the test ran against the local built native OCCT worker and did not
+    skip.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; `71` files checked, `0` changed.
+- `dart run tool\native_occt_worker_metrics_smoke.dart --skip-build`:
+  - Passed; reports `13258` vertices, `13480` triangles, `14` mappings,
+    `20072` mapped triangles, bounds `[-60, -36.65, 0]` to `[60, 35, 31.73]`,
+    surface area `56309.554412`, and volume `53366.434601`.
+- `flutter pub get`:
+  - Passed.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed; `200` tests, including the new native OCCT regression test.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed; rebuilt `releases/latest/windows/shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git status --short --ignored releases`:
+  - Passed; `releases/` remains ignored.
+- `git diff --check`:
+  - Passed with only CRLF-to-LF normalization warnings for markdown files.
+
+### Validation
+- Geometry checked?
+  - Targeted native OCCT regression test passed against the local executable.
+- Serialization checked?
+  - No project/protocol schema changed.
+- UI checked?
+  - Full widget/unit suite passed and latest Windows bundle rebuilt.
+- Export checked?
+  - Not changed.
+
+### Known issues
+- Issue: The test requires a previously built native OCCT executable to run
+  locally; otherwise it is skipped.
+  - Severity: Low.
+  - Next action: Keep using the smoke/build scripts before native geometry
+    chunks, and consider CI native-worker builds later.
+
+### Next step
+Continue toward the first export slice after M98 is committed and pushed.
+
+### Notes for future Codex sessions
+Keep native geometry regression expectations in sync with the smoke tool when
+intentional geometry changes alter deterministic counts or metrics. The test
+must remain semantic-output focused and must not depend on raw OCCT topology or
+stable triangle ids.
+
+---
+
 ## 2026-07-01 - M97 Native top lid planar plate
 
 ### Goal
