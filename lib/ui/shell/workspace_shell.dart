@@ -15,6 +15,7 @@ import '../../geometry/geometry_service.dart';
 import '../../parameters/enclosure_parameter_adapter.dart';
 import '../../parameters/parameter_model.dart';
 import '../../patterns/pattern_layout.dart';
+import '../../project/json_helpers.dart';
 import '../../project/project_file_dialog_service.dart';
 import '../../project/project_model.dart';
 import '../../selection/project_selection_resolver.dart';
@@ -517,6 +518,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
         targetSurfaceId == null) {
       return;
     }
+    final snapTarget = _usbCSnapTargetFor(_activeSnapTarget, targetSurfaceId);
 
     final feature = await showDialog<SemanticFeature>(
       context: context,
@@ -524,6 +526,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
         initialFeature: _defaultUsbCCutoutFeature(
           id: _nextFeatureId(_project, 'usb_c_cutout'),
           targetSurfaceId: targetSurfaceId,
+          snapTarget: snapTarget,
         ),
       ),
     );
@@ -1268,6 +1271,16 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                                 _runCreateCircularCutoutCommand(_selection);
                               }
                             : null,
+                        onCreateUsbCFromSnap:
+                            _usbCSnapTargetFor(
+                                  _activeSnapTarget,
+                                  _selection.id ?? '',
+                                ) !=
+                                null
+                            ? () {
+                                _runAddUsbCCommand(_selection);
+                              }
+                            : null,
                         onClearSnapTarget: _clearActiveSnapTarget,
                         onEnclosureParameterChanged: _updateEnclosureParameter,
                         onComponentPlacementParameterChanged:
@@ -1499,11 +1512,32 @@ bool _snapTargetCanCreateCircularCutout(_ActiveSnapTarget? target) {
   };
 }
 
+bool _snapTargetCanCreateUsbC(_ActiveSnapTarget? target) {
+  return switch (target?.workplaneKind) {
+    MockViewportWorkplaneKind.frontWall => true,
+    MockViewportWorkplaneKind.topLid ||
+    MockViewportWorkplaneKind.componentPlacement ||
+    null => false,
+  };
+}
+
 _ActiveSnapTarget? _circularCutoutSnapTargetFor(
   _ActiveSnapTarget? target,
   String targetSurfaceId,
 ) {
   if (!_snapTargetCanCreateCircularCutout(target) ||
+      target?.workplaneId != targetSurfaceId) {
+    return null;
+  }
+
+  return target;
+}
+
+_ActiveSnapTarget? _usbCSnapTargetFor(
+  _ActiveSnapTarget? target,
+  String targetSurfaceId,
+) {
+  if (!_snapTargetCanCreateUsbC(target) ||
       target?.workplaneId != targetSurfaceId) {
     return null;
   }
@@ -1820,12 +1854,28 @@ String _nextComponentPlacementId(ProjectModel project, String templateId) {
 SemanticFeature _defaultUsbCCutoutFeature({
   required String id,
   required String targetSurfaceId,
+  _ActiveSnapTarget? snapTarget,
 }) {
+  final surfacePosition = snapTarget?.localPosition;
+
   return SemanticFeature(
     id: id,
     type: 'usb_c_cutout',
     targetSurface: targetSurfaceId,
     operation: 'negative',
+    placement: surfacePosition == null
+        ? null
+        : {
+            'projectionMode': 'surface_snap_target',
+            'surfacePosition': [
+              _snapCoordinate(surfacePosition.dx),
+              _snapCoordinate(surfacePosition.dy),
+            ],
+            'surfaceAxes':
+                snapTarget?.workplaneKind == MockViewportWorkplaneKind.frontWall
+                ? ['x', 'z']
+                : ['x', 'y'],
+          },
     parameters: const {
       'width': 10.5,
       'height': 4.2,
@@ -1980,7 +2030,12 @@ SemanticFeature _defaultRectangularCutoutFeature({
 }
 
 double _snapCoordinate(double value) {
-  return value.abs() < 0.000001 ? 0.0 : value;
+  if (value.abs() < 0.000001) {
+    return 0.0;
+  }
+
+  final rounded = double.parse(value.toStringAsFixed(6));
+  return rounded.abs() < 0.000001 ? 0.0 : rounded;
 }
 
 String _nextFeatureId(ProjectModel project, String type) {
@@ -3321,6 +3376,7 @@ class _Inspector extends StatelessWidget {
     required this.activeSnapPlacementIssue,
     required this.onPlaceComponentFromSnap,
     required this.onCreateCircularCutoutFromSnap,
+    required this.onCreateUsbCFromSnap,
     required this.onClearSnapTarget,
     required this.onEnclosureParameterChanged,
     required this.onComponentPlacementParameterChanged,
@@ -3335,6 +3391,7 @@ class _Inspector extends StatelessWidget {
   final ValidationMessage? activeSnapPlacementIssue;
   final VoidCallback? onPlaceComponentFromSnap;
   final VoidCallback? onCreateCircularCutoutFromSnap;
+  final VoidCallback? onCreateUsbCFromSnap;
   final VoidCallback onClearSnapTarget;
   final void Function(String enclosureId, String parameterId, Object? value)
   onEnclosureParameterChanged;
@@ -3416,6 +3473,7 @@ class _Inspector extends StatelessWidget {
               placementIssue: activeSnapPlacementIssue,
               onPlaceComponent: onPlaceComponentFromSnap,
               onCreateCircularCutout: onCreateCircularCutoutFromSnap,
+              onCreateUsbC: onCreateUsbCFromSnap,
               onClear: onClearSnapTarget,
             ),
           ],
@@ -3486,6 +3544,7 @@ class _ActiveSnapTargetPanel extends StatelessWidget {
     required this.placementIssue,
     required this.onPlaceComponent,
     required this.onCreateCircularCutout,
+    required this.onCreateUsbC,
     required this.onClear,
   });
 
@@ -3493,6 +3552,7 @@ class _ActiveSnapTargetPanel extends StatelessWidget {
   final ValidationMessage? placementIssue;
   final VoidCallback? onPlaceComponent;
   final VoidCallback? onCreateCircularCutout;
+  final VoidCallback? onCreateUsbC;
   final VoidCallback onClear;
 
   @override
@@ -3566,6 +3626,18 @@ class _ActiveSnapTargetPanel extends StatelessWidget {
               onPressed: onCreateCircularCutout,
               icon: const Icon(Icons.radio_button_unchecked_rounded, size: 18),
               label: const Text('Отверстие'),
+            ),
+          ),
+        ],
+        if (onCreateUsbC != null) ...[
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              key: const ValueKey('active-snap-create-usb-c'),
+              onPressed: onCreateUsbC,
+              icon: const Icon(Icons.usb_rounded, size: 18),
+              label: const Text('USB-C'),
             ),
           ),
         ],
@@ -8948,6 +9020,7 @@ MockViewportFeaturePreview? _mockFeaturePreview(
       width: _featureDouble(feature.parameters, 'width', 10.5),
       height: _featureDouble(feature.parameters, 'height', 4.2),
       cornerRadius: _featureDouble(feature.parameters, 'cornerRadius', 1.0),
+      position: _featureSurfacePosition(feature),
       referenceWidth: referenceWidth,
       referenceHeight: referenceHeight,
       slotIndex: slotIndex,
@@ -8995,6 +9068,23 @@ MockViewportFeaturePreview? _mockFeaturePreview(
     ),
     _ => null,
   };
+}
+
+Offset? _featureSurfacePosition(SemanticFeature feature) {
+  final placement = feature.placement;
+  if (placement == null) {
+    return null;
+  }
+
+  final position = readDoubleList(
+    placement['surfacePosition'],
+    fallback: const [],
+  );
+  if (position.length < 2 || !position[0].isFinite || !position[1].isFinite) {
+    return null;
+  }
+
+  return Offset(position[0], position[1]);
 }
 
 List<MockViewportFeatureGroupPreview> _mockFeatureGroupPreviews(

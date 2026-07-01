@@ -599,8 +599,8 @@ void main() {
     await tester.tap(createHoleFromSnap);
     await tester.pumpAndSettle();
 
-    expect(_dialogNumberText(tester, 'circular-cutout-position-x'), '42.00');
-    expect(_dialogNumberText(tester, 'circular-cutout-position-y'), '20.00');
+    expect(_dialogNumberText(tester, 'circular-cutout-position-x'), '42');
+    expect(_dialogNumberText(tester, 'circular-cutout-position-y'), '20');
 
     await tester.tap(find.byKey(const ValueKey('circular-cutout-confirm')));
     await _pumpAsyncUi(tester);
@@ -636,6 +636,93 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('diameter'), findsOneWidget);
+  });
+
+  testWidgets('snap-seeded USB-C stores front wall surface position', (
+    tester,
+  ) async {
+    final fileService = _MemoryProjectFileService();
+    final saveFile = File('snap_usb_c.enclosure.json');
+    final dialog = _FakeProjectFileDialogService(saveFile: saveFile);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkspaceShell(
+          project: ProjectModel.initial(),
+          geometryService: const MockGeometryService(),
+          projectFileService: fileService,
+          projectFileDialogService: dialog,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Front wall').first);
+    await tester.pumpAndSettle();
+    await _tapFrontWallWorkplane(tester, const Offset(-48, 10));
+
+    final createUsbCFromSnap = find.byKey(
+      const ValueKey('active-snap-create-usb-c'),
+    );
+    expect(createUsbCFromSnap, findsOneWidget);
+
+    await tester.ensureVisible(createUsbCFromSnap);
+    await tester.pumpAndSettle();
+    await tester.tap(createUsbCFromSnap);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('usb-c-confirm')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('usb-c-confirm')));
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('usb_c_cutout_2'), findsWidgets);
+    expect(
+      find.byKey(const ValueKey('active-snap-target-panel')),
+      findsNothing,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('toolbar-command-${CommandIds.saveProject}')),
+    );
+    await _pumpAsyncUi(tester);
+
+    final saved = await fileService.readProject(saveFile);
+    final created = saved.features.singleWhere(
+      (feature) => feature.id == 'usb_c_cutout_2',
+    );
+
+    expect(created.targetSurface, 'main_enclosure.front_wall.outer');
+    expect(created.placement?['projectionMode'], 'surface_snap_target');
+    expect(created.placement?['surfacePosition'], [-48.0, 10.0]);
+    expect(created.placement?['surfaceAxes'], ['x', 'z']);
+
+    await tester.tap(find.text('main_enclosure').first);
+    await tester.pumpAndSettle();
+    expect(find.text('width'), findsNothing);
+
+    final canvasFinder = find.byKey(const ValueKey('mock-viewport-canvas'));
+    final canvasTopLeft = tester.getTopLeft(canvasFinder);
+    final canvasSize = tester.getSize(canvasFinder);
+    final layout = MockViewportLayout.fromSize(
+      canvasSize,
+      const ViewportState(),
+    );
+    const createdUsbC = MockViewportFeaturePreview(
+      semanticId: 'usb_c_cutout_2',
+      kind: MockViewportFeatureKind.usbC,
+      targetSurfaceId: 'main_enclosure.front_wall.outer',
+      width: 10.5,
+      height: 4.2,
+      cornerRadius: 1,
+      referenceHeight: 28,
+      position: Offset(-48, 10),
+    );
+
+    await tester.tapAt(canvasTopLeft + layout.featureRect(createdUsbC).center);
+    await tester.pumpAndSettle();
+
+    expect(find.text('width'), findsOneWidget);
   });
 
   testWidgets('snap-seeded placement dialog can align a component anchor', (
@@ -3110,6 +3197,34 @@ Future<void> _tapTopLidWorkplane(
       Offset(-30, 0),
       Offset(0, 17.5),
       Offset(0, -17.5),
+    ],
+  );
+
+  await tester.tapAt(
+    canvasTopLeft + layout.workplaneLocalToCanvas(workplane, localPosition),
+  );
+  await tester.pumpAndSettle();
+}
+
+Future<void> _tapFrontWallWorkplane(
+  WidgetTester tester,
+  Offset localPosition,
+) async {
+  final canvasFinder = find.byKey(const ValueKey('mock-viewport-canvas'));
+  final canvasTopLeft = tester.getTopLeft(canvasFinder);
+  final canvasSize = tester.getSize(canvasFinder);
+  final layout = MockViewportLayout.fromSize(canvasSize, const ViewportState());
+  const workplane = MockViewportWorkplaneOverlay(
+    semanticId: 'main_enclosure.front_wall.outer',
+    kind: MockViewportWorkplaneKind.frontWall,
+    width: 120,
+    height: 28,
+    snapPoints: [
+      Offset.zero,
+      Offset(30, 0),
+      Offset(-30, 0),
+      Offset(0, 7),
+      Offset(0, -7),
     ],
   );
 

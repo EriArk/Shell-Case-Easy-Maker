@@ -69,8 +69,10 @@ These edits update the selected `SemanticFeature.parameters` map and commit a
 semantic undo snapshot. They do not edit generated geometry directly. The mock
 viewport marker is rebuilt from semantic parameters after the project changes.
 When a selected surface workplane point is active, new `circular_cutout`
-and `rectangular_cutout` features start from that clicked face-local X/Y, but
-the snap target itself is not saved as project state.
+and `rectangular_cutout` features start from that clicked face-local X/Y. Manual
+front-wall `usb_c_cutout` features started from an active snap target store that
+clicked point in `placement.surfacePosition`, but the snap target itself is not
+saved as project state.
 The native OCCT worker consumes supported front-wall and top-lid
 `circular_cutout` and `rectangular_cutout` feature intents, including slot
 presets, as generated B-Rep subtraction tools; the editable source remains the

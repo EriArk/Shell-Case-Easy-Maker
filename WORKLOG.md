@@ -42,6 +42,103 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-07-01 - M111 USB-C snap-seeded placement
+
+### Goal
+Make manual front-wall USB-C cutouts start from a clicked face-local workplane
+point, while keeping the editable project semantic and not coupling Flutter to
+OCCT topology or generated mesh IDs.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/ui/shell/workspace_shell.dart`, `lib/viewport/viewport_controller.dart`,
+`test/widget_test.dart`, `docs/05_PROJECT_FILE_FORMAT.md`,
+`docs/06_FEATURE_SYSTEM.md`, `docs/26_TESTING_AND_QUALITY.md`,
+`docs/31_COMMANDS_AND_UNDO.md`, `docs/32_USABLE_SHELL.md`, and
+`docs/33_VIEWPORT_MVP.md`.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Reused active front-wall snap targets when launching the USB-C generator.
+  - Manual snap-seeded `usb_c_cutout` features now store
+    `placement.projectionMode=surface_snap_target`,
+    `placement.surfacePosition`, and `surfaceAxes=["x","z"]`.
+  - Added an active snap inspector `USB-C` action for supported front-wall snap
+    targets.
+  - Rounded snap coordinates before serialization so canvas conversion noise
+    does not leak into project JSON.
+- `lib/viewport/viewport_controller.dart`:
+  - Made mock feature preview positions optional.
+  - Kept the old USB-C slot marker layout for features without saved placement.
+  - Uses saved `surfacePosition` to place selectable USB-C markers when present.
+- `test/widget_test.dart`:
+  - Added snap-seeded USB-C coverage that creates the cutout, saves JSON, and
+    selects the marker at the saved face-local point.
+  - Added a front-wall workplane tap helper.
+- `ROADMAP.md`, `TASKS.md`, and docs:
+  - Added M111, marked the USB-C placement polish task complete for supported
+    front-wall placement, and documented JSON/command/viewport behavior.
+
+### Tests run
+- `flutter test test\widget_test.dart --plain-name "snap-seeded USB-C stores front wall surface position"`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "snap-seeded circular cutout starts from clicked surface point"`:
+  - Passed.
+- `flutter test test\viewport_controller_test.dart`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; dependency resolver reported newer incompatible package versions.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed after applying `dart format` to the touched Dart files.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed, 222 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and rebuilt `releases/latest/windows/shell_case_easy_maker.exe`.
+- `git diff --check`:
+  - Passed; Git still reports the existing CRLF normalization warning for
+    `ROADMAP.md`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Returned `True`.
+- `git status --short --ignored releases`:
+  - Confirmed `releases/` is ignored.
+
+### Validation
+- Geometry checked?
+  - Yes. The native-backed latest build completed; the worker already consumes
+    `placement.surfacePosition` for supported front-wall USB-C cutouts.
+- Serialization checked?
+  - Yes. The new widget test saves the project and asserts
+    `surface_snap_target`, `surfacePosition`, and `surfaceAxes`.
+- UI checked?
+  - Yes. Widget coverage opens the active snap USB-C action and selects the new
+    mock marker at the saved point.
+- Export checked?
+  - Indirectly through full test/build coverage; no export path changed.
+
+### Known issues
+- Issue: Native USB-C generation is still front-wall only.
+  - Severity: Medium.
+  - Next action: Extend the port generator/backend to additional semantic
+    surfaces only after the geometry rules for those surfaces are designed.
+- Issue: The active snap inspector can need scrolling in small test-sized
+  viewports.
+  - Severity: Low.
+  - Next action: Consider denser snap action layout if this becomes annoying in
+    normal windows.
+
+### Next step
+Continue with guided component placement workflow with viewport picking, or add
+more face-local placement polish for button/glass generators.
+
+### Notes for future Codex sessions
+Manual front-wall USB-C placement now has two paths: old features without
+`placement.surfacePosition` still use the fallback slot marker, while new
+snap-seeded features store exact semantic surface coordinates and render there.
+
+---
+
 ## 2026-07-01 - M110 Native switch-sourced button cutouts
 
 ### Goal

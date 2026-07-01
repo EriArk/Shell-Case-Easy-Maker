@@ -255,7 +255,7 @@ class MockViewportFeaturePreview {
     required this.width,
     required this.height,
     this.cornerRadius = 0,
-    this.position = Offset.zero,
+    this.position,
     this.referenceWidth = 120,
     this.referenceHeight = 70,
     this.slotIndex = 0,
@@ -267,7 +267,7 @@ class MockViewportFeaturePreview {
   final double width;
   final double height;
   final double cornerRadius;
-  final Offset position;
+  final Offset? position;
   final double referenceWidth;
   final double referenceHeight;
   final int slotIndex;
@@ -700,8 +700,22 @@ class MockViewportLayout {
   Rect _usbCFeatureRect(MockViewportFeaturePreview feature) {
     final widthScale = (feature.width / 10.5).clamp(0.55, 2.2).toDouble();
     final heightScale = (feature.height / 4.2).clamp(0.55, 2.2).toDouble();
+    final targetRect = feature.targetSurfaceId.contains('front_wall')
+        ? frontWallRect
+        : lidRect;
+    final safeWidth = feature.referenceWidth.clamp(1, 1000).toDouble();
+    final safeHeight = feature.referenceHeight.clamp(1, 1000).toDouble();
+    final position = feature.position;
+    final center = position == null
+        ? portRect.center.translate(0, -feature.slotIndex * 18 * zoom)
+        : Offset(
+            targetRect.center.dx + (position.dx / safeWidth) * targetRect.width,
+            targetRect.center.dy -
+                (position.dy / safeHeight) * targetRect.height,
+          );
+
     return Rect.fromCenter(
-      center: portRect.center.translate(0, -feature.slotIndex * 18 * zoom),
+      center: center,
       width: portRect.width * widthScale,
       height: portRect.height * heightScale,
     );
@@ -735,11 +749,10 @@ class MockViewportLayout {
     final diameter = (feature.width / safeWidth * targetRect.width)
         .clamp(8 * zoom, targetRect.shortestSide * 0.72)
         .toDouble();
+    final position = feature.position ?? Offset.zero;
     final center = Offset(
-      targetRect.center.dx +
-          (feature.position.dx / safeWidth) * targetRect.width,
-      targetRect.center.dy -
-          (feature.position.dy / safeHeight) * targetRect.height,
+      targetRect.center.dx + (position.dx / safeWidth) * targetRect.width,
+      targetRect.center.dy - (position.dy / safeHeight) * targetRect.height,
     ).translate(feature.slotIndex * 8 * zoom, -feature.slotIndex * 6 * zoom);
 
     return Rect.fromCircle(center: center, radius: diameter / 2);
@@ -757,11 +770,10 @@ class MockViewportLayout {
     final height = (feature.height / safeHeight * targetRect.height)
         .clamp(8 * zoom, targetRect.height * 0.72)
         .toDouble();
+    final position = feature.position ?? Offset.zero;
     final center = Offset(
-      targetRect.center.dx +
-          (feature.position.dx / safeWidth) * targetRect.width,
-      targetRect.center.dy -
-          (feature.position.dy / safeHeight) * targetRect.height,
+      targetRect.center.dx + (position.dx / safeWidth) * targetRect.width,
+      targetRect.center.dy - (position.dy / safeHeight) * targetRect.height,
     ).translate(feature.slotIndex * 8 * zoom, -feature.slotIndex * 6 * zoom);
 
     return Rect.fromCenter(center: center, width: width, height: height);

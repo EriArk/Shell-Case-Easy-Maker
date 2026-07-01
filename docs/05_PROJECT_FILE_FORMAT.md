@@ -115,7 +115,9 @@ Current behavior:
 - the `Компоненты` rail command can append semantic `ComponentPlacement`
   entries from existing component templates,
 - the `Порты` rail command can append semantic `usb_c_cutout` features targeted
-  at a selected semantic surface,
+  at a selected semantic surface; when launched from a front-wall snap target,
+  manual USB-C features also store `placement.surfacePosition`,
+  `placement.surfaceAxes`, and `projectionMode=surface_snap_target`,
 - the `Кнопки` rail command can append semantic `button_group` feature groups
   with editable pattern and item prototype data,
 - the `Стекло` rail command can append semantic `glass_recess` features targeted

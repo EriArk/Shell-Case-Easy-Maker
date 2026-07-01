@@ -120,16 +120,17 @@ stores a transient active snap target in shell state, highlights the dot or
 picked point, and updates the status hint. Starting `Компоненты` from that state
 opens the placement dialog with a snap label and seeded X/Y/Z plus mounting
 side. Starting `Отверстия` from a surface snap target opens the circular cutout
-dialog with the picked face-local X/Y. Normal selection, undo, redo, and
-project edits clear the transient snap target so stale UI state is not saved or
-replayed.
+dialog with the picked face-local X/Y. Starting `Порты` from a supported
+front-wall snap target opens the USB-C dialog and stores that face-local point
+as semantic placement metadata. Normal selection, undo, redo, and project edits
+clear the transient snap target so stale UI state is not saved or replayed.
 
 When an active snap target exists, the inspector shows a compact `Точка
 привязки` section with the snap label, seeded project position, mounting side,
 a direct `Разместить компонент` action, a direct `Отверстие` action for surface
-targets, and a clear action. These actions still open the normal semantic
-dialogs; confirming them creates regular semantic project objects, not saved
-snap references.
+targets, a direct `USB-C` action for supported front-wall snap targets, and a
+clear action. These actions still open the normal semantic dialogs; confirming
+them creates regular semantic project objects, not saved snap references.
 
 The viewport mirrors the same transient state with a translucent component
 footprint preview. It uses the first component template's board outline and the
@@ -226,6 +227,12 @@ feature, refreshes the mock preview, and creates one undo history entry. The
 mock viewport draws a schematic USB-C marker; clicking it selects the semantic
 feature.
 
+If a front-wall snap target is active when `Порты` starts, the new manual
+`usb_c_cutout` stores `placement.projectionMode=surface_snap_target`,
+`placement.surfacePosition`, and `surfaceAxes=["x","z"]`. The mock marker uses
+that saved face-local position, while features without saved placement keep the
+older slot-style marker fallback.
+
 `Порты` is also available when a selected component placement's template has a
 USB-C feature with `cutout` metadata. In that context the same USB-C dialog is
 pre-filled from the component template, targets the first semantic enclosure
@@ -301,10 +308,10 @@ disabled until their semantic command behavior is implemented and tested.
   viewport-confirm workflow. The active snap inspector action is a shortcut into
   the same dialog-based flow, and the footprint preview is schematic with
   first-pass semantic fit feedback only.
-- USB-C placement still uses dialog values and target surface selection rather
-  than face-local picking/snapping. Component-sourced USB-C cutouts do store
-  first-pass projected surface coordinates for future geometry. The visible
-  marker is a mock viewport affordance.
+- USB-C placement supports first-pass front-wall face-local picking/snapping
+  from active snap targets. Other USB-C target surfaces still depend on future
+  geometry support. Component-sourced USB-C cutouts also store projected
+  surface coordinates. The visible marker is a mock viewport affordance.
 - Button group placement still uses centered dialog defaults rather than
   face-local picking/snapping. Component-sourced button groups do store
   projected switch centers for mock marker layout and supported native top-lid

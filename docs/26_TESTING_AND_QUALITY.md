@@ -71,6 +71,9 @@ Use deterministic test fixtures.
   committed inspector state.
 - Snap-seeded component placement can align semantic component anchors to the
   selected snap point without saving anchor UI state.
+- Snap-seeded manual USB-C creation stores front-wall face-local
+  `surfacePosition` metadata and keeps the viewport marker selectable at that
+  saved point.
 - Component-driven USB-C cutout generation preserves source placement/template
   data and projected surface anchors in saved project JSON.
 - Component-driven button group generation preserves source switch centers in

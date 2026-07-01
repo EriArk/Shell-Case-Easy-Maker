@@ -129,6 +129,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M108 - Slot Cutout Preset
 - [x] M109 - Slot Inspector Semantics
 - [x] M110 - Native Switch-Sourced Button Cutouts
+- [x] M111 - USB-C Snap-Seeded Placement
 
 ---
 
@@ -5178,3 +5179,58 @@ semantic `button_group`.
 - Confirm `button_group_1` appears and can still be selected as one group.
 - In native preview, the lid should show generated button holes/rings aligned
   to the board switches.
+
+---
+
+## M111 - USB-C Snap-Seeded Placement
+
+### Goal
+Let manual front-wall USB-C cutouts start from the clicked face-local workplane
+point, while keeping the editable project semantic and leaving generated OCCT
+geometry behind `GeometryService`.
+
+### Tasks
+- [x] Reuse active front-wall snap targets when launching `Порты`.
+- [x] Store manual snap-seeded USB-C placement as
+      `placement.surfacePosition` plus `projectionMode=surface_snap_target`.
+- [x] Add a compact `USB-C` action to the active snap inspector section for
+      supported front-wall snap targets.
+- [x] Make mock USB-C feature markers use saved `surfacePosition` when present,
+      with the old slot marker layout as fallback.
+- [x] Round snap coordinates before serialization so canvas conversion noise
+      does not leak into project JSON.
+- [x] Add widget coverage for snap-seeded USB-C creation, saved JSON, and
+      marker hit-test selection.
+- [x] Update docs/tasks/worklog.
+
+### Done Criteria
+- Clicking a front-wall workplane point and starting `Порты` creates a normal
+  semantic `usb_c_cutout`.
+- Saved JSON for that feature includes `placement.surfacePosition` and
+  `surfaceAxes=["x","z"]`.
+- The active snap target is transient and clears after commit.
+- The mock USB-C marker is selectable at the saved face-local point.
+- Existing component-sourced USB-C and generic cutout snap workflows still pass.
+
+### Tests
+- `flutter test test\widget_test.dart --plain-name "snap-seeded USB-C stores front wall surface position"`
+- `flutter test test\widget_test.dart --plain-name "snap-seeded circular cutout starts from clicked surface point"`
+- `flutter test test\viewport_controller_test.dart`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Select `Front wall`.
+- Click a free point on the front-wall workplane, away from the existing USB-C
+  marker.
+- In the snap section, click `USB-C`, confirm the dialog, and select the new
+  `usb_c_cutout_2`.
+- The new marker should appear near the clicked front-wall point and be
+  selectable there.
+- Save/reopen later if desired; the cutout should keep its saved face-local
+  position.

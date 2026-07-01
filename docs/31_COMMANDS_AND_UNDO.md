@@ -126,11 +126,15 @@ The shell also mirrors the dialog candidate into a transient viewport footprint;
 that candidate is cleared on cancel/confirm and does not enter undo history.
 
 The first port rail command is `port.add_usb_c`. From a semantic surface it
-creates a manual `usb_c_cutout` `SemanticFeature` targeted at that surface. From
-a selected component placement with a USB-C template feature, it pre-fills the
-same dialog from the component feature's cutout metadata and records source
-placement/template/feature IDs plus projected world/surface coordinates on the
-generated cutout. Both paths commit one undoable project snapshot.
+creates a manual `usb_c_cutout` `SemanticFeature` targeted at that surface. If
+the surface command starts from a supported front-wall active snap target, the
+feature records `placement.projectionMode=surface_snap_target`,
+`placement.surfacePosition`, and `surfaceAxes=["x","z"]`; the snap target
+itself remains transient shell state. From a selected component placement with
+a USB-C template feature, it pre-fills the same dialog from the component
+feature's cutout metadata and records source placement/template/feature IDs plus
+projected world/surface coordinates on the generated cutout. Both paths commit
+one undoable project snapshot.
 
 The next rail command is `button.create_group`. From a semantic surface it
 creates a manual `button_group` `FeatureGroup` with editable pattern data. From
