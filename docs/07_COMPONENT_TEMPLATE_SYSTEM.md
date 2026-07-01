@@ -150,6 +150,10 @@ The `Кнопки` generator can now create a first-pass semantic `button_group`
 template switch features. Switch centers are saved in
 `FeatureGroup.pattern.switchPositions`, source placement/template IDs are kept,
 and repeated buttons remain one editable group instead of being flattened.
+For supported top-lid targets, the native OCCT preview consumes those saved
+switch centers through the regular `button_group` generator and produces
+disposable holes/rings/plunger preview geometry while leaving the semantic group
+editable.
 
 Placed component features now also pass through
 `ComponentFeatureSurfaceProjector` when component-sourced ports or button

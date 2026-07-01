@@ -128,6 +128,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M107 - Native Rectangular Cutout Geometry
 - [x] M108 - Slot Cutout Preset
 - [x] M109 - Slot Inspector Semantics
+- [x] M110 - Native Switch-Sourced Button Cutouts
 
 ---
 
@@ -5131,3 +5132,49 @@ rectangle.
 - Change `Длина` and `Ширина`.
 - Save/reopen later if desired; the slot should stay pill-shaped in the native
   preview.
+
+---
+
+## M110 - Native Switch-Sourced Button Cutouts
+
+### Goal
+Verify and document the full pipeline from component switch centers to generated
+native top-lid button cutouts, while keeping the editable project as one
+semantic `button_group`.
+
+### Tasks
+- [x] Add a native OCCT regression fixture with a component-sourced
+      `button_group` using `pattern.switchPositions`.
+- [x] Verify the native worker consumes those switch positions as top-lid
+      button holes, rings, caps, stems, guides, and travel stops.
+- [x] Assert the preview maps generated faces back to the semantic group id,
+      not to raw mesh or topology ids.
+- [x] Keep the operation as generated B-Rep output behind `GeometryService`;
+      no generated holes are stored as editable project state.
+- [x] Update docs/tasks/worklog.
+
+### Done Criteria
+- `component_switch_buttons` remains one `FeatureGroup` with
+  `layout=from_component_switches`.
+- The native preview reports one generated-lid button group and four generated
+  top-lid button cutouts from saved switch centers.
+- The same native metrics report four rings, caps, stems, guide sleeves, and
+  travel stops for the plunger-style group.
+- Native output contains no `topologyId` or `triangleId` editable state.
+
+### Tests
+- `flutter test test\native_occt_geometry_regression_test.dart --plain-name "native OCCT preview cuts component switch-sourced top lid buttons" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Select `Custom Button Board` / `button_board_placement`.
+- Click `Кнопки` and create the component-sourced group.
+- Confirm `button_group_1` appears and can still be selected as one group.
+- In native preview, the lid should show generated button holes/rings aligned
+  to the board switches.

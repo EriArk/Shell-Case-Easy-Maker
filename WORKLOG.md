@@ -42,6 +42,96 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-07-01 - M110 Native switch-sourced button cutouts
+
+### Goal
+Verify the full bridge from component switch centers to native top-lid button
+geometry, without flattening the editable `button_group` into independent holes
+or exposing generated B-Rep/mesh/topology IDs to Flutter.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`test/native_occt_geometry_regression_test.dart`,
+`test/support/native_occt_geometry_fixture.dart`,
+`lib/geometry/geometry_protocol.dart`, `lib/geometry/geometry_operation_plan.dart`,
+`docs/07_COMPONENT_TEMPLATE_SYSTEM.md`, `docs/10_ENCLOSURE_AUTO_GENERATION.md`,
+`docs/16_BUTTON_AND_PLUNGER_SYSTEM.md`, `docs/17_SWITCH_MAPPING_SYSTEM.md`,
+`docs/32_USABLE_SHELL.md`, and `docs/33_COMPONENT_FEATURE_PROJECTION.md`.
+
+### Changes made
+- `test/support/native_occt_geometry_fixture.dart`:
+  - Added `nativeOcctSwitchSourcedButtonProject()`, a deterministic project
+    fixture with one component-sourced `button_group`.
+  - The group stores four projected switch centers in
+    `FeatureGroup.pattern.switchPositions`.
+- `test/native_occt_geometry_regression_test.dart`:
+  - Added a native OCCT regression test proving the worker consumes the
+    switch-sourced group as generated top-lid button cutouts.
+  - Verifies four generated lid holes, rings, caps, stems, guide sleeves, and
+    travel-stop collars.
+  - Verifies the preview maps generated geometry back to the semantic group id
+    and does not expose topology or triangle IDs as editable state.
+- `ROADMAP.md` and `TASKS.md`:
+  - Added M110 and marked first-pass switch-center/top-lid cutout generation
+    complete.
+- Docs:
+  - Updated component projection, switch mapping, component template, enclosure
+    generation, button/plunger, and usable shell docs so component-sourced
+    button groups are described as native-backed for supported top-lid targets.
+
+### Tests run
+- `flutter test test\native_occt_geometry_regression_test.dart --plain-name "native OCCT preview cuts component switch-sourced top lid buttons" --reporter compact`:
+  - Passed.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter pub get`:
+  - Passed.
+- `flutter analyze`:
+  - Passed, no issues found.
+- `flutter test --reporter compact`:
+  - Passed, 221 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and copied the latest bundle to `releases/latest/windows`.
+- `git diff --check`:
+  - Passed; PowerShell reported only the existing CRLF normalization warning for
+    `ROADMAP.md`.
+
+### Validation
+- Geometry checked?
+  - Native regression checks generated-lid button group metrics and semantic
+    surface mapping for `component_switch_buttons`.
+- Serialization checked?
+  - The fixture stores switch centers as semantic `FeatureGroup` pattern data;
+    no generated geometry is serialized.
+- UI checked?
+  - Existing widget coverage for component button command still runs in the full
+    suite.
+- Export checked?
+  - Latest Windows build completed with the native OCCT worker bundled.
+
+### Known issues
+- Issue: Component-sourced button generation is still first-pass top-lid/front
+  wall circular button geometry.
+  - Severity: Medium.
+  - Next action: Add richer placement/orientation controls before supporting
+    more button shapes or side-wall switch workflows.
+- Issue: The visual interaction for button placement is still dialog/selection
+  based rather than direct drag handles on the native preview.
+  - Severity: Medium.
+  - Next action: Improve face-local picking/snapping and semantic handles.
+
+### Next step
+Continue with face-local cutout placement polish, or start a small access
+cutout preset slice now that generic slots and switch-sourced buttons are
+stable.
+
+### Notes for future Codex sessions
+`FeatureGroup.pattern.switchPositions` is now part of a tested native-backed
+path for supported top-lid buttons. Keep it semantic and grouped; do not expand
+it into independent editable hole features.
+
+---
+
 ## 2026-07-01 - M109 Slot inspector semantics
 
 ### Goal

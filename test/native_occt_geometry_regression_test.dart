@@ -254,4 +254,54 @@ void main() {
         : 'Native OCCT worker executable not built. Run tools/build_occt_worker_occt.ps1 -AllowVcpkgInstall.',
     timeout: const Timeout(Duration(seconds: 90)),
   );
+
+  test(
+    'native OCCT preview cuts component switch-sourced top lid buttons',
+    () async {
+      final client = nativeOcctWorkerClient(repoRoot);
+      final response = await client.buildGeometry(
+        GeometryRequest.previewMesh(
+          nativeOcctSwitchSourcedButtonProject(),
+          requestId: 'native_occt_switch_sourced_buttons',
+        ),
+      );
+
+      expect(response.requestId, 'native_occt_switch_sourced_buttons');
+      expect(response.status, GeometryResponseStatus.ok);
+      expect(response.backend, 'occt_worker_native_occt');
+      expect(response.hasErrors, isFalse);
+
+      final mesh = response.previewMesh;
+      expect(mesh, isNotNull);
+      expect(mesh!.units, 'mm');
+      expect(mesh.vertexCount, greaterThan(0));
+      expect(mesh.triangleCount, greaterThan(0));
+      expect(nativeOcctTriangleRangesAreValid(mesh), isTrue);
+
+      final surfaceIds = mesh.surfaces
+          .map((surface) => surface.semanticId)
+          .toSet();
+      expect(surfaceIds, contains('component_switch_buttons'));
+
+      final metrics = response.metrics;
+      expect(metrics['featureIntentCount'], 2);
+      expect(metrics['nativeIgnoredFeatureIntentCount'], 0);
+      expect(metrics['nativeUsbCCutoutCount'], 1);
+      expect(metrics['nativeGeneratedLidButtonGroupCount'], 1);
+      expect(metrics['nativeGeneratedLidButtonCutoutCount'], 4);
+      expect(metrics['nativeGeneratedLidButtonRingCount'], 4);
+      expect(metrics['nativeGeneratedLidButtonCapCount'], 4);
+      expect(metrics['nativeGeneratedLidButtonStemCount'], 4);
+      expect(metrics['nativeGeneratedLidButtonGuideCount'], 4);
+      expect(metrics['nativeGeneratedLidButtonTravelStopCount'], 4);
+      expect(metrics['nativeButtonGroupCount'], 0);
+      expect(metrics['nativeButtonCutoutCount'], 0);
+      expect(metrics, isNot(contains('topologyId')));
+      expect(metrics, isNot(contains('triangleId')));
+    },
+    skip: hasNativeWorker
+        ? false
+        : 'Native OCCT worker executable not built. Run tools/build_occt_worker_occt.ps1 -AllowVcpkgInstall.',
+    timeout: const Timeout(Duration(seconds: 90)),
+  );
 }

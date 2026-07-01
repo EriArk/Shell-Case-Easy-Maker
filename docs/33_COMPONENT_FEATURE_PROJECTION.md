@@ -58,8 +58,11 @@ semantic source of truth.
 `GeometryOperationPlanner` then maps these intents into backend operation tasks.
 Projected USB-C anchors become `cutout.usb_c` operation data, while projected
 button-group items become `cutout.button` operation data. The native OCCT worker
-now consumes the first front-wall USB-C intent as real generated B-Rep; button
-group items are still planning data for a later cutout/plunger slice.
+consumes supported USB-C, front-wall button-group, and top-lid button-group
+intents as generated B-Rep. Component-sourced switch groups use the same
+top-lid button path: saved `switchPositions` become generated holes, rings,
+caps, stems, guide sleeves, and travel stops while the project keeps one
+editable semantic group.
 
 ## USB-C Cutout Metadata
 
@@ -111,5 +114,5 @@ without flattening the semantic group.
 - Add reachability warnings and richer face-local orientation validation.
 - Store projected cutout orientation when side-wall rotations become more
   detailed.
-- Generate real button cutouts/plungers and mount geometry from projected
-  anchors in the OCCT worker.
+- Extend projected button generation beyond the current supported top/front
+  surfaces and first-pass circular plunger style.

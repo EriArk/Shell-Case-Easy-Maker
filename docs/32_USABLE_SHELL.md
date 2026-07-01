@@ -265,6 +265,9 @@ IDs. The saved switch positions are projected to the target surface, while each
 entry also keeps the original template-local switch center. The result is still
 one editable `FeatureGroup`; switching the layout away from
 `from_component_switches` makes the group behave like a normal manual pattern.
+For supported top-lid targets, native OCCT consumes those saved switch centers
+through the regular generated button path, producing disposable holes/rings and
+plunger preview geometry while keeping the group semantic.
 
 Clicking `Стекло` is enabled only after selecting a semantic surface. The
 command opens a compact glass recess dialog and appends a semantic
@@ -304,7 +307,8 @@ disabled until their semantic command behavior is implemented and tested.
   marker is a mock viewport affordance.
 - Button group placement still uses centered dialog defaults rather than
   face-local picking/snapping. Component-sourced button groups do store
-  projected switch centers for future geometry and mock marker layout.
+  projected switch centers for mock marker layout and supported native top-lid
+  button generation.
 - Glass recess placement still uses selected surface and dialog dimensions
   rather than face-local picking/snapping. The visible marker is a mock
   viewport affordance.

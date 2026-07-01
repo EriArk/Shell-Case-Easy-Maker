@@ -298,6 +298,88 @@ ProjectModel nativeOcctRectangularCutoutProject() {
   );
 }
 
+ProjectModel nativeOcctSwitchSourcedButtonProject() {
+  final initial = ProjectModel.initial();
+
+  return initial.copyWith(
+    features: [
+      initial.features.singleWhere((feature) => feature.id == 'front_usb_c'),
+    ],
+    featureGroups: const [
+      FeatureGroup(
+        id: 'component_switch_buttons',
+        type: 'button_group',
+        targetSurface: 'main_enclosure.top_lid.outer',
+        pattern: {
+          'layout': 'from_component_switches',
+          'count': 4,
+          'sourcePlacementId': 'button_board_placement',
+          'sourceTemplateId': 'custom_button_board_v1',
+          'switchPositions': [
+            {
+              'id': 'sw_a',
+              'position': [7.0, 0.0],
+              'componentFeaturePosition': [7.0, 0.0, 0.0],
+              'rotatedOffset': [7.0, 0.0, 0.0],
+              'worldPosition': [7.0, 0.0, 4.0],
+              'surfaceAxes': ['x', 'y'],
+              'direction': 'top',
+            },
+            {
+              'id': 'sw_b',
+              'position': [0.0, -7.0],
+              'componentFeaturePosition': [0.0, -7.0, 0.0],
+              'rotatedOffset': [0.0, -7.0, 0.0],
+              'worldPosition': [0.0, -7.0, 4.0],
+              'surfaceAxes': ['x', 'y'],
+              'direction': 'top',
+            },
+            {
+              'id': 'sw_x',
+              'position': [0.0, 7.0],
+              'componentFeaturePosition': [0.0, 7.0, 0.0],
+              'rotatedOffset': [0.0, 7.0, 0.0],
+              'worldPosition': [0.0, 7.0, 4.0],
+              'surfaceAxes': ['x', 'y'],
+              'direction': 'top',
+            },
+            {
+              'id': 'sw_y',
+              'position': [-7.0, 0.0],
+              'componentFeaturePosition': [-7.0, 0.0, 0.0],
+              'rotatedOffset': [-7.0, 0.0, 0.0],
+              'worldPosition': [-7.0, 0.0, 4.0],
+              'surfaceAxes': ['x', 'y'],
+              'direction': 'top',
+            },
+          ],
+        },
+        itemPrototype: {
+          'type': 'button',
+          'shape': 'circle',
+          'diameter': 8.0,
+          'ringWidth': 1.2,
+          'ringProtrusion': 0.45,
+          'capDiameter': 7.4,
+          'capHeight': 1.2,
+          'stemDiameter': 3.0,
+          'stemDepth': 2.8,
+          'travel': 0.8,
+          'switchClearance': 0.3,
+          'guideClearance': 0.25,
+          'mode': 'plunger',
+        },
+        placement: {
+          'anchor': 'component_switch_centers',
+          'componentPlacementId': 'button_board_placement',
+          'componentPosition': [0.0, 0.0, 4.0],
+          'componentRotation': [0.0, 0.0, 0.0],
+        },
+      ),
+    ],
+  );
+}
+
 int nativeOcctMappedTriangleCount(PreviewMesh mesh) {
   return mesh.surfaces
       .expand((surface) => surface.triangleRanges)

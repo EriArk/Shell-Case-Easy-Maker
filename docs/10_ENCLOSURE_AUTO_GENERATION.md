@@ -78,7 +78,9 @@ For upward switches:
 Component-sourced button groups use the same projector. Saved
 `FeatureGroup.pattern.switchPositions[*].position` values are target-surface
 positions, while `componentFeaturePosition` keeps the original template-local
-switch center.
+switch center. Supported top-lid switch-sourced groups are consumed by the
+native button generator as generated holes, rings, caps, stems, guide sleeves,
+and travel stops, while remaining one editable semantic group.
 
 ## Supports/ribs
 

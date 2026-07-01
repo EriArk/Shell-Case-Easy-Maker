@@ -234,7 +234,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] First-pass projected component feature anchor validation.
 - [x] Feed semantic feature/group intents into geometry requests.
 - [x] Build request-time operation plan from feature/group intents.
-- [ ] Generate top/lid cutouts from switches/buttons.
+- [x] Generate top/lid cutouts from switches/buttons.
 - [x] First-pass native top-lid button group cutouts.
 - [x] First-pass semantic button group from component switch centers.
 - [x] First-pass keepout warnings.
@@ -314,7 +314,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 ## Phase 12 — Buttons/plungers and switch mapping
 
 - [ ] Switch center overlay.
-- [ ] Generate holes from switch centers.
+- [x] Generate holes from switch centers.
 - [x] First-pass native top-lid button holes from semantic button groups.
 - [x] First-pass native button rings from semantic button groups.
 - [x] First-pass button ring width/protrusion inspector controls.

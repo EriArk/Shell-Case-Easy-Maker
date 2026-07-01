@@ -38,7 +38,8 @@ first-pass plunger-style preview caps and stems for groups whose
 `itemPrototype.mode` is `plunger`. Front-wall groups produce a through-hole
 cut, a fused annular ring on the outside face, and separate disposable cap/stem
 preview solids with first-pass guide sleeves and travel-stop collars. Top-lid
-groups do the same against the generated lid preview plate.
+groups do the same against the generated lid preview plate, including groups
+created from component switch centers via `layout: from_component_switches`.
 
 The editable project still stores one `button_group`; ring, cap, and stem
 solids are disposable generated geometry, and preview faces for holes/rings

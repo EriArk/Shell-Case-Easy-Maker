@@ -41,12 +41,17 @@ Switch center has:
 Selecting a component placement and running `Кнопки` creates one semantic
 `button_group` from template switch centers. The switch centers are stored in
 `FeatureGroup.pattern.switchPositions`, and the group remains editable as a
-pattern rather than becoming independent holes or generated geometry.
+pattern rather than becoming independent editable holes.
 
 `ComponentFeatureSurfaceProjector` now applies component placement `rotationZ`
 and stores projected `position`, `worldPosition`, `surfaceAxes`, and original
 `componentFeaturePosition` for each switch entry. The projected `position` is
 what the pattern layout engine uses for the current mock marker layout.
+
+The native OCCT worker consumes supported top-lid switch-sourced button groups
+through the normal `button_group` path. Saved switch centers generate disposable
+button holes, rings, caps, stems, guide sleeves, and travel stops in the native
+preview; the editable project still stores one semantic group.
 
 ## Validation
 
