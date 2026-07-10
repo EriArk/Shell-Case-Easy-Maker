@@ -10449,3 +10449,99 @@ native semantic coverage becomes strong enough.
 Point-only active snap must remain transient UI state. Do not store it in
 `ProjectModel`, and do not replace face-local semantic coordinates with raw
 preview triangle IDs.
+
+---
+
+## M115 - Collapsible Workspace Side Panels
+
+### Goal
+Give the viewport more inspection room by letting the project browser and
+contextual inspector collapse into narrow icon strips without touching semantic
+project state, geometry, undo/redo, or save/load.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/ui/shell/workspace_shell.dart`, `test/widget_test.dart`,
+`docs/26_TESTING_AND_QUALITY.md`, and `docs/32_USABLE_SHELL.md`.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added transient shell state for collapsed project browser and inspector.
+  - Added icon-only collapsed strips with restore buttons.
+  - Added compact collapse controls to the project browser and inspector.
+  - Kept the command rail visible and left selection, commands, project data,
+    undo/redo, and geometry requests unchanged.
+  - Moved the project-browser collapse control into the browser header after
+    full tests caught that a separate extra row pushed feature rows under the
+    test viewport status bar.
+- `test/widget_test.dart`:
+  - Added coverage that both side panels collapse and expand again.
+- `ROADMAP.md`, `TASKS.md`, and docs:
+  - Recorded the M115 behavior, test surface, and manual poke checklist.
+
+### Tests run
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test test\widget_test.dart --plain-name "workspace side panels can collapse and expand" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "workspace shell" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "viewport" --reporter compact`:
+  - Passed.
+- First `flutter test --reporter compact`:
+  - Failed after the new project-browser collapse row pushed feature rows too
+    low in the widget-test viewport.
+  - Fixed by placing the collapse control in the browser header.
+- Targeted regression checks after the layout fix:
+  - `native preview keeps semantic overlays muted until selected`: Passed.
+  - `native preview hides mapped schematic feature overlays`: Passed.
+  - `selected feature highlights mapped preview mesh range`: Passed.
+  - `selecting a feature updates contextual inspector`: Passed.
+  - `selected USB-C feature inspector edits parameters through undo`: Passed.
+- Final `flutter test --reporter compact`:
+  - Passed, 230 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git status --short --ignored releases`:
+  - Passed; `releases/` is ignored.
+- `git diff --check`:
+  - Passed with only the existing ROADMAP CRLF warning.
+
+### Validation
+- Geometry checked?
+  - No geometry changes. Collapse state is shell-only and never leaves UI
+    layout.
+- Serialization checked?
+  - No project serialization changes.
+- UI checked?
+  - Widget tests verify collapse/expand controls, and full widget coverage
+    verifies existing selection, inspector, native preview, and command flows.
+- Export checked?
+  - Latest Windows bundle rebuilt; export behavior unchanged.
+
+### Known issues
+- Issue: Collapsed state is not persisted between app launches.
+  - Severity: Expected.
+  - Next action: keep it transient until user preferences exist.
+- Issue: The viewport still uses the current native preview and hit-target
+  model from earlier chunks.
+  - Severity: Expected.
+  - Next action: continue toward generated-face picking and richer viewport
+    interaction.
+
+### Next step
+Commit and push M115, then continue with the next safe interaction/viewport
+chunk from the roadmap.
+
+### Notes for future Codex sessions
+Panel collapse is workspace UI state only. Do not store it in `ProjectModel`,
+do not add undo transactions for it, and keep command rail access available
+while panels are collapsed.

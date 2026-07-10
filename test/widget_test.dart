@@ -26,6 +26,72 @@ void main() {
     expect(find.text('120 x 70 x 28 mm'), findsOneWidget);
   });
 
+  testWidgets('workspace side panels can collapse and expand', (tester) async {
+    await tester.pumpWidget(const CaseMakerApp());
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('project-panel-collapsed')), findsNothing);
+    expect(
+      find.byKey(const ValueKey('inspector-panel-collapsed')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('project-panel-collapse')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('inspector-panel-collapse')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('project-panel-collapse')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('project-panel-collapsed')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('project-panel-expand')), findsOneWidget);
+    expect(find.byKey(const ValueKey('project-panel-collapse')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('project-panel-expand')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('project-panel-collapsed')), findsNothing);
+    expect(
+      find.byKey(const ValueKey('project-panel-collapse')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('inspector-panel-collapse')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('inspector-panel-collapsed')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('inspector-panel-expand')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('inspector-panel-collapse')),
+      findsNothing,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('inspector-panel-expand')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('inspector-panel-collapsed')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('inspector-panel-collapse')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('semantic validation warnings are visible in status bar', (
     tester,
   ) async {

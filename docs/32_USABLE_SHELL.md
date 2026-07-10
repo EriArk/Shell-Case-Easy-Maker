@@ -102,6 +102,12 @@ highlight.
 Hidden component placements stay visible in the browser with a muted visibility
 icon so they can be selected and shown again from the inspector.
 
+The project browser and contextual inspector can now collapse into narrow
+icon-only side strips. This gives the viewport more room during manual model
+inspection without changing selection, commands, undo/redo, saved project JSON,
+or geometry requests. The left command rail stays visible while either side
+panel is collapsed.
+
 ## Local Workplane Overlay
 
 The mock viewport now shows a transient local workplane overlay for selected

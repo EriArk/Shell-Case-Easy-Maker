@@ -133,6 +133,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M112 - Snap-Seeded Glass and Button Placement
 - [x] M113 - Native-Mapped Overlay De-Clutter
 - [x] M114 - Native Active Snap Point De-Clutter
+- [x] M115 - Collapsible Workspace Side Panels
 
 ---
 
@@ -5404,3 +5405,48 @@ rectangle and grid.
   point/crosshair instead of a huge translucent lid rectangle.
 - Use `Стекло`, `Кнопки`, or `Отверстие` from that active point and confirm the
   action still works.
+
+---
+
+## M115 - Collapsible Workspace Side Panels
+
+### Goal
+Give the viewport more room during manual inspection by letting the project
+browser and contextual inspector collapse to narrow icon strips without changing
+semantic project state.
+
+### Tasks
+- [x] Add transient shell state for project browser and inspector collapse.
+- [x] Add compact icon controls for collapsing expanded panels.
+- [x] Add narrow icon strips for restoring collapsed panels.
+- [x] Keep the left command rail visible in both states.
+- [x] Keep collapse state out of `ProjectModel`, undo/redo, save/load, and
+      geometry requests.
+- [x] Add widget coverage for collapse/expand controls.
+- [x] Update docs/tasks/worklog.
+
+### Done Criteria
+- Project browser can collapse and expand from the shell.
+- Contextual inspector can collapse and expand from the shell.
+- Collapsed panels still leave an obvious icon affordance to restore them.
+- Existing selection, command, and viewport behavior stays unchanged.
+
+### Tests
+- `flutter test test\widget_test.dart --plain-name "workspace side panels can collapse and expand" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "workspace shell" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "viewport" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Click the small collapse icon at the top of the project browser.
+- Confirm the browser becomes a narrow icon strip and the viewport gets more
+  horizontal space.
+- Restore the project browser from the strip.
+- Collapse and restore the right inspector the same way.
+- Select a model part before/after collapsing and confirm selection still works.

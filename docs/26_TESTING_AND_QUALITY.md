@@ -69,6 +69,8 @@ Use deterministic test fixtures.
   commit normal semantic placements.
 - Component placement dialog rotation updates candidate fit feedback and
   committed inspector state.
+- Workspace side panels collapse and expand without changing semantic project
+  state or hiding the command rail.
 - Snap-seeded component placement can align semantic component anchors to the
   selected snap point without saving anchor UI state.
 - Snap-seeded manual USB-C creation stores front-wall face-local

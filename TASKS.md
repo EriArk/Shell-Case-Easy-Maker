@@ -44,7 +44,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Right contextual inspector.
 - [x] Bottom compact hint/status panel.
 - [x] Top minimal toolbar.
-- [ ] Collapsible/sliding panels.
+- [x] Collapsible/sliding panels.
 - [x] Theme system foundation.
 - [ ] Context popover foundation.
 - [ ] Command palette foundation.

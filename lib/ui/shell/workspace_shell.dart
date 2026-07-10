@@ -56,6 +56,8 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
   String? _fileStatusMessage;
   late String _lastPersistedProjectFingerprint;
   bool _fileBusy = false;
+  bool _projectBrowserCollapsed = false;
+  bool _inspectorCollapsed = false;
 
   ProjectModel get _project => _undoHistory.current;
   bool get _hasUnsavedChanges =>
@@ -139,6 +141,18 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       _activeSnapTarget = null;
       _placementDialogCandidate = null;
       _fileStatusMessage = null;
+    });
+  }
+
+  void _setProjectBrowserCollapsed(bool collapsed) {
+    setState(() {
+      _projectBrowserCollapsed = collapsed;
+    });
+  }
+
+  void _setInspectorCollapsed(bool collapsed) {
+    setState(() {
+      _inspectorCollapsed = collapsed;
     });
   }
 
@@ -1234,12 +1248,23 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                         commandContext: commandContext,
                         commandActionFor: _commandActionFor,
                       ),
-                      _ProjectBrowser(
-                        project: _project,
-                        surfaces: preview?.surfaces ?? const [],
-                        selection: _selection,
-                        onSelectionChanged: _select,
-                      ),
+                      if (_projectBrowserCollapsed)
+                        _CollapsedSidePanel(
+                          key: const ValueKey('project-panel-collapsed'),
+                          side: _CollapsedPanelSide.left,
+                          icon: Icons.account_tree_rounded,
+                          tooltip: 'Показать проект',
+                          buttonKey: const ValueKey('project-panel-expand'),
+                          onPressed: () => _setProjectBrowserCollapsed(false),
+                        )
+                      else
+                        _ProjectBrowser(
+                          project: _project,
+                          surfaces: preview?.surfaces ?? const [],
+                          selection: _selection,
+                          onSelectionChanged: _select,
+                          onCollapse: () => _setProjectBrowserCollapsed(true),
+                        ),
                       Expanded(
                         child: _ViewportArea(
                           project: _project,
@@ -1260,65 +1285,77 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                           onHit: _selectViewportHit,
                         ),
                       ),
-                      _Inspector(
-                        details: details,
-                        project: _project,
-                        selection: _selection,
-                        activeSnapTarget: _activeSnapTarget,
-                        activeSnapPlacementIssue: activeSnapPlacementIssue,
-                        onPlaceComponentFromSnap:
-                            _activeSnapTarget != null &&
-                                _project.componentTemplates.isNotEmpty
-                            ? () {
-                                _runPlaceComponentCommand();
-                              }
-                            : null,
-                        onCreateCircularCutoutFromSnap:
-                            _snapTargetCanCreateCircularCutout(
-                              _activeSnapTarget,
-                            )
-                            ? () {
-                                _runCreateCircularCutoutCommand(_selection);
-                              }
-                            : null,
-                        onCreateUsbCFromSnap:
-                            _usbCSnapTargetFor(
-                                  _activeSnapTarget,
-                                  _selection.id ?? '',
-                                ) !=
-                                null
-                            ? () {
-                                _runAddUsbCCommand(_selection);
-                              }
-                            : null,
-                        onCreateGlassRecessFromSnap:
-                            _surfaceSnapTargetFor(
-                                  _activeSnapTarget,
-                                  _selection.id ?? '',
-                                ) !=
-                                null
-                            ? () {
-                                _runCreateGlassRecessCommand(_selection);
-                              }
-                            : null,
-                        onCreateButtonGroupFromSnap:
-                            _surfaceSnapTargetFor(
-                                  _activeSnapTarget,
-                                  _selection.id ?? '',
-                                ) !=
-                                null
-                            ? () {
-                                _runCreateButtonGroupCommand(_selection);
-                              }
-                            : null,
-                        onClearSnapTarget: _clearActiveSnapTarget,
-                        onEnclosureParameterChanged: _updateEnclosureParameter,
-                        onComponentPlacementParameterChanged:
-                            _updateComponentPlacementParameter,
-                        onFeatureParameterChanged: _updateFeatureParameter,
-                        onFeatureGroupParameterChanged:
-                            _updateFeatureGroupParameter,
-                      ),
+                      if (_inspectorCollapsed)
+                        _CollapsedSidePanel(
+                          key: const ValueKey('inspector-panel-collapsed'),
+                          side: _CollapsedPanelSide.right,
+                          icon: Icons.tune_rounded,
+                          tooltip: 'Показать инспектор',
+                          buttonKey: const ValueKey('inspector-panel-expand'),
+                          onPressed: () => _setInspectorCollapsed(false),
+                        )
+                      else
+                        _Inspector(
+                          details: details,
+                          project: _project,
+                          selection: _selection,
+                          activeSnapTarget: _activeSnapTarget,
+                          activeSnapPlacementIssue: activeSnapPlacementIssue,
+                          onPlaceComponentFromSnap:
+                              _activeSnapTarget != null &&
+                                  _project.componentTemplates.isNotEmpty
+                              ? () {
+                                  _runPlaceComponentCommand();
+                                }
+                              : null,
+                          onCreateCircularCutoutFromSnap:
+                              _snapTargetCanCreateCircularCutout(
+                                _activeSnapTarget,
+                              )
+                              ? () {
+                                  _runCreateCircularCutoutCommand(_selection);
+                                }
+                              : null,
+                          onCreateUsbCFromSnap:
+                              _usbCSnapTargetFor(
+                                    _activeSnapTarget,
+                                    _selection.id ?? '',
+                                  ) !=
+                                  null
+                              ? () {
+                                  _runAddUsbCCommand(_selection);
+                                }
+                              : null,
+                          onCreateGlassRecessFromSnap:
+                              _surfaceSnapTargetFor(
+                                    _activeSnapTarget,
+                                    _selection.id ?? '',
+                                  ) !=
+                                  null
+                              ? () {
+                                  _runCreateGlassRecessCommand(_selection);
+                                }
+                              : null,
+                          onCreateButtonGroupFromSnap:
+                              _surfaceSnapTargetFor(
+                                    _activeSnapTarget,
+                                    _selection.id ?? '',
+                                  ) !=
+                                  null
+                              ? () {
+                                  _runCreateButtonGroupCommand(_selection);
+                                }
+                              : null,
+                          onClearSnapTarget: _clearActiveSnapTarget,
+                          onEnclosureParameterChanged:
+                              _updateEnclosureParameter,
+                          onComponentPlacementParameterChanged:
+                              _updateComponentPlacementParameter,
+                          onFeatureParameterChanged: _updateFeatureParameter,
+                          onFeatureGroupParameterChanged:
+                              _updateFeatureGroupParameter,
+                          onCollapse: () => _setInspectorCollapsed(true),
+                        ),
                     ],
                   ),
                 ),
@@ -2659,18 +2696,100 @@ IconData _iconForCommand(String icon) {
   };
 }
 
+enum _CollapsedPanelSide { left, right }
+
+class _CollapsedSidePanel extends StatelessWidget {
+  const _CollapsedSidePanel({
+    super.key,
+    required this.side,
+    required this.icon,
+    required this.tooltip,
+    required this.buttonKey,
+    required this.onPressed,
+  });
+
+  final _CollapsedPanelSide side;
+  final IconData icon;
+  final String tooltip;
+  final Key buttonKey;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final border = Border(
+      left: side == _CollapsedPanelSide.right
+          ? BorderSide(color: theme.dividerColor.withValues(alpha: 0.18))
+          : BorderSide.none,
+      right: side == _CollapsedPanelSide.left
+          ? BorderSide(color: theme.dividerColor.withValues(alpha: 0.18))
+          : BorderSide.none,
+    );
+
+    return Container(
+      width: 40,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(color: const Color(0xFF1B1F22), border: border),
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: _PanelIconButton(
+          key: buttonKey,
+          icon: icon,
+          tooltip: tooltip,
+          onPressed: onPressed,
+        ),
+      ),
+    );
+  }
+}
+
+class _PanelIconButton extends StatelessWidget {
+  const _PanelIconButton({
+    super.key,
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Tooltip(
+      message: tooltip,
+      child: IconButton(
+        icon: Icon(icon, size: 18),
+        color: theme.colorScheme.onSurfaceVariant,
+        style: IconButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+        constraints: const BoxConstraints.tightFor(width: 30, height: 30),
+        padding: EdgeInsets.zero,
+        onPressed: onPressed,
+      ),
+    );
+  }
+}
+
 class _ProjectBrowser extends StatelessWidget {
   const _ProjectBrowser({
     required this.project,
     required this.surfaces,
     required this.selection,
     required this.onSelectionChanged,
+    required this.onCollapse,
   });
 
   final ProjectModel project;
   final List<SelectableSurface> surfaces;
   final SelectionModel selection;
   final ValueChanged<SelectionModel> onSelectionChanged;
+  final VoidCallback onCollapse;
 
   @override
   Widget build(BuildContext context) {
@@ -2687,7 +2806,15 @@ class _ProjectBrowser extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(10, 10, 10, 14),
         children: [
-          _BrowserHeader(label: 'Проект'),
+          _BrowserHeader(
+            label: 'Проект',
+            trailing: _PanelIconButton(
+              key: const ValueKey('project-panel-collapse'),
+              icon: Icons.keyboard_double_arrow_left_rounded,
+              tooltip: 'Свернуть проект',
+              onPressed: onCollapse,
+            ),
+          ),
           _BrowserRow(
             icon: Icons.account_tree_rounded,
             title: project.projectName,
@@ -2790,22 +2917,30 @@ class _ProjectBrowser extends StatelessWidget {
 }
 
 class _BrowserHeader extends StatelessWidget {
-  const _BrowserHeader({required this.label});
+  const _BrowserHeader({required this.label, this.trailing});
 
   final String label;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
-      child: Text(
-        label,
-        style: theme.textTheme.labelSmall?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
-          fontWeight: FontWeight.w700,
-        ),
+      padding: EdgeInsets.fromLTRB(8, trailing == null ? 8 : 2, 8, 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          if (trailing != null) trailing!,
+        ],
       ),
     );
   }
@@ -3522,6 +3657,7 @@ class _Inspector extends StatelessWidget {
     required this.onComponentPlacementParameterChanged,
     required this.onFeatureParameterChanged,
     required this.onFeatureGroupParameterChanged,
+    required this.onCollapse,
   });
 
   final ProjectSelectionDetails details;
@@ -3543,6 +3679,7 @@ class _Inspector extends StatelessWidget {
   onFeatureParameterChanged;
   final void Function(String groupId, String parameterId, Object? value)
   onFeatureGroupParameterChanged;
+  final VoidCallback onCollapse;
 
   @override
   Widget build(BuildContext context) {
@@ -3602,6 +3739,13 @@ class _Inspector extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
+              const SizedBox(width: 8),
+              _PanelIconButton(
+                key: const ValueKey('inspector-panel-collapse'),
+                icon: Icons.keyboard_double_arrow_right_rounded,
+                tooltip: 'Свернуть инспектор',
+                onPressed: onCollapse,
               ),
             ],
           ),
