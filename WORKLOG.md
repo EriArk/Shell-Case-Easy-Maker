@@ -10273,3 +10273,91 @@ and user-facing placement feedback.
 Snap-seeded glass/buttons should remain semantic `surface_snap_target`
 placements. Do not couple them to triangle IDs or generated mesh hit IDs; use
 stable semantic surface IDs and face-local coordinates.
+
+---
+
+## 2026-07-10 - M113 Native-Mapped Overlay De-Clutter
+
+### Goal
+Reduce visible 2D schematic markers in native preview mode by hiding feature
+and feature-group overlay duplicates when generated OCCT preview ranges already
+represent the same semantic IDs.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/ui/shell/workspace_shell.dart`, `lib/viewport/viewport_controller.dart`,
+`test/widget_test.dart`, `test/viewport_controller_test.dart`,
+`docs/26_TESTING_AND_QUALITY.md`, and `docs/33_VIEWPORT_MVP.md`.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Reuses computed feature/group preview lists in the viewport build.
+  - Detects native OCCT preview mappings by semantic ID without exposing mesh
+    or triangle IDs to project state.
+  - Suppresses schematic feature and feature-group markers in annotation mode
+    when the same semantic object already has a native preview range.
+  - Keeps fallback markers visible for unmapped semantic objects.
+  - Adds test-visible keys for hidden mapped feature/group overlays.
+- `test/widget_test.dart`:
+  - Added a native-style preview mesh fixture with feature and feature-group
+    semantic ranges.
+  - Verifies mapped schematic overlays are hidden while mesh-range selection
+    highlighting still works.
+- `ROADMAP.md`, `TASKS.md`, and docs:
+  - Recorded M113 behavior, current limitations, tests, and poke checklist.
+
+### Tests run
+- `flutter test test\widget_test.dart --plain-name "native preview hides mapped schematic feature overlays" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "native preview" --reporter compact`:
+  - Passed.
+- `flutter test test\viewport_controller_test.dart --reporter compact`:
+  - Passed, 15 tests.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed, 228 tests.
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with dependency
+    constraints.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git status --short --ignored releases`:
+  - Passed; `releases/` is ignored.
+- `git diff --check`:
+  - Passed with only the existing ROADMAP CRLF warning.
+
+### Validation
+- Geometry checked?
+  - Native preview mappings are consumed only as display-only ranges. No
+    generated mesh/B-Rep/topology IDs are stored in the editable project.
+- Serialization checked?
+  - No project serialization changes in this slice.
+- UI checked?
+  - Widget tests verify mapped schematic overlays are hidden and native
+    selection highlight remains active.
+- Export checked?
+  - Latest Windows bundle rebuilt; STEP/STL export behavior unchanged.
+
+### Known issues
+- Issue: Objects without native semantic preview ranges still need schematic
+  overlay markers.
+  - Severity: Expected fallback behavior.
+  - Next action: continue adding generated semantic ranges as native geometry
+    coverage expands.
+- Issue: Component placement previews are still 2D semantic rectangles.
+  - Severity: Expected.
+  - Next action: generate or import component reference geometry later.
+
+### Next step
+Commit and push M113, then continue toward stronger native geometry mapping and
+less schematic UI in the viewport.
+
+### Notes for future Codex sessions
+The overlay de-clutter logic must stay semantic-ID based. Do not replace it
+with triangle IDs or OCCT topology IDs in UI state or saved project files.

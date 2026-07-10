@@ -52,6 +52,10 @@ truth. Native preview meshes may include disposable semantic surface ranges.
 When the current selection is a matching semantic surface, feature, or feature
 group, the viewport can tint those mapped preview triangles and draw only the
 selected range boundary plus a screen-space halo as a display-only highlight.
+If a native OCCT preview range already exists for a semantic feature or feature
+group, the viewport hides that object's schematic 2D marker instead of drawing
+a duplicate shape on top of the generated geometry. Objects without a native
+range still use schematic markers as fallback selection affordances.
 First-pass native mesh picking uses those same disposable triangle ranges only
 inside the viewport event handler: a click is projected against the current
 preview mesh, the hit range is translated immediately back to a semantic id, and
@@ -168,6 +172,8 @@ pattern around that semantic surface point.
 - In native preview mode, unselected schematic annotations stay muted; selecting
   a feature, feature group, or component placement brings that semantic helper
   forward.
+- In native preview mode, mapped feature/group schematic markers are hidden so
+  the generated mesh range is the primary visual representation.
 - Click a mapped native preview mesh range: select the semantic part behind
   that range, then show the generated mesh highlight.
 - Native preview mesh rendering hides shared internal triangle edges and keeps
@@ -200,11 +206,13 @@ mapping, desktop stability, license, and packaging complexity.
 ## Current Limitations
 
 - The viewport can draw a generated preview mesh body and selected mapped
-  surface highlights when a backend provides them. Other semantic overlays are
-  still first-pass schematic affordances, now muted by default in native preview
-  mode and focused only when their semantic item is selected. Rendering hides
-  internal mesh diagonals, but the `CustomPaint` preview still uses simple
-  per-triangle shading rather than a final material/normal pipeline.
+  surface highlights when a backend provides them. Mapped feature/group
+  schematic markers are hidden in native mode to avoid duplicate 2D ghosts.
+  Unmapped semantic overlays are still first-pass schematic affordances, now
+  muted by default in native preview mode and focused only when their semantic
+  item is selected. Rendering hides internal mesh diagonals, but the
+  `CustomPaint` preview still uses simple per-triangle shading rather than a
+  final material/normal pipeline.
 - Native preview mesh picking is first-pass semantic picking from mapped
   preview ranges. It is not raw triangle editing, and it falls back to mock hit
   zones when no mapped mesh range is hit.

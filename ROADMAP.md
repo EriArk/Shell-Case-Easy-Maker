@@ -131,6 +131,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M110 - Native Switch-Sourced Button Cutouts
 - [x] M111 - USB-C Snap-Seeded Placement
 - [x] M112 - Snap-Seeded Glass and Button Placement
+- [x] M113 - Native-Mapped Overlay De-Clutter
 
 ---
 
@@ -5299,3 +5300,58 @@ point without adding low-level CAD controls.
 - Optional: select `Front wall`, click near the middle height, and create
   `USB-C`; it should now save/use absolute Z rather than treating the center as
   z=0.
+
+---
+
+## M113 - Native-Mapped Overlay De-Clutter
+
+### Goal
+Reduce the visible 2D schematic overlays in native preview mode by hiding
+feature and feature-group markers that already have generated semantic preview
+ranges, while keeping semantic fallback markers for unmapped objects.
+
+### Tasks
+- [x] Detect display-only native preview mappings for feature and feature-group
+      semantic IDs.
+- [x] Hide mapped schematic feature markers when native OCCT preview ranges are
+      available.
+- [x] Hide mapped schematic feature-group markers when native OCCT preview
+      ranges are available.
+- [x] Keep unmapped semantic markers as fallback affordances for selection and
+      development.
+- [x] Keep selected native ranges highlighted through the existing generated
+      mesh highlight path.
+- [x] Add widget coverage for hidden mapped schematic overlays.
+- [x] Update docs/tasks/worklog.
+
+### Done Criteria
+- Native preview mode no longer draws duplicate 2D feature/group markers for
+  semantic IDs that have mapped generated mesh ranges.
+- The editable project still stores only semantic features/groups, not mesh
+  IDs or topology IDs.
+- Selection highlight still uses generated semantic preview ranges when
+  available.
+- Unmapped semantic objects still use schematic markers as a fallback.
+
+### Tests
+- `flutter test test\widget_test.dart --plain-name "native preview hides mapped schematic feature overlays" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "native preview" --reporter compact`
+- `flutter test test\viewport_controller_test.dart --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- In the normal project view, the generated body should be visually calmer:
+  mapped feature/group 2D markers should not sit as strong duplicate shapes on
+  top of generated geometry.
+- Select `USB-C`, `Top lid`, or a generated button group from the browser.
+- Confirm the native mesh highlight still appears for the selected generated
+  semantic part.
+- Create a new snap-seeded glass/button item if desired; items without native
+  generated mapping may still show schematic fallback markers until their
+  geometry mapping is implemented.

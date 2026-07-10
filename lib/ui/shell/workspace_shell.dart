@@ -3097,6 +3097,10 @@ class _ViewportAreaState extends State<_ViewportArea> {
               widget.placementDialogCandidateIssue ??
               widget.activeSnapPlacementIssue;
           final hasPreviewMesh = _hasPreviewMesh(widget.preview?.previewMesh);
+          final featurePreviews = _mockFeaturePreviews(widget.project);
+          final featureGroupPreviews = _mockFeatureGroupPreviews(
+            widget.project,
+          );
 
           return Listener(
             behavior: HitTestBehavior.opaque,
@@ -3124,10 +3128,8 @@ class _ViewportAreaState extends State<_ViewportArea> {
                         activeSnapPlacementIssue: placementCandidateIssue,
                         workplaneOverlay: workplaneOverlay,
                         activeSnapTarget: widget.activeSnapTarget,
-                        featurePreviews: _mockFeaturePreviews(widget.project),
-                        featureGroupPreviews: _mockFeatureGroupPreviews(
-                          widget.project,
-                        ),
+                        featurePreviews: featurePreviews,
+                        featureGroupPreviews: featureGroupPreviews,
                         selection: widget.selection,
                         viewportState: widget.viewportState,
                       ),
@@ -3165,6 +3167,30 @@ class _ViewportAreaState extends State<_ViewportArea> {
                       top: 0,
                       child: SizedBox(
                         key: ValueKey('native-semantic-overlays-focused'),
+                      ),
+                    ),
+                  if (_hasHiddenNativeMappedFeatureAnnotations(
+                    previewMesh: widget.preview?.previewMesh,
+                    featurePreviews: featurePreviews,
+                  ))
+                    const Positioned(
+                      left: 0,
+                      top: 0,
+                      child: SizedBox(
+                        key: ValueKey('native-mapped-feature-overlays-hidden'),
+                      ),
+                    ),
+                  if (_hasHiddenNativeMappedFeatureGroupAnnotations(
+                    previewMesh: widget.preview?.previewMesh,
+                    featureGroupPreviews: featureGroupPreviews,
+                  ))
+                    const Positioned(
+                      left: 0,
+                      top: 0,
+                      child: SizedBox(
+                        key: ValueKey(
+                          'native-mapped-feature-group-overlays-hidden',
+                        ),
                       ),
                     ),
                   if (_hasSelectedPreviewSurface(
@@ -8137,6 +8163,13 @@ class _ViewportPainter extends CustomPainter {
     required bool annotationMode,
   }) {
     for (final feature in featurePreviews) {
+      if (!_shouldPaintSemanticAnnotation(
+        feature.semanticId,
+        annotationMode: annotationMode,
+      )) {
+        continue;
+      }
+
       final selected =
           selection.kind == SelectionKind.feature &&
           selection.id == feature.semanticId;
@@ -8287,6 +8320,13 @@ class _ViewportPainter extends CustomPainter {
       ..style = PaintingStyle.fill;
 
     for (final group in featureGroupPreviews) {
+      if (!_shouldPaintSemanticAnnotation(
+        group.semanticId,
+        annotationMode: annotationMode,
+      )) {
+        continue;
+      }
+
       final radius = layout.featureGroupRadius(group);
       final centers = layout.featureGroupCenters(group);
       final selected =
@@ -8326,6 +8366,14 @@ class _ViewportPainter extends CustomPainter {
           }
       }
     }
+  }
+
+  bool _shouldPaintSemanticAnnotation(
+    String semanticId, {
+    required bool annotationMode,
+  }) {
+    return !annotationMode ||
+        !_hasNativePreviewMapping(previewMesh, semanticId);
   }
 
   void _paintGhostPreview(Canvas canvas, MockViewportLayout layout) {
@@ -8808,6 +8856,36 @@ bool _nativeSemanticAnnotationsFocused(SelectionModel selection) {
       selection.kind == SelectionKind.componentTemplate ||
       selection.kind == SelectionKind.feature ||
       selection.kind == SelectionKind.featureGroup;
+}
+
+bool _hasHiddenNativeMappedFeatureAnnotations({
+  required PreviewMesh? previewMesh,
+  required List<MockViewportFeaturePreview> featurePreviews,
+}) {
+  return featurePreviews.any(
+    (feature) => _hasNativePreviewMapping(previewMesh, feature.semanticId),
+  );
+}
+
+bool _hasHiddenNativeMappedFeatureGroupAnnotations({
+  required PreviewMesh? previewMesh,
+  required List<MockViewportFeatureGroupPreview> featureGroupPreviews,
+}) {
+  return featureGroupPreviews.any(
+    (group) => _hasNativePreviewMapping(previewMesh, group.semanticId),
+  );
+}
+
+bool _hasNativePreviewMapping(PreviewMesh? mesh, String? semanticId) {
+  if (!_isNativePreviewMesh(mesh)) {
+    return false;
+  }
+
+  return _previewSurfaceTriangleIndices(mesh!, semanticId).isNotEmpty;
+}
+
+bool _isNativePreviewMesh(PreviewMesh? mesh) {
+  return _hasPreviewMesh(mesh) && mesh?.metadata['source'] == 'occt_brep';
 }
 
 bool _nativeWorkplaneOverlayFocused({

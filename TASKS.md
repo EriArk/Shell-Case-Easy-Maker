@@ -103,6 +103,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Add native preview passive surface workplane state.
 - [x] Add first-pass native preview mesh semantic picking.
 - [x] Hide unselected native preview internal triangle edges.
+- [x] Hide native-mapped schematic feature/group overlay duplicates.
 
 ## Phase 4 — OCCT worker MVP
 
@@ -373,6 +374,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Native preview surface workplane softening.
 - [x] Hide passive native surface workplane overlay.
 - [x] Native preview mesh visual de-noise.
+- [x] Native preview mapped feature/group overlay de-duplication.
 - [ ] Keyboard-emulated controller support.
 - [ ] Step configuration.
 - [ ] Right-click quick popovers.

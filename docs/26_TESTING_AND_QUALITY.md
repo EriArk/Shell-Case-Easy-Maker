@@ -79,6 +79,9 @@ Use deterministic test fixtures.
 - Snap-seeded manual button groups store one group-level surface position,
   offset backend item intents from that center, and keep marker selection
   grouped.
+- Native preview hides schematic feature/group overlays when the same semantic
+  IDs already have generated OCCT preview ranges, while preserving mesh-range
+  selection highlights.
 - Component-driven USB-C cutout generation preserves source placement/template
   data and projected surface anchors in saved project JSON.
 - Component-driven button group generation preserves source switch centers in

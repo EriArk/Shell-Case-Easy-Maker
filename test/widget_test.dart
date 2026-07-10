@@ -213,6 +213,57 @@ void main() {
     );
   });
 
+  testWidgets('native preview hides mapped schematic feature overlays', (
+    tester,
+  ) async {
+    final project = ProjectModel.initial().replaceFeatureGroup(
+      const FeatureGroup(
+        id: 'button_group_1',
+        type: 'button_group',
+        targetSurface: 'main_enclosure.top_lid.outer',
+        pattern: {'layout': 'row', 'count': 2, 'spacing': 14.0},
+        itemPrototype: {'type': 'button', 'shape': 'circle', 'diameter': 8.0},
+        placement: {'anchor': 'center'},
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkspaceShell(
+          project: project,
+          geometryService: const _MappedFeaturePreviewMeshService(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('native-mapped-feature-overlays-hidden')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('native-mapped-feature-group-overlays-hidden')),
+      findsOneWidget,
+    );
+
+    await tester.scrollUntilVisible(
+      find.text('USB-C'),
+      80,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('USB-C').first);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('geometry-preview-surface-highlight-active')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('native-mapped-feature-overlays-hidden')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('viewport preset controls switch standard camera views', (
     tester,
   ) async {
@@ -3607,6 +3658,43 @@ class _PreviewMeshGeometryService extends MockGeometryService {
             semanticId: 'standoff_mounts_1',
             label: 'Standoff mounts',
             triangleRanges: [PreviewTriangleRange(start: 2, count: 1)],
+          ),
+        ],
+      ),
+      stats: const {
+        'source': 'fake_worker_preview',
+        'previewVertices': 4,
+        'previewTriangles': 4,
+      },
+    );
+  }
+}
+
+class _MappedFeaturePreviewMeshService extends MockGeometryService {
+  const _MappedFeaturePreviewMeshService();
+
+  @override
+  Future<GeometryPreview> generatePreview(ProjectModel project) async {
+    return GeometryPreview(
+      backendLabel: 'fake_worker_preview',
+      projectName: project.projectName,
+      surfaces: await getSelectableSurfaces(project),
+      previewMesh: const PreviewMesh(
+        units: 'mm',
+        vertices: [-10, -10, 0, 10, -10, 0, 0, 10, 0, 0, 0, 12],
+        triangles: [0, 1, 2, 0, 3, 1, 1, 3, 2, 2, 3, 0],
+        bounds: GeometryBounds(min: [-10, -10, 0], max: [10, 10, 12]),
+        metadata: {'source': 'occt_brep'},
+        surfaces: [
+          PreviewSurfaceMapping(
+            semanticId: 'front_usb_c',
+            label: 'USB-C cutout',
+            triangleRanges: [PreviewTriangleRange(start: 0, count: 1)],
+          ),
+          PreviewSurfaceMapping(
+            semanticId: 'button_group_1',
+            label: 'Button group',
+            triangleRanges: [PreviewTriangleRange(start: 1, count: 1)],
           ),
         ],
       ),
