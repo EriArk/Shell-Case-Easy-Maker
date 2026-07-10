@@ -82,6 +82,8 @@ Use deterministic test fixtures.
 - Native preview hides schematic feature/group overlays when the same semantic
   IDs already have generated OCCT preview ranges, while preserving mesh-range
   selection highlights.
+- Native preview reduces active surface snap workplanes to a point-only marker
+  so snap-seeded actions stay usable without a large schematic rectangle.
 - Component-driven USB-C cutout generation preserves source placement/template
   data and projected surface anchors in saved project JSON.
 - Component-driven button group generation preserves source switch centers in

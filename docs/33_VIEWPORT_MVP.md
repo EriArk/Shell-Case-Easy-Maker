@@ -84,10 +84,11 @@ transient interaction affordances only; they do not create sketch constraints,
 change placement data by themselves, or expose generated topology.
 
 When a native preview mesh is visible, selected surface workplanes are hidden
-during passive inspection. Component-placement workplanes and active snap
-targets remain focused so placement actions are still easy to inspect. This
-keeps surface selection useful without letting a large rectangular 2D workplane
-dominate the generated mesh.
+during passive inspection. Active top-lid/front-wall snap targets draw only a
+compact point/crosshair instead of the whole rectangular workplane. Component
+placement workplanes remain focused because the board rectangle is still useful
+for placement. This keeps surface selection useful without letting a large 2D
+workplane dominate the generated mesh.
 
 Hit-test priority keeps visible semantic objects above overlapping snap hints,
 then places snap hints above bare surface selection. This lets a visible board
@@ -178,8 +179,9 @@ pattern around that semantic surface point.
   that range, then show the generated mesh highlight.
 - Native preview mesh rendering hides shared internal triangle edges and keeps
   only boundary/selection contours visible.
-- Selected surface workplanes are hidden in native preview mode; component
-  placement workplanes and active snap targets remain focused.
+- Selected surface workplanes are hidden in native preview mode; active surface
+  snap targets use a compact point-only marker, while component placement
+  workplanes remain focused.
 
 These controls are deliberately simple and can be refined after manual testing.
 
@@ -221,8 +223,9 @@ mapping, desktop stability, license, and packaging complexity.
 - Workplane overlays and snap hints are mock interaction affordances. Surface
   workplane clicks can seed component placement and hole/cutout dialogs, but
   they are not a saved sketch/workplane subsystem yet. In native preview mode,
-  passive surface workplanes are hidden because they are not projected onto real
-  generated faces.
+  passive surface workplanes are hidden and active surface snap targets are
+  reduced to a point marker because they are not projected onto real generated
+  faces.
 - Snap placement footprints are schematic rectangles derived from component
   template board outlines, not generated board meshes or collision-aware
   previews. Current feedback checks the same coarse semantic placement bounds as

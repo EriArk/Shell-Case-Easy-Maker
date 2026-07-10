@@ -10361,3 +10361,91 @@ less schematic UI in the viewport.
 ### Notes for future Codex sessions
 The overlay de-clutter logic must stay semantic-ID based. Do not replace it
 with triangle IDs or OCCT topology IDs in UI state or saved project files.
+
+---
+
+## 2026-07-10 - M114 Native Active Snap Point De-Clutter
+
+### Goal
+Make native preview less noisy after the user clicks a surface snap target by
+showing a compact point/crosshair instead of the full translucent 2D workplane
+rectangle and grid.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/ui/shell/workspace_shell.dart`, `test/widget_test.dart`,
+`test/viewport_controller_test.dart`, `docs/26_TESTING_AND_QUALITY.md`, and
+`docs/33_VIEWPORT_MVP.md`.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added a native point-only workplane overlay state for active top-lid and
+    front-wall snap targets.
+  - Draws a compact active snap point/crosshair in native preview mode.
+  - Keeps full component-placement workplanes because the board rectangle is
+    still useful for placement.
+  - Leaves hit-testing, active snap data, and saved semantic project data
+    unchanged.
+- `test/widget_test.dart`:
+  - Added coverage that native surface snap state shows point-only overlay and
+    does not re-enable the full focused workplane rectangle.
+- `ROADMAP.md`, `TASKS.md`, and docs:
+  - Recorded M114 behavior, tests, limitations, and poke checklist.
+
+### Tests run
+- `flutter test test\widget_test.dart --plain-name "native preview shows active surface snap as point only" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "native preview" --reporter compact`:
+  - Passed.
+- `flutter test test\viewport_controller_test.dart --reporter compact`:
+  - Passed, 15 tests.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed, 229 tests.
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with dependency
+    constraints.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git status --short --ignored releases`:
+  - Passed; `releases/` is ignored.
+- `git diff --check`:
+  - Passed with only the existing ROADMAP CRLF warning.
+
+### Validation
+- Geometry checked?
+  - No geometry generation changes in this slice. Native preview mesh remains
+    display-only, and active snap still uses semantic workplane IDs plus
+    face-local coordinates.
+- Serialization checked?
+  - No project serialization changes.
+- UI checked?
+  - Widget tests verify point-only native active snap state and existing native
+    preview behavior.
+- Export checked?
+  - Latest Windows bundle rebuilt; STEP/STL export behavior unchanged.
+
+### Known issues
+- Issue: The active snap point is still a screen-space UI affordance, not a
+  projected OCCT face marker.
+  - Severity: Expected.
+  - Next action: continue toward real generated-face picking and projection.
+- Issue: Component placement previews still need a fuller generated/reference
+  geometry representation later.
+  - Severity: Expected.
+  - Next action: revisit after the component template/editor workflow matures.
+
+### Next step
+Commit and push M114, then continue removing schematic viewport pieces as
+native semantic coverage becomes strong enough.
+
+### Notes for future Codex sessions
+Point-only active snap must remain transient UI state. Do not store it in
+`ProjectModel`, and do not replace face-local semantic coordinates with raw
+preview triangle IDs.

@@ -343,6 +343,40 @@ void main() {
     );
   });
 
+  testWidgets('native preview shows active surface snap as point only', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const CaseMakerApp(geometryService: _PreviewMeshGeometryService()),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Top lid').first);
+    await tester.pumpAndSettle();
+    await _tapTopLidSnap(tester, const Offset(30, 0));
+
+    expect(
+      find.byKey(const ValueKey('active-snap-target-panel')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('mock-workplane-overlay-active')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('native-workplane-overlay-hidden')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('native-workplane-overlay-focused')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('native-workplane-overlay-point-only')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('selected feature highlights mapped preview mesh range', (
     tester,
   ) async {

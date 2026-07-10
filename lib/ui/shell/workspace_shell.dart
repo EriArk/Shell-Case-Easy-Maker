@@ -3230,8 +3230,25 @@ class _ViewportAreaState extends State<_ViewportArea> {
                     ),
                   if (hasPreviewMesh &&
                       workplaneOverlay != null &&
+                      _nativeWorkplaneOverlayPointOnly(
+                        workplane: workplaneOverlay,
+                        activeSnapTarget: widget.activeSnapTarget,
+                      ))
+                    const Positioned(
+                      left: 0,
+                      top: 0,
+                      child: SizedBox(
+                        key: ValueKey('native-workplane-overlay-point-only'),
+                      ),
+                    ),
+                  if (hasPreviewMesh &&
+                      workplaneOverlay != null &&
                       _nativeWorkplaneOverlayFocused(
                         selection: widget.selection,
+                        workplane: workplaneOverlay,
+                        activeSnapTarget: widget.activeSnapTarget,
+                      ) &&
+                      !_nativeWorkplaneOverlayPointOnly(
                         workplane: workplaneOverlay,
                         activeSnapTarget: widget.activeSnapTarget,
                       ))
@@ -7996,6 +8013,16 @@ class _ViewportPainter extends CustomPainter {
     if (annotationMode && !focused) {
       return;
     }
+
+    if (annotationMode &&
+        _nativeWorkplaneOverlayPointOnly(
+          workplane: workplane,
+          activeSnapTarget: activeSnapTarget,
+        )) {
+      _paintNativeActiveSnapPoint(canvas, layout, workplane);
+      return;
+    }
+
     final rect = layout.workplaneRect(workplane);
     final rotation =
         workplane.kind == MockViewportWorkplaneKind.componentPlacement
@@ -8068,6 +8095,64 @@ class _ViewportPainter extends CustomPainter {
       );
       canvas.drawCircle(snapPoints[index], radius, snapStroke);
     }
+  }
+
+  void _paintNativeActiveSnapPoint(
+    Canvas canvas,
+    MockViewportLayout layout,
+    MockViewportWorkplaneOverlay workplane,
+  ) {
+    final target = activeSnapTarget;
+    if (target == null) {
+      return;
+    }
+
+    final center = layout.workplaneLocalToCanvas(
+      workplane,
+      target.localPosition,
+    );
+    final haloRadius = 10.0 * layout.zoom;
+    final pointRadius = 5.5 * layout.zoom;
+    final cross = 13.0 * layout.zoom;
+    final shadow = Paint()
+      ..color = Colors.black.withValues(alpha: 0.36)
+      ..style = PaintingStyle.fill;
+    final halo = Paint()
+      ..color = colorScheme.secondary.withValues(alpha: 0.16)
+      ..style = PaintingStyle.fill;
+    final stroke = Paint()
+      ..color = colorScheme.secondary.withValues(alpha: 0.88)
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = 1.7;
+    final fill = Paint()
+      ..color = colorScheme.secondary.withValues(alpha: 0.95)
+      ..style = PaintingStyle.fill;
+
+    canvas.drawCircle(center, haloRadius + 2, shadow);
+    canvas.drawCircle(center, haloRadius, halo);
+    canvas.drawLine(
+      center.translate(-cross, 0),
+      center.translate(-pointRadius - 2, 0),
+      stroke,
+    );
+    canvas.drawLine(
+      center.translate(pointRadius + 2, 0),
+      center.translate(cross, 0),
+      stroke,
+    );
+    canvas.drawLine(
+      center.translate(0, -cross),
+      center.translate(0, -pointRadius - 2),
+      stroke,
+    );
+    canvas.drawLine(
+      center.translate(0, pointRadius + 2),
+      center.translate(0, cross),
+      stroke,
+    );
+    canvas.drawCircle(center, pointRadius, fill);
+    canvas.drawCircle(center, pointRadius, stroke);
   }
 
   void _paintComponentPlacements(
@@ -8900,6 +8985,19 @@ bool _nativeWorkplaneOverlayFocused({
 
   return activeSnapTarget != null &&
       activeSnapTarget.workplaneId == workplane.semanticId &&
+      activeSnapTarget.workplaneKind == workplane.kind;
+}
+
+bool _nativeWorkplaneOverlayPointOnly({
+  required MockViewportWorkplaneOverlay workplane,
+  required _ActiveSnapTarget? activeSnapTarget,
+}) {
+  if (activeSnapTarget == null ||
+      workplane.kind == MockViewportWorkplaneKind.componentPlacement) {
+    return false;
+  }
+
+  return activeSnapTarget.workplaneId == workplane.semanticId &&
       activeSnapTarget.workplaneKind == workplane.kind;
 }
 

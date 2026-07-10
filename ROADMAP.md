@@ -132,6 +132,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M111 - USB-C Snap-Seeded Placement
 - [x] M112 - Snap-Seeded Glass and Button Placement
 - [x] M113 - Native-Mapped Overlay De-Clutter
+- [x] M114 - Native Active Snap Point De-Clutter
 
 ---
 
@@ -5355,3 +5356,51 @@ ranges, while keeping semantic fallback markers for unmapped objects.
 - Create a new snap-seeded glass/button item if desired; items without native
   generated mapping may still show schematic fallback markers until their
   geometry mapping is implemented.
+
+---
+
+## M114 - Native Active Snap Point De-Clutter
+
+### Goal
+Reduce the remaining large 2D surface workplane ghost in native preview mode:
+when a user has already clicked an active top-lid/front-wall snap target, show
+only a compact point/crosshair instead of the whole translucent workplane
+rectangle and grid.
+
+### Tasks
+- [x] Add a native point-only workplane overlay state for active surface snap
+      targets.
+- [x] Keep full component-placement workplanes because the board rectangle is
+      still useful for placement.
+- [x] Draw a compact active snap point/crosshair in native preview mode.
+- [x] Keep hit-testing and semantic snap data unchanged.
+- [x] Add widget coverage for native point-only active surface snap state.
+- [x] Update docs/tasks/worklog.
+
+### Done Criteria
+- Selecting a surface in native preview still hides the passive workplane.
+- Clicking a top-lid/front-wall snap target in native preview no longer brings
+  back the full 2D workplane rectangle.
+- The active snap target panel and snap-seeded actions still work.
+- Component placement workplanes still use the full rectangle where it is a
+  useful placement affordance.
+
+### Tests
+- `flutter test test\widget_test.dart --plain-name "native preview shows active surface snap as point only" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "native preview" --reporter compact`
+- `flutter test test\viewport_controller_test.dart --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Select `Top lid`.
+- Click a point on the lid.
+- Confirm the active snap panel appears, but the viewport shows only a compact
+  point/crosshair instead of a huge translucent lid rectangle.
+- Use `Стекло`, `Кнопки`, or `Отверстие` from that active point and confirm the
+  action still works.
