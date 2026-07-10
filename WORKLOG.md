@@ -10545,3 +10545,94 @@ chunk from the roadmap.
 Panel collapse is workspace UI state only. Do not store it in `ProjectModel`,
 do not add undo transactions for it, and keep command rail access available
 while panels are collapsed.
+
+---
+
+## M116 - Viewport Context Popover Foundation
+
+### Goal
+Add the first viewport right-click context popover so semantic surfaces and
+snap points can launch relevant generator commands without forcing the user
+back to the left rail.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/ui/shell/workspace_shell.dart`, `test/widget_test.dart`,
+`docs/26_TESTING_AND_QUALITY.md`, and `docs/32_USABLE_SHELL.md`.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added secondary-click handling to `_ViewportArea`.
+  - Reused existing mock/native semantic hit testing for context targets.
+  - Added a compact `showMenu` popover filtered through `CommandRegistry` and
+    the existing shell command handlers.
+  - Selecting a snap point before opening the menu preserves the same active
+    snap target data used by inspector shortcuts.
+  - Menu commands launch existing dialogs; no new project model, undo, save,
+    or geometry protocol state was introduced.
+- `test/widget_test.dart`:
+  - Added coverage for surface quick actions in the viewport context menu.
+  - Added coverage that `Отверстия` from a top-lid snap point opens the cutout
+    dialog with the clicked X/Y values.
+- `ROADMAP.md`, `TASKS.md`, and docs:
+  - Recorded M116 behavior, tests, limitations, and poke checklist.
+  - Marked `Context popover foundation` and `Right-click quick popovers` done.
+
+### Tests run
+- `flutter test test\widget_test.dart --plain-name "viewport context menu" --reporter compact`:
+  - Passed, 2 tests.
+- `flutter test test\widget_test.dart --plain-name "workspace shell" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "viewport" --reporter compact`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed, 232 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git status --short --ignored releases`:
+  - Passed; `releases/` is ignored.
+- `git diff --check`:
+  - Passed with only the existing ROADMAP CRLF warning.
+
+### Validation
+- Geometry checked?
+  - No geometry generation changes. The popover uses existing semantic hit
+    results and command flows.
+- Serialization checked?
+  - No project serialization changes.
+- UI checked?
+  - Widget tests verify quick-action visibility and snap-seeded command launch.
+  - Full widget coverage verifies existing left-click selection, dialogs, and
+    command flows still pass.
+- Export checked?
+  - Latest Windows bundle rebuilt; STEP/STL export behavior unchanged.
+
+### Known issues
+- Issue: The popover currently uses Flutter's standard popup menu and does not
+  yet have a custom compact visual style.
+  - Severity: Expected.
+  - Next action: polish after command palette/context UI conventions settle.
+- Issue: Context actions still depend on the current semantic hit-testing
+  layer.
+  - Severity: Expected.
+  - Next action: continue toward generated-face picking and richer native
+    selection.
+
+### Next step
+Commit and push M116, then continue with another safe interaction or workflow
+chunk from the roadmap.
+
+### Notes for future Codex sessions
+Viewport context popovers are transient UI affordances. Keep them filtered
+through `CommandRegistry` and existing command handlers; do not create a second
+command execution path or store popover state in `ProjectModel`.

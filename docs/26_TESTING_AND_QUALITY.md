@@ -71,6 +71,8 @@ Use deterministic test fixtures.
   committed inspector state.
 - Workspace side panels collapse and expand without changing semantic project
   state or hiding the command rail.
+- Viewport context popovers expose only valid semantic quick actions and start
+  existing snap-seeded command dialogs without saving popover state.
 - Snap-seeded component placement can align semantic component anchors to the
   selected snap point without saving anchor UI state.
 - Snap-seeded manual USB-C creation stores front-wall face-local

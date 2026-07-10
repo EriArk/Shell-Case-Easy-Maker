@@ -314,6 +314,15 @@ diameter, hole diameter, height, clearance profile, and source placement data.
 The mock viewport draws schematic markers for this group; clicking a marker
 selects the whole `FeatureGroup` and shows its inspector details.
 
+Right-clicking in the viewport now opens a compact context popover for the
+semantic target under the cursor. The shell first resolves the same semantic
+hit used by normal selection, then filters quick actions through the existing
+command registry and command handlers. Surface snap points can start the same
+snap-seeded generators as the inspector shortcuts; for example `Отверстия`
+opens the existing cutout dialog with the clicked face-local X/Y values. The
+popover is transient UI state only and does not affect saved project JSON,
+undo/redo, or geometry requests.
+
 Future rail tools remain visible to show the intended workflow, but they are
 disabled until their semantic command behavior is implemented and tested.
 

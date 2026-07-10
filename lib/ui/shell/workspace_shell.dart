@@ -188,6 +188,105 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     }
   }
 
+  Future<void> _showViewportContextMenu(
+    ViewportHitResult? hit,
+    Offset globalPosition,
+  ) async {
+    final selection =
+        _selectionFromViewportHit(hit) ?? const SelectionModel.workspace();
+    final snapTarget = hit != null && hit.kind == ViewportHitKind.snapPoint
+        ? _snapTargetFromViewportHit(_project, hit)
+        : null;
+
+    setState(() {
+      _selection = selection;
+      _activeSnapTarget = snapTarget;
+      _placementDialogCandidate = null;
+      _fileStatusMessage = snapTarget == null
+          ? null
+          : 'Точка привязки: ${snapTarget.label}';
+      _viewportController.setSelectedSemanticId(selection.id);
+      _viewportController.setGhostPreview(_ghostPreviewFor(selection));
+    });
+
+    final commands = _contextMenuCommandsFor(selection).toList();
+    if (commands.isEmpty) {
+      return;
+    }
+
+    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    final selectedCommandId = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromRect(
+        globalPosition & const Size(1, 1),
+        Offset.zero & overlay.size,
+      ),
+      items: [
+        for (final command in commands)
+          PopupMenuItem<String>(
+            key: ValueKey('viewport-context-command-${command.id}'),
+            value: command.id,
+            height: 40,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(_iconForCommand(command.icon), size: 18),
+                const SizedBox(width: 10),
+                Flexible(
+                  child: Text(command.label, overflow: TextOverflow.ellipsis),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+
+    if (!mounted || selectedCommandId == null) {
+      return;
+    }
+
+    _commandActionFor(selectedCommandId)?.call();
+  }
+
+  Iterable<AppCommand> _contextMenuCommandsFor(SelectionModel selection) {
+    final registry = CommandRegistry.core;
+    final commandContext = selection.toCommandContext();
+
+    return _contextMenuCommandIdsFor(selection).map(registry.byId).where((
+      command,
+    ) {
+      return command.isAvailable(commandContext) &&
+          _commandActionFor(command.id) != null;
+    });
+  }
+
+  Iterable<String> _contextMenuCommandIdsFor(SelectionModel selection) {
+    return switch (selection.kind) {
+      SelectionKind.workspace || SelectionKind.enclosure => const [
+        CommandIds.createEnclosure,
+        CommandIds.placeComponent,
+      ],
+      SelectionKind.surface => const [
+        CommandIds.placeComponent,
+        CommandIds.addUsbC,
+        CommandIds.createGlassRecess,
+        CommandIds.createButtonGroup,
+        CommandIds.generateSlot,
+      ],
+      SelectionKind.componentPlacement ||
+      SelectionKind.componentTemplate => const [
+        CommandIds.addUsbC,
+        CommandIds.createButtonGroup,
+        CommandIds.generateMount,
+        CommandIds.placeComponent,
+      ],
+      SelectionKind.feature || SelectionKind.featureGroup => const [
+        CommandIds.generateCase,
+        CommandIds.generateMount,
+      ],
+    };
+  }
+
   void _updateEnclosureParameter(
     String enclosureId,
     String parameterId,
@@ -1283,6 +1382,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                           onFit: _fitViewport,
                           onViewPreset: _applyViewportPreset,
                           onHit: _selectViewportHit,
+                          onContextMenu: _showViewportContextMenu,
                         ),
                       ),
                       if (_inspectorCollapsed)
@@ -2939,7 +3039,7 @@ class _BrowserHeader extends StatelessWidget {
               ),
             ),
           ),
-          if (trailing != null) trailing!,
+          ?trailing,
         ],
       ),
     );
@@ -3094,6 +3194,7 @@ class _ViewportArea extends StatefulWidget {
     required this.onFit,
     required this.onViewPreset,
     required this.onHit,
+    required this.onContextMenu,
   });
 
   final ProjectModel project;
@@ -3111,6 +3212,8 @@ class _ViewportArea extends StatefulWidget {
   final VoidCallback onFit;
   final ValueChanged<ViewportViewPreset> onViewPreset;
   final ValueChanged<ViewportHitResult?> onHit;
+  final void Function(ViewportHitResult? hit, Offset globalPosition)
+  onContextMenu;
 
   @override
   State<_ViewportArea> createState() => _ViewportAreaState();
@@ -3122,11 +3225,13 @@ class _ViewportAreaState extends State<_ViewportArea> {
   Offset? _lastPointerPosition;
   Offset? _pointerDownPosition;
   bool _movedSincePointerDown = false;
+  int _pointerDownButtons = 0;
 
   void _handlePointerDown(PointerDownEvent event) {
     _lastPointerPosition = event.localPosition;
     _pointerDownPosition = event.localPosition;
     _movedSincePointerDown = false;
+    _pointerDownButtons = event.buttons;
   }
 
   void _handlePointerMove(PointerMoveEvent event) {
@@ -3157,52 +3262,62 @@ class _ViewportAreaState extends State<_ViewportArea> {
     _lastPointerPosition = null;
 
     if (!_movedSincePointerDown) {
-      final bodyDimensions = _mockViewportBodyDimensions(widget.project);
-      final workplaneOverlay = _mockWorkplaneOverlay(
-        widget.project,
-        widget.selection,
-      );
-      final mockHit = _hitTester.hitTest(
-        position: event.localPosition,
-        size: viewportSize,
-        state: widget.viewportState,
-        bodyDimensions: bodyDimensions,
-        componentPlacements: _mockComponentPlacementPreviews(widget.project),
-        workplaneOverlay: workplaneOverlay,
-        features: _mockFeaturePreviews(widget.project),
-        featureGroups: _mockFeatureGroupPreviews(widget.project),
-      );
-      final nativeHit = mockHit?.kind == ViewportHitKind.snapPoint
-          ? null
-          : _hitTestPreviewMesh(
-              previewMesh: widget.preview?.previewMesh,
-              position: event.localPosition,
-              size: viewportSize,
-              state: widget.viewportState,
-              project: widget.project,
-              bodyDimensions: bodyDimensions,
-            );
-      widget.onHit(
-        mockHit?.kind == ViewportHitKind.snapPoint
-            ? mockHit
-            : nativeHit ?? mockHit,
-      );
+      final hit = _hitTestAt(event.localPosition, viewportSize);
+      if ((_pointerDownButtons & kSecondaryMouseButton) != 0) {
+        widget.onContextMenu(hit, event.position);
+      } else {
+        widget.onHit(hit);
+      }
     }
 
     _pointerDownPosition = null;
     _movedSincePointerDown = false;
+    _pointerDownButtons = 0;
   }
 
   void _handlePointerCancel(PointerCancelEvent event) {
     _lastPointerPosition = null;
     _pointerDownPosition = null;
     _movedSincePointerDown = false;
+    _pointerDownButtons = 0;
   }
 
   void _handlePointerSignal(PointerSignalEvent event) {
     if (event is PointerScrollEvent) {
       widget.onZoom(event.scrollDelta.dy);
     }
+  }
+
+  ViewportHitResult? _hitTestAt(Offset position, Size viewportSize) {
+    final bodyDimensions = _mockViewportBodyDimensions(widget.project);
+    final workplaneOverlay = _mockWorkplaneOverlay(
+      widget.project,
+      widget.selection,
+    );
+    final mockHit = _hitTester.hitTest(
+      position: position,
+      size: viewportSize,
+      state: widget.viewportState,
+      bodyDimensions: bodyDimensions,
+      componentPlacements: _mockComponentPlacementPreviews(widget.project),
+      workplaneOverlay: workplaneOverlay,
+      features: _mockFeaturePreviews(widget.project),
+      featureGroups: _mockFeatureGroupPreviews(widget.project),
+    );
+    final nativeHit = mockHit?.kind == ViewportHitKind.snapPoint
+        ? null
+        : _hitTestPreviewMesh(
+            previewMesh: widget.preview?.previewMesh,
+            position: position,
+            size: viewportSize,
+            state: widget.viewportState,
+            project: widget.project,
+            bodyDimensions: bodyDimensions,
+          );
+
+    return mockHit?.kind == ViewportHitKind.snapPoint
+        ? mockHit
+        : nativeHit ?? mockHit;
   }
 
   @override

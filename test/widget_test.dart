@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shell_case_easy_maker/app/case_maker_app.dart';
@@ -90,6 +91,82 @@ void main() {
       find.byKey(const ValueKey('inspector-panel-collapse')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('viewport context menu exposes surface generator actions', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const CaseMakerApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Top lid').first);
+    await tester.pumpAndSettle();
+
+    await _secondaryTapTopLidWorkplane(tester, const Offset(30, 0));
+
+    expect(
+      find.byKey(
+        const ValueKey('viewport-context-command-${CommandIds.placeComponent}'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey('viewport-context-command-${CommandIds.addUsbC}'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey(
+          'viewport-context-command-${CommandIds.createGlassRecess}',
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey(
+          'viewport-context-command-${CommandIds.createButtonGroup}',
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey('viewport-context-command-${CommandIds.generateSlot}'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey('viewport-context-command-${CommandIds.generateMount}'),
+      ),
+      findsNothing,
+    );
+  });
+
+  testWidgets('viewport context menu can start snap-seeded cutout command', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const CaseMakerApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Top lid').first);
+    await tester.pumpAndSettle();
+
+    await _secondaryTapTopLidWorkplane(tester, const Offset(30, 0));
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey('viewport-context-command-${CommandIds.generateSlot}'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('cutout-shape')), findsOneWidget);
+    expect(_dialogNumberText(tester, 'circular-cutout-position-x'), '30');
+    expect(_dialogNumberText(tester, 'circular-cutout-position-y'), '0');
   });
 
   testWidgets('semantic validation warnings are visible in status bar', (
@@ -3497,6 +3574,29 @@ Future<void> _tapTopLidWorkplane(
   WidgetTester tester,
   Offset localPosition,
 ) async {
+  await _tapTopLidWorkplaneWithButtons(
+    tester,
+    localPosition,
+    kPrimaryMouseButton,
+  );
+}
+
+Future<void> _secondaryTapTopLidWorkplane(
+  WidgetTester tester,
+  Offset localPosition,
+) async {
+  await _tapTopLidWorkplaneWithButtons(
+    tester,
+    localPosition,
+    kSecondaryMouseButton,
+  );
+}
+
+Future<void> _tapTopLidWorkplaneWithButtons(
+  WidgetTester tester,
+  Offset localPosition,
+  int buttons,
+) async {
   final canvasFinder = find.byKey(const ValueKey('mock-viewport-canvas'));
   final canvasTopLeft = tester.getTopLeft(canvasFinder);
   final canvasSize = tester.getSize(canvasFinder);
@@ -3517,6 +3617,7 @@ Future<void> _tapTopLidWorkplane(
 
   await tester.tapAt(
     canvasTopLeft + layout.workplaneLocalToCanvas(workplane, localPosition),
+    buttons: buttons,
   );
   await tester.pumpAndSettle();
 }

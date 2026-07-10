@@ -46,7 +46,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Top minimal toolbar.
 - [x] Collapsible/sliding panels.
 - [x] Theme system foundation.
-- [ ] Context popover foundation.
+- [x] Context popover foundation.
 - [ ] Command palette foundation.
 - [x] Navigation presets foundation.
 - [x] Compact semantic project browser.
@@ -379,7 +379,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Native preview active surface snap point-only overlay.
 - [ ] Keyboard-emulated controller support.
 - [ ] Step configuration.
-- [ ] Right-click quick popovers.
+- [x] Right-click quick popovers.
 - [ ] Snap/grid settings.
 - [ ] Symmetry tools.
 - [ ] Visual themes.

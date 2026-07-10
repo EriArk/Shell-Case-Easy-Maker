@@ -134,6 +134,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M113 - Native-Mapped Overlay De-Clutter
 - [x] M114 - Native Active Snap Point De-Clutter
 - [x] M115 - Collapsible Workspace Side Panels
+- [x] M116 - Viewport Context Popover Foundation
 
 ---
 
@@ -5450,3 +5451,54 @@ semantic project state.
 - Restore the project browser from the strip.
 - Collapse and restore the right inspector the same way.
 - Select a model part before/after collapsing and confirm selection still works.
+
+---
+
+## M116 - Viewport Context Popover Foundation
+
+### Goal
+Add the first right-click context popover in the viewport so a user can pick a
+semantic surface/snap point and launch relevant generator commands without
+moving back to the left rail.
+
+### Tasks
+- [x] Add secondary-click handling to the viewport pointer flow.
+- [x] Reuse existing semantic hit-testing for context menu targets.
+- [x] Select the clicked semantic target before showing quick actions.
+- [x] Show only command actions that are valid for the selected context.
+- [x] Launch existing command dialogs from the popover instead of adding a new
+      command path.
+- [x] Keep popover state out of `ProjectModel`, undo/redo, save/load, and
+      geometry requests.
+- [x] Add widget coverage for available actions and snap-seeded command launch.
+- [x] Update docs/tasks/worklog.
+
+### Done Criteria
+- Right-clicking a supported viewport surface/snap point opens a compact
+  action menu.
+- The menu is context-filtered through the existing command registry and shell
+  command handlers.
+- Choosing `Отверстия` from a snap point opens the existing cutout dialog with
+  the clicked face-local coordinates prefilled.
+- Normal left-click selection, orbit, pan, and zoom behavior stay unchanged.
+
+### Tests
+- `flutter test test\widget_test.dart --plain-name "viewport context menu" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "workspace shell" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "viewport" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Select `Top lid`.
+- Right-click one of the lid snap points.
+- Confirm a compact action menu appears near the cursor.
+- Choose `Отверстия`.
+- Confirm the cutout dialog opens and the X/Y fields match the clicked point.
+- Cancel the dialog and confirm normal left-click selection/orbit behavior still
+  feels the same.
