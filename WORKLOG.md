@@ -11935,3 +11935,91 @@ Commit and push M130, then continue with direct viewport sketch editing.
 ### Notes for future Codex sessions
 Keep resize edits schema-backed and undoable. Do not introduce generated
 geometry ids into sketch rectangle editing state.
+
+---
+
+## M131 - Sketch rectangle move-to-click
+
+### Goal
+Add a safe direct viewport move action for focused sketch rectangles without
+generated mesh selection, B-Rep edits, drag handles, or OCCT topology ids.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/ui/shell/workspace_shell.dart`, `test/widget_test.dart`,
+`docs/06_FEATURE_SYSTEM.md`, `docs/26_TESTING_AND_QUALITY.md`,
+`docs/30_ADVANCED_CAD_MODE.md`, `docs/32_USABLE_SHELL.md`,
+`docs/33_VIEWPORT_MVP.md`, and `docs/35_PARAMETER_MODEL.md`.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added `_startAdvancedSketchRectangleMove` for selected rectangle
+    move-to-click mode.
+  - Extended `_SketchRectanglePlacementIntent` with an optional `entityId` so
+    the same workplane hit path can create a new rectangle or move an existing
+    one.
+  - Added `_moveAdvancedSketchRectangle`, which updates `centerX/centerY`
+    through `SketchEntityParameterAdapter.applyValues` and commits an undoable
+    semantic edit.
+  - Added a selected-rectangle target icon button with active highlighting.
+  - Added a viewport marker for active rectangle move mode.
+- `test/widget_test.dart`:
+  - Extended the Advanced Sketch flow to verify move mode activation, viewport
+    workplane click, saved semantic center `[24.0, 6.0]`, and undo.
+- Docs/tasks/roadmap:
+  - Added M131 and documented move-to-click as semantic sketch helper editing.
+
+### Tests run
+- `flutter test test\widget_test.dart --plain-name "advanced sketch command" --reporter compact`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with current
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 76 files checked, 0 changed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed; 251 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed `releases/latest/windows`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git status --short --ignored releases`:
+  - Passed; `releases/` is ignored.
+- `git diff --check`:
+  - Passed with the existing `ROADMAP.md` CRLF normalization warning only.
+
+### Validation
+- Geometry checked?
+  - Yes by boundary. Move-to-click updates only semantic `SketchEntity.center`
+    values and does not query B-Rep, mesh triangles, OCCT topology, or
+    generated preview ids.
+- Serialization checked?
+  - Yes. Widget coverage saves after moving and verifies the stored semantic
+    center.
+- UI checked?
+  - Yes. Widget coverage verifies the selected-row action, active viewport mode,
+    click-to-move, and undo.
+- Export checked?
+  - Yes. Latest Windows bundle was rebuilt with the native OCCT worker and the
+    release folder remains ignored by Git.
+
+### Known issues
+- Issue: Move-to-click is still inspector-triggered, not a drag interaction.
+  - Severity: Expected.
+  - Next action: Add viewport handles only after the semantic edit model stays
+    stable.
+- Issue: Supported move workplanes are still the same mock top-lid/front-wall
+  surfaces as rectangle placement.
+  - Severity: Expected.
+  - Next action: Expand supported surfaces with stable semantic local coordinate
+    systems.
+
+### Next step
+Commit and push M131, then continue with the next safe direct sketch editing
+slice.
+
+### Notes for future Codex sessions
+Keep move-to-click semantic and undoable. Do not couple sketch entity movement
+to generated triangle ids or OCCT topology ids.

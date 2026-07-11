@@ -494,7 +494,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     }
 
     final current = _sketchRectanglePlacementIntent;
-    if (current?.featureId == feature.id) {
+    if (current?.featureId == feature.id && current?.entityId == null) {
       _cancelAdvancedSketchRectanglePlacement();
       return;
     }
@@ -510,6 +510,58 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
         targetSurface: feature.targetSurface,
       );
       _fileStatusMessage = 'Кликните по поверхности эскиза';
+      _viewportController.setSelectedSemanticId(selection.viewportSemanticId);
+      _viewportController.setGhostPreview(_ghostPreviewFor(selection));
+    });
+  }
+
+  void _startAdvancedSketchRectangleMove(String featureId, String entityId) {
+    final feature = _project.features
+        .where((feature) => feature.id == featureId)
+        .firstOrNull;
+    if (feature == null || feature.type != advancedSketchFeatureType) {
+      return;
+    }
+
+    final entity = sketchEntitiesForFeature(
+      feature,
+    ).where((entity) => entity.id == entityId).firstOrNull;
+    if (entity == null || entity.type != 'rectangle') {
+      return;
+    }
+
+    final workplane = _mockSurfaceWorkplaneOverlay(
+      _project,
+      feature.targetSurface,
+    );
+    if (workplane == null) {
+      setState(() {
+        _fileStatusMessage = 'Для этой поверхности пока нет плоскости эскиза';
+      });
+      return;
+    }
+
+    final current = _sketchRectanglePlacementIntent;
+    if (current?.featureId == feature.id && current?.entityId == entity.id) {
+      _cancelAdvancedSketchRectanglePlacement();
+      return;
+    }
+
+    final selection = SelectionModel.sketchEntity(
+      id: entity.id,
+      parentId: feature.id,
+    );
+    setState(() {
+      _selection = selection;
+      _activeSnapTarget = null;
+      _placementDialogCandidate = null;
+      _componentPlacementGuideActive = false;
+      _sketchRectanglePlacementIntent = _SketchRectanglePlacementIntent(
+        featureId: feature.id,
+        targetSurface: feature.targetSurface,
+        entityId: entity.id,
+      );
+      _fileStatusMessage = 'Кликните, куда переместить контур';
       _viewportController.setSelectedSemanticId(selection.viewportSemanticId);
       _viewportController.setGhostPreview(_ghostPreviewFor(selection));
     });
@@ -543,7 +595,12 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       return true;
     }
 
-    _addAdvancedSketchRectangle(intent.featureId, center: localPosition);
+    final entityId = intent.entityId;
+    if (entityId == null) {
+      _addAdvancedSketchRectangle(intent.featureId, center: localPosition);
+    } else {
+      _moveAdvancedSketchRectangle(intent.featureId, entityId, localPosition);
+    }
     return true;
   }
 
@@ -574,6 +631,46 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       nextState: _project.replaceFeature(updatedFeature),
       selection: SelectionModel.sketchEntity(
         id: rectangle.id,
+        parentId: feature.id,
+      ),
+    );
+  }
+
+  void _moveAdvancedSketchRectangle(
+    String featureId,
+    String entityId,
+    Offset center,
+  ) {
+    final feature = _project.features
+        .where((feature) => feature.id == featureId)
+        .firstOrNull;
+    if (feature == null || feature.type != advancedSketchFeatureType) {
+      return;
+    }
+
+    final entity = sketchEntitiesForFeature(
+      feature,
+    ).where((entity) => entity.id == entityId).firstOrNull;
+    if (entity == null || entity.type != 'rectangle') {
+      return;
+    }
+
+    final updatedEntity = SketchEntityParameterAdapter.applyValues(entity, {
+      ...SketchEntityParameterAdapter.valuesFrom(entity),
+      'centerX': center.dx,
+      'centerY': center.dy,
+    });
+    final updatedFeature = advancedSketchWithUpdatedEntity(
+      feature,
+      updatedEntity,
+    );
+
+    _commitProjectEdit(
+      id: 'advanced.sketch.entity.moveToPoint',
+      label: 'Переместить контур',
+      nextState: _project.replaceFeature(updatedFeature),
+      selection: SelectionModel.sketchEntity(
+        id: updatedEntity.id,
         parentId: feature.id,
       ),
     );
@@ -1916,6 +2013,8 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                                 _updateAdvancedSketchEntityParameter,
                             onSketchEntityNudged: _nudgeAdvancedSketchEntity,
                             onSketchEntityResized: _resizeAdvancedSketchEntity,
+                            onSketchEntityMoveToClick:
+                                _startAdvancedSketchRectangleMove,
                             onSketchEntityDeleted: _deleteAdvancedSketchEntity,
                             onFeatureGroupParameterChanged:
                                 _updateFeatureGroupParameter,
@@ -2069,20 +2168,23 @@ class _SketchRectanglePlacementIntent {
   const _SketchRectanglePlacementIntent({
     required this.featureId,
     required this.targetSurface,
+    this.entityId,
   });
 
   final String featureId;
   final String targetSurface;
+  final String? entityId;
 
   @override
   bool operator ==(Object other) {
     return other is _SketchRectanglePlacementIntent &&
         other.featureId == featureId &&
-        other.targetSurface == targetSurface;
+        other.targetSurface == targetSurface &&
+        other.entityId == entityId;
   }
 
   @override
-  int get hashCode => Object.hash(featureId, targetSurface);
+  int get hashCode => Object.hash(featureId, targetSurface, entityId);
 }
 
 _ActiveSnapTarget? _snapTargetFromViewportHit(
@@ -4127,6 +4229,9 @@ class _ViewportAreaState extends State<_ViewportArea> {
               );
           final sketchRectanglePlacementActive =
               sketchPlacementWorkplane != null;
+          final sketchRectangleMoveActive =
+              sketchRectanglePlacementActive &&
+              widget.sketchRectanglePlacementIntent?.entityId != null;
           final workplaneOverlay =
               sketchPlacementWorkplane ??
               _mockWorkplaneOverlay(widget.project, widget.selection);
@@ -4284,6 +4389,14 @@ class _ViewportAreaState extends State<_ViewportArea> {
                         key: ValueKey(
                           'advanced-sketch-rectangle-placement-active',
                         ),
+                      ),
+                    ),
+                  if (sketchRectangleMoveActive)
+                    const Positioned(
+                      left: 0,
+                      top: 0,
+                      child: SizedBox(
+                        key: ValueKey('advanced-sketch-rectangle-move-active'),
                       ),
                     ),
                   if (hasPreviewMesh &&
@@ -4751,6 +4864,7 @@ class _Inspector extends StatelessWidget {
     required this.onSketchEntityParameterChanged,
     required this.onSketchEntityNudged,
     required this.onSketchEntityResized,
+    required this.onSketchEntityMoveToClick,
     required this.onSketchEntityDeleted,
     required this.onFeatureGroupParameterChanged,
     required this.onCollapse,
@@ -4792,6 +4906,8 @@ class _Inspector extends StatelessWidget {
     double heightDelta,
   )
   onSketchEntityResized;
+  final void Function(String featureId, String entityId)
+  onSketchEntityMoveToClick;
   final void Function(String featureId, String entityId) onSketchEntityDeleted;
   final void Function(String groupId, String parameterId, Object? value)
   onFeatureGroupParameterChanged;
@@ -4942,7 +5058,13 @@ class _Inspector extends StatelessWidget {
               selectedEntityId: selectedSketchEntityId,
               placingRectangle:
                   sketchRectanglePlacementIntent?.featureId ==
-                  selectedFeature.id,
+                      selectedFeature.id &&
+                  sketchRectanglePlacementIntent?.entityId == null,
+              movingEntityId:
+                  sketchRectanglePlacementIntent?.featureId ==
+                      selectedFeature.id
+                  ? sketchRectanglePlacementIntent?.entityId
+                  : null,
               workplaneSize: selectedSketchWorkplane == null
                   ? null
                   : Size(
@@ -4976,6 +5098,9 @@ class _Inspector extends StatelessWidget {
                   widthDelta,
                   heightDelta,
                 );
+              },
+              onEntityMoveToClick: (entityId) {
+                onSketchEntityMoveToClick(selectedFeature.id, entityId);
               },
               onEntityDeleted: (entityId) {
                 onSketchEntityDeleted(selectedFeature.id, entityId);
@@ -5413,18 +5538,21 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
     required this.feature,
     required this.selectedEntityId,
     required this.placingRectangle,
+    required this.movingEntityId,
     required this.workplaneSize,
     required this.onAddRectangle,
     required this.onEntitySelected,
     required this.onEntityParameterChanged,
     required this.onEntityNudged,
     required this.onEntityResized,
+    required this.onEntityMoveToClick,
     required this.onEntityDeleted,
   });
 
   final SemanticFeature feature;
   final String? selectedEntityId;
   final bool placingRectangle;
+  final String? movingEntityId;
   final Size? workplaneSize;
   final VoidCallback onAddRectangle;
   final ValueChanged<String> onEntitySelected;
@@ -5433,6 +5561,7 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
   final void Function(String entityId, double dx, double dy) onEntityNudged;
   final void Function(String entityId, double widthDelta, double heightDelta)
   onEntityResized;
+  final ValueChanged<String> onEntityMoveToClick;
   final ValueChanged<String> onEntityDeleted;
 
   @override
@@ -5500,6 +5629,7 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
               featureId: feature.id,
               entity: entity,
               selected: entity.id == selectedEntityId,
+              movingToClick: entity.id == movingEntityId,
               workplaneSize: workplaneSize,
               onSelected: () => onEntitySelected(entity.id),
               onChanged: (parameterId, value) {
@@ -5509,6 +5639,7 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
               onResize: (widthDelta, heightDelta) {
                 onEntityResized(entity.id, widthDelta, heightDelta);
               },
+              onMoveToClick: () => onEntityMoveToClick(entity.id),
               onDelete: () => onEntityDeleted(entity.id),
             ),
       ],
@@ -5521,22 +5652,26 @@ class _SketchEntityParameterEditor extends StatelessWidget {
     required this.featureId,
     required this.entity,
     required this.selected,
+    required this.movingToClick,
     required this.workplaneSize,
     required this.onSelected,
     required this.onChanged,
     required this.onNudge,
     required this.onResize,
+    required this.onMoveToClick,
     required this.onDelete,
   });
 
   final String featureId;
   final SketchEntity entity;
   final bool selected;
+  final bool movingToClick;
   final Size? workplaneSize;
   final VoidCallback onSelected;
   final void Function(String parameterId, Object? value) onChanged;
   final void Function(double dx, double dy) onNudge;
   final void Function(double widthDelta, double heightDelta) onResize;
+  final VoidCallback onMoveToClick;
   final VoidCallback onDelete;
 
   @override
@@ -5653,6 +5788,17 @@ class _SketchEntityParameterEditor extends StatelessWidget {
                   tooltip: 'Сдвинуть вниз',
                   onPressed: () => onNudge(0, -1),
                 ),
+                _SketchEntityActionButton(
+                  buttonKey: ValueKey(
+                    'sketch-entity-$featureId-${entity.id}-move-to-click',
+                  ),
+                  icon: Icons.my_location_rounded,
+                  tooltip: movingToClick
+                      ? 'Отменить перемещение'
+                      : 'Переместить кликом',
+                  selected: movingToClick,
+                  onPressed: onMoveToClick,
+                ),
                 const Spacer(),
                 _SketchEntityActionButton(
                   buttonKey: ValueKey(
@@ -5728,6 +5874,7 @@ class _SketchEntityActionButton extends StatelessWidget {
     required this.icon,
     required this.tooltip,
     required this.onPressed,
+    this.selected = false,
     this.color,
   });
 
@@ -5735,6 +5882,7 @@ class _SketchEntityActionButton extends StatelessWidget {
   final IconData icon;
   final String tooltip;
   final VoidCallback onPressed;
+  final bool selected;
   final Color? color;
 
   @override
@@ -5752,7 +5900,7 @@ class _SketchEntityActionButton extends StatelessWidget {
         minimumSize: const Size.square(30),
         fixedSize: const Size.square(30),
         padding: EdgeInsets.zero,
-        backgroundColor: foreground.withValues(alpha: 0.08),
+        backgroundColor: foreground.withValues(alpha: selected ? 0.22 : 0.08),
       ),
       onPressed: onPressed,
     );

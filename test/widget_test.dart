@@ -3582,11 +3582,75 @@ void main() {
     final heightDecrease = find.byKey(
       const ValueKey('sketch-entity-advanced_sketch_1-rect_1-height-decrease'),
     );
+    final moveToClick = find.byKey(
+      const ValueKey('sketch-entity-advanced_sketch_1-rect_1-move-to-click'),
+    );
     expect(nudgeRight, findsOneWidget);
     expect(nudgeUp, findsOneWidget);
     expect(deleteRectangle, findsOneWidget);
     expect(widthIncrease, findsOneWidget);
     expect(heightDecrease, findsOneWidget);
+    expect(moveToClick, findsOneWidget);
+
+    await tester.ensureVisible(moveToClick);
+    await tester.pumpAndSettle();
+    await tester.tap(moveToClick);
+    await _pumpAsyncUi(tester);
+
+    expect(
+      find.byKey(const ValueKey('advanced-sketch-rectangle-move-active')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('sketch-rectangle-placement-banner')),
+      findsOneWidget,
+    );
+
+    const frontWallWorkplane = MockViewportWorkplaneOverlay(
+      semanticId: 'main_enclosure.front_wall.outer',
+      kind: MockViewportWorkplaneKind.frontWall,
+      width: 120,
+      height: 28,
+      referenceWidth: 120,
+      referenceHeight: 28,
+    );
+    final movedCenter = viewportLayout.workplaneLocalToCanvas(
+      frontWallWorkplane,
+      const Offset(24, 6),
+    );
+    await tester.tapAt(viewportRect.topLeft + movedCenter);
+    await _pumpAsyncUi(tester);
+
+    expect(
+      find.byKey(const ValueKey('advanced-sketch-rectangle-move-active')),
+      findsNothing,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('toolbar-command-${CommandIds.saveProject}')),
+    );
+    await _pumpAsyncUi(tester);
+
+    final movedSaved = await fileService.readProject(saveFile);
+    final movedSketch = movedSaved.features.singleWhere(
+      (feature) => feature.id == 'advanced_sketch_1',
+    );
+    final movedEntities = sketchEntitiesForFeature(movedSketch);
+    expect(movedEntities.single.parameters['center'], [24.0, 6.0]);
+
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+
+    expect(
+      find.byKey(const ValueKey('advanced-sketch-rectangle-move-active')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(
+        const ValueKey('sketch-entity-advanced_sketch_1-rect_1-selected'),
+      ),
+      findsOneWidget,
+    );
 
     await tester.ensureVisible(widthIncrease);
     await tester.pumpAndSettle();

@@ -6188,3 +6188,47 @@ semantic width/height +/- 1 mm controls for the focused rectangle.
 - Use the width `+` control and confirm the rectangle becomes wider.
 - Use the height `-` control and confirm the rectangle becomes shorter.
 - Press undo twice and confirm the dimensions restore step by step.
+
+---
+
+## M131 - Sketch Rectangle Move-To-Click
+
+### Goal
+Add a direct but safe viewport edit for focused sketch rectangles: a compact
+inspector action that moves the selected rectangle center to the next click on
+its supported sketch workplane.
+
+### Tasks
+- [x] Reuse the transient sketch rectangle placement intent for move mode.
+- [x] Add a selected-rectangle move-to-click inspector action with active
+      highlighting.
+- [x] Update rectangle center through `SketchEntityParameterAdapter`.
+- [x] Commit the move as an undoable semantic project edit.
+- [x] Extend widget coverage and update docs/tasks/worklog.
+
+### Done Criteria
+- The focused rectangle exposes a move-to-click action.
+- Pressing it enters a viewport pick mode and shows the existing cancel banner.
+- The next click on the owning sketch workplane updates the rectangle center.
+- Saving after the move stores the new semantic `center` values.
+- Undo restores the previous rectangle center.
+- Move edits update only semantic `SketchEntity` parameters and do not query
+  mesh, B-Rep, OCCT topology, or generated triangle ids.
+
+### Tests
+- `flutter test test\widget_test.dart --plain-name "advanced sketch command" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Enable Advanced Mode and create an `Эскиз`.
+- Add/place a rectangle and select `rect_1`.
+- Press the target/crosshair move action in the selected rectangle row.
+- Click another point on the same sketch workplane and confirm the rectangle
+  jumps there.
+- Press undo and confirm the rectangle returns to the previous center.
