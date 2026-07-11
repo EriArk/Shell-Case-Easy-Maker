@@ -154,6 +154,41 @@ class SketchEntityParameterAdapter {
     ];
   }
 
+  static List<ParameterIssue> validateWithinWorkplane(
+    SketchEntity entity, {
+    required double workplaneWidth,
+    required double workplaneHeight,
+  }) {
+    final issues = validate(entity);
+    if (entity.type != 'rectangle') {
+      return issues;
+    }
+
+    final values = valuesFrom(entity);
+    final centerX = _doubleValue(values, 'centerX');
+    final centerY = _doubleValue(values, 'centerY');
+    final halfWidth = _doubleValue(values, 'width') / 2;
+    final halfHeight = _doubleValue(values, 'height') / 2;
+    final workplaneHalfWidth = workplaneWidth / 2;
+    final workplaneHalfHeight = workplaneHeight / 2;
+    final inside =
+        centerX - halfWidth >= -workplaneHalfWidth &&
+        centerX + halfWidth <= workplaneHalfWidth &&
+        centerY - halfHeight >= -workplaneHalfHeight &&
+        centerY + halfHeight <= workplaneHalfHeight;
+
+    return [
+      ...issues,
+      if (!inside)
+        const ParameterIssue(
+          parameterId: 'center',
+          severity: ParameterIssueSeverity.warning,
+          code: 'sketch.rectangle.workplaneBounds',
+          message: 'Контур выходит за поверхность.',
+        ),
+    ];
+  }
+
   static double _doubleValue(Map<String, Object?> values, String id) {
     final value = values[id];
     return value is num ? value.toDouble() : 0.0;

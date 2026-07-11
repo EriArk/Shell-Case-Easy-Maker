@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shell_case_easy_maker/parameters/parameter_model.dart';
 import 'package:shell_case_easy_maker/parameters/sketch_entity_parameter_adapter.dart';
 import 'package:shell_case_easy_maker/project/project_model.dart';
 
@@ -43,6 +44,36 @@ void main() {
     expect(rectangle.parameters['cornerRadius'], 4.0);
     expect(SketchEntityParameterAdapter.validate(rectangle), isEmpty);
   });
+
+  test(
+    'rectangle workplane bounds warning reports out of surface contours',
+    () {
+      final inside = defaultSketchRectangleEntity(id: 'rect_1');
+      final outside = SketchEntityParameterAdapter.updateParameter(
+        inside,
+        'centerX',
+        55,
+      );
+
+      expect(
+        SketchEntityParameterAdapter.validateWithinWorkplane(
+          inside,
+          workplaneWidth: 120,
+          workplaneHeight: 70,
+        ),
+        isEmpty,
+      );
+      final issues = SketchEntityParameterAdapter.validateWithinWorkplane(
+        outside,
+        workplaneWidth: 120,
+        workplaneHeight: 70,
+      );
+
+      expect(issues, hasLength(1));
+      expect(issues.single.severity, ParameterIssueSeverity.warning);
+      expect(issues.single.code, 'sketch.rectangle.workplaneBounds');
+    },
+  );
 
   test('advanced sketch can replace one entity by stable id', () {
     final feature = advancedSketchWithEntities(

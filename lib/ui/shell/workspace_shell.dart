@@ -4515,6 +4515,11 @@ class _Inspector extends StatelessWidget {
               .where((feature) => feature.id == selectedFeatureId)
               .firstOrNull
         : null;
+    final selectedSketchWorkplane =
+        selectedFeature != null &&
+            selectedFeature.type == advancedSketchFeatureType
+        ? _mockSurfaceWorkplaneOverlay(project, selectedFeature.targetSurface)
+        : null;
     final selectedFeatureGroup = selection.kind == SelectionKind.featureGroup
         ? project.featureGroups
               .where((group) => group.id == selection.id)
@@ -4628,6 +4633,12 @@ class _Inspector extends StatelessWidget {
             _AdvancedSketchEntityEditor(
               feature: selectedFeature,
               selectedEntityId: selectedSketchEntityId,
+              workplaneSize: selectedSketchWorkplane == null
+                  ? null
+                  : Size(
+                      selectedSketchWorkplane.width,
+                      selectedSketchWorkplane.height,
+                    ),
               onAddRectangle: () => onAddSketchRectangle(selectedFeature.id),
               onEntitySelected: (entityId) {
                 onSelectionChanged(
@@ -5083,6 +5094,7 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
   const _AdvancedSketchEntityEditor({
     required this.feature,
     required this.selectedEntityId,
+    required this.workplaneSize,
     required this.onAddRectangle,
     required this.onEntitySelected,
     required this.onEntityParameterChanged,
@@ -5092,6 +5104,7 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
 
   final SemanticFeature feature;
   final String? selectedEntityId;
+  final Size? workplaneSize;
   final VoidCallback onAddRectangle;
   final ValueChanged<String> onEntitySelected;
   final void Function(String entityId, String parameterId, Object? value)
@@ -5162,6 +5175,7 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
               featureId: feature.id,
               entity: entity,
               selected: entity.id == selectedEntityId,
+              workplaneSize: workplaneSize,
               onSelected: () => onEntitySelected(entity.id),
               onChanged: (parameterId, value) {
                 onEntityParameterChanged(entity.id, parameterId, value);
@@ -5179,6 +5193,7 @@ class _SketchEntityParameterEditor extends StatelessWidget {
     required this.featureId,
     required this.entity,
     required this.selected,
+    required this.workplaneSize,
     required this.onSelected,
     required this.onChanged,
     required this.onNudge,
@@ -5188,6 +5203,7 @@ class _SketchEntityParameterEditor extends StatelessWidget {
   final String featureId;
   final SketchEntity entity;
   final bool selected;
+  final Size? workplaneSize;
   final VoidCallback onSelected;
   final void Function(String parameterId, Object? value) onChanged;
   final void Function(double dx, double dy) onNudge;
@@ -5198,7 +5214,14 @@ class _SketchEntityParameterEditor extends StatelessWidget {
     final theme = Theme.of(context);
     final schema = SketchEntityParameterAdapter.schemaFor(entity);
     final values = SketchEntityParameterAdapter.valuesFrom(entity);
-    final issues = SketchEntityParameterAdapter.validate(entity);
+    final bounds = workplaneSize;
+    final issues = bounds == null
+        ? SketchEntityParameterAdapter.validate(entity)
+        : SketchEntityParameterAdapter.validateWithinWorkplane(
+            entity,
+            workplaneWidth: bounds.width,
+            workplaneHeight: bounds.height,
+          );
 
     return Container(
       key: ValueKey('sketch-entity-$featureId-${entity.id}-panel'),
@@ -5329,7 +5352,7 @@ class _SketchEntityParameterEditor extends StatelessWidget {
               child: Text(
                 issue.message,
                 style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.error,
+                  color: _parameterIssueColor(theme, issue.severity),
                 ),
               ),
             ),
@@ -5372,6 +5395,13 @@ class _SketchEntityActionButton extends StatelessWidget {
       onPressed: onPressed,
     );
   }
+}
+
+Color _parameterIssueColor(ThemeData theme, ParameterIssueSeverity severity) {
+  return switch (severity) {
+    ParameterIssueSeverity.warning => Colors.amber,
+    ParameterIssueSeverity.error => theme.colorScheme.error,
+  };
 }
 
 IconData _sketchEntityIcon(SketchEntity entity) {

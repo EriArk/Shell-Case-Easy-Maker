@@ -3444,7 +3444,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('advanced-sketch-confirm')));
     await _pumpAsyncUi(tester);
 
-    expect(find.text('Front helper sketch'), findsWidgets);
+    expect(find.textContaining('Front helper sketch'), findsWidgets);
     expect(find.text('advanced_sketch_1'), findsWidgets);
     expect(
       find.byKey(const ValueKey('advanced-sketch-overlay-active')),
@@ -3475,6 +3475,33 @@ void main() {
       findsNothing,
     );
 
+    final undoButton = find.byKey(
+      const ValueKey('toolbar-command-${CommandIds.undo}'),
+    );
+    expect(tester.widget<IconButton>(undoButton).onPressed, isNotNull);
+
+    await tester.enterText(
+      find.byKey(
+        const ValueKey('sketch-entity-advanced_sketch_1-rect_1-centerX'),
+      ),
+      '70',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('Контур выходит за поверхность.'), findsOneWidget);
+
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('Контур выходит за поверхность.'), findsNothing);
+    expect(
+      find.byKey(
+        const ValueKey('sketch-entity-advanced_sketch_1-rect_1-selected'),
+      ),
+      findsOneWidget,
+    );
+
     final viewportRect = tester.getRect(
       find.byKey(const ValueKey('mock-viewport-canvas')),
     );
@@ -3487,7 +3514,7 @@ void main() {
     );
     await _pumpAsyncUi(tester);
 
-    expect(find.text('Front helper sketch'), findsWidgets);
+    expect(find.textContaining('Front helper sketch'), findsWidgets);
     expect(addRectangle, findsOneWidget);
     expect(
       find.byKey(
@@ -3548,11 +3575,6 @@ void main() {
     expect(entities.single.parameters['center'], [1.0, 1.0]);
     expect(entities.single.parameters['width'], 32.5);
     expect(entities.single.parameters['height'], 12.0);
-
-    final undoButton = find.byKey(
-      const ValueKey('toolbar-command-${CommandIds.undo}'),
-    );
-    expect(tester.widget<IconButton>(undoButton).onPressed, isNotNull);
 
     await tester.tap(undoButton);
     await _pumpAsyncUi(tester);

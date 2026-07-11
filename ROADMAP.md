@@ -146,6 +146,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M125 - Sketch Rectangle Overlay Hit Target
 - [x] M126 - Sketch Rectangle Entity Focus
 - [x] M127 - Sketch Rectangle Entity Actions
+- [x] M128 - Sketch Rectangle Bounds Warning
 
 ---
 
@@ -6059,3 +6060,45 @@ controls and delete, without viewport drag handles or geometry conversion.
 - Click the delete icon and confirm `rect_1` disappears and the parent sketch
   remains selected.
 - Press undo and confirm `rect_1` returns.
+
+---
+
+## M128 - Sketch Rectangle Bounds Warning
+
+### Goal
+Warn when a semantic sketch rectangle extends outside its supported surface
+workplane, without blocking edits or using generated geometry.
+
+### Tasks
+- [x] Add workplane-bounds validation to `SketchEntityParameterAdapter`.
+- [x] Pass supported top-lid/front-wall workplane dimensions into the selected
+      sketch entity inspector.
+- [x] Show bounds warnings beside existing sketch parameter issues.
+- [x] Render parameter warnings with warning color instead of error color.
+- [x] Add unit/widget coverage and update docs/tasks/worklog.
+
+### Done Criteria
+- Rectangles inside the surface workplane have no bounds issue.
+- Rectangles extending beyond the surface report a warning issue.
+- The warning appears in the selected rectangle inspector.
+- Undoing the out-of-bounds edit removes the warning.
+- The warning is semantic-only and does not query mesh, B-Rep, OCCT topology,
+  or generated triangle ids.
+
+### Tests
+- `flutter test test\sketch_entity_parameter_adapter_test.dart --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "advanced sketch command" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Enable Advanced Mode and create an `Эскиз` on `Front wall` or `Top lid`.
+- Add a rectangle.
+- Set `X` far enough toward the edge that the rectangle sticks out.
+- Confirm the inspector warns that the contour leaves the surface.
+- Undo the edit and confirm the warning disappears.

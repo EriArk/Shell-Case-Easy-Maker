@@ -171,7 +171,8 @@ visible rectangle can be clicked as a semantic sketch-entity focus target: the
 UI selection can point at `rect_1`, while command context and viewport/native
 preview highlighting stay scoped to the owning `advanced_sketch` feature id.
 Rectangle editing currently happens through the selected sketch inspector,
-including schema-backed fields, 1 mm nudge actions, and deletion.
+including schema-backed fields, 1 mm nudge actions, deletion, and semantic
+workplane-bounds warnings.
 
 ## Current Controls
 

@@ -11674,3 +11674,94 @@ with the next safe sketch drawing/editing slice.
 ### Notes for future Codex sessions
 Keep inspector nudge/delete actions semantic and undoable. Do not convert
 sketch entity ids into generated geometry ids or topology references.
+
+---
+
+## M128 - Sketch rectangle bounds warning
+
+### Goal
+Warn when a semantic sketch rectangle extends outside its supported surface
+workplane, without blocking edits or querying generated geometry.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/parameters/sketch_entity_parameter_adapter.dart`,
+`lib/ui/shell/workspace_shell.dart`,
+`test/sketch_entity_parameter_adapter_test.dart`, `test/widget_test.dart`,
+`docs/06_FEATURE_SYSTEM.md`, `docs/26_TESTING_AND_QUALITY.md`,
+`docs/30_ADVANCED_CAD_MODE.md`, `docs/32_USABLE_SHELL.md`,
+`docs/33_VIEWPORT_MVP.md`, and `docs/35_PARAMETER_MODEL.md`.
+
+### Changes made
+- `lib/parameters/sketch_entity_parameter_adapter.dart`:
+  - Added `validateWithinWorkplane` for rectangle bounds checks.
+  - Reports a warning when rectangle extents leave the supplied workplane.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Passes supported sketch workplane dimensions into the selected rectangle
+    editor.
+  - Displays bounds warnings alongside existing parameter issues.
+  - Colors parameter warnings as warnings instead of errors.
+- Tests:
+  - Added adapter coverage for inside/outside workplane rectangles.
+  - Extended the Advanced Sketch widget flow to show and undo a bounds warning.
+- Docs/tasks/roadmap:
+  - Added M128 and documented the semantic bounds-warning boundary.
+
+### Tests run
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with current
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 76 files checked, 0 changed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed; 251 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed `releases/latest/windows`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git status --short --ignored releases`:
+  - Passed; `releases/` is ignored.
+- `git diff --check`:
+  - Passed with the existing `ROADMAP.md` CRLF normalization warning only.
+- `flutter test test\sketch_entity_parameter_adapter_test.dart --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "advanced sketch command" --reporter compact`:
+  - Passed after relaxing a title assertion to `textContaining` for focused
+    entity details.
+- `flutter analyze`:
+  - Passed with no issues.
+
+### Validation
+- Geometry checked?
+  - Yes by boundary. Bounds warnings compare semantic rectangle values to
+    semantic workplane dimensions and do not query B-Rep, mesh, triangles, or
+    OCCT topology ids.
+- Serialization checked?
+  - No project schema change. The warning is computed UI/parameter state.
+- UI checked?
+  - Yes. Widget coverage verifies the warning appears and disappears after
+    undo.
+- Export checked?
+  - Yes. Latest Windows bundle was rebuilt with the native OCCT worker and the
+    release folder remains ignored by Git.
+
+### Known issues
+- Issue: Bounds warning is wired only for supported top-lid/front-wall mock
+  sketch workplanes.
+  - Severity: Expected.
+  - Next action: Expand supported surfaces when stable semantic local
+    coordinate systems are added.
+- Issue: Warning does not block edits yet.
+  - Severity: Expected.
+  - Next action: Decide later whether sketch actions should clamp, block, or
+    allow out-of-bounds helper contours.
+
+### Next step
+Commit and push M128, then continue with the next safe sketch drawing/editing
+slice.
+
+### Notes for future Codex sessions
+Keep sketch bounds checks semantic and advisory. Do not replace them with
+generated mesh triangle checks or OCCT topology queries.
