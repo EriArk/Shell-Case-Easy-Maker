@@ -139,6 +139,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M118 - Guided Enclosure Presets + Validation
 - [x] M119 - Guided Component Placement Pick Mode
 - [x] M120 - Advanced Mode Switch
+- [x] M121 - Basic Sketch Foundation
 
 ---
 
@@ -5710,3 +5711,54 @@ out of the default maker workflow.
 - Click the Advanced Mode icon at the lower part of the left rail.
 - Confirm `Эскиз` appears in a separate advanced section but is disabled.
 - Click the Advanced Mode icon again and confirm `Эскиз` disappears.
+
+---
+
+## M121 - Basic Sketch Foundation
+
+### Goal
+Make the first Advanced Mode sketch command create a safe semantic helper
+object without introducing freeform CAD geometry into the default workflow.
+
+### Tasks
+- [x] Wire `advanced.sketch` to a real shell command only when Advanced Mode is
+      enabled.
+- [x] Add a compact sketch dialog for target surface and sketch name.
+- [x] Store the result as a semantic `advanced_sketch` `SemanticFeature`.
+- [x] Keep sketch geometry empty for now with `entities=[]` and
+      `operation=helper`.
+- [x] Select the created sketch and make it visible in the project browser and
+      inspector.
+- [x] Keep creation undoable and save/load-safe.
+- [x] Keep geometry planning explicit with `helper.advanced_sketch`.
+- [x] Add model, operation-plan, command-palette, and widget coverage.
+- [x] Update docs/tasks/worklog.
+
+### Done Criteria
+- `Эскиз` is hidden until Advanced Mode is enabled.
+- In Advanced Mode, `Эскиз` opens a dialog instead of being a disabled
+  placeholder.
+- Creating a sketch adds one semantic helper feature targeted at a surface.
+- The helper sketch does not create generated B-Rep, mesh, cut, extrusion, or
+  editable topology.
+- Undo removes the created sketch and save/load preserves it when not undone.
+
+### Tests
+- `flutter test test\widget_test.dart --plain-name "advanced" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "command palette" --reporter compact`
+- `flutter test test\geometry_protocol_test.dart --plain-name "advanced sketches" --reporter compact`
+- `flutter test test\project_model_test.dart --plain-name "advanced sketch" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Enable Advanced Mode from the lower left rail.
+- Click `Эскиз`.
+- Pick or keep a surface, enter a sketch name, and click `Создать`.
+- Confirm the new sketch appears under `Фичи` and is selected in the inspector.
+- Click undo and confirm the sketch disappears.

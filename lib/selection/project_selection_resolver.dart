@@ -1,3 +1,4 @@
+import '../project/json_helpers.dart';
 import '../project/project_model.dart';
 import 'selection_model.dart';
 
@@ -282,6 +283,7 @@ String _humanizeFeatureType(String type) {
     'rectangular_cutout' => 'Прямоугольное отверстие',
     'button_group' => 'Группа кнопок',
     'standoff_mounts' => 'Крепёж',
+    'advanced_sketch' => 'Эскиз',
     _ => type.replaceAll('_', ' '),
   };
 }
@@ -290,6 +292,10 @@ String _humanizeFeature(SemanticFeature feature) {
   if (feature.type == 'rectangular_cutout' &&
       feature.parameters['preset'] == 'slot') {
     return 'Слот';
+  }
+
+  if (feature.type == 'advanced_sketch') {
+    return readString(feature.parameters['name'], fallback: 'Эскиз');
   }
 
   return _humanizeFeatureType(feature.type);

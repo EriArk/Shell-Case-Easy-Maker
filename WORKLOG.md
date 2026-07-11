@@ -10999,3 +10999,109 @@ Advanced Mode must remain an escape hatch. Do not move sketch/extrude/boolean
 into the default generator rail, and do not make advanced placeholders
 executable until they have semantic state, undo/redo, validation, and geometry
 service boundaries.
+
+---
+
+## M121 - Basic sketch foundation
+
+### Goal
+Make the first Advanced Mode sketch command create a safe semantic helper
+feature without turning the default workflow into low-level CAD.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/ui/shell/workspace_shell.dart`, `lib/project/feature.dart`,
+`lib/geometry/geometry_operation_plan.dart`,
+`lib/selection/project_selection_resolver.dart`,
+`test/widget_test.dart`, `test/project_model_test.dart`,
+`test/geometry_protocol_test.dart`, `docs/26_TESTING_AND_QUALITY.md`,
+`docs/30_ADVANCED_CAD_MODE.md`, `docs/31_COMMANDS_AND_UNDO.md`, and
+`docs/32_USABLE_SHELL.md`.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Wired `advanced.sketch` to a real command only when `_advancedMode` is on.
+  - Added `_AdvancedSketchDialog` with target surface and sketch name fields.
+  - Created `advanced_sketch` as a `SemanticFeature` with `operation=helper`,
+    `source.type=advanced_mode`, surface workplane placement, and empty
+    `entities`.
+  - Selected the created sketch and committed it through the existing semantic
+    undo history.
+  - Included advanced commands in the command palette only while Advanced Mode
+    is enabled.
+  - Added browser labels/icons for `advanced_sketch`.
+- `lib/selection/project_selection_resolver.dart`:
+  - Added human-readable sketch titles from the saved feature name.
+- `lib/geometry/geometry_operation_plan.dart`:
+  - Mapped `advanced_sketch` to `helper.advanced_sketch`.
+- Tests:
+  - Added widget coverage for palette visibility, sketch creation, save JSON,
+    and undo.
+  - Added project-model round-trip coverage.
+  - Added operation-planner coverage that sketches remain helper operations.
+- Docs/tasks/roadmap:
+  - Added M121, split the Phase 16 sketch work into foundation vs drawing, and
+    documented the helper-only behavior.
+
+### Tests run
+- `flutter test test\geometry_protocol_test.dart --plain-name "advanced sketches" --reporter compact`:
+  - Passed.
+- `flutter test test\project_model_test.dart --plain-name "advanced sketch" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "advanced" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "command palette" --reporter compact`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed, 242 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Returned `True`.
+- `git status --short --ignored releases`:
+  - Confirmed `releases/` is ignored.
+- `git diff --check`:
+  - Passed with only the existing ROADMAP CRLF warning.
+
+### Validation
+- Geometry checked?
+  - Yes at the protocol boundary. `advanced_sketch` becomes
+    `helper.advanced_sketch` and does not request cut/extrude/mesh/B-Rep
+    generation.
+- Serialization checked?
+  - Yes. The helper feature round-trips through `ProjectModel` JSON and is
+    verified through a widget save test.
+- UI checked?
+  - Yes. Widget tests cover Advanced Mode gating, command palette visibility,
+    dialog creation, browser selection, save, and undo.
+- Export checked?
+  - Latest Windows bundle rebuilt; STEP/STL behavior unchanged because sketches
+    are helper features with empty entities.
+
+### Known issues
+- Issue: The sketch has no drawable entities yet.
+  - Severity: Expected.
+  - Next action: Add a typed line/rectangle/circle entity schema and editing
+    flow before any geometry generation.
+- Issue: Helper sketches are not drawn in the viewport.
+  - Severity: Expected.
+  - Next action: Add a surface workplane sketch overlay only after entity
+    selection/edit semantics are defined.
+
+### Next step
+Commit and push M121, then continue with a safe first sketch-entity slice or a
+different semantic generator workflow.
+
+### Notes for future Codex sessions
+Keep `advanced_sketch` semantic and helper-only until sketch entities,
+constraints, validation, undo grouping, and geometry-service conversion are
+designed. Do not use generated mesh/B-Rep or OCCT topology as editable sketch
+state.

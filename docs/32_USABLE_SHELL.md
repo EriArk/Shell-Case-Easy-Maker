@@ -351,8 +351,11 @@ disabled until their semantic command behavior is implemented and tested.
 
 Advanced low-level tools are not part of the default rail. The shell has a
 transient Advanced Mode toggle at the lower rail edge; when enabled, it reveals
-a separate advanced section with the disabled `Эскиз` placeholder. The switch
-does not change saved project JSON, undo/redo history, or geometry requests.
+a separate advanced section with `Эскиз`. The command opens a compact dialog
+for a target surface and sketch name, then creates an undoable
+`advanced_sketch` helper feature with no drawable entities yet. The switch
+itself does not change saved project JSON, undo/redo history, or geometry
+requests.
 
 ## Current limitations
 

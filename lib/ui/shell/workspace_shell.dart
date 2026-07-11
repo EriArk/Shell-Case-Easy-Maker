@@ -365,13 +365,22 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
 
   Iterable<AppCommand> _commandPaletteCommands() {
     final registry = CommandRegistry.core;
-    final commandContext = _selection.toCommandContext(
+    final baseCommandContext = _selection.toCommandContext(
+      advancedMode: _advancedMode,
+      canUndo: _undoHistory.canUndo,
+      canRedo: _undoHistory.canRedo,
+    );
+    final advancedCommandContext = CommandContext(
+      activeScope: CommandScope.advanced,
       advancedMode: _advancedMode,
       canUndo: _undoHistory.canUndo,
       canRedo: _undoHistory.canRedo,
     );
 
     return registry.commands.where((command) {
+      final commandContext = command.scopes.contains(CommandScope.advanced)
+          ? advancedCommandContext
+          : baseCommandContext;
       return command.id != CommandIds.commandPalette &&
           command.isAvailable(commandContext) &&
           _commandActionFor(command.id) != null;
@@ -594,6 +603,12 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
               }
             : null,
       CommandIds.generateMount => _mountCommandAction(),
+      CommandIds.advancedSketch =>
+        _advancedMode
+            ? () {
+                _runAdvancedSketchCommand();
+              }
+            : null,
       _ => null,
     };
   }
@@ -974,6 +989,40 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       label: 'Сгенерировать крепёж',
       nextState: _project.replaceFeatureGroup(group),
       selection: SelectionModel.featureGroup(group.id),
+    );
+  }
+
+  Future<void> _runAdvancedSketchCommand() async {
+    if (!_advancedMode) {
+      return;
+    }
+
+    final surfaces = defaultSelectableSurfaces(_project);
+    final targetSurfaceId =
+        _selection.kind == SelectionKind.surface && _selection.id != null
+        ? _selection.id!
+        : surfaces.firstOrNull?.id ?? 'project';
+
+    final feature = await showDialog<SemanticFeature>(
+      context: context,
+      builder: (context) => _AdvancedSketchDialog(
+        surfaces: surfaces,
+        initialFeature: _defaultAdvancedSketchFeature(
+          id: _nextFeatureId(_project, 'advanced_sketch'),
+          targetSurfaceId: targetSurfaceId,
+          name: _defaultAdvancedSketchName(_project),
+        ),
+      ),
+    );
+    if (!mounted || feature == null) {
+      return;
+    }
+
+    _commitProjectEdit(
+      id: CommandIds.advancedSketch,
+      label: 'Создать эскиз',
+      nextState: _project.replaceFeature(feature),
+      selection: SelectionModel.feature(feature.id),
     );
   }
 
@@ -2405,6 +2454,32 @@ String _nextFeatureId(ProjectModel project, String type) {
   }
 }
 
+String _defaultAdvancedSketchName(ProjectModel project) {
+  final index =
+      project.features
+          .where((feature) => feature.type == 'advanced_sketch')
+          .length +
+      1;
+  return 'Эскиз $index';
+}
+
+SemanticFeature _defaultAdvancedSketchFeature({
+  required String id,
+  required String targetSurfaceId,
+  required String name,
+}) {
+  return SemanticFeature(
+    id: id,
+    type: 'advanced_sketch',
+    targetSurface: targetSurfaceId,
+    operation: 'helper',
+    source: const {'type': 'advanced_mode'},
+    placement: const {'mode': 'surface_workplane', 'anchor': 'center'},
+    parameters: {'name': name, 'plane': 'surface', 'entityCount': 0},
+    metadata: const {'advanced': true, 'entities': <Object?>[]},
+  );
+}
+
 FeatureGroup _defaultButtonGroup({
   required String id,
   required String targetSurfaceId,
@@ -3461,6 +3536,7 @@ IconData _featureIcon(String type) {
     'circular_cutout' => Icons.radio_button_unchecked_rounded,
     'rectangular_cutout' => Icons.crop_16_9_rounded,
     'standoff_mounts' => Icons.construction_rounded,
+    'advanced_sketch' => Icons.architecture_rounded,
     _ => Icons.extension_rounded,
   };
 }
@@ -3473,6 +3549,7 @@ String _featureTitle(String type) {
     'circular_cutout' => 'Круглое отверстие',
     'rectangular_cutout' => 'Прямоугольное отверстие',
     'standoff_mounts' => 'Крепёж',
+    'advanced_sketch' => 'Эскиз',
     _ => type.replaceAll('_', ' '),
   };
 }
@@ -3480,6 +3557,10 @@ String _featureTitle(String type) {
 String _featureTitleForFeature(SemanticFeature feature) {
   if (_isSlotCutoutFeature(feature)) {
     return 'Слот';
+  }
+
+  if (feature.type == 'advanced_sketch') {
+    return readString(feature.parameters['name'], fallback: 'Эскиз');
   }
 
   return _featureTitle(feature.type);
@@ -5471,6 +5552,155 @@ const _standoffMountsParameterSchema = ParameterSchema(
     ),
   ],
 );
+
+class _AdvancedSketchDialog extends StatefulWidget {
+  const _AdvancedSketchDialog({
+    required this.surfaces,
+    required this.initialFeature,
+  });
+
+  final List<SelectableSurface> surfaces;
+  final SemanticFeature initialFeature;
+
+  @override
+  State<_AdvancedSketchDialog> createState() => _AdvancedSketchDialogState();
+}
+
+class _AdvancedSketchDialogState extends State<_AdvancedSketchDialog> {
+  late final TextEditingController _nameController;
+  late String _targetSurfaceId;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(
+      text: readString(
+        widget.initialFeature.parameters['name'],
+        fallback: 'Эскиз',
+      ),
+    );
+    _targetSurfaceId =
+        widget.surfaces
+            .where(
+              (surface) => surface.id == widget.initialFeature.targetSurface,
+            )
+            .firstOrNull
+            ?.id ??
+        widget.surfaces.firstOrNull?.id ??
+        widget.initialFeature.targetSurface;
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final surfaceItems = widget.surfaces.isEmpty
+        ? [
+            SelectableSurface(
+              id: widget.initialFeature.targetSurface,
+              label: widget.initialFeature.targetSurface,
+            ),
+          ]
+        : widget.surfaces;
+
+    return AlertDialog(
+      title: const Text('Новый эскиз'),
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 360),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DropdownButtonFormField<String>(
+              key: const ValueKey('advanced-sketch-surface'),
+              initialValue: _targetSurfaceId,
+              decoration: const InputDecoration(labelText: 'Грань'),
+              items: [
+                for (final surface in surfaceItems)
+                  DropdownMenuItem<String>(
+                    value: surface.id,
+                    child: Text(surface.label),
+                  ),
+              ],
+              onChanged: (value) {
+                if (value == null) {
+                  return;
+                }
+
+                setState(() {
+                  _targetSurfaceId = value;
+                });
+              },
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              key: const ValueKey('advanced-sketch-name'),
+              controller: _nameController,
+              decoration: const InputDecoration(labelText: 'Имя'),
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _submit(),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Icon(
+                  Icons.architecture_rounded,
+                  size: 16,
+                  color: theme.colorScheme.tertiary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '0 контуров',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Отмена'),
+        ),
+        FilledButton(
+          key: const ValueKey('advanced-sketch-confirm'),
+          onPressed: _submit,
+          child: const Text('Создать'),
+        ),
+      ],
+    );
+  }
+
+  void _submit() {
+    final name = _nameController.text.trim().isEmpty
+        ? 'Эскиз'
+        : _nameController.text.trim();
+    Navigator.of(context).pop(
+      SemanticFeature(
+        id: widget.initialFeature.id,
+        type: widget.initialFeature.type,
+        targetSurface: _targetSurfaceId,
+        operation: widget.initialFeature.operation,
+        source: widget.initialFeature.source,
+        placement: widget.initialFeature.placement,
+        parameters: {
+          ...widget.initialFeature.parameters,
+          'name': name,
+          'entityCount': 0,
+        },
+        metadata: widget.initialFeature.metadata,
+      ),
+    );
+  }
+}
 
 class _CreateEnclosureDialog extends StatefulWidget {
   const _CreateEnclosureDialog({required this.initialEnclosure});

@@ -136,6 +136,7 @@ String _operationKindForFeature(String featureKind) {
     'circular_cutout' => 'cutout.circular',
     'rectangular_cutout' => 'cutout.rectangular',
     'glass_recess' => 'recess.glass',
+    'advanced_sketch' => 'helper.advanced_sketch',
     _ => 'feature.$featureKind',
   };
 }

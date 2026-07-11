@@ -357,6 +357,38 @@ void main() {
     expect(operations.last.source['direction'], 'top');
   });
 
+  test('operation planner keeps advanced sketches as helper operations', () {
+    final project = ProjectModel.initial().copyWith(
+      features: const [
+        SemanticFeature(
+          id: 'advanced_sketch_1',
+          type: 'advanced_sketch',
+          targetSurface: 'main_enclosure.top_lid.outer',
+          operation: 'helper',
+          parameters: {
+            'name': 'Lid sketch',
+            'plane': 'surface',
+            'entityCount': 0,
+          },
+          metadata: {'advanced': true, 'entities': <Object?>[]},
+        ),
+      ],
+      featureGroups: const [],
+    );
+    final request = GeometryRequest.previewMesh(
+      project,
+      requestId: 'advanced_sketch_operations',
+    );
+
+    final operations = GeometryOperationPlanner.fromRequest(request);
+
+    expect(operations, hasLength(1));
+    expect(operations.single.kind, 'helper.advanced_sketch');
+    expect(operations.single.operation, 'helper');
+    expect(operations.single.semanticId, 'advanced_sketch_1');
+    expect(operations.single.parameters['entityCount'], 0);
+  });
+
   test('geometry response preserves preview mesh semantic mappings', () {
     const response = GeometryResponse(
       requestId: 'preview_001',

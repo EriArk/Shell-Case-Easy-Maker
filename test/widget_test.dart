@@ -260,6 +260,46 @@ void main() {
     expect(find.byKey(const ValueKey('cutout-shape')), findsOneWidget);
   });
 
+  testWidgets('command palette reveals sketch only in advanced mode', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const CaseMakerApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey('toolbar-command-${CommandIds.commandPalette}'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(
+        const ValueKey('command-palette-command-${CommandIds.advancedSketch}'),
+      ),
+      findsNothing,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('command-palette-cancel')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('advanced-mode-toggle')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(
+        const ValueKey('toolbar-command-${CommandIds.commandPalette}'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(
+        const ValueKey('command-palette-command-${CommandIds.advancedSketch}'),
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('semantic validation warnings are visible in status bar', (
     tester,
   ) async {
@@ -3353,10 +3393,23 @@ void main() {
     expect(tester.widget<IconButton>(generateCaseButton).onPressed, isNull);
   });
 
-  testWidgets('advanced mode switch reveals disabled advanced tools', (
+  testWidgets('advanced sketch command creates semantic helper feature', (
     tester,
   ) async {
-    await tester.pumpWidget(const CaseMakerApp());
+    final fileService = _MemoryProjectFileService();
+    final saveFile = File('advanced_sketch_case.enclosure.json');
+    final dialog = _FakeProjectFileDialogService(saveFile: saveFile);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkspaceShell(
+          project: ProjectModel.initial(),
+          geometryService: const MockGeometryService(),
+          projectFileService: fileService,
+          projectFileDialogService: dialog,
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
     final toggle = find.byKey(const ValueKey('advanced-mode-toggle'));
@@ -3371,7 +3424,56 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(sketchButton, findsOneWidget);
-    expect(tester.widget<IconButton>(sketchButton).onPressed, isNull);
+    expect(tester.widget<IconButton>(sketchButton).onPressed, isNotNull);
+
+    await tester.tap(find.text('Front wall').first);
+    await tester.pumpAndSettle();
+
+    await tester.tap(sketchButton);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('advanced-sketch-confirm')),
+      findsOneWidget,
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('advanced-sketch-name')),
+      'Front helper sketch',
+    );
+    await tester.tap(find.byKey(const ValueKey('advanced-sketch-confirm')));
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('Front helper sketch'), findsWidgets);
+    expect(find.text('advanced_sketch_1'), findsWidgets);
+
+    await tester.tap(
+      find.byKey(const ValueKey('toolbar-command-${CommandIds.saveProject}')),
+    );
+    await _pumpAsyncUi(tester);
+
+    final saved = await fileService.readProject(saveFile);
+    final sketch = saved.features.singleWhere(
+      (feature) => feature.id == 'advanced_sketch_1',
+    );
+
+    expect(sketch.type, 'advanced_sketch');
+    expect(sketch.operation, 'helper');
+    expect(sketch.targetSurface, 'main_enclosure.front_wall.outer');
+    expect(sketch.parameters['name'], 'Front helper sketch');
+    expect(sketch.parameters['entityCount'], 0);
+    expect(sketch.metadata['advanced'], isTrue);
+    expect(sketch.metadata['entities'], isEmpty);
+
+    final undoButton = find.byKey(
+      const ValueKey('toolbar-command-${CommandIds.undo}'),
+    );
+    expect(tester.widget<IconButton>(undoButton).onPressed, isNotNull);
+
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('advanced_sketch_1'), findsNothing);
 
     await tester.tap(toggle);
     await tester.pumpAndSettle();

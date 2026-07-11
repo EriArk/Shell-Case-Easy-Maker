@@ -387,7 +387,8 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 ## Phase 16 — Advanced mode
 
 - [x] Advanced mode switch.
-- [ ] Basic sketch tool.
+- [x] Basic sketch tool foundation.
+- [ ] Basic sketch drawing/editing.
 - [ ] Extrude/cut.
 - [ ] Boolean.
 - [ ] Fillet/chamfer where safe.

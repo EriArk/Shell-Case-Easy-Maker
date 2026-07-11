@@ -180,6 +180,12 @@ template holes and commits it as one undoable project snapshot. The mounts stay
 editable as one semantic group instead of becoming unrelated independent
 features.
 
+`advanced.sketch` is available only after Advanced Mode is enabled. The command
+opens a compact dialog for a target surface and sketch name, then creates one
+`advanced_sketch` `SemanticFeature` with `operation=helper`, surface workplane
+placement, and an empty `entities` list. The result is undoable and save/load
+safe, but it does not generate B-Rep, mesh, cut, or extrusion geometry yet.
+
 Undo/redo now validates the active selection against the restored project. If
 the selected semantic object no longer exists after undo, the shell falls back
 to workspace selection instead of keeping a stale object ID.
@@ -200,8 +206,9 @@ visible and disabled, instead of running empty callbacks.
   action map for the first generator commands.
 - Undo history is wired for first enclosure parameter edits, first USB-C/glass
   circular-cutout feature parameter edits, first button/mount feature-group
-  parameter edits, and first enclosure creation/component placement/USB-C
-  cutout/button group/glass recess/circular cutout/mount group only.
+  parameter edits, first enclosure creation/component placement/USB-C
+  cutout/button group/glass recess/circular cutout/mount group, and first
+  advanced sketch creation only.
 - The toolbar export command currently exports the whole generated assembly.
   Part selection is still pending.
 - Selection and active surface context are available from the shell selection

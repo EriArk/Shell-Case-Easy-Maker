@@ -175,6 +175,37 @@ void main() {
     expect(replaced.features.last.parameters['width'], 14.0);
   });
 
+  test('advanced sketch round trips as semantic helper feature', () {
+    final project = ProjectModel.initial().replaceFeature(
+      const SemanticFeature(
+        id: 'advanced_sketch_1',
+        type: 'advanced_sketch',
+        targetSurface: 'main_enclosure.top_lid.outer',
+        operation: 'helper',
+        source: {'type': 'advanced_mode'},
+        placement: {'mode': 'surface_workplane', 'anchor': 'center'},
+        parameters: {
+          'name': 'Lid sketch',
+          'plane': 'surface',
+          'entityCount': 0,
+        },
+        metadata: {'advanced': true, 'entities': <Object?>[]},
+      ),
+    );
+
+    final decoded = ProjectModel.fromJson(project.toJson());
+    final sketch = decoded.features.singleWhere(
+      (feature) => feature.id == 'advanced_sketch_1',
+    );
+
+    expect(sketch.type, 'advanced_sketch');
+    expect(sketch.operation, 'helper');
+    expect(sketch.source?['type'], 'advanced_mode');
+    expect(sketch.placement?['mode'], 'surface_workplane');
+    expect(sketch.parameters['name'], 'Lid sketch');
+    expect(sketch.metadata['entities'], isEmpty);
+  });
+
   test('project replaces or appends feature groups by stable id', () {
     final project = ProjectModel.initial();
     const added = FeatureGroup(
