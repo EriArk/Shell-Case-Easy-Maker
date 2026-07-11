@@ -6010,6 +6010,7 @@ class _SketchEntityParameterEditor extends StatelessWidget {
     final theme = Theme.of(context);
     final schema = SketchEntityParameterAdapter.schemaFor(entity);
     final values = SketchEntityParameterAdapter.valuesFrom(entity);
+    final cornerRadius = readDouble(values['cornerRadius'], fallback: 0.0);
     final bounds = workplaneSize;
     final issues = bounds == null
         ? SketchEntityParameterAdapter.validate(entity)
@@ -6180,6 +6181,26 @@ class _SketchEntityParameterEditor extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             _SketchEntityResizeRow(
+              label: 'Радиус',
+              decreaseKey: ValueKey(
+                'sketch-entity-$featureId-${entity.id}-corner-radius-decrease',
+              ),
+              increaseKey: ValueKey(
+                'sketch-entity-$featureId-${entity.id}-corner-radius-increase',
+              ),
+              decreaseTooltip: 'Уменьшить радиус на 1 мм',
+              increaseTooltip: 'Увеличить радиус на 1 мм',
+              resetKey: ValueKey(
+                'sketch-entity-$featureId-${entity.id}-corner-radius-reset',
+              ),
+              resetTooltip: 'Убрать скругление',
+              resetIcon: Icons.crop_square_rounded,
+              onDecrease: () => onChanged('cornerRadius', cornerRadius - 1),
+              onIncrease: () => onChanged('cornerRadius', cornerRadius + 1),
+              onReset: () => onChanged('cornerRadius', 0.0),
+            ),
+            const SizedBox(height: 4),
+            _SketchEntityResizeRow(
               label: 'Поворот',
               decreaseKey: ValueKey(
                 'sketch-entity-$featureId-${entity.id}-rotation-decrease',
@@ -6189,8 +6210,14 @@ class _SketchEntityParameterEditor extends StatelessWidget {
               ),
               decreaseTooltip: 'Повернуть на -15°',
               increaseTooltip: 'Повернуть на +15°',
+              resetKey: ValueKey(
+                'sketch-entity-$featureId-${entity.id}-rotation-reset',
+              ),
+              resetTooltip: 'Сбросить поворот',
+              resetIcon: Icons.restart_alt_rounded,
               onDecrease: () => onRotate(-15),
               onIncrease: () => onRotate(15),
+              onReset: () => onChanged('rotation', 0.0),
             ),
             const SizedBox(height: 4),
             _SketchEntityWorkplaneRow(
@@ -6280,6 +6307,10 @@ class _SketchEntityResizeRow extends StatelessWidget {
     required this.increaseTooltip,
     required this.onDecrease,
     required this.onIncrease,
+    this.resetKey,
+    this.resetTooltip,
+    this.resetIcon = Icons.restart_alt_rounded,
+    this.onReset,
   });
 
   final String label;
@@ -6289,6 +6320,10 @@ class _SketchEntityResizeRow extends StatelessWidget {
   final String increaseTooltip;
   final VoidCallback onDecrease;
   final VoidCallback onIncrease;
+  final Key? resetKey;
+  final String? resetTooltip;
+  final IconData resetIcon;
+  final VoidCallback? onReset;
 
   @override
   Widget build(BuildContext context) {
@@ -6319,6 +6354,15 @@ class _SketchEntityResizeRow extends StatelessWidget {
           tooltip: increaseTooltip,
           onPressed: onIncrease,
         ),
+        if (onReset != null && resetKey != null && resetTooltip != null) ...[
+          const SizedBox(width: 4),
+          _SketchEntityActionButton(
+            buttonKey: resetKey!,
+            icon: resetIcon,
+            tooltip: resetTooltip!,
+            onPressed: onReset!,
+          ),
+        ],
       ],
     );
   }

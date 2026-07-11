@@ -138,6 +138,11 @@ schema-backed inspector field. The viewport helper overlay and hit target read
 that value as display/edit affordance only; generated geometry remains outside
 the editable sketch source of truth.
 
+Rectangle shape quick actions also stay schema-backed: radius +/- and radius
+reset write `cornerRadius`, while rotation reset writes `rotation=0`. These
+controls are shortcuts for the same inspector fields, not separate sketch
+operation state.
+
 ## Current Limitations
 
 - Parameter values are not stored as a separate typed layer in `ProjectModel`

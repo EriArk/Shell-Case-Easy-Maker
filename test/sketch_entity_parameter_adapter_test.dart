@@ -35,11 +35,17 @@ void main() {
       'rotation',
       37,
     );
+    final rounded = SketchEntityParameterAdapter.updateParameter(
+      rotated,
+      'cornerRadius',
+      3,
+    );
 
-    expect(rotated.parameters['center'], [7.2, 0.0]);
-    expect(rotated.parameters['width'], 32.5);
-    expect(rotated.parameters['height'], 12.0);
-    expect(rotated.parameters['rotation'], 37.0);
+    expect(rounded.parameters['center'], [7.2, 0.0]);
+    expect(rounded.parameters['width'], 32.5);
+    expect(rounded.parameters['height'], 12.0);
+    expect(rounded.parameters['cornerRadius'], 3.0);
+    expect(rounded.parameters['rotation'], 37.0);
   });
 
   test('rectangle corner radius is clamped to half the smaller side', () {

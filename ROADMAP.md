@@ -6468,3 +6468,48 @@ use that angle, and bounds warnings account for rotated corners.
   rectangle unless the click lands on the visible rotated helper shape.
 - Save, reopen later if desired, and confirm the rotation remains.
 - Press undo and confirm the contour returns to its previous angle.
+
+---
+
+## M137 - Sketch Rectangle Shape Quick Actions
+
+### Goal
+Make selected Advanced Sketch rectangles faster to shape without raw CAD
+operations: add semantic corner-radius quick actions and a reset action for
+rotation while keeping every edit schema-backed and undoable.
+
+### Tasks
+- [x] Add selected-rectangle radius +/- quick actions.
+- [x] Add selected-rectangle radius reset action.
+- [x] Add selected-rectangle rotation reset action.
+- [x] Reuse the existing schema-backed parameter update path for radius/reset
+      actions.
+- [x] Extend unit/widget coverage and update docs/tasks/worklog.
+
+### Done Criteria
+- A selected rectangle exposes radius +/- and radius reset controls.
+- Pressing radius + stores `cornerRadius: 1.0` in project JSON.
+- Pressing radius reset stores `cornerRadius: 0.0`.
+- Pressing rotation reset stores `rotation: 0.0` after a non-zero rotation.
+- Undo restores radius and rotation reset actions one semantic edit at a time.
+- Shape quick actions update only semantic `SketchEntity` parameters and do
+  not query mesh, B-Rep, OCCT topology, or generated triangle ids.
+
+### Tests
+- `flutter test test\sketch_entity_parameter_adapter_test.dart`
+- `flutter test test\widget_test.dart --name "advanced sketch command creates semantic helper feature"`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Enable Advanced Mode and select/create an `Эскиз`.
+- Add or select a rectangle.
+- Use `Радиус +` and confirm the helper corners round visually.
+- Use radius reset and confirm the helper returns to square corners.
+- Rotate the helper, then use rotation reset and confirm it returns to 0°.
+- Press undo a few times and confirm each shape edit rolls back separately.

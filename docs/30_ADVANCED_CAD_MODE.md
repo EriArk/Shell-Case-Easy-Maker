@@ -48,6 +48,8 @@ generate geometry yet.
   the supported sketch workplane bounds while staying semantic.
 - Focused rectangle rotation is a semantic parameter edit. The helper overlay,
   click target, and workplane-bounds warning account for the stored angle.
+- Focused rectangle shape quick actions can increase/reset corner radius and
+  reset rotation through the same schema-backed semantic parameter path.
 - Focused rectangle keyboard edits reuse those semantic paths: arrows nudge by
   1 mm and Shift+arrows resize by 1 mm when a text field is not focused.
 - Focused rectangle keyboard commands also stay semantic: Ctrl+D duplicates,

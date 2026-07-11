@@ -12433,6 +12433,17 @@ helper overlay into generated-geometry selection or editable mesh state.
   - Passed; 254 tests.
 - `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
   - Passed and refreshed `releases/latest/windows`.
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with current
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 76 files checked, 0 changed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed; 254 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed `releases/latest/windows`.
 
 ### Validation
 - Geometry checked?
@@ -12468,3 +12479,75 @@ slice.
 Keep sketch rotation as a semantic parameter. Do not couple rectangle focus,
 hit testing, or undo state to generated mesh triangles, OCCT topology ids, or
 native preview range internals.
+
+---
+
+## M137 - Sketch rectangle shape quick actions
+
+### Goal
+Add faster shape controls for selected Advanced Sketch rectangles while keeping
+the helper overlay semantic: radius +/-/reset and rotation reset are shortcuts
+for schema-backed `SketchEntity` parameters, not generated geometry edits.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/ui/shell/workspace_shell.dart`,
+`test/sketch_entity_parameter_adapter_test.dart`, `test/widget_test.dart`,
+`docs/26_TESTING_AND_QUALITY.md`, `docs/30_ADVANCED_CAD_MODE.md`,
+`docs/33_VIEWPORT_MVP.md`, and `docs/35_PARAMETER_MODEL.md`.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added selected-rectangle `Радиус` quick controls for +/- 1 mm.
+  - Added radius reset, writing `cornerRadius: 0.0`.
+  - Added rotation reset, writing `rotation: 0.0`.
+  - Extended the compact sketch row widget with an optional reset icon action.
+  - Reused existing schema-backed `onChanged` for radius/reset actions.
+- Tests:
+  - Extended adapter coverage for `cornerRadius` semantic updates.
+  - Extended the Advanced Sketch widget flow to verify radius increase,
+    radius reset, rotation reset, save serialization, and undo.
+- Docs/tasks/roadmap:
+  - Added M137 and documented semantic shape quick actions.
+
+### Tests run
+- `flutter test test\sketch_entity_parameter_adapter_test.dart`:
+  - Passed.
+- `flutter test test\widget_test.dart --name "advanced sketch command creates semantic helper feature"`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Yes by boundary. Shape quick actions update only semantic
+    `SketchEntity.parameters`; no B-Rep, mesh triangle, generated topology, or
+    OCCT ids are used for editing.
+- Serialization checked?
+  - Yes. Widget coverage saves and reloads semantic project JSON after
+    `cornerRadius: 1.0`, `cornerRadius: 0.0`, and `rotation: 0.0`.
+- UI checked?
+  - Yes. Widget coverage verifies selected-rectangle quick action visibility,
+    save, and undo behavior.
+- Export checked?
+  - Yes. Latest Windows bundle was rebuilt with the native OCCT worker and the
+    release folder remains ignored by Git.
+
+### Known issues
+- Issue: Radius edits are button/field driven; there are no direct viewport
+  corner handles yet.
+  - Severity: Expected.
+  - Next action: Add direct handles only after the sketch interaction rules are
+    designed.
+- Issue: Shape quick actions affect helper contours only; they do not generate
+  final cut/extrude geometry yet.
+  - Severity: Expected.
+  - Next action: Continue toward actual sketch operation semantics before
+    geometry conversion.
+
+### Next step
+Commit and push M137, then continue with the next safe sketch drawing/editing
+slice.
+
+### Notes for future Codex sessions
+Keep quick shape controls as parameter shortcuts. Do not create parallel
+operation state for radius or rotation reset, and do not introduce generated
+geometry ids into sketch entity focus.

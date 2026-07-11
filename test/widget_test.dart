@@ -3607,10 +3607,23 @@ void main() {
     final heightDecrease = find.byKey(
       const ValueKey('sketch-entity-advanced_sketch_1-rect_1-height-decrease'),
     );
+    final cornerRadiusIncrease = find.byKey(
+      const ValueKey(
+        'sketch-entity-advanced_sketch_1-rect_1-corner-radius-increase',
+      ),
+    );
+    final cornerRadiusReset = find.byKey(
+      const ValueKey(
+        'sketch-entity-advanced_sketch_1-rect_1-corner-radius-reset',
+      ),
+    );
     final rotationIncrease = find.byKey(
       const ValueKey(
         'sketch-entity-advanced_sketch_1-rect_1-rotation-increase',
       ),
+    );
+    final rotationReset = find.byKey(
+      const ValueKey('sketch-entity-advanced_sketch_1-rect_1-rotation-reset'),
     );
     final centerWorkplane = find.byKey(
       const ValueKey('sketch-entity-advanced_sketch_1-rect_1-center-workplane'),
@@ -3629,11 +3642,53 @@ void main() {
     expect(deleteRectangle, findsOneWidget);
     expect(widthIncrease, findsOneWidget);
     expect(heightDecrease, findsOneWidget);
+    expect(cornerRadiusIncrease, findsOneWidget);
+    expect(cornerRadiusReset, findsOneWidget);
     expect(rotationIncrease, findsOneWidget);
+    expect(rotationReset, findsOneWidget);
     expect(centerWorkplane, findsOneWidget);
     expect(fitWorkplane, findsOneWidget);
     expect(moveToClick, findsOneWidget);
     expect(duplicateRectangle, findsOneWidget);
+
+    await tester.ensureVisible(cornerRadiusIncrease);
+    await tester.pumpAndSettle();
+    await tester.tap(cornerRadiusIncrease);
+    await _pumpAsyncUi(tester);
+
+    await tester.tap(
+      find.byKey(const ValueKey('toolbar-command-${CommandIds.saveProject}')),
+    );
+    await _pumpAsyncUi(tester);
+
+    final roundedSaved = await fileService.readProject(saveFile);
+    final roundedSketch = roundedSaved.features.singleWhere(
+      (feature) => feature.id == 'advanced_sketch_1',
+    );
+    final roundedEntities = sketchEntitiesForFeature(roundedSketch);
+    expect(roundedEntities.single.parameters['cornerRadius'], 1.0);
+
+    await tester.ensureVisible(cornerRadiusReset);
+    await tester.pumpAndSettle();
+    await tester.tap(cornerRadiusReset);
+    await _pumpAsyncUi(tester);
+
+    await tester.tap(
+      find.byKey(const ValueKey('toolbar-command-${CommandIds.saveProject}')),
+    );
+    await _pumpAsyncUi(tester);
+
+    final squareSaved = await fileService.readProject(saveFile);
+    final squareSketch = squareSaved.features.singleWhere(
+      (feature) => feature.id == 'advanced_sketch_1',
+    );
+    final squareEntities = sketchEntitiesForFeature(squareSketch);
+    expect(squareEntities.single.parameters['cornerRadius'], 0.0);
+
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
 
     await tester.ensureVisible(rotationIncrease);
     await tester.pumpAndSettle();
@@ -3653,6 +3708,28 @@ void main() {
     );
     final rotatedEntities = sketchEntitiesForFeature(rotatedSketch);
     expect(rotatedEntities.single.parameters['rotation'], 15.0);
+
+    await tester.ensureVisible(rotationReset);
+    await tester.pumpAndSettle();
+    await tester.tap(rotationReset);
+    await _pumpAsyncUi(tester);
+
+    await tester.tap(
+      find.byKey(const ValueKey('toolbar-command-${CommandIds.saveProject}')),
+    );
+    await _pumpAsyncUi(tester);
+
+    final resetRotationSaved = await fileService.readProject(saveFile);
+    final resetRotationSketch = resetRotationSaved.features.singleWhere(
+      (feature) => feature.id == 'advanced_sketch_1',
+    );
+    final resetRotationEntities = sketchEntitiesForFeature(resetRotationSketch);
+    expect(resetRotationEntities.single.parameters['rotation'], 0.0);
+
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+
+    expect(find.textContaining('15°'), findsOneWidget);
 
     await tester.tap(undoButton);
     await _pumpAsyncUi(tester);

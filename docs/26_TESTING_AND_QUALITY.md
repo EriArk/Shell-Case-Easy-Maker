@@ -92,9 +92,10 @@ Use deterministic test fixtures.
   nudge/move-to-click/resize/duplicate/delete the selected rectangle, apply
   keyboard nudge/resize edits and keyboard duplicate/delete/cancel commands,
   center/fit the rectangle to the sketch workplane, rotate the rectangle
-  through semantic inspector actions, keep command scope on the parent sketch,
-  show/remove workplane-bounds warnings, and keep the sketch as
-  `helper.advanced_sketch` rather than generated geometry.
+  through semantic inspector actions, use radius/reset shape quick actions,
+  keep command scope on the parent sketch, show/remove workplane-bounds
+  warnings, and keep the sketch as `helper.advanced_sketch` rather than
+  generated geometry.
 - Sketch entity adapter tests verify rectangle parameter defaults, semantic
   updates, numeric cleanup, stable entity replacement/removal, and
   corner-radius clamping plus semantic duplication and rotation-aware
