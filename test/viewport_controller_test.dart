@@ -425,6 +425,7 @@ void main() {
 
       expect(hit?.kind, ViewportHitKind.feature);
       expect(hit?.semanticId, 'advanced_sketch_1');
+      expect(hit?.childId, 'rect_1');
     },
   );
 

@@ -8,6 +8,7 @@ enum SelectionKind {
   componentTemplate,
   feature,
   featureGroup,
+  sketchEntity,
 }
 
 class SelectionModel {
@@ -41,6 +42,11 @@ class SelectionModel {
     : kind = SelectionKind.featureGroup,
       parentId = null;
 
+  const SelectionModel.sketchEntity({
+    required String this.id,
+    required String this.parentId,
+  }) : kind = SelectionKind.sketchEntity;
+
   final SelectionKind kind;
   final String? id;
   final String? parentId;
@@ -49,12 +55,17 @@ class SelectionModel {
     return switch (kind) {
       SelectionKind.workspace => null,
       SelectionKind.surface => parentId,
+      SelectionKind.sketchEntity => parentId,
       _ => id,
     };
   }
 
   String? get activeSurfaceId {
     return kind == SelectionKind.surface ? id : null;
+  }
+
+  String? get viewportSemanticId {
+    return kind == SelectionKind.sketchEntity ? parentId : id;
   }
 
   CommandScope get activeScope {
@@ -65,7 +76,8 @@ class SelectionModel {
       SelectionKind.componentPlacement ||
       SelectionKind.componentTemplate => CommandScope.component,
       SelectionKind.feature ||
-      SelectionKind.featureGroup => CommandScope.feature,
+      SelectionKind.featureGroup ||
+      SelectionKind.sketchEntity => CommandScope.feature,
     };
   }
 

@@ -49,6 +49,35 @@ void main() {
     );
   });
 
+  test('describes selected sketch entity through parent sketch', () {
+    final sketch = advancedSketchWithEntities(
+      const SemanticFeature(
+        id: 'advanced_sketch_1',
+        type: advancedSketchFeatureType,
+        targetSurface: 'main_enclosure.front_wall.outer',
+        operation: 'helper',
+        parameters: {'name': 'Front helper sketch'},
+        metadata: {'advanced': true},
+      ),
+      [defaultSketchRectangleEntity(id: 'rect_1')],
+    );
+    final project = ProjectModel.initial().replaceFeature(sketch);
+    final details = ProjectSelectionResolver(project).describe(
+      const SelectionModel.sketchEntity(
+        id: 'rect_1',
+        parentId: 'advanced_sketch_1',
+      ),
+    );
+
+    expect(details.title, contains('rect_1'));
+    expect(details.subtitle, contains('Front helper sketch'));
+    expect(details.status, contains('rect_1'));
+    expect(
+      details.properties.map((property) => property.label),
+      containsAll(['Эскиз', 'Тип', 'Ширина', 'Высота', 'Центр']),
+    );
+  });
+
   test('describes glass recess with human label', () {
     final project = ProjectModel.initial().replaceFeature(
       const SemanticFeature(

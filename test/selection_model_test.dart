@@ -35,4 +35,19 @@ void main() {
     expect(context.selectedObjectId, 'button_board_placement');
     expect(context.canUndo, isTrue);
   });
+
+  test('sketch entity selection stays scoped to parent feature', () {
+    const selection = SelectionModel.sketchEntity(
+      id: 'rect_1',
+      parentId: 'advanced_sketch_1',
+    );
+    final context = selection.toCommandContext(advancedMode: true);
+
+    expect(selection.selectedObjectId, 'advanced_sketch_1');
+    expect(selection.viewportSemanticId, 'advanced_sketch_1');
+    expect(selection.activeSurfaceId, isNull);
+    expect(context.activeScope, CommandScope.feature);
+    expect(context.selectedObjectId, 'advanced_sketch_1');
+    expect(context.advancedMode, isTrue);
+  });
 }

@@ -144,6 +144,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M123 - Sketch Rectangle Parameter Editing
 - [x] M124 - Sketch Rectangle Helper Overlay
 - [x] M125 - Sketch Rectangle Overlay Hit Target
+- [x] M126 - Sketch Rectangle Entity Focus
 
 ---
 
@@ -5956,3 +5957,55 @@ selection.
 - Confirm the right inspector stays on the sketch instead of jumping to the
   USB-C, body, or surface below it.
 - Change width/height and confirm the same overlay still responds to clicks.
+
+---
+
+## M126 - Sketch Rectangle Entity Focus
+
+### Goal
+Make clicks on selected sketch rectangle overlays focus the semantic rectangle
+entity in the inspector while keeping commands, viewport highlighting, and
+geometry boundaries scoped to the parent `advanced_sketch`.
+
+### Tasks
+- [x] Add `SelectionKind.sketchEntity` with parent feature scoping.
+- [x] Keep command context and viewport semantic highlight on the parent sketch
+      id instead of the rectangle id.
+- [x] Resolve sketch rectangle overlay hits to a semantic child id.
+- [x] Show selected rectangle details in the inspector and highlight its row.
+- [x] Keep selected rectangle overlays visible and visually focused.
+- [x] Fall back to the parent sketch when undo removes the focused entity.
+- [x] Add unit/widget coverage and update docs/tasks/worklog.
+
+### Done Criteria
+- Adding a rectangle selects/focuses `rect_1` in the sketch inspector.
+- Clicking the visible helper rectangle focuses the same semantic rectangle
+  entity.
+- Command context `selectedObjectId` remains the parent `advanced_sketch`.
+- Viewport/native preview selection uses the parent sketch semantic id, not
+  `rect_1`.
+- Undoing the rectangle removes entity focus and falls back to the parent
+  sketch.
+- No mesh, B-Rep, OCCT topology, or generated triangle ids enter editable
+  selection state.
+
+### Tests
+- `flutter test test\selection_model_test.dart test\project_selection_resolver_test.dart --reporter compact`
+- `flutter test test\viewport_controller_test.dart --plain-name "parent sketch feature" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "advanced sketch command" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Enable Advanced Mode and create an `Эскиз` on `Front wall` or `Top lid`.
+- Add a rectangle and confirm the inspector title/row points at `rect_1`.
+- Click the helper rectangle in the viewport and confirm the same `rect_1`
+  row stays highlighted.
+- Edit width/height and confirm the rectangle remains selected.
+- Undo rectangle creation and confirm the inspector falls back to the parent
+  sketch.

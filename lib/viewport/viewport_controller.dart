@@ -234,6 +234,7 @@ class ViewportHitResult {
     required this.kind,
     required this.semanticId,
     this.parentId,
+    this.childId,
     this.workplaneKind,
     this.snapIndex,
     this.localPosition,
@@ -242,6 +243,7 @@ class ViewportHitResult {
   final ViewportHitKind kind;
   final String semanticId;
   final String? parentId;
+  final String? childId;
   final MockViewportWorkplaneKind? workplaneKind;
   final int? snapIndex;
   final Offset? localPosition;
@@ -999,6 +1001,7 @@ class MockViewportHitTester {
         return ViewportHitResult(
           kind: ViewportHitKind.feature,
           semanticId: rectangle.featureId,
+          childId: rectangle.entityId,
         );
       }
     }

@@ -99,9 +99,10 @@ stays valid for later drawing and geometry conversion work.
 When a sketch is selected, rectangle entities can be drawn as helper-only
 viewport overlays. The overlay reads semantic `SketchEntity` values and does
 not make the rectangle a generated solid, cut, mesh primitive, or selectable
-OCCT topology item. Clicking the visible rectangle resolves to the parent
-`advanced_sketch` feature id for now; rectangle sub-entity selection remains a
-future interaction design problem.
+OCCT topology item. Clicking the visible rectangle can focus the semantic
+`SketchEntity` in the inspector, but command context and viewport/native
+preview highlighting remain scoped to the parent `advanced_sketch` feature.
+Real sketch drawing handles remain a future interaction design problem.
 
 ## Feature groups
 

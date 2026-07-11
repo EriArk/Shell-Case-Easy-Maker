@@ -92,6 +92,22 @@ OCCT topology or generated mesh IDs.
   - Passed after applying `dart format` to the touched Dart files.
 - `flutter analyze`:
   - Passed with no issues.
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter test --reporter compact`:
+  - Passed, 249 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Returned `True`.
+- `git status --short --ignored releases`:
+  - Confirmed `releases/` is ignored.
+- `git diff --check`:
+  - Passed with only the existing ROADMAP CRLF warning.
 - `flutter test --reporter compact`:
   - Passed, 222 tests.
 - `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
@@ -11479,3 +11495,92 @@ with the next safe Advanced Sketch interaction slice.
 Keep sketch overlay hit testing semantic and parent-feature based until
 sub-entity editing is explicitly designed. Do not introduce mesh triangle ids,
 generated B-Rep ids, or OCCT topology handles into editable project state.
+
+---
+
+## M126 - Sketch rectangle entity focus
+
+### Goal
+Let selected sketch rectangle overlays focus the semantic rectangle entity in
+the inspector while keeping command context, viewport highlighting, and
+geometry boundaries scoped to the parent `advanced_sketch`.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/selection/selection_model.dart`,
+`lib/selection/project_selection_resolver.dart`,
+`lib/viewport/viewport_controller.dart`,
+`lib/ui/shell/workspace_shell.dart`, `test/selection_model_test.dart`,
+`test/project_selection_resolver_test.dart`, `test/viewport_controller_test.dart`,
+`test/widget_test.dart`, `docs/06_FEATURE_SYSTEM.md`,
+`docs/26_TESTING_AND_QUALITY.md`, `docs/30_ADVANCED_CAD_MODE.md`,
+`docs/32_USABLE_SHELL.md`, and `docs/33_VIEWPORT_MVP.md`.
+
+### Changes made
+- `lib/selection/selection_model.dart`:
+  - Added `SelectionKind.sketchEntity`.
+  - Kept `selectedObjectId`, command scope, and viewport semantic highlight
+    scoped to the parent sketch feature.
+- `lib/selection/project_selection_resolver.dart`:
+  - Added right-panel details for focused sketch entities.
+- `lib/viewport/viewport_controller.dart`:
+  - Added semantic child id support to viewport hits.
+  - Rectangle overlay hits now carry parent sketch id plus rectangle entity id.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Converted sketch rectangle hits into `SelectionModel.sketchEntity`.
+  - Selected new rectangles immediately after creation.
+  - Kept selected rectangle overlays visible with a stronger visual focus.
+  - Highlighted focused entity rows in the inspector.
+  - Falls back to parent sketch selection if undo removes the focused entity.
+  - Kept native preview and semantic overlay highlighting parent-scoped.
+- Tests:
+  - Added selection-model and resolver coverage for sketch entity focus.
+  - Extended viewport and widget tests for child hit ids, selected entity
+    sentinel, parameter edits, and undo fallback.
+- Docs/tasks/roadmap:
+  - Added M126 and documented the semantic entity focus boundary.
+
+### Tests run
+- `flutter test test\selection_model_test.dart test\project_selection_resolver_test.dart --reporter compact`:
+  - Passed.
+- `flutter test test\viewport_controller_test.dart --plain-name "parent sketch feature" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "advanced sketch command" --reporter compact`:
+  - Passed after updating the expectation for multiple visible `rect_1` labels.
+- `flutter analyze`:
+  - Passed with no issues.
+
+### Validation
+- Geometry checked?
+  - Yes by boundary. Sketch entity focus is semantic UI state and does not use
+    generated mesh triangles, B-Rep faces, or OCCT topology ids.
+- Serialization checked?
+  - No project schema change. Focus is not saved; the rectangle entity remains
+    existing semantic sketch metadata.
+- UI checked?
+  - Yes. Widget coverage verifies focused `rect_1`, overlay click focus,
+    parameter edit preservation, and undo fallback.
+- Export checked?
+  - Latest Windows bundle rebuilt; STEP/STL behavior unchanged because sketch
+    entity focus is UI/selection state only.
+
+### Known issues
+- Issue: Focused rectangle entities still do not have drag handles or direct
+  viewport resizing.
+  - Severity: Expected.
+  - Next action: Add a safe keyboard/nudge or handle-planning slice before
+    geometry conversion.
+- Issue: The overlay still supports only mock top-lid/front-wall surface
+  mappings.
+  - Severity: Expected.
+  - Next action: Expand supported surfaces when stable semantic local
+    coordinate systems are added.
+
+### Next step
+Run full validation, rebuild latest Windows bundle, commit, push, then continue
+with a safe sketch drawing/editing interaction slice.
+
+### Notes for future Codex sessions
+Keep `SelectionKind.sketchEntity` parent-scoped. Do not pass sketch entity ids
+to native preview range selection, generated geometry ids, or OCCT topology
+handles.

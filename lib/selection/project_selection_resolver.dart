@@ -1,5 +1,6 @@
 import '../project/json_helpers.dart';
 import '../project/project_model.dart';
+import '../parameters/sketch_entity_parameter_adapter.dart';
 import 'selection_model.dart';
 
 class ProjectSelectionResolver {
@@ -24,6 +25,10 @@ class ProjectSelectionResolver {
       ),
       SelectionKind.feature => _featureDetails(selection.id),
       SelectionKind.featureGroup => _featureGroupDetails(selection.id),
+      SelectionKind.sketchEntity => _sketchEntityDetails(
+        selection.id,
+        selection.parentId,
+      ),
     };
   }
 
@@ -235,6 +240,59 @@ class ProjectSelectionResolver {
     );
   }
 
+  ProjectSelectionDetails _sketchEntityDetails(
+    String? entityId,
+    String? featureId,
+  ) {
+    final feature = project.features
+        .where((feature) => feature.id == featureId)
+        .firstOrNull;
+    if (feature == null || feature.type != advancedSketchFeatureType) {
+      return _missingDetails('Контур', entityId);
+    }
+
+    final entity = sketchEntitiesForFeature(
+      feature,
+    ).where((entity) => entity.id == entityId).firstOrNull;
+    if (entity == null) {
+      return _missingDetails('Контур', entityId);
+    }
+
+    final sketchName = readString(
+      feature.parameters['name'],
+      fallback: feature.id,
+    );
+    final values = SketchEntityParameterAdapter.valuesFrom(entity);
+
+    return ProjectSelectionDetails(
+      title: _humanizeSketchEntity(entity),
+      subtitle: 'Эскиз $sketchName',
+      iconKey: 'feature',
+      status: 'Выбран контур ${entity.id} в эскизе $sketchName',
+      properties: [
+        ProjectSelectionProperty(label: 'Эскиз', value: feature.id),
+        ProjectSelectionProperty(label: 'Тип', value: entity.type),
+        if (values.containsKey('width'))
+          ProjectSelectionProperty(
+            label: 'Ширина',
+            value: '${_formatNumber(values['width'])} mm',
+          ),
+        if (values.containsKey('height'))
+          ProjectSelectionProperty(
+            label: 'Высота',
+            value: '${_formatNumber(values['height'])} mm',
+          ),
+        if (values.containsKey('centerX') && values.containsKey('centerY'))
+          ProjectSelectionProperty(
+            label: 'Центр',
+            value:
+                '${_formatNumber(values['centerX'])} x '
+                '${_formatNumber(values['centerY'])} mm',
+          ),
+      ],
+    );
+  }
+
   ProjectSelectionDetails _missingDetails(String title, String? id) {
     return ProjectSelectionDetails(
       title: title,
@@ -299,6 +357,21 @@ String _humanizeFeature(SemanticFeature feature) {
   }
 
   return _humanizeFeatureType(feature.type);
+}
+
+String _humanizeSketchEntity(SketchEntity entity) {
+  return switch (entity.type) {
+    'rectangle' => 'Прямоугольник ${entity.id}',
+    _ => '${entity.type} ${entity.id}',
+  };
+}
+
+String _formatNumber(Object? value) {
+  if (value is num) {
+    return value.toStringAsFixed(value == value.roundToDouble() ? 0 : 1);
+  }
+
+  return _formatValue(value);
 }
 
 List<ProjectSelectionProperty> _parameterProperties(

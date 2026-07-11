@@ -104,7 +104,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       _selection = selection;
       _activeSnapTarget = null;
       _placementDialogCandidate = null;
-      _viewportController.setSelectedSemanticId(selection.id);
+      _viewportController.setSelectedSemanticId(selection.viewportSemanticId);
       _viewportController.setGhostPreview(_ghostPreviewFor(selection));
     });
   }
@@ -130,7 +130,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
   void _fitViewport() {
     setState(() {
       _viewportController.fit();
-      _viewportController.setSelectedSemanticId(_selection.id);
+      _viewportController.setSelectedSemanticId(_selection.viewportSemanticId);
       _viewportController.setGhostPreview(_ghostPreviewFor(_selection));
     });
   }
@@ -138,7 +138,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
   void _applyViewportPreset(ViewportViewPreset preset) {
     setState(() {
       _viewportController.applyViewPreset(preset);
-      _viewportController.setSelectedSemanticId(_selection.id);
+      _viewportController.setSelectedSemanticId(_selection.viewportSemanticId);
       _viewportController.setGhostPreview(_ghostPreviewFor(_selection));
     });
   }
@@ -219,7 +219,9 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
           _fileStatusMessage = openGuidedPlacement
               ? 'Точка выбрана: ${snapTarget.label}'
               : 'Точка привязки: ${snapTarget.label}';
-          _viewportController.setSelectedSemanticId(selection.id);
+          _viewportController.setSelectedSemanticId(
+            selection.viewportSemanticId,
+          );
           _viewportController.setGhostPreview(_ghostPreviewFor(selection));
         });
         if (openGuidedPlacement) {
@@ -256,7 +258,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       _fileStatusMessage = snapTarget == null
           ? null
           : 'Точка привязки: ${snapTarget.label}';
-      _viewportController.setSelectedSemanticId(selection.id);
+      _viewportController.setSelectedSemanticId(selection.viewportSemanticId);
       _viewportController.setGhostPreview(_ghostPreviewFor(selection));
     });
 
@@ -333,7 +335,9 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
         CommandIds.generateMount,
         CommandIds.placeComponent,
       ],
-      SelectionKind.feature || SelectionKind.featureGroup => const [
+      SelectionKind.feature ||
+      SelectionKind.featureGroup ||
+      SelectionKind.sketchEntity => const [
         CommandIds.generateCase,
         CommandIds.generateMount,
       ],
@@ -476,7 +480,10 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       id: 'advanced.sketch.rectangle',
       label: 'Добавить прямоугольник',
       nextState: _project.replaceFeature(updatedFeature),
-      selection: SelectionModel.feature(feature.id),
+      selection: SelectionModel.sketchEntity(
+        id: rectangle.id,
+        parentId: feature.id,
+      ),
     );
   }
 
@@ -514,7 +521,10 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       id: 'advanced.sketch.entity.$parameterId',
       label: 'Изменить контур',
       nextState: _project.replaceFeature(updatedFeature),
-      selection: SelectionModel.feature(feature.id),
+      selection: SelectionModel.sketchEntity(
+        id: updatedEntity.id,
+        parentId: feature.id,
+      ),
     );
   }
 
@@ -630,7 +640,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       _componentPlacementGuideActive = false;
       _fileStatusMessage = null;
       _loadGeometry();
-      _viewportController.setSelectedSemanticId(_selection.id);
+      _viewportController.setSelectedSemanticId(_selection.viewportSemanticId);
       _viewportController.setGhostPreview(_ghostPreviewFor(_selection));
     });
   }
@@ -1218,7 +1228,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       _componentPlacementGuideActive = false;
       _fileStatusMessage = null;
       _loadGeometry();
-      _viewportController.setSelectedSemanticId(_selection.id);
+      _viewportController.setSelectedSemanticId(_selection.viewportSemanticId);
       _viewportController.setGhostPreview(_ghostPreviewFor(_selection));
     });
   }
@@ -1235,7 +1245,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       _placementDialogCandidate = null;
       _fileStatusMessage = null;
       _loadGeometry();
-      _viewportController.setSelectedSemanticId(_selection.id);
+      _viewportController.setSelectedSemanticId(_selection.viewportSemanticId);
       _viewportController.setGhostPreview(_ghostPreviewFor(_selection));
     });
   }
@@ -1318,7 +1328,9 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
         _fileBusy = false;
         _fileStatusMessage = 'Открыто: ${_fileName(file)}';
         _loadGeometry();
-        _viewportController.setSelectedSemanticId(_selection.id);
+        _viewportController.setSelectedSemanticId(
+          _selection.viewportSemanticId,
+        );
         _viewportController.setGhostPreview(_ghostPreviewFor(_selection));
       });
     } catch (_) {
@@ -1637,6 +1649,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                             selection: _selection,
                             activeSnapTarget: _activeSnapTarget,
                             activeSnapPlacementIssue: activeSnapPlacementIssue,
+                            onSelectionChanged: _select,
                             onPlaceComponentFromSnap:
                                 _activeSnapTarget != null &&
                                     _project.componentTemplates.isNotEmpty
@@ -1765,7 +1778,13 @@ SelectionModel? _selectionFromViewportHit(ViewportHitResult? hit) {
     ViewportHitKind.componentPlacement => SelectionModel.componentPlacement(
       hit.semanticId,
     ),
-    ViewportHitKind.feature => SelectionModel.feature(hit.semanticId),
+    ViewportHitKind.feature =>
+      hit.childId == null
+          ? SelectionModel.feature(hit.semanticId)
+          : SelectionModel.sketchEntity(
+              id: hit.childId!,
+              parentId: hit.semanticId,
+            ),
     ViewportHitKind.featureGroup => SelectionModel.featureGroup(hit.semanticId),
     ViewportHitKind.snapPoint => _selectionForSnapHit(hit),
   };
@@ -2761,7 +2780,40 @@ SelectionModel _validSelectionFor(
         when id != null &&
             project.featureGroups.any((group) => group.id == id) =>
       selection,
+    SelectionKind.sketchEntity when id != null && selection.parentId != null =>
+      _validSketchEntitySelectionFor(project, selection),
     _ => const SelectionModel.workspace(),
+  };
+}
+
+SelectionModel _validSketchEntitySelectionFor(
+  ProjectModel project,
+  SelectionModel selection,
+) {
+  final featureId = selection.parentId;
+  final entityId = selection.id;
+  final feature = project.features
+      .where((feature) => feature.id == featureId)
+      .firstOrNull;
+  if (feature == null || feature.type != advancedSketchFeatureType) {
+    return const SelectionModel.workspace();
+  }
+
+  final entityExists = sketchEntitiesForFeature(
+    feature,
+  ).any((entity) => entity.id == entityId);
+  if (!entityExists) {
+    return SelectionModel.feature(feature.id);
+  }
+
+  return selection;
+}
+
+bool _selectionMatchesFeature(SelectionModel selection, String featureId) {
+  return switch (selection.kind) {
+    SelectionKind.feature => selection.id == featureId,
+    SelectionKind.sketchEntity => selection.parentId == featureId,
+    _ => false,
   };
 }
 
@@ -3449,9 +3501,7 @@ class _ProjectBrowser extends StatelessWidget {
               icon: _featureIcon(feature.type),
               title: _featureTitleForFeature(feature),
               subtitle: feature.id,
-              selected:
-                  selection.kind == SelectionKind.feature &&
-                  selection.id == feature.id,
+              selected: _selectionMatchesFeature(selection, feature.id),
               onTap: () =>
                   onSelectionChanged(SelectionModel.feature(feature.id)),
             ),
@@ -4322,6 +4372,7 @@ class _Inspector extends StatelessWidget {
     required this.selection,
     required this.activeSnapTarget,
     required this.activeSnapPlacementIssue,
+    required this.onSelectionChanged,
     required this.onPlaceComponentFromSnap,
     required this.onCreateCircularCutoutFromSnap,
     required this.onCreateUsbCFromSnap,
@@ -4342,6 +4393,7 @@ class _Inspector extends StatelessWidget {
   final SelectionModel selection;
   final _ActiveSnapTarget? activeSnapTarget;
   final ValidationMessage? activeSnapPlacementIssue;
+  final ValueChanged<SelectionModel> onSelectionChanged;
   final VoidCallback? onPlaceComponentFromSnap;
   final VoidCallback? onCreateCircularCutoutFromSnap;
   final VoidCallback? onCreateUsbCFromSnap;
@@ -4378,9 +4430,17 @@ class _Inspector extends StatelessWidget {
               .where((placement) => placement.id == selection.id)
               .firstOrNull
         : null;
-    final selectedFeature = selection.kind == SelectionKind.feature
+    final selectedFeatureId = switch (selection.kind) {
+      SelectionKind.feature => selection.id,
+      SelectionKind.sketchEntity => selection.parentId,
+      _ => null,
+    };
+    final selectedSketchEntityId = selection.kind == SelectionKind.sketchEntity
+        ? selection.id
+        : null;
+    final selectedFeature = selectedFeatureId != null
         ? project.features
-              .where((feature) => feature.id == selection.id)
+              .where((feature) => feature.id == selectedFeatureId)
               .firstOrNull
         : null;
     final selectedFeatureGroup = selection.kind == SelectionKind.featureGroup
@@ -4495,7 +4555,16 @@ class _Inspector extends StatelessWidget {
             const SizedBox(height: 14),
             _AdvancedSketchEntityEditor(
               feature: selectedFeature,
+              selectedEntityId: selectedSketchEntityId,
               onAddRectangle: () => onAddSketchRectangle(selectedFeature.id),
+              onEntitySelected: (entityId) {
+                onSelectionChanged(
+                  SelectionModel.sketchEntity(
+                    id: entityId,
+                    parentId: selectedFeature.id,
+                  ),
+                );
+              },
               onEntityParameterChanged: (entityId, parameterId, value) {
                 onSketchEntityParameterChanged(
                   selectedFeature.id,
@@ -4935,12 +5004,16 @@ class _FeatureParameterEditor extends StatelessWidget {
 class _AdvancedSketchEntityEditor extends StatelessWidget {
   const _AdvancedSketchEntityEditor({
     required this.feature,
+    required this.selectedEntityId,
     required this.onAddRectangle,
+    required this.onEntitySelected,
     required this.onEntityParameterChanged,
   });
 
   final SemanticFeature feature;
+  final String? selectedEntityId;
   final VoidCallback onAddRectangle;
+  final ValueChanged<String> onEntitySelected;
   final void Function(String entityId, String parameterId, Object? value)
   onEntityParameterChanged;
 
@@ -5006,6 +5079,8 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
             _SketchEntityParameterEditor(
               featureId: feature.id,
               entity: entity,
+              selected: entity.id == selectedEntityId,
+              onSelected: () => onEntitySelected(entity.id),
               onChanged: (parameterId, value) {
                 onEntityParameterChanged(entity.id, parameterId, value);
               },
@@ -5019,11 +5094,15 @@ class _SketchEntityParameterEditor extends StatelessWidget {
   const _SketchEntityParameterEditor({
     required this.featureId,
     required this.entity,
+    required this.selected,
+    required this.onSelected,
     required this.onChanged,
   });
 
   final String featureId;
   final SketchEntity entity;
+  final bool selected;
+  final VoidCallback onSelected;
   final void Function(String parameterId, Object? value) onChanged;
 
   @override
@@ -5033,38 +5112,69 @@ class _SketchEntityParameterEditor extends StatelessWidget {
     final values = SketchEntityParameterAdapter.valuesFrom(entity);
     final issues = SketchEntityParameterAdapter.validate(entity);
 
-    return Padding(
-      padding: const EdgeInsets.only(top: 8),
+    return Container(
+      key: ValueKey('sketch-entity-$featureId-${entity.id}-panel'),
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: selected
+            ? theme.colorScheme.tertiary.withValues(alpha: 0.10)
+            : Colors.transparent,
+        border: Border.all(
+          color: selected
+              ? theme.colorScheme.tertiary.withValues(alpha: 0.52)
+              : theme.dividerColor.withValues(alpha: 0.14),
+        ),
+        borderRadius: BorderRadius.circular(8),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(
-                _sketchEntityIcon(entity),
-                size: 15,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  _sketchEntityLabel(entity),
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurface,
-                    fontWeight: FontWeight.w700,
+          if (selected)
+            SizedBox(
+              key: ValueKey('sketch-entity-$featureId-${entity.id}-selected'),
+              width: 0,
+              height: 0,
+            ),
+          InkWell(
+            key: ValueKey('sketch-entity-$featureId-${entity.id}-focus'),
+            borderRadius: BorderRadius.circular(6),
+            onTap: onSelected,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Row(
+                children: [
+                  Icon(
+                    _sketchEntityIcon(entity),
+                    size: 15,
+                    color: selected
+                        ? theme.colorScheme.tertiary
+                        : theme.colorScheme.onSurfaceVariant,
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _sketchEntityLabel(entity),
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: selected
+                            ? theme.colorScheme.tertiary
+                            : theme.colorScheme.onSurface,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    _sketchEntitySizeLabel(entity),
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              Text(
-                _sketchEntitySizeLabel(entity),
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
+            ),
           ),
           if (schema != null) ...[
             const SizedBox(height: 8),
@@ -9295,9 +9405,8 @@ class _ViewportPainter extends CustomPainter {
       );
     }
 
-    if (selection.kind == SelectionKind.feature &&
-        !previewSelectionRendered &&
-        selection.id == 'front_usb_c') {
+    if (_selectionMatchesFeature(selection, 'front_usb_c') &&
+        !previewSelectionRendered) {
       canvas.drawRRect(
         RRect.fromRectAndRadius(
           layout.portRect.inflate(8),
@@ -9307,9 +9416,14 @@ class _ViewportPainter extends CustomPainter {
       );
     }
 
-    if (selection.kind == SelectionKind.feature && !previewSelectionRendered) {
+    if ((selection.kind == SelectionKind.feature ||
+            selection.kind == SelectionKind.sketchEntity) &&
+        !previewSelectionRendered) {
       final feature = featurePreviews
-          .where((feature) => feature.semanticId == selection.id)
+          .where(
+            (feature) =>
+                _selectionMatchesFeature(selection, feature.semanticId),
+          )
           .firstOrNull;
       if (feature != null) {
         final rect = layout.featureRect(feature).inflate(6);
@@ -9323,9 +9437,8 @@ class _ViewportPainter extends CustomPainter {
       }
     }
 
-    if (selection.kind == SelectionKind.feature &&
-        !previewSelectionRendered &&
-        selection.id == 'abxy_buttons') {
+    if (_selectionMatchesFeature(selection, 'abxy_buttons') &&
+        !previewSelectionRendered) {
       for (final center in layout.buttonCenters) {
         canvas.drawCircle(
           center,
@@ -9366,7 +9479,7 @@ class _ViewportPainter extends CustomPainter {
 
     final selectedTriangleIndices =
         _selectionUsesPreviewSurfaceRanges(selection)
-        ? _previewSurfaceTriangleIndices(mesh, selection.id)
+        ? _previewSurfaceTriangleIndices(mesh, selection.viewportSemanticId)
         : const <int>{};
     final meshBoundaryEdges = previewMeshBoundaryEdges(
       triangles: mesh.triangles,
@@ -9763,9 +9876,7 @@ class _ViewportPainter extends CustomPainter {
         continue;
       }
 
-      final selected =
-          selection.kind == SelectionKind.feature &&
-          selection.id == feature.semanticId;
+      final selected = _selectionMatchesFeature(selection, feature.semanticId);
       final usbFill = Paint()
         ..color = colorScheme.secondary.withValues(
           alpha: annotationMode ? (selected ? 0.28 : 0.055) : 1,
@@ -10004,6 +10115,10 @@ class _ViewportPainter extends CustomPainter {
       ..strokeWidth = 1.4;
 
     for (final rectangle in sketchRectanglePreviews) {
+      final selected =
+          selection.kind == SelectionKind.sketchEntity &&
+          selection.parentId == rectangle.featureId &&
+          selection.id == rectangle.entityId;
       final rect = rectangle.canvasRect(layout);
       final radius = Radius.circular(rectangle.canvasCornerRadius(layout));
       final rrect = RRect.fromRectAndRadius(rect, radius);
@@ -10011,10 +10126,24 @@ class _ViewportPainter extends CustomPainter {
         rectangle.workplane,
         rectangle.center,
       );
+      final selectedStroke = Paint()
+        ..color = colorScheme.tertiary.withValues(alpha: 1)
+        ..style = PaintingStyle.stroke
+        ..strokeJoin = StrokeJoin.round
+        ..strokeWidth = annotationMode ? 2.8 : 3.2;
 
-      canvas.drawRRect(rrect, fill);
+      canvas.drawRRect(
+        rrect,
+        selected
+            ? (Paint()
+                ..color = colorScheme.tertiary.withValues(
+                  alpha: annotationMode ? 0.20 : 0.25,
+                )
+                ..style = PaintingStyle.fill)
+            : fill,
+      );
       canvas.drawRRect(rrect, shadow);
-      canvas.drawRRect(rrect, stroke);
+      canvas.drawRRect(rrect, selected ? selectedStroke : stroke);
       canvas.drawCircle(center, 4.2 * layout.zoom, centerFill);
       canvas.drawCircle(center, 4.2 * layout.zoom, centerStroke);
     }
@@ -10201,7 +10330,8 @@ class _PreviewMeshSelectionTone {
   }) {
     return switch (selection.kind) {
       SelectionKind.feature ||
-      SelectionKind.featureGroup => _PreviewMeshSelectionTone(
+      SelectionKind.featureGroup ||
+      SelectionKind.sketchEntity => _PreviewMeshSelectionTone(
         color: colorScheme.secondary,
         fillAlpha: 0.28,
         edgeAlpha: 0.54,
@@ -10500,7 +10630,8 @@ bool _nativeSemanticAnnotationsFocused(SelectionModel selection) {
   return selection.kind == SelectionKind.componentPlacement ||
       selection.kind == SelectionKind.componentTemplate ||
       selection.kind == SelectionKind.feature ||
-      selection.kind == SelectionKind.featureGroup;
+      selection.kind == SelectionKind.featureGroup ||
+      selection.kind == SelectionKind.sketchEntity;
 }
 
 bool _hasHiddenNativeMappedFeatureAnnotations({
@@ -10567,13 +10698,17 @@ bool _hasSelectedPreviewSurface(PreviewMesh? mesh, SelectionModel selection) {
     return false;
   }
 
-  return _previewSurfaceTriangleIndices(mesh!, selection.id).isNotEmpty;
+  return _previewSurfaceTriangleIndices(
+    mesh!,
+    selection.viewportSemanticId,
+  ).isNotEmpty;
 }
 
 bool _selectionUsesPreviewSurfaceRanges(SelectionModel selection) {
   return selection.kind == SelectionKind.surface ||
       selection.kind == SelectionKind.feature ||
-      selection.kind == SelectionKind.featureGroup;
+      selection.kind == SelectionKind.featureGroup ||
+      selection.kind == SelectionKind.sketchEntity;
 }
 
 Set<int> _previewSurfaceTriangleIndices(PreviewMesh mesh, String? semanticId) {
@@ -10867,12 +11002,17 @@ List<MockViewportSketchRectanglePreview> _mockSketchRectanglePreviews(
   ProjectModel project,
   SelectionModel selection,
 ) {
-  if (selection.kind != SelectionKind.feature || selection.id == null) {
+  final featureId = switch (selection.kind) {
+    SelectionKind.feature => selection.id,
+    SelectionKind.sketchEntity => selection.parentId,
+    _ => null,
+  };
+  if (featureId == null) {
     return const [];
   }
 
   final feature = project.features
-      .where((feature) => feature.id == selection.id)
+      .where((feature) => feature.id == featureId)
       .firstOrNull;
   if (feature == null || feature.type != advancedSketchFeatureType) {
     return const [];
