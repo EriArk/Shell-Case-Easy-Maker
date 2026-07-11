@@ -171,8 +171,8 @@ visible rectangle can be clicked as a semantic sketch-entity focus target: the
 UI selection can point at `rect_1`, while command context and viewport/native
 preview highlighting stay scoped to the owning `advanced_sketch` feature id.
 Rectangle editing currently happens through the selected sketch inspector,
-including schema-backed fields, 1 mm nudge actions, deletion, and semantic
-workplane-bounds warnings.
+including schema-backed fields, 1 mm nudge actions, width/height +/- 1 mm
+resize actions, deletion, and semantic workplane-bounds warnings.
 
 The selected sketch inspector can also start a transient rectangle
 click-to-place mode. While active, the viewport uses the owning sketch surface
@@ -191,6 +191,8 @@ does not read generated mesh triangles or OCCT topology ids.
 - Use the selected sketch rectangle action, then click the supported workplane:
   create a semantic rectangle at the clicked local position.
 - Use selected rectangle inspector arrows: nudge the helper rectangle by 1 mm.
+- Use selected rectangle inspector resize buttons: change width or height by
+  1 mm.
 - Use selected rectangle inspector delete: remove the semantic rectangle
   entity.
 - Click a visible snap hint: select/highlight that transient snap target.

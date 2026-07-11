@@ -11854,3 +11854,84 @@ Commit and push M129, then continue with constrained sketch editing.
 ### Notes for future Codex sessions
 Keep rectangle placement as transient UI state. Only the resulting
 `SketchEntity` should persist in project JSON.
+
+---
+
+## M130 - Sketch rectangle resize buttons
+
+### Goal
+Add constrained semantic size editing for focused sketch rectangles without
+viewport drag handles, generated mesh selection, B-Rep edits, or OCCT topology
+ids.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/ui/shell/workspace_shell.dart`,
+`lib/parameters/sketch_entity_parameter_adapter.dart`, `test/widget_test.dart`,
+`docs/06_FEATURE_SYSTEM.md`, `docs/26_TESTING_AND_QUALITY.md`,
+`docs/30_ADVANCED_CAD_MODE.md`, `docs/32_USABLE_SHELL.md`,
+`docs/33_VIEWPORT_MVP.md`, and `docs/35_PARAMETER_MODEL.md`.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added `_resizeAdvancedSketchEntity` for semantic width/height delta edits.
+  - Reused `SketchEntityParameterAdapter.applyValues` so range snapping and
+    corner-radius clamping stay centralized.
+  - Added selected-rectangle width/height +/- 1 mm controls.
+  - Moved sketch entity action keys onto the actual `IconButton` hit targets.
+- `test/widget_test.dart`:
+  - Extended the Advanced Sketch flow to verify width increase, height
+    decrease, and undo of each resize edit.
+- Docs/tasks/roadmap:
+  - Added M130 and documented rectangle resize controls as semantic helper UI.
+
+### Tests run
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with current
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 76 files checked, 0 changed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed; 251 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed `releases/latest/windows`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git status --short --ignored releases`:
+  - Passed; `releases/` is ignored.
+- `git diff --check`:
+  - Passed with the existing `ROADMAP.md` CRLF normalization warning only.
+- `flutter test test\widget_test.dart --plain-name "advanced sketch command" --reporter compact`:
+  - Passed after ensuring the test scrolls the inspector to the new compact
+    resize controls in the small test viewport.
+
+### Validation
+- Geometry checked?
+  - Yes by boundary. Resize edits update only semantic `SketchEntity`
+    width/height values and do not query B-Rep, mesh triangles, OCCT topology,
+    or generated preview ids.
+- Serialization checked?
+  - Yes by widget save coverage in the Advanced Sketch flow.
+- UI checked?
+  - Yes. Widget coverage verifies resize buttons, size labels, and undo.
+- Export checked?
+  - Yes. Latest Windows bundle was rebuilt with the native OCCT worker and the
+    release folder remains ignored by Git.
+
+### Known issues
+- Issue: Resize controls are inspector buttons, not viewport drag handles.
+  - Severity: Expected.
+  - Next action: Add direct viewport resize handles as a later safe interaction
+    slice.
+- Issue: Resize uses fixed 1 mm steps only.
+  - Severity: Expected.
+  - Next action: Consider step settings after snap/grid settings are introduced.
+
+### Next step
+Commit and push M130, then continue with direct viewport sketch editing.
+
+### Notes for future Codex sessions
+Keep resize edits schema-backed and undoable. Do not introduce generated
+geometry ids into sketch rectangle editing state.

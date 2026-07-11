@@ -3576,9 +3576,41 @@ void main() {
     final deleteRectangle = find.byKey(
       const ValueKey('sketch-entity-advanced_sketch_1-rect_1-delete'),
     );
+    final widthIncrease = find.byKey(
+      const ValueKey('sketch-entity-advanced_sketch_1-rect_1-width-increase'),
+    );
+    final heightDecrease = find.byKey(
+      const ValueKey('sketch-entity-advanced_sketch_1-rect_1-height-decrease'),
+    );
     expect(nudgeRight, findsOneWidget);
     expect(nudgeUp, findsOneWidget);
     expect(deleteRectangle, findsOneWidget);
+    expect(widthIncrease, findsOneWidget);
+    expect(heightDecrease, findsOneWidget);
+
+    await tester.ensureVisible(widthIncrease);
+    await tester.pumpAndSettle();
+    await tester.tap(widthIncrease);
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('21 x 12'), findsOneWidget);
+
+    await tester.ensureVisible(heightDecrease);
+    await tester.pumpAndSettle();
+    await tester.tap(heightDecrease);
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('21 x 11'), findsOneWidget);
+
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('21 x 12'), findsOneWidget);
+
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('20 x 12'), findsOneWidget);
 
     await tester.tap(nudgeRight);
     await _pumpAsyncUi(tester);

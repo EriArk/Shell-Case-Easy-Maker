@@ -98,11 +98,11 @@ corner radius is clamped to half of the smaller side so the stored rectangle
 stays valid for later drawing and geometry conversion work.
 
 Focused rectangle entities also expose small inspector actions for 1 mm
-left/right/up/down nudges and deletion. These actions still update only
-semantic `SketchEntity` data and are committed through normal undo history.
-When the parent sketch is on a supported top-lid/front-wall workplane, the same
-semantic values are checked against workplane bounds and can produce a warning
-if the rectangle leaves the surface.
+left/right/up/down nudges, width/height +/- 1 mm resizing, and deletion. These
+actions still update only semantic `SketchEntity` data and are committed through
+normal undo history. When the parent sketch is on a supported top-lid/front-wall
+workplane, the same semantic values are checked against workplane bounds and can
+produce a warning if the rectangle leaves the surface.
 
 When a sketch is selected, rectangle entities can be drawn as helper-only
 viewport overlays. The overlay reads semantic `SketchEntity` values and does

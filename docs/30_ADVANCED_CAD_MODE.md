@@ -42,7 +42,8 @@ generate geometry yet.
 - Creation is undoable and save/load-safe.
 - Rectangle entity click placement is undoable and save/load-safe.
 - Rectangle parameter edits are undoable and save/load-safe.
-- Focused rectangle nudge/delete actions are undoable and save/load-safe.
+- Focused rectangle nudge/resize/delete actions are undoable and
+  save/load-safe.
 - Supported sketch workplanes report a warning when a rectangle extends beyond
   the surface bounds.
 - Rectangle corner radius is clamped to half of the smaller side.

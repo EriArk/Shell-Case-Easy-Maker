@@ -6148,3 +6148,43 @@ a viewport workplane click, while keeping the result semantic and undoable.
 - Cancel from the banner and confirm nothing was added.
 - Click the rectangle icon again, then click inside the highlighted workplane.
 - Confirm `rect_1` appears, is selected, and can still be nudged/edited/undone.
+
+---
+
+## M130 - Sketch Rectangle Resize Buttons
+
+### Goal
+Add constrained rectangle size editing without viewport drag handles: compact
+semantic width/height +/- 1 mm controls for the focused rectangle.
+
+### Tasks
+- [x] Add a semantic resize edit path for focused rectangle entities.
+- [x] Reuse `SketchEntityParameterAdapter` normalization for width/height edits.
+- [x] Add compact width/height +/- 1 mm buttons in the selected rectangle row.
+- [x] Keep resize edits undoable and scoped to the selected sketch entity.
+- [x] Extend widget coverage and update docs/tasks/worklog.
+
+### Done Criteria
+- The focused rectangle exposes width and height +/- 1 mm controls.
+- Width increase changes the size label from `20 x 12` to `21 x 12`.
+- Height decrease changes the size label from `21 x 12` to `21 x 11`.
+- Undo restores the previous rectangle dimensions one resize edit at a time.
+- Resize edits update only semantic `SketchEntity` parameters and do not query
+  mesh, B-Rep, OCCT topology, or generated triangle ids.
+
+### Tests
+- `flutter test test\widget_test.dart --plain-name "advanced sketch command" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Enable Advanced Mode and create an `Эскиз`.
+- Add/place a rectangle and select `rect_1`.
+- Use the width `+` control and confirm the rectangle becomes wider.
+- Use the height `-` control and confirm the rectangle becomes shorter.
+- Press undo twice and confirm the dimensions restore step by step.

@@ -662,6 +662,48 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     );
   }
 
+  void _resizeAdvancedSketchEntity(
+    String featureId,
+    String entityId,
+    double widthDelta,
+    double heightDelta,
+  ) {
+    final feature = _project.features
+        .where((feature) => feature.id == featureId)
+        .firstOrNull;
+    if (feature == null || feature.type != advancedSketchFeatureType) {
+      return;
+    }
+
+    final entity = sketchEntitiesForFeature(
+      feature,
+    ).where((entity) => entity.id == entityId).firstOrNull;
+    if (entity == null || entity.type != 'rectangle') {
+      return;
+    }
+
+    final values = SketchEntityParameterAdapter.valuesFrom(entity);
+    final updatedEntity = SketchEntityParameterAdapter.applyValues(entity, {
+      ...values,
+      'width': readDouble(values['width'], fallback: 20.0) + widthDelta,
+      'height': readDouble(values['height'], fallback: 12.0) + heightDelta,
+    });
+    final updatedFeature = advancedSketchWithUpdatedEntity(
+      feature,
+      updatedEntity,
+    );
+
+    _commitProjectEdit(
+      id: 'advanced.sketch.entity.resize',
+      label: 'Изменить размер контура',
+      nextState: _project.replaceFeature(updatedFeature),
+      selection: SelectionModel.sketchEntity(
+        id: updatedEntity.id,
+        parentId: feature.id,
+      ),
+    );
+  }
+
   void _deleteAdvancedSketchEntity(String featureId, String entityId) {
     final feature = _project.features
         .where((feature) => feature.id == featureId)
@@ -1873,6 +1915,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                             onSketchEntityParameterChanged:
                                 _updateAdvancedSketchEntityParameter,
                             onSketchEntityNudged: _nudgeAdvancedSketchEntity,
+                            onSketchEntityResized: _resizeAdvancedSketchEntity,
                             onSketchEntityDeleted: _deleteAdvancedSketchEntity,
                             onFeatureGroupParameterChanged:
                                 _updateFeatureGroupParameter,
@@ -4707,6 +4750,7 @@ class _Inspector extends StatelessWidget {
     required this.onAddSketchRectangle,
     required this.onSketchEntityParameterChanged,
     required this.onSketchEntityNudged,
+    required this.onSketchEntityResized,
     required this.onSketchEntityDeleted,
     required this.onFeatureGroupParameterChanged,
     required this.onCollapse,
@@ -4741,6 +4785,13 @@ class _Inspector extends StatelessWidget {
   onSketchEntityParameterChanged;
   final void Function(String featureId, String entityId, double dx, double dy)
   onSketchEntityNudged;
+  final void Function(
+    String featureId,
+    String entityId,
+    double widthDelta,
+    double heightDelta,
+  )
+  onSketchEntityResized;
   final void Function(String featureId, String entityId) onSketchEntityDeleted;
   final void Function(String groupId, String parameterId, Object? value)
   onFeatureGroupParameterChanged;
@@ -4917,6 +4968,14 @@ class _Inspector extends StatelessWidget {
               },
               onEntityNudged: (entityId, dx, dy) {
                 onSketchEntityNudged(selectedFeature.id, entityId, dx, dy);
+              },
+              onEntityResized: (entityId, widthDelta, heightDelta) {
+                onSketchEntityResized(
+                  selectedFeature.id,
+                  entityId,
+                  widthDelta,
+                  heightDelta,
+                );
               },
               onEntityDeleted: (entityId) {
                 onSketchEntityDeleted(selectedFeature.id, entityId);
@@ -5359,6 +5418,7 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
     required this.onEntitySelected,
     required this.onEntityParameterChanged,
     required this.onEntityNudged,
+    required this.onEntityResized,
     required this.onEntityDeleted,
   });
 
@@ -5371,6 +5431,8 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
   final void Function(String entityId, String parameterId, Object? value)
   onEntityParameterChanged;
   final void Function(String entityId, double dx, double dy) onEntityNudged;
+  final void Function(String entityId, double widthDelta, double heightDelta)
+  onEntityResized;
   final ValueChanged<String> onEntityDeleted;
 
   @override
@@ -5444,6 +5506,9 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
                 onEntityParameterChanged(entity.id, parameterId, value);
               },
               onNudge: (dx, dy) => onEntityNudged(entity.id, dx, dy),
+              onResize: (widthDelta, heightDelta) {
+                onEntityResized(entity.id, widthDelta, heightDelta);
+              },
               onDelete: () => onEntityDeleted(entity.id),
             ),
       ],
@@ -5460,6 +5525,7 @@ class _SketchEntityParameterEditor extends StatelessWidget {
     required this.onSelected,
     required this.onChanged,
     required this.onNudge,
+    required this.onResize,
     required this.onDelete,
   });
 
@@ -5470,6 +5536,7 @@ class _SketchEntityParameterEditor extends StatelessWidget {
   final VoidCallback onSelected;
   final void Function(String parameterId, Object? value) onChanged;
   final void Function(double dx, double dy) onNudge;
+  final void Function(double widthDelta, double heightDelta) onResize;
   final VoidCallback onDelete;
 
   @override
@@ -5555,7 +5622,7 @@ class _SketchEntityParameterEditor extends StatelessWidget {
             Row(
               children: [
                 _SketchEntityActionButton(
-                  key: ValueKey(
+                  buttonKey: ValueKey(
                     'sketch-entity-$featureId-${entity.id}-nudge-left',
                   ),
                   icon: Icons.keyboard_arrow_left_rounded,
@@ -5563,7 +5630,7 @@ class _SketchEntityParameterEditor extends StatelessWidget {
                   onPressed: () => onNudge(-1, 0),
                 ),
                 _SketchEntityActionButton(
-                  key: ValueKey(
+                  buttonKey: ValueKey(
                     'sketch-entity-$featureId-${entity.id}-nudge-right',
                   ),
                   icon: Icons.keyboard_arrow_right_rounded,
@@ -5571,7 +5638,7 @@ class _SketchEntityParameterEditor extends StatelessWidget {
                   onPressed: () => onNudge(1, 0),
                 ),
                 _SketchEntityActionButton(
-                  key: ValueKey(
+                  buttonKey: ValueKey(
                     'sketch-entity-$featureId-${entity.id}-nudge-up',
                   ),
                   icon: Icons.keyboard_arrow_up_rounded,
@@ -5579,7 +5646,7 @@ class _SketchEntityParameterEditor extends StatelessWidget {
                   onPressed: () => onNudge(0, 1),
                 ),
                 _SketchEntityActionButton(
-                  key: ValueKey(
+                  buttonKey: ValueKey(
                     'sketch-entity-$featureId-${entity.id}-nudge-down',
                   ),
                   icon: Icons.keyboard_arrow_down_rounded,
@@ -5588,13 +5655,43 @@ class _SketchEntityParameterEditor extends StatelessWidget {
                 ),
                 const Spacer(),
                 _SketchEntityActionButton(
-                  key: ValueKey('sketch-entity-$featureId-${entity.id}-delete'),
+                  buttonKey: ValueKey(
+                    'sketch-entity-$featureId-${entity.id}-delete',
+                  ),
                   icon: Icons.delete_outline_rounded,
                   tooltip: 'Удалить контур',
                   color: theme.colorScheme.error,
                   onPressed: onDelete,
                 ),
               ],
+            ),
+            const SizedBox(height: 6),
+            _SketchEntityResizeRow(
+              label: 'Ширина',
+              decreaseKey: ValueKey(
+                'sketch-entity-$featureId-${entity.id}-width-decrease',
+              ),
+              increaseKey: ValueKey(
+                'sketch-entity-$featureId-${entity.id}-width-increase',
+              ),
+              decreaseTooltip: 'Уменьшить ширину на 1 мм',
+              increaseTooltip: 'Увеличить ширину на 1 мм',
+              onDecrease: () => onResize(-1, 0),
+              onIncrease: () => onResize(1, 0),
+            ),
+            const SizedBox(height: 4),
+            _SketchEntityResizeRow(
+              label: 'Высота',
+              decreaseKey: ValueKey(
+                'sketch-entity-$featureId-${entity.id}-height-decrease',
+              ),
+              increaseKey: ValueKey(
+                'sketch-entity-$featureId-${entity.id}-height-increase',
+              ),
+              decreaseTooltip: 'Уменьшить высоту на 1 мм',
+              increaseTooltip: 'Увеличить высоту на 1 мм',
+              onDecrease: () => onResize(0, -1),
+              onIncrease: () => onResize(0, 1),
             ),
           ],
           if (schema != null) ...[
@@ -5627,13 +5724,14 @@ class _SketchEntityParameterEditor extends StatelessWidget {
 
 class _SketchEntityActionButton extends StatelessWidget {
   const _SketchEntityActionButton({
-    super.key,
+    required this.buttonKey,
     required this.icon,
     required this.tooltip,
     required this.onPressed,
     this.color,
   });
 
+  final Key buttonKey;
   final IconData icon;
   final String tooltip;
   final VoidCallback onPressed;
@@ -5645,6 +5743,7 @@ class _SketchEntityActionButton extends StatelessWidget {
     final foreground = color ?? theme.colorScheme.tertiary;
 
     return IconButton(
+      key: buttonKey,
       tooltip: tooltip,
       icon: Icon(icon, size: 18),
       color: foreground,
@@ -5656,6 +5755,59 @@ class _SketchEntityActionButton extends StatelessWidget {
         backgroundColor: foreground.withValues(alpha: 0.08),
       ),
       onPressed: onPressed,
+    );
+  }
+}
+
+class _SketchEntityResizeRow extends StatelessWidget {
+  const _SketchEntityResizeRow({
+    required this.label,
+    required this.decreaseKey,
+    required this.increaseKey,
+    required this.decreaseTooltip,
+    required this.increaseTooltip,
+    required this.onDecrease,
+    required this.onIncrease,
+  });
+
+  final String label;
+  final Key decreaseKey;
+  final Key increaseKey;
+  final String decreaseTooltip;
+  final String increaseTooltip;
+  final VoidCallback onDecrease;
+  final VoidCallback onIncrease;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        _SketchEntityActionButton(
+          buttonKey: decreaseKey,
+          icon: Icons.remove_rounded,
+          tooltip: decreaseTooltip,
+          onPressed: onDecrease,
+        ),
+        const SizedBox(width: 4),
+        _SketchEntityActionButton(
+          buttonKey: increaseKey,
+          icon: Icons.add_rounded,
+          tooltip: increaseTooltip,
+          onPressed: onIncrease,
+        ),
+      ],
     );
   }
 }

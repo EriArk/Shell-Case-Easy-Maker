@@ -89,8 +89,8 @@ Use deterministic test fixtures.
   cancel rectangle click placement, create the first typed rectangle entity from
   a workplane click, edit its rectangle parameters, show the helper-only
   rectangle overlay, click the overlay into semantic rectangle focus,
-  nudge/delete the selected rectangle, keep command scope on the parent sketch,
-  show/remove workplane-bounds warnings, and keep the sketch as
+  nudge/resize/delete the selected rectangle, keep command scope on the parent
+  sketch, show/remove workplane-bounds warnings, and keep the sketch as
   `helper.advanced_sketch` rather than generated geometry.
 - Sketch entity adapter tests verify rectangle parameter defaults, semantic
   updates, numeric cleanup, stable entity replacement/removal, and
