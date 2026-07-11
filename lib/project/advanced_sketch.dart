@@ -66,6 +66,30 @@ SemanticFeature advancedSketchWithEntities(
   );
 }
 
+SemanticFeature advancedSketchWithUpdatedEntity(
+  SemanticFeature feature,
+  SketchEntity updatedEntity,
+) {
+  final entities = sketchEntitiesForFeature(feature);
+  var replaced = false;
+  final updatedEntities = <SketchEntity>[];
+
+  for (final entity in entities) {
+    if (entity.id == updatedEntity.id) {
+      updatedEntities.add(updatedEntity);
+      replaced = true;
+    } else {
+      updatedEntities.add(entity);
+    }
+  }
+
+  if (!replaced) {
+    return advancedSketchWithEntities(feature, [...entities, updatedEntity]);
+  }
+
+  return advancedSketchWithEntities(feature, updatedEntities);
+}
+
 SketchEntity defaultSketchRectangleEntity({required String id}) {
   return SketchEntity(
     id: id,

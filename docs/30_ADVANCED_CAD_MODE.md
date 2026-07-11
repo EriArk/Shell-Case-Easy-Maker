@@ -29,9 +29,11 @@ generate geometry yet.
 - `SketchEntity` currently supports the first `rectangle` entity with center,
   width, height, and corner-radius parameters.
 - Selecting an advanced sketch shows a compact inspector section with contour
-  count and a rectangle action.
+  count, a rectangle action, and rectangle parameter fields.
 - Creation is undoable and save/load-safe.
 - Rectangle entity creation is undoable and save/load-safe.
+- Rectangle parameter edits are undoable and save/load-safe.
+- Rectangle corner radius is clamped to half of the smaller side.
 - The default workflow remains generator-first; sketch creation is available
   only after Advanced Mode is enabled.
 

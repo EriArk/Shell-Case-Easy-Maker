@@ -389,6 +389,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Advanced mode switch.
 - [x] Basic sketch tool foundation.
 - [x] Basic sketch rectangle entity foundation.
+- [x] Basic sketch rectangle parameter editing.
 - [ ] Basic sketch drawing/editing.
 - [ ] Extrude/cut.
 - [ ] Boolean.

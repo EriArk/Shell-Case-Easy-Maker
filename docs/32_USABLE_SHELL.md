@@ -355,9 +355,11 @@ a separate advanced section with `Эскиз`. The command opens a compact dialo
 for a target surface and sketch name, then creates an undoable
 `advanced_sketch` helper feature. Selecting that sketch shows a compact
 inspector section with contour count and a rectangle icon; clicking it stores
-the first typed rectangle sketch entity as semantic project data. The switch
-itself does not change saved project JSON, undo/redo history, or geometry
-requests, and sketch entities do not generate geometry yet.
+the first typed rectangle sketch entity as semantic project data. Rectangle
+entities expose compact X/Y, width, height, and radius fields in the same
+inspector section. The switch itself does not change saved project JSON,
+undo/redo history, or geometry requests, and sketch entities do not generate
+geometry yet.
 
 ## Current limitations
 

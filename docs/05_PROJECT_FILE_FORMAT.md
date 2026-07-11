@@ -102,7 +102,8 @@ The first implementation lives under `lib/project/` and keeps project data seman
 Generated meshes, STL files, preview data, and OCCT topology are still excluded from the editable project model.
 
 Advanced sketch helper features store typed sketch entities in feature metadata.
-The first supported entity is a rectangle:
+The first supported entity is a rectangle. Its center, width, height, and
+corner-radius values are editable semantic parameters:
 
 ```json
 {
@@ -126,7 +127,7 @@ The first supported entity is a rectangle:
       "type": "rectangle",
       "parameters": {
         "center": [0.0, 0.0],
-        "width": 20.0,
+        "width": 32.5,
         "height": 12.0,
         "cornerRadius": 0.0
       }
@@ -170,7 +171,7 @@ Current behavior:
   groups sourced from a selected component placement's template mounting holes,
 - the Advanced Mode `Эскиз` rail command can append semantic
   `advanced_sketch` helper features, and the selected sketch inspector can add
-  the first typed rectangle entity to its metadata,
+  and edit the first typed rectangle entity in its metadata,
 - toolbar STEP/STL export writes an external generated artifact and does not
   update the clean project baseline,
 - generated previews are refreshed from the loaded semantic model.

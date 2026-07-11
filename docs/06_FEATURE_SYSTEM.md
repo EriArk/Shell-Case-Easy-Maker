@@ -88,7 +88,13 @@ parameters.
 
 Sketch entities are still semantic helper data only. They do not generate
 B-Rep, mesh, cuts, extrusions, or topology IDs yet. The inspector can add the
-first rectangle entity to a selected sketch as an undoable project edit.
+first rectangle entity to a selected sketch as an undoable project edit and can
+edit its X/Y center, width, height, and corner radius through
+`SketchEntityParameterAdapter`.
+
+Rectangle parameter edits replace the stored sketch entity semantically. The
+corner radius is clamped to half of the smaller side so the stored rectangle
+stays valid for later drawing and geometry conversion work.
 
 ## Feature groups
 

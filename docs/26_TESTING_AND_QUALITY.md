@@ -86,8 +86,11 @@ Use deterministic test fixtures.
   implemented.
 - Advanced sketch tests verify that `Эскиз` creates an undoable/saveable
   semantic `advanced_sketch` helper feature, that the inspector can add the
-  first typed rectangle entity, and that the operation planner keeps the sketch
-  as `helper.advanced_sketch` rather than generated geometry.
+  first typed rectangle entity, edit its rectangle parameters, and keep the
+  sketch as `helper.advanced_sketch` rather than generated geometry.
+- Sketch entity adapter tests verify rectangle parameter defaults, semantic
+  updates, numeric cleanup, stable entity replacement, and corner-radius
+  clamping.
 - Snap-seeded component placement can align semantic component anchors to the
   selected snap point without saving anchor UI state.
 - Snap-seeded manual USB-C creation stores front-wall face-local

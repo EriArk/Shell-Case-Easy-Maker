@@ -3457,6 +3457,17 @@ void main() {
 
     expect(find.textContaining('rect_1'), findsOneWidget);
 
+    await tester.enterText(
+      find.byKey(
+        const ValueKey('sketch-entity-advanced_sketch_1-rect_1-width'),
+      ),
+      '32.5',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('32.5 x 12'), findsOneWidget);
+
     await tester.tap(
       find.byKey(const ValueKey('toolbar-command-${CommandIds.saveProject}')),
     );
@@ -3478,13 +3489,19 @@ void main() {
     expect(entities, hasLength(1));
     expect(entities.single.id, 'rect_1');
     expect(entities.single.type, 'rectangle');
-    expect(entities.single.parameters['width'], 20.0);
+    expect(entities.single.parameters['width'], 32.5);
     expect(entities.single.parameters['height'], 12.0);
 
     final undoButton = find.byKey(
       const ValueKey('toolbar-command-${CommandIds.undo}'),
     );
     expect(tester.widget<IconButton>(undoButton).onPressed, isNotNull);
+
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('20 x 12'), findsOneWidget);
+    expect(find.textContaining('rect_1'), findsOneWidget);
 
     await tester.tap(undoButton);
     await _pumpAsyncUi(tester);

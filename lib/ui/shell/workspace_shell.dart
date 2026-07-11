@@ -15,6 +15,7 @@ import '../../component_features/component_feature_projection.dart';
 import '../../geometry/geometry_service.dart';
 import '../../parameters/enclosure_parameter_adapter.dart';
 import '../../parameters/parameter_model.dart';
+import '../../parameters/sketch_entity_parameter_adapter.dart';
 import '../../patterns/pattern_layout.dart';
 import '../../project/json_helpers.dart';
 import '../../project/project_file_dialog_service.dart';
@@ -474,6 +475,44 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     _commitProjectEdit(
       id: 'advanced.sketch.rectangle',
       label: 'Добавить прямоугольник',
+      nextState: _project.replaceFeature(updatedFeature),
+      selection: SelectionModel.feature(feature.id),
+    );
+  }
+
+  void _updateAdvancedSketchEntityParameter(
+    String featureId,
+    String entityId,
+    String parameterId,
+    Object? value,
+  ) {
+    final feature = _project.features
+        .where((feature) => feature.id == featureId)
+        .firstOrNull;
+    if (feature == null || feature.type != advancedSketchFeatureType) {
+      return;
+    }
+
+    final entity = sketchEntitiesForFeature(
+      feature,
+    ).where((entity) => entity.id == entityId).firstOrNull;
+    if (entity == null) {
+      return;
+    }
+
+    final updatedEntity = SketchEntityParameterAdapter.updateParameter(
+      entity,
+      parameterId,
+      value,
+    );
+    final updatedFeature = advancedSketchWithUpdatedEntity(
+      feature,
+      updatedEntity,
+    );
+
+    _commitProjectEdit(
+      id: 'advanced.sketch.entity.$parameterId',
+      label: 'Изменить контур',
       nextState: _project.replaceFeature(updatedFeature),
       selection: SelectionModel.feature(feature.id),
     );
@@ -1650,6 +1689,8 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                                 _updateComponentPlacementParameter,
                             onFeatureParameterChanged: _updateFeatureParameter,
                             onAddSketchRectangle: _addAdvancedSketchRectangle,
+                            onSketchEntityParameterChanged:
+                                _updateAdvancedSketchEntityParameter,
                             onFeatureGroupParameterChanged:
                                 _updateFeatureGroupParameter,
                             onCollapse: () => _setInspectorCollapsed(true),
@@ -4273,6 +4314,7 @@ class _Inspector extends StatelessWidget {
     required this.onComponentPlacementParameterChanged,
     required this.onFeatureParameterChanged,
     required this.onAddSketchRectangle,
+    required this.onSketchEntityParameterChanged,
     required this.onFeatureGroupParameterChanged,
     required this.onCollapse,
   });
@@ -4295,6 +4337,13 @@ class _Inspector extends StatelessWidget {
   final void Function(String featureId, String parameterId, Object? value)
   onFeatureParameterChanged;
   final ValueChanged<String> onAddSketchRectangle;
+  final void Function(
+    String featureId,
+    String entityId,
+    String parameterId,
+    Object? value,
+  )
+  onSketchEntityParameterChanged;
   final void Function(String groupId, String parameterId, Object? value)
   onFeatureGroupParameterChanged;
   final VoidCallback onCollapse;
@@ -4429,6 +4478,14 @@ class _Inspector extends StatelessWidget {
             _AdvancedSketchEntityEditor(
               feature: selectedFeature,
               onAddRectangle: () => onAddSketchRectangle(selectedFeature.id),
+              onEntityParameterChanged: (entityId, parameterId, value) {
+                onSketchEntityParameterChanged(
+                  selectedFeature.id,
+                  entityId,
+                  parameterId,
+                  value,
+                );
+              },
             ),
           ],
           if (selectedFeatureGroup != null &&
@@ -4861,10 +4918,13 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
   const _AdvancedSketchEntityEditor({
     required this.feature,
     required this.onAddRectangle,
+    required this.onEntityParameterChanged,
   });
 
   final SemanticFeature feature;
   final VoidCallback onAddRectangle;
+  final void Function(String entityId, String parameterId, Object? value)
+  onEntityParameterChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -4925,38 +4985,93 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
           )
         else
           for (final entity in entities)
-            Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Row(
-                children: [
-                  Icon(
-                    _sketchEntityIcon(entity),
-                    size: 15,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _sketchEntityLabel(entity),
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.onSurface,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    _sketchEntitySizeLabel(entity),
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
+            _SketchEntityParameterEditor(
+              featureId: feature.id,
+              entity: entity,
+              onChanged: (parameterId, value) {
+                onEntityParameterChanged(entity.id, parameterId, value);
+              },
             ),
       ],
+    );
+  }
+}
+
+class _SketchEntityParameterEditor extends StatelessWidget {
+  const _SketchEntityParameterEditor({
+    required this.featureId,
+    required this.entity,
+    required this.onChanged,
+  });
+
+  final String featureId;
+  final SketchEntity entity;
+  final void Function(String parameterId, Object? value) onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final schema = SketchEntityParameterAdapter.schemaFor(entity);
+    final values = SketchEntityParameterAdapter.valuesFrom(entity);
+    final issues = SketchEntityParameterAdapter.validate(entity);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                _sketchEntityIcon(entity),
+                size: 15,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _sketchEntityLabel(entity),
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurface,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                _sketchEntitySizeLabel(entity),
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+          if (schema != null) ...[
+            const SizedBox(height: 8),
+            for (final parameter in schema.parameters) ...[
+              _ParameterNumberField(
+                keyPrefix: 'sketch-entity-$featureId-${entity.id}',
+                parameter: parameter,
+                value: values[parameter.id],
+                onSubmitted: (value) => onChanged(parameter.id, value),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ],
+          for (final issue in issues)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text(
+                issue.message,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.error,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

@@ -11201,3 +11201,99 @@ Keep `SketchEntity` as semantic project data. Do not make sketch entities depend
 on mesh triangles, generated B-Rep ids, or OCCT topology ids. Geometry conversion
 should go through `GeometryService` only after validation and undo semantics are
 designed.
+
+---
+
+## M123 - Sketch rectangle parameter editing
+
+### Goal
+Make the first Advanced Sketch rectangle entity editable through typed semantic
+parameters while keeping it helper-only.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/project/advanced_sketch.dart`, `lib/parameters/parameter_model.dart`,
+`lib/ui/shell/workspace_shell.dart`, `test/widget_test.dart`,
+`docs/05_PROJECT_FILE_FORMAT.md`, `docs/06_FEATURE_SYSTEM.md`,
+`docs/26_TESTING_AND_QUALITY.md`, `docs/30_ADVANCED_CAD_MODE.md`,
+`docs/31_COMMANDS_AND_UNDO.md`, `docs/32_USABLE_SHELL.md`, and
+`docs/35_PARAMETER_MODEL.md`.
+
+### Changes made
+- `lib/project/advanced_sketch.dart`:
+  - Added `advancedSketchWithUpdatedEntity` for stable replacement of one
+    sketch entity by id.
+- `lib/parameters/sketch_entity_parameter_adapter.dart`:
+  - Added schema-backed rectangle parameters: center X/Y, width, height, and
+    corner radius.
+  - Added semantic update/apply helpers.
+  - Normalized numeric precision for stable JSON.
+  - Clamped corner radius to half of the smaller side.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added an undoable sketch entity parameter update path.
+  - Expanded the selected sketch inspector to show editable rectangle fields.
+- Tests:
+  - Added adapter coverage for defaults, semantic updates, radius clamping, and
+    stable entity replacement.
+  - Extended the Advanced Sketch widget test to edit width, save it, and undo
+    the parameter edit separately from entity creation.
+- Docs/tasks/roadmap:
+  - Added M123 and documented the current rectangle parameter editing boundary.
+
+### Tests run
+- `flutter test test\sketch_entity_parameter_adapter_test.dart --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "advanced sketch command" --reporter compact`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed, 246 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Returned `True`.
+- `git status --short --ignored releases`:
+  - Confirmed `releases/` is ignored.
+- `git diff --check`:
+  - Passed with only the existing ROADMAP CRLF warning.
+
+### Validation
+- Geometry checked?
+  - Yes by boundary. Rectangle parameter edits remain metadata on a helper
+    sketch and do not request B-Rep, mesh, cut, extrusion, or topology output.
+- Serialization checked?
+  - Yes. Widget save coverage verifies edited rectangle width persists in
+    semantic project JSON.
+- UI checked?
+  - Yes. The selected sketch inspector shows rectangle fields, updates the row
+    label, and undo reverts the parameter edit separately.
+- Export checked?
+  - Latest Windows bundle rebuilt; STEP/STL behavior unchanged because sketch
+    entities still do not generate geometry.
+
+### Known issues
+- Issue: Rectangle edits are visible in the inspector only, not drawn on the
+  viewport workplane yet.
+  - Severity: Expected.
+  - Next action: Add a helper-only sketch overlay that reads `SketchEntity`
+    values without using generated mesh/B-Rep state.
+- Issue: There is no direct entity selection inside the viewport.
+  - Severity: Expected.
+  - Next action: Add semantic sketch overlay hit targets after drawing exists.
+
+### Next step
+Commit and push M123, then continue with a helper-only sketch overlay or entity
+selection/editing affordances.
+
+### Notes for future Codex sessions
+Keep rectangle parameters schema-backed and semantic. Do not convert sketch
+entity ids into OCCT topology ids or mesh triangle ids. Viewport drawing should
+read `SketchEntity` values as a temporary semantic overlay until the geometry
+conversion path is designed.

@@ -141,6 +141,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M120 - Advanced Mode Switch
 - [x] M121 - Basic Sketch Foundation
 - [x] M122 - Sketch Rectangle Entity Slice
+- [x] M123 - Sketch Rectangle Parameter Editing
 
 ---
 
@@ -5809,3 +5810,50 @@ helper-only, and out of the default beginner workflow.
 - Click the square/rectangle icon in the inspector sketch section.
 - Confirm the inspector shows one contour, `rect_1`, and `20 x 12`.
 - Undo once and confirm `rect_1` disappears while the sketch remains.
+
+---
+
+## M123 - Sketch Rectangle Parameter Editing
+
+### Goal
+Make the first Advanced Sketch rectangle entity editable through typed semantic
+parameters without turning sketch entities into generated geometry.
+
+### Tasks
+- [x] Add `SketchEntityParameterAdapter` for rectangle center, size, and corner
+      radius values.
+- [x] Normalize rectangle numbers into stable JSON values.
+- [x] Clamp rectangle corner radius to half of the smaller side.
+- [x] Add inspector fields for selected sketch rectangle entities.
+- [x] Keep each rectangle parameter edit undoable and save/load-safe.
+- [x] Keep rectangle parameters helper-only, with no B-Rep, mesh, cut,
+      extrusion, or topology output.
+- [x] Add adapter and widget coverage.
+- [x] Update docs/tasks/worklog.
+
+### Done Criteria
+- After adding `rect_1`, the inspector exposes X, Y, width, height, and radius
+  fields.
+- Editing width updates the semantic entity row and saved project JSON.
+- Undo once reverts the rectangle parameter edit while keeping `rect_1`.
+- Undo again can remove the rectangle entity as before.
+- Geometry planning still treats the parent sketch as `helper.advanced_sketch`.
+
+### Tests
+- `flutter test test\sketch_entity_parameter_adapter_test.dart --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "advanced sketch command" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Enable Advanced Mode and create an `Эскиз`.
+- Add a rectangle from the selected sketch inspector.
+- Change `Ширина` from `20` to another value, for example `32.5`.
+- Confirm the row changes from `20 x 12` to `32.5 x 12`.
+- Save, reopen later if desired, and confirm the edited value remains.
+- Undo once and confirm the rectangle returns to `20 x 12`.
