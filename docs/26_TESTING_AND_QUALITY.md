@@ -86,8 +86,9 @@ Use deterministic test fixtures.
   implemented.
 - Advanced sketch tests verify that `Эскиз` creates an undoable/saveable
   semantic `advanced_sketch` helper feature, that the inspector can add the
-  first typed rectangle entity, edit its rectangle parameters, and keep the
-  sketch as `helper.advanced_sketch` rather than generated geometry.
+  first typed rectangle entity, edit its rectangle parameters, show the
+  helper-only rectangle overlay, and keep the sketch as `helper.advanced_sketch`
+  rather than generated geometry.
 - Sketch entity adapter tests verify rectangle parameter defaults, semantic
   updates, numeric cleanup, stable entity replacement, and corner-radius
   clamping.

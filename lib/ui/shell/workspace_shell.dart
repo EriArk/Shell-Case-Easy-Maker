@@ -3817,6 +3817,10 @@ class _ViewportAreaState extends State<_ViewportArea> {
           final featureGroupPreviews = _mockFeatureGroupPreviews(
             widget.project,
           );
+          final sketchRectanglePreviews = _mockSketchRectanglePreviews(
+            widget.project,
+            widget.selection,
+          );
 
           return Listener(
             behavior: HitTestBehavior.opaque,
@@ -3846,6 +3850,7 @@ class _ViewportAreaState extends State<_ViewportArea> {
                         activeSnapTarget: widget.activeSnapTarget,
                         featurePreviews: featurePreviews,
                         featureGroupPreviews: featureGroupPreviews,
+                        sketchRectanglePreviews: sketchRectanglePreviews,
                         selection: widget.selection,
                         viewportState: widget.viewportState,
                       ),
@@ -3920,6 +3925,14 @@ class _ViewportAreaState extends State<_ViewportArea> {
                         key: ValueKey(
                           'geometry-preview-surface-highlight-active',
                         ),
+                      ),
+                    ),
+                  if (sketchRectanglePreviews.isNotEmpty)
+                    const Positioned(
+                      left: 0,
+                      top: 0,
+                      child: SizedBox(
+                        key: ValueKey('advanced-sketch-overlay-active'),
                       ),
                     ),
                   if (workplaneOverlay != null)
@@ -9094,6 +9107,7 @@ class _ViewportPainter extends CustomPainter {
     required this.activeSnapTarget,
     required this.featurePreviews,
     required this.featureGroupPreviews,
+    required this.sketchRectanglePreviews,
     required this.selection,
     required this.viewportState,
   });
@@ -9108,6 +9122,7 @@ class _ViewportPainter extends CustomPainter {
   final _ActiveSnapTarget? activeSnapTarget;
   final List<MockViewportFeaturePreview> featurePreviews;
   final List<MockViewportFeatureGroupPreview> featureGroupPreviews;
+  final List<_MockViewportSketchRectanglePreview> sketchRectanglePreviews;
   final SelectionModel selection;
   final ViewportState viewportState;
 
@@ -9199,6 +9214,7 @@ class _ViewportPainter extends CustomPainter {
     _paintFeatures(canvas, layout, annotationMode: previewMeshRendered);
     _paintFeatureGroups(canvas, layout, annotationMode: previewMeshRendered);
     _paintWorkplaneOverlay(canvas, layout, annotationMode: previewMeshRendered);
+    _paintSketchRectangles(canvas, layout, annotationMode: previewMeshRendered);
     _paintGhostPreview(canvas, layout);
 
     final highlightPaint = Paint()
@@ -9948,6 +9964,57 @@ class _ViewportPainter extends CustomPainter {
         !_hasNativePreviewMapping(previewMesh, semanticId);
   }
 
+  void _paintSketchRectangles(
+    Canvas canvas,
+    MockViewportLayout layout, {
+    required bool annotationMode,
+  }) {
+    if (sketchRectanglePreviews.isEmpty) {
+      return;
+    }
+
+    final fill = Paint()
+      ..color = colorScheme.tertiary.withValues(
+        alpha: annotationMode ? 0.14 : 0.18,
+      )
+      ..style = PaintingStyle.fill;
+    final stroke = Paint()
+      ..color = colorScheme.tertiary.withValues(
+        alpha: annotationMode ? 0.90 : 0.95,
+      )
+      ..style = PaintingStyle.stroke
+      ..strokeJoin = StrokeJoin.round
+      ..strokeWidth = annotationMode ? 2.1 : 2.4;
+    final shadow = Paint()
+      ..color = Colors.black.withValues(alpha: 0.32)
+      ..style = PaintingStyle.stroke
+      ..strokeJoin = StrokeJoin.round
+      ..strokeWidth = stroke.strokeWidth + 3.2;
+    final centerFill = Paint()
+      ..color = colorScheme.tertiary.withValues(alpha: 0.96)
+      ..style = PaintingStyle.fill;
+    final centerStroke = Paint()
+      ..color = const Color(0xFF151719).withValues(alpha: 0.80)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4;
+
+    for (final rectangle in sketchRectanglePreviews) {
+      final rect = rectangle.canvasRect(layout);
+      final radius = Radius.circular(rectangle.canvasCornerRadius(layout));
+      final rrect = RRect.fromRectAndRadius(rect, radius);
+      final center = layout.workplaneLocalToCanvas(
+        rectangle.workplane,
+        rectangle.center,
+      );
+
+      canvas.drawRRect(rrect, fill);
+      canvas.drawRRect(rrect, shadow);
+      canvas.drawRRect(rrect, stroke);
+      canvas.drawCircle(center, 4.2 * layout.zoom, centerFill);
+      canvas.drawCircle(center, 4.2 * layout.zoom, centerStroke);
+    }
+  }
+
   void _paintGhostPreview(Canvas canvas, MockViewportLayout layout) {
     final ghost = viewportState.ghostPreview;
     if (ghost == null) {
@@ -10005,6 +10072,7 @@ class _ViewportPainter extends CustomPainter {
         oldDelegate.activeSnapTarget != activeSnapTarget ||
         oldDelegate.featurePreviews != featurePreviews ||
         oldDelegate.featureGroupPreviews != featureGroupPreviews ||
+        oldDelegate.sketchRectanglePreviews != sketchRectanglePreviews ||
         oldDelegate.selection != selection ||
         oldDelegate.viewportState != viewportState;
   }
@@ -10586,6 +10654,86 @@ void _drawRotatedRRect(
   canvas.restore();
 }
 
+class _MockViewportSketchRectanglePreview {
+  const _MockViewportSketchRectanglePreview({
+    required this.featureId,
+    required this.entityId,
+    required this.workplane,
+    required this.center,
+    required this.width,
+    required this.height,
+    required this.cornerRadius,
+  });
+
+  final String featureId;
+  final String entityId;
+  final MockViewportWorkplaneOverlay workplane;
+  final Offset center;
+  final double width;
+  final double height;
+  final double cornerRadius;
+
+  Rect canvasRect(MockViewportLayout layout) {
+    final canvasCenter = layout.workplaneLocalToCanvas(workplane, center);
+    final widthPoint = layout.workplaneLocalToCanvas(
+      workplane,
+      center.translate(width / 2, 0),
+    );
+    final heightPoint = layout.workplaneLocalToCanvas(
+      workplane,
+      center.translate(0, height / 2),
+    );
+    final canvasWidth = ((widthPoint - canvasCenter).distance * 2)
+        .clamp(8 * layout.zoom, 10000)
+        .toDouble();
+    final canvasHeight = ((heightPoint - canvasCenter).distance * 2)
+        .clamp(8 * layout.zoom, 10000)
+        .toDouble();
+
+    return Rect.fromCenter(
+      center: canvasCenter,
+      width: canvasWidth,
+      height: canvasHeight,
+    );
+  }
+
+  double canvasCornerRadius(MockViewportLayout layout) {
+    if (cornerRadius <= 0) {
+      return 0;
+    }
+
+    final rect = canvasRect(layout);
+    final safeWidth = width.clamp(1, 10000).toDouble();
+    final scaled = (cornerRadius / safeWidth) * rect.width;
+    return scaled.clamp(0, rect.shortestSide / 2).toDouble();
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is _MockViewportSketchRectanglePreview &&
+        other.featureId == featureId &&
+        other.entityId == entityId &&
+        other.workplane == workplane &&
+        other.center == center &&
+        other.width == width &&
+        other.height == height &&
+        other.cornerRadius == cornerRadius;
+  }
+
+  @override
+  int get hashCode {
+    return Object.hash(
+      featureId,
+      entityId,
+      workplane,
+      center,
+      width,
+      height,
+      cornerRadius,
+    );
+  }
+}
+
 MockViewportBodyDimensions _mockViewportBodyDimensions(ProjectModel project) {
   final enclosure = project.bodies.firstOrNull;
   if (enclosure == null) {
@@ -10687,68 +10835,81 @@ MockViewportWorkplaneOverlay? _mockWorkplaneOverlay(
   ProjectModel project,
   SelectionModel selection,
 ) {
+  if (selection.kind == SelectionKind.surface) {
+    return _mockSurfaceWorkplaneOverlay(project, selection.id ?? '');
+  }
+
+  if (selection.kind != SelectionKind.componentPlacement) {
+    return null;
+  }
+
+  final enclosure = project.bodies.firstOrNull;
+  final referenceWidth = enclosure == null ? 120.0 : _sizeAt(enclosure, 0, 120);
+  final referenceDepth = enclosure == null ? 70.0 : _sizeAt(enclosure, 1, 70);
+
+  final placement = project.componentPlacements
+      .where((placement) => placement.id == selection.id)
+      .firstOrNull;
+  if (placement == null || !placement.visible) {
+    return null;
+  }
+
+  final template = _componentTemplateForProjectPlacement(project, placement);
+  final outline = template?.board.outline;
+  final boardWidth = outline?.width ?? 40.0;
+  final boardHeight = outline?.height ?? 30.0;
+  final mountingPoints = [
+    Offset.zero,
+    for (final hole in template?.mountingHoles ?? const [])
+      Offset(_positionAt(hole.position, 0), _positionAt(hole.position, 1)),
+  ];
+
+  return MockViewportWorkplaneOverlay(
+    semanticId: placement.id,
+    kind: MockViewportWorkplaneKind.componentPlacement,
+    width: boardWidth,
+    height: boardHeight,
+    referenceWidth: referenceWidth,
+    referenceHeight: referenceDepth,
+    position: Offset(
+      _positionAt(placement.position, 0),
+      _positionAt(placement.position, 1),
+    ),
+    rotationZDegrees: _positionAt(placement.rotation, 2),
+    snapPoints: mountingPoints,
+  );
+}
+
+MockViewportWorkplaneOverlay? _mockSurfaceWorkplaneOverlay(
+  ProjectModel project,
+  String surfaceId,
+) {
   final enclosure = project.bodies.firstOrNull;
   final referenceWidth = enclosure == null ? 120.0 : _sizeAt(enclosure, 0, 120);
   final referenceDepth = enclosure == null ? 70.0 : _sizeAt(enclosure, 1, 70);
   final referenceHeight = enclosure == null ? 28.0 : _sizeAt(enclosure, 2, 28);
 
-  if (selection.kind == SelectionKind.surface) {
-    final surfaceId = selection.id ?? '';
-    if (surfaceId.contains('top_lid')) {
-      return MockViewportWorkplaneOverlay(
-        semanticId: surfaceId,
-        kind: MockViewportWorkplaneKind.topLid,
-        width: referenceWidth,
-        height: referenceDepth,
-        referenceWidth: referenceWidth,
-        referenceHeight: referenceDepth,
-        snapPoints: _mockSurfaceSnapPoints(referenceWidth, referenceDepth),
-      );
-    }
-    if (surfaceId.contains('front_wall')) {
-      return MockViewportWorkplaneOverlay(
-        semanticId: surfaceId,
-        kind: MockViewportWorkplaneKind.frontWall,
-        width: referenceWidth,
-        height: referenceHeight,
-        referenceWidth: referenceWidth,
-        referenceHeight: referenceHeight,
-        snapPoints: _mockSurfaceSnapPoints(referenceWidth, referenceHeight),
-      );
-    }
-  }
-
-  if (selection.kind == SelectionKind.componentPlacement) {
-    final placement = project.componentPlacements
-        .where((placement) => placement.id == selection.id)
-        .firstOrNull;
-    if (placement == null || !placement.visible) {
-      return null;
-    }
-
-    final template = _componentTemplateForProjectPlacement(project, placement);
-    final outline = template?.board.outline;
-    final boardWidth = outline?.width ?? 40.0;
-    final boardHeight = outline?.height ?? 30.0;
-    final mountingPoints = [
-      Offset.zero,
-      for (final hole in template?.mountingHoles ?? const [])
-        Offset(_positionAt(hole.position, 0), _positionAt(hole.position, 1)),
-    ];
-
+  if (surfaceId.contains('top_lid')) {
     return MockViewportWorkplaneOverlay(
-      semanticId: placement.id,
-      kind: MockViewportWorkplaneKind.componentPlacement,
-      width: boardWidth,
-      height: boardHeight,
+      semanticId: surfaceId,
+      kind: MockViewportWorkplaneKind.topLid,
+      width: referenceWidth,
+      height: referenceDepth,
       referenceWidth: referenceWidth,
       referenceHeight: referenceDepth,
-      position: Offset(
-        _positionAt(placement.position, 0),
-        _positionAt(placement.position, 1),
-      ),
-      rotationZDegrees: _positionAt(placement.rotation, 2),
-      snapPoints: mountingPoints,
+      snapPoints: _mockSurfaceSnapPoints(referenceWidth, referenceDepth),
+    );
+  }
+
+  if (surfaceId.contains('front_wall')) {
+    return MockViewportWorkplaneOverlay(
+      semanticId: surfaceId,
+      kind: MockViewportWorkplaneKind.frontWall,
+      width: referenceWidth,
+      height: referenceHeight,
+      referenceWidth: referenceWidth,
+      referenceHeight: referenceHeight,
+      snapPoints: _mockSurfaceSnapPoints(referenceWidth, referenceHeight),
     );
   }
 
@@ -10775,6 +10936,55 @@ bool _snapTargetMatches(
   }
 
   return (target.localPosition - localPoint).distance < 0.001;
+}
+
+List<_MockViewportSketchRectanglePreview> _mockSketchRectanglePreviews(
+  ProjectModel project,
+  SelectionModel selection,
+) {
+  if (selection.kind != SelectionKind.feature || selection.id == null) {
+    return const [];
+  }
+
+  final feature = project.features
+      .where((feature) => feature.id == selection.id)
+      .firstOrNull;
+  if (feature == null || feature.type != advancedSketchFeatureType) {
+    return const [];
+  }
+
+  final workplane = _mockSurfaceWorkplaneOverlay(
+    project,
+    feature.targetSurface,
+  );
+  if (workplane == null) {
+    return const [];
+  }
+
+  final previews = <_MockViewportSketchRectanglePreview>[];
+  for (final entity in sketchEntitiesForFeature(feature)) {
+    if (entity.type != 'rectangle') {
+      continue;
+    }
+
+    final values = SketchEntityParameterAdapter.valuesFrom(entity);
+    previews.add(
+      _MockViewportSketchRectanglePreview(
+        featureId: feature.id,
+        entityId: entity.id,
+        workplane: workplane,
+        center: Offset(
+          readDouble(values['centerX'], fallback: 0.0),
+          readDouble(values['centerY'], fallback: 0.0),
+        ),
+        width: readDouble(values['width'], fallback: 20.0),
+        height: readDouble(values['height'], fallback: 12.0),
+        cornerRadius: readDouble(values['cornerRadius'], fallback: 0.0),
+      ),
+    );
+  }
+
+  return previews;
 }
 
 List<MockViewportFeaturePreview> _mockFeaturePreviews(ProjectModel project) {

@@ -151,6 +151,25 @@ whole feature group, not an individual mesh primitive or flattened hole.
 Manual button groups with saved `placement.surfacePosition` offset the whole
 pattern around that semantic surface point.
 
+## Sketch Helper Overlays
+
+When an `advanced_sketch` helper feature is selected, the viewport can draw its
+rectangle `SketchEntity` values as a helper-only overlay on supported mock
+surface workplanes:
+- top lid,
+- front wall.
+
+The overlay reuses the same semantic local-to-canvas mapping as surface
+workplanes, but it does not bring back the full passive 2D workplane rectangle.
+Only the rectangle contour and center marker are drawn. This keeps the selected
+sketch inspectable while avoiding the old large surface ghost over the native
+preview.
+
+Sketch helper overlays are display-only. They do not create preview mesh,
+B-Rep, cuts, extrusions, topology ids, or hit-testable sub-entities yet.
+Clicking the viewport still selects normal semantic objects; rectangle editing
+currently happens through the selected sketch inspector.
+
 ## Current Controls
 
 - Primary drag: orbit.
@@ -170,6 +189,8 @@ pattern around that semantic surface point.
   dialog seeded from the clicked surface point.
 - Use the inspector glass or button actions on a surface snap target: open the
   normal semantic dialogs and save the clicked point as feature/group placement.
+- Select an Advanced Sketch with a rectangle entity: show the helper-only
+  rectangle overlay.
 - Active snap target: show a transient component footprint preview.
 - Open placement dialog: show a transient candidate footprint until cancel or
   confirm.

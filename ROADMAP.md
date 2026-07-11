@@ -142,6 +142,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M121 - Basic Sketch Foundation
 - [x] M122 - Sketch Rectangle Entity Slice
 - [x] M123 - Sketch Rectangle Parameter Editing
+- [x] M124 - Sketch Rectangle Helper Overlay
 
 ---
 
@@ -5857,3 +5858,50 @@ parameters without turning sketch entities into generated geometry.
 - Confirm the row changes from `20 x 12` to `32.5 x 12`.
 - Save, reopen later if desired, and confirm the edited value remains.
 - Undo once and confirm the rectangle returns to `20 x 12`.
+
+---
+
+## M124 - Sketch Rectangle Helper Overlay
+
+### Goal
+Make selected Advanced Sketch rectangles visible in the viewport as helper-only
+semantic overlays without reintroducing the old large passive 2D workplane.
+
+### Tasks
+- [x] Build selected `advanced_sketch` rectangle overlay previews from
+      `SketchEntity` values.
+- [x] Reuse the existing surface workplane local-to-canvas mapping for
+      top-lid/front-wall sketches.
+- [x] Draw only the rectangle contour/center marker, not a full surface
+      workplane.
+- [x] Keep the overlay display-only: no mesh, B-Rep, cuts, extrusions, topology
+      IDs, or viewport entity hit-testing.
+- [x] Add widget coverage that the sketch overlay appears after `rect_1` and
+      disappears when the entity is undone.
+- [x] Update docs/tasks/worklog.
+
+### Done Criteria
+- Selecting a sketch with a rectangle shows `advanced-sketch-overlay-active`.
+- The normal `mock-workplane-overlay-active` sentinel remains absent for the
+  selected sketch, so the big workplane rectangle does not come back.
+- Editing rectangle width updates the same semantic overlay source data.
+- Undoing the rectangle removes the overlay while keeping the sketch feature.
+- Geometry planning still treats the parent sketch as `helper.advanced_sketch`.
+
+### Tests
+- `flutter test test\widget_test.dart --plain-name "advanced sketch command" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Enable Advanced Mode and create an `Эскиз`.
+- Add a rectangle from the selected sketch inspector.
+- Confirm a thin helper rectangle appears in the viewport.
+- Confirm the old full workplane rectangle is not covering the model.
+- Change `Ширина` and confirm the helper rectangle changes size.
+- Undo until `rect_1` disappears and confirm the helper overlay disappears too.

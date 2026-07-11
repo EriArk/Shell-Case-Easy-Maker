@@ -11297,3 +11297,92 @@ Keep rectangle parameters schema-backed and semantic. Do not convert sketch
 entity ids into OCCT topology ids or mesh triangle ids. Viewport drawing should
 read `SketchEntity` values as a temporary semantic overlay until the geometry
 conversion path is designed.
+
+---
+
+## M124 - Sketch rectangle helper overlay
+
+### Goal
+Make selected Advanced Sketch rectangles visible in the viewport as helper-only
+semantic overlays without restoring the old large passive workplane ghost.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/ui/shell/workspace_shell.dart`, `lib/viewport/viewport_controller.dart`,
+`test/widget_test.dart`, `docs/06_FEATURE_SYSTEM.md`,
+`docs/26_TESTING_AND_QUALITY.md`, `docs/30_ADVANCED_CAD_MODE.md`,
+`docs/32_USABLE_SHELL.md`, and `docs/33_VIEWPORT_MVP.md`.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added selected-sketch rectangle preview data derived from `SketchEntity`
+    values.
+  - Reused supported surface workplane local-to-canvas mapping for top-lid and
+    front-wall sketch overlays.
+  - Added `_paintSketchRectangles` to draw only rectangle contour and center
+    marker.
+  - Kept the normal large workplane overlay off for selected sketches.
+  - Added `advanced-sketch-overlay-active` sentinel for widget coverage.
+- Tests:
+  - Extended the Advanced Sketch widget test to verify the helper overlay
+    appears after adding `rect_1`, remains through parameter undo, and
+    disappears when the rectangle entity is undone.
+  - Verified `mock-workplane-overlay-active` stays absent for the selected
+    sketch.
+- Docs/tasks/roadmap:
+  - Added M124 and documented the helper-only viewport boundary.
+
+### Tests run
+- `flutter test test\widget_test.dart --plain-name "advanced sketch command" --reporter compact`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed, 246 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Returned `True`.
+- `git status --short --ignored releases`:
+  - Confirmed `releases/` is ignored.
+- `git diff --check`:
+  - Passed with only the existing ROADMAP CRLF warning.
+
+### Validation
+- Geometry checked?
+  - Yes by boundary. The overlay reads semantic `SketchEntity` values only and
+    does not request B-Rep, mesh, cuts, extrusions, or topology ids.
+- Serialization checked?
+  - No schema change. Existing rectangle entity save/load coverage remains the
+    source for overlay data.
+- UI checked?
+  - Yes. Widget coverage verifies overlay visibility and confirms the large
+    workplane overlay does not reappear for selected sketches.
+- Export checked?
+  - Latest Windows bundle rebuilt; STEP/STL behavior unchanged because sketch
+    overlays are display-only.
+
+### Known issues
+- Issue: The rectangle overlay is not directly selectable in the viewport yet.
+  - Severity: Expected.
+  - Next action: Add semantic overlay hit targets that resolve to sketch entity
+    ids without storing mesh or topology ids.
+- Issue: The overlay supports only mock top-lid/front-wall surface mappings.
+  - Severity: Expected.
+  - Next action: Expand surface mapping when more semantic surfaces gain stable
+    local coordinate systems.
+
+### Next step
+Commit and push M124, then continue with sketch overlay hit testing or direct
+entity selection affordances.
+
+### Notes for future Codex sessions
+Keep sketch overlays display-only until entity selection and geometry
+conversion are designed. Do not couple overlay rectangles to preview mesh
+triangles, B-Rep faces, or OCCT topology ids.

@@ -357,7 +357,9 @@ for a target surface and sketch name, then creates an undoable
 inspector section with contour count and a rectangle icon; clicking it stores
 the first typed rectangle sketch entity as semantic project data. Rectangle
 entities expose compact X/Y, width, height, and radius fields in the same
-inspector section. The switch itself does not change saved project JSON,
+inspector section. When the selected sketch has a rectangle, the viewport draws
+a thin helper rectangle overlay without restoring the old full-surface
+workplane rectangle. The switch itself does not change saved project JSON,
 undo/redo history, or geometry requests, and sketch entities do not generate
 geometry yet.
 

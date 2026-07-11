@@ -30,6 +30,8 @@ generate geometry yet.
   width, height, and corner-radius parameters.
 - Selecting an advanced sketch shows a compact inspector section with contour
   count, a rectangle action, and rectangle parameter fields.
+- A selected sketch with rectangle entities draws a helper-only viewport
+  rectangle overlay on supported top-lid/front-wall mock workplanes.
 - Creation is undoable and save/load-safe.
 - Rectangle entity creation is undoable and save/load-safe.
 - Rectangle parameter edits are undoable and save/load-safe.
@@ -61,6 +63,8 @@ generate geometry yet.
 - Keep advanced UI separate from beginner tool rail.
 - Do not make sketch entities drive geometry before validation, drawing/editing
   rules, undo behavior, and geometry boundaries are designed.
+- Do not make sketch overlay hit testing depend on generated mesh triangles,
+  B-Rep ids, or OCCT topology ids.
 
 ## Use cases
 

@@ -3446,6 +3446,10 @@ void main() {
 
     expect(find.text('Front helper sketch'), findsWidgets);
     expect(find.text('advanced_sketch_1'), findsWidgets);
+    expect(
+      find.byKey(const ValueKey('advanced-sketch-overlay-active')),
+      findsNothing,
+    );
 
     final addRectangle = find.byKey(
       const ValueKey('advanced-sketch-add-rectangle'),
@@ -3456,6 +3460,14 @@ void main() {
     await _pumpAsyncUi(tester);
 
     expect(find.textContaining('rect_1'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('advanced-sketch-overlay-active')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('mock-workplane-overlay-active')),
+      findsNothing,
+    );
 
     await tester.enterText(
       find.byKey(
@@ -3502,11 +3514,19 @@ void main() {
 
     expect(find.text('20 x 12'), findsOneWidget);
     expect(find.textContaining('rect_1'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('advanced-sketch-overlay-active')),
+      findsOneWidget,
+    );
 
     await tester.tap(undoButton);
     await _pumpAsyncUi(tester);
 
     expect(find.textContaining('rect_1'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('advanced-sketch-overlay-active')),
+      findsNothing,
+    );
     expect(find.text('advanced_sketch_1'), findsWidgets);
 
     await tester.tap(undoButton);
