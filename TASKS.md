@@ -399,6 +399,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Basic sketch rectangle resize buttons.
 - [x] Basic sketch rectangle move-to-click mode.
 - [x] Basic sketch rectangle duplicate action.
+- [x] Basic sketch rectangle keyboard nudge/resize.
 - [ ] Basic sketch drawing/editing.
 - [ ] Extrude/cut.
 - [ ] Boolean.

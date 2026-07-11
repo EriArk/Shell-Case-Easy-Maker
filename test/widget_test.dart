@@ -3700,6 +3700,51 @@ void main() {
       findsOneWidget,
     );
 
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await _pumpAsyncUi(tester);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+    await _pumpAsyncUi(tester);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await _pumpAsyncUi(tester);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await _pumpAsyncUi(tester);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('21 x 11'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('toolbar-command-${CommandIds.saveProject}')),
+    );
+    await _pumpAsyncUi(tester);
+
+    final keyboardSaved = await fileService.readProject(saveFile);
+    final keyboardSketch = keyboardSaved.features.singleWhere(
+      (feature) => feature.id == 'advanced_sketch_1',
+    );
+    final keyboardEntities = sketchEntitiesForFeature(keyboardSketch);
+    expect(keyboardEntities.single.parameters['center'], [1.0, 1.0]);
+    expect(keyboardEntities.single.parameters['width'], 21.0);
+    expect(keyboardEntities.single.parameters['height'], 11.0);
+
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('20 x 12'), findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey('sketch-entity-advanced_sketch_1-rect_1-selected'),
+      ),
+      findsOneWidget,
+    );
+
     await tester.ensureVisible(widthIncrease);
     await tester.pumpAndSettle();
     await tester.tap(widthIncrease);

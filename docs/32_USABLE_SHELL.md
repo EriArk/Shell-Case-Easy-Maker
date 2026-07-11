@@ -368,11 +368,14 @@ move-to-click action, plus width/height +/- 1 mm resize controls and a delete
 action, plus duplicate; these update semantic sketch metadata through undo
 history. The move-to-click action reuses the sketch workplane hit target and
 stores the next click as the rectangle center. Duplicate creates a new offset
-`rect_N` entity instead of copying generated geometry. If the rectangle leaves
-the supported sketch workplane bounds, the inspector shows a semantic warning.
-These actions and warnings do not select generated mesh or topology. The switch
-itself does not change saved project JSON, undo/redo history, or geometry
-requests, and sketch entities do not generate geometry yet.
+`rect_N` entity instead of copying generated geometry. When the selected
+rectangle is focused, workspace arrow keys reuse the same semantic actions for
+1 mm nudge and Shift+arrow resize while text fields keep their normal behavior.
+If the rectangle leaves the supported sketch workplane bounds, the inspector
+shows a semantic warning. These actions and warnings do not select generated
+mesh or topology. The switch itself does not change saved project JSON,
+undo/redo history, or geometry requests, and sketch entities do not generate
+geometry yet.
 
 ## Current limitations
 

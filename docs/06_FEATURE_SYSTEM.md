@@ -107,6 +107,11 @@ is on a supported top-lid/front-wall workplane, the same semantic values are
 checked against workplane bounds and can produce a warning if the rectangle
 leaves the surface.
 
+When a rectangle entity has focus, workspace keyboard editing can call the same
+semantic edit paths: arrow keys nudge by 1 mm, and Shift+arrow resizes width or
+height by 1 mm. Text fields keep normal keyboard behavior, so typed parameter
+editing is not hijacked.
+
 When a sketch is selected, rectangle entities can be drawn as helper-only
 viewport overlays. The overlay reads semantic `SketchEntity` values and does
 not make the rectangle a generated solid, cut, mesh primitive, or selectable

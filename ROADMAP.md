@@ -6278,3 +6278,50 @@ with a safe offset and immediate focus.
 - Press the duplicate action in the selected rectangle row.
 - Confirm `rect_2` appears slightly offset and becomes selected.
 - Press undo and confirm only `rect_2` disappears.
+
+---
+
+## M133 - Sketch Rectangle Keyboard Editing
+
+### Goal
+Make focused sketch rectangles easier to adjust without adding fragile drag
+handles yet: arrow keys nudge the selected rectangle, and Shift+arrow changes
+its size, all through semantic undoable edits.
+
+### Tasks
+- [x] Route workspace key handling through a dedicated handler.
+- [x] Keep Ctrl+K command palette behavior intact.
+- [x] Ignore rectangle keyboard editing while a text field is focused.
+- [x] Add arrow-key 1 mm nudge for selected sketch rectangle entities.
+- [x] Add Shift+arrow 1 mm width/height resize for selected sketch rectangle
+      entities.
+- [x] Return focus to the workspace after selection, edit, undo, and redo so
+      keyboard editing is predictable.
+- [x] Extend widget coverage and update docs/tasks/worklog.
+
+### Done Criteria
+- With a sketch rectangle selected, Arrow Right then Arrow Up moves its semantic
+  center to `[1.0, 1.0]`.
+- Shift+Arrow Right increases width by 1 mm.
+- Shift+Arrow Down decreases height by 1 mm.
+- Saving after keyboard edits stores the changed semantic center/size.
+- Undo restores each keyboard edit one step at a time.
+- Keyboard edits update only semantic `SketchEntity` parameters and do not
+  query mesh, B-Rep, OCCT topology, or generated triangle ids.
+
+### Tests
+- `flutter test test\widget_test.dart --plain-name "advanced sketch command" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Enable Advanced Mode and create an `Эскиз`.
+- Add/place a rectangle and select it.
+- Press Arrow Right and Arrow Up; confirm the rectangle shifts by small steps.
+- Hold Shift and press Arrow Right / Arrow Down; confirm width/height changes.
+- Press undo repeatedly and confirm each keyboard edit rolls back separately.

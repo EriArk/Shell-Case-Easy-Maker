@@ -119,6 +119,11 @@ can also report a warning if the rectangle extends outside that workplane.
 These values remain semantic helper data until sketch drawing and geometry
 conversion are designed.
 
+Workspace keyboard edits for focused sketch rectangles call the same semantic
+nudge/resize paths as inspector controls. Arrow keys update center values by
+1 mm, and Shift+arrow changes width or height by 1 mm after schema
+normalization.
+
 ## Current Limitations
 
 - Parameter values are not stored as a separate typed layer in `ProjectModel`

@@ -109,6 +109,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       _sketchRectanglePlacementIntent = null;
       _viewportController.setSelectedSemanticId(selection.viewportSemanticId);
       _viewportController.setGhostPreview(_ghostPreviewFor(selection));
+      _shellFocusNode.requestFocus();
     });
   }
 
@@ -975,6 +976,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       _loadGeometry();
       _viewportController.setSelectedSemanticId(_selection.viewportSemanticId);
       _viewportController.setGhostPreview(_ghostPreviewFor(_selection));
+      _shellFocusNode.requestFocus();
     });
   }
 
@@ -1564,6 +1566,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       _loadGeometry();
       _viewportController.setSelectedSemanticId(_selection.viewportSemanticId);
       _viewportController.setGhostPreview(_ghostPreviewFor(_selection));
+      _shellFocusNode.requestFocus();
     });
   }
 
@@ -1583,6 +1586,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       _loadGeometry();
       _viewportController.setSelectedSemanticId(_selection.viewportSemanticId);
       _viewportController.setGhostPreview(_ghostPreviewFor(_selection));
+      _shellFocusNode.requestFocus();
     });
   }
 
@@ -1855,21 +1859,107 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     );
   }
 
+  KeyEventResult _handleWorkspaceKeyEvent(KeyEvent event) {
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+
+    if (event.logicalKey == LogicalKeyboardKey.keyK &&
+        HardwareKeyboard.instance.isControlPressed) {
+      _showCommandPalette();
+      return KeyEventResult.handled;
+    }
+
+    if (_textInputHasFocus()) {
+      return KeyEventResult.ignored;
+    }
+
+    final selectedFeatureId = _selection.parentId;
+    final selectedEntityId = _selection.id;
+    if (_selection.kind != SelectionKind.sketchEntity ||
+        selectedFeatureId == null ||
+        selectedEntityId == null) {
+      return KeyEventResult.ignored;
+    }
+
+    final shiftPressed = HardwareKeyboard.instance.isShiftPressed;
+    switch (event.logicalKey) {
+      case LogicalKeyboardKey.arrowLeft:
+        if (shiftPressed) {
+          _resizeAdvancedSketchEntity(
+            selectedFeatureId,
+            selectedEntityId,
+            -1,
+            0,
+          );
+        } else {
+          _nudgeAdvancedSketchEntity(
+            selectedFeatureId,
+            selectedEntityId,
+            -1,
+            0,
+          );
+        }
+        break;
+      case LogicalKeyboardKey.arrowRight:
+        if (shiftPressed) {
+          _resizeAdvancedSketchEntity(
+            selectedFeatureId,
+            selectedEntityId,
+            1,
+            0,
+          );
+        } else {
+          _nudgeAdvancedSketchEntity(selectedFeatureId, selectedEntityId, 1, 0);
+        }
+        break;
+      case LogicalKeyboardKey.arrowUp:
+        if (shiftPressed) {
+          _resizeAdvancedSketchEntity(
+            selectedFeatureId,
+            selectedEntityId,
+            0,
+            1,
+          );
+        } else {
+          _nudgeAdvancedSketchEntity(selectedFeatureId, selectedEntityId, 0, 1);
+        }
+        break;
+      case LogicalKeyboardKey.arrowDown:
+        if (shiftPressed) {
+          _resizeAdvancedSketchEntity(
+            selectedFeatureId,
+            selectedEntityId,
+            0,
+            -1,
+          );
+        } else {
+          _nudgeAdvancedSketchEntity(
+            selectedFeatureId,
+            selectedEntityId,
+            0,
+            -1,
+          );
+        }
+        break;
+      default:
+        return KeyEventResult.ignored;
+    }
+
+    return KeyEventResult.handled;
+  }
+
+  bool _textInputHasFocus() {
+    final context = FocusManager.instance.primaryFocus?.context;
+    return context != null && context.widget is EditableText;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Focus(
       focusNode: _shellFocusNode,
       autofocus: true,
-      onKeyEvent: (_, event) {
-        if (event is KeyDownEvent &&
-            event.logicalKey == LogicalKeyboardKey.keyK &&
-            HardwareKeyboard.instance.isControlPressed) {
-          _showCommandPalette();
-          return KeyEventResult.handled;
-        }
-
-        return KeyEventResult.ignored;
-      },
+      onKeyEvent: (_, event) => _handleWorkspaceKeyEvent(event),
       child: Scaffold(
         body: SafeArea(
           child: FutureBuilder<GeometryPreview>(

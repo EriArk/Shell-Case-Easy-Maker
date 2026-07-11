@@ -12113,3 +12113,89 @@ slice.
 ### Notes for future Codex sessions
 Keep duplication as semantic `SketchEntity` data. Do not copy generated mesh,
 B-Rep, or OCCT topology references.
+
+---
+
+## M133 - Sketch rectangle keyboard editing
+
+### Goal
+Make focused sketch rectangles easier to adjust with keyboard nudge/resize
+shortcuts, without adding fragile drag handles, generated mesh selection,
+B-Rep edits, or OCCT topology ids.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/ui/shell/workspace_shell.dart`, `test/widget_test.dart`,
+`docs/06_FEATURE_SYSTEM.md`, `docs/26_TESTING_AND_QUALITY.md`,
+`docs/30_ADVANCED_CAD_MODE.md`, `docs/32_USABLE_SHELL.md`,
+`docs/33_VIEWPORT_MVP.md`, and `docs/35_PARAMETER_MODEL.md`.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Moved workspace key handling into `_handleWorkspaceKeyEvent`.
+  - Kept Ctrl+K command palette behavior intact.
+  - Added selected sketch rectangle keyboard editing:
+    - arrows nudge the semantic center by 1 mm;
+    - Shift+arrows resize width/height by 1 mm.
+  - Added a text-input focus guard so arrow keys still behave normally inside
+    parameter fields.
+  - Returned focus to the workspace after selection, semantic edit, undo, and
+    redo so arrow editing is predictable after button clicks.
+- `test/widget_test.dart`:
+  - Extended the Advanced Sketch flow to verify arrow nudge, Shift+arrow
+    resize, saved semantic center/size, and undo of each keyboard edit.
+- Docs/tasks/roadmap:
+  - Added M133 and documented keyboard editing as semantic sketch helper
+    editing.
+
+### Tests run
+- `flutter test test\widget_test.dart --plain-name "advanced sketch command" --reporter compact`:
+  - Passed after fixing focus return from toolbar/inspector actions.
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with current
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 76 files checked, 0 changed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed; 252 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed `releases/latest/windows`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git status --short --ignored releases`:
+  - Passed; `releases/` is ignored.
+- `git diff --check`:
+  - Passed with the existing `ROADMAP.md` CRLF normalization warning only.
+
+### Validation
+- Geometry checked?
+  - Yes by boundary. Keyboard edits call the existing semantic nudge/resize
+    paths and do not query B-Rep, mesh triangles, OCCT topology, or generated
+    preview ids.
+- Serialization checked?
+  - Yes. Widget coverage saves after keyboard edits and verifies semantic
+    center/size in project JSON.
+- UI checked?
+  - Yes. Widget coverage verifies keyboard nudge, Shift+arrow resize, focus
+    return, and undo.
+- Export checked?
+  - Yes. Latest Windows bundle was rebuilt with the native OCCT worker and the
+    release folder remains ignored by Git.
+
+### Known issues
+- Issue: Keyboard step size is fixed at 1 mm.
+  - Severity: Expected.
+  - Next action: Tie step size to snap/grid settings once they exist.
+- Issue: Keyboard editing is still for selected sketch rectangles only.
+  - Severity: Expected.
+  - Next action: Extend the same semantic pattern to future sketch entity types.
+
+### Next step
+Commit and push M133, then continue with the next safe sketch drawing/editing
+slice.
+
+### Notes for future Codex sessions
+Keep keyboard editing routed through semantic edit methods. Do not add
+generated geometry ids or focus traversal hacks to sketch entity state.
