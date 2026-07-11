@@ -11765,3 +11765,92 @@ slice.
 ### Notes for future Codex sessions
 Keep sketch bounds checks semantic and advisory. Do not replace them with
 generated mesh triangle checks or OCCT topology queries.
+
+---
+
+## M129 - Sketch rectangle click placement
+
+### Goal
+Make the first safe sketch drawing/editing step: create a rectangle by clicking
+the selected sketch workplane in the viewport, without introducing drag handles,
+mesh selection, B-Rep edits, or OCCT topology ids.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/ui/shell/workspace_shell.dart`, `lib/project/advanced_sketch.dart`,
+`lib/viewport/viewport_controller.dart`, `test/widget_test.dart`,
+`test/viewport_controller_test.dart`, `docs/06_FEATURE_SYSTEM.md`,
+`docs/26_TESTING_AND_QUALITY.md`, `docs/30_ADVANCED_CAD_MODE.md`,
+`docs/32_USABLE_SHELL.md`, and `docs/33_VIEWPORT_MVP.md`.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added a transient `_SketchRectanglePlacementIntent`.
+  - Changed the sketch rectangle action into a click-to-place toggle.
+  - Added a compact viewport cancel banner for rectangle placement.
+  - Added placement-mode hit testing that maps workplane canvas clicks to
+    semantic local coordinates before mock feature/port hits can steal the
+    click.
+  - Creates the new rectangle at the clicked local center and focuses the new
+    semantic sketch entity.
+  - Clears placement intent on selection changes, advanced-mode off, commit,
+    undo, redo, project replacement, and right-click context menu.
+- `test/widget_test.dart`:
+  - Extended the Advanced Sketch flow to verify placement mode, cancel, click
+    placement, entity focus, save/undo, and existing rectangle edits.
+- Docs/tasks/roadmap:
+  - Added M129 and documented rectangle click placement as semantic helper UI.
+
+### Tests run
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with current
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 76 files checked, 0 changed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed; 251 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed `releases/latest/windows`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git status --short --ignored releases`:
+  - Passed; `releases/` is ignored.
+- `git diff --check`:
+  - Passed with the existing `ROADMAP.md` CRLF normalization warning only.
+- `flutter test test\widget_test.dart --plain-name "advanced sketch command" --reporter compact`:
+  - Passed after fixing placement-mode hit testing so front-wall clicks are not
+    intercepted by the mock USB-C port hit.
+
+### Validation
+- Geometry checked?
+  - Yes by boundary. Rectangle placement uses the semantic workplane local
+    coordinate mapping and does not query B-Rep, mesh triangles, OCCT topology,
+    or generated preview ids.
+- Serialization checked?
+  - Yes by widget save coverage in the Advanced Sketch flow.
+- UI checked?
+  - Yes. Widget coverage verifies mode start, cancel, click placement, selected
+    entity focus, and existing nudge/save/undo behavior.
+- Export checked?
+  - Yes. Latest Windows bundle was rebuilt with the native OCCT worker and the
+    release folder remains ignored by Git.
+
+### Known issues
+- Issue: Placement creates a default-size rectangle at a clicked center; it does
+  not support drag-to-size or resize handles yet.
+  - Severity: Expected.
+  - Next action: Add constrained resize/handle interaction as a later safe
+    sketch editing slice.
+- Issue: Placement still supports only top-lid/front-wall mock workplanes.
+  - Severity: Expected.
+  - Next action: Expand supported surfaces when stable semantic local
+    coordinate systems are added.
+
+### Next step
+Commit and push M129, then continue with constrained sketch editing.
+
+### Notes for future Codex sessions
+Keep rectangle placement as transient UI state. Only the resulting
+`SketchEntity` should persist in project JSON.

@@ -85,11 +85,12 @@ Use deterministic test fixtures.
   appear only after enabling the transient switch, and remain disabled until
   implemented.
 - Advanced sketch tests verify that `Эскиз` creates an undoable/saveable
-  semantic `advanced_sketch` helper feature, that the inspector can add the
-  first typed rectangle entity, edit its rectangle parameters, show the
-  helper-only rectangle overlay, click the overlay into semantic rectangle
-  focus, nudge/delete the selected rectangle, keep command scope on the parent
-  sketch, show/remove workplane-bounds warnings, and keep the sketch as
+  semantic `advanced_sketch` helper feature, that the inspector can start and
+  cancel rectangle click placement, create the first typed rectangle entity from
+  a workplane click, edit its rectangle parameters, show the helper-only
+  rectangle overlay, click the overlay into semantic rectangle focus,
+  nudge/delete the selected rectangle, keep command scope on the parent sketch,
+  show/remove workplane-bounds warnings, and keep the sketch as
   `helper.advanced_sketch` rather than generated geometry.
 - Sketch entity adapter tests verify rectangle parameter defaults, semantic
   updates, numeric cleanup, stable entity replacement/removal, and

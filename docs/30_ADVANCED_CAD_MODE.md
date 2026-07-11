@@ -30,6 +30,9 @@ generate geometry yet.
   width, height, and corner-radius parameters.
 - Selecting an advanced sketch shows a compact inspector section with contour
   count, a rectangle action, and rectangle parameter fields.
+- The rectangle action starts a click-to-place mode. The next click on the
+  supported sketch workplane creates the rectangle at that semantic local
+  position and focuses the new entity.
 - A selected sketch with rectangle entities draws a helper-only viewport
   rectangle overlay on supported top-lid/front-wall mock workplanes.
 - Clicking that rectangle overlay focuses the semantic rectangle entity in the
@@ -37,7 +40,7 @@ generate geometry yet.
   scoped to the parent `advanced_sketch` feature. This is not mesh, B-Rep, or
   topology selection.
 - Creation is undoable and save/load-safe.
-- Rectangle entity creation is undoable and save/load-safe.
+- Rectangle entity click placement is undoable and save/load-safe.
 - Rectangle parameter edits are undoable and save/load-safe.
 - Focused rectangle nudge/delete actions are undoable and save/load-safe.
 - Supported sketch workplanes report a warning when a rectangle extends beyond

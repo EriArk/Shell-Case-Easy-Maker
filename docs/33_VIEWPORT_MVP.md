@@ -174,6 +174,12 @@ Rectangle editing currently happens through the selected sketch inspector,
 including schema-backed fields, 1 mm nudge actions, deletion, and semantic
 workplane-bounds warnings.
 
+The selected sketch inspector can also start a transient rectangle
+click-to-place mode. While active, the viewport uses the owning sketch surface
+workplane as the hit target, shows a compact cancel banner, and converts the
+next workplane click into a semantic local rectangle center. This interaction
+does not read generated mesh triangles or OCCT topology ids.
+
 ## Current Controls
 
 - Primary drag: orbit.
@@ -182,6 +188,8 @@ workplane-bounds warnings.
 - Click viewport mock objects: select semantic object.
 - Click inside a selected sketch helper rectangle: focus the semantic rectangle
   entity while keeping parent-sketch command scope.
+- Use the selected sketch rectangle action, then click the supported workplane:
+  create a semantic rectangle at the clicked local position.
 - Use selected rectangle inspector arrows: nudge the helper rectangle by 1 mm.
 - Use selected rectangle inspector delete: remove the semantic rectangle
   entity.

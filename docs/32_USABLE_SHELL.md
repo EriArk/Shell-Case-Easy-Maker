@@ -355,19 +355,20 @@ a separate advanced section with `Эскиз`. The command opens a compact dialo
 for a target surface and sketch name, then creates an undoable
 `advanced_sketch` helper feature. Selecting that sketch shows a compact
 inspector section with contour count and a rectangle icon; clicking it stores
-the first typed rectangle sketch entity as semantic project data. Rectangle
-entities expose compact X/Y, width, height, and radius fields in the same
-inspector section. When the selected sketch has a rectangle, the viewport draws
-a thin helper rectangle overlay without restoring the old full-surface
-workplane rectangle. Clicking inside that helper rectangle focuses the
-semantic rectangle entity in the inspector while keeping command scope and
-viewport/native preview highlighting on the parent sketch. The focused row has
-icon-only 1 mm nudge controls and a delete action; these update semantic sketch
-metadata through undo history. If the rectangle leaves the supported sketch
-workplane bounds, the inspector shows a semantic warning. These actions and
-warnings do not select generated mesh or topology. The switch itself does not
-change saved project JSON, undo/redo history, or geometry requests, and sketch
-entities do not generate geometry yet.
+a transient click-to-place intent rather than immediately creating geometry.
+The next click on the supported sketch workplane stores a typed rectangle
+entity at that semantic local position. Rectangle entities expose compact X/Y,
+width, height, and radius fields in the same inspector section. When the
+selected sketch has a rectangle, the viewport draws a thin helper rectangle
+overlay without restoring the old full-surface workplane rectangle. Clicking
+inside that helper rectangle focuses the semantic rectangle entity in the
+inspector while keeping command scope and viewport/native preview highlighting
+on the parent sketch. The focused row has icon-only 1 mm nudge controls and a
+delete action; these update semantic sketch metadata through undo history. If
+the rectangle leaves the supported sketch workplane bounds, the inspector shows
+a semantic warning. These actions and warnings do not select generated mesh or
+topology. The switch itself does not change saved project JSON, undo/redo
+history, or geometry requests, and sketch entities do not generate geometry yet.
 
 ## Current limitations
 

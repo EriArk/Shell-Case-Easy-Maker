@@ -63,6 +63,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
   bool _inspectorCollapsed = false;
   bool _componentPlacementGuideActive = false;
   bool _advancedMode = false;
+  _SketchRectanglePlacementIntent? _sketchRectanglePlacementIntent;
 
   ProjectModel get _project => _undoHistory.current;
   bool get _hasUnsavedChanges =>
@@ -82,6 +83,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     if (oldWidget.project != widget.project) {
       _undoHistory = app_undo.UndoHistory<ProjectModel>(widget.project);
       _lastPersistedProjectFingerprint = _fingerprintProject(widget.project);
+      _sketchRectanglePlacementIntent = null;
       _loadGeometry();
     } else if (oldWidget.geometryService != widget.geometryService) {
       _loadGeometry();
@@ -104,6 +106,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       _selection = selection;
       _activeSnapTarget = null;
       _placementDialogCandidate = null;
+      _sketchRectanglePlacementIntent = null;
       _viewportController.setSelectedSemanticId(selection.viewportSemanticId);
       _viewportController.setGhostPreview(_ghostPreviewFor(selection));
     });
@@ -190,6 +193,9 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
   void _setAdvancedMode(bool enabled) {
     setState(() {
       _advancedMode = enabled;
+      if (!enabled) {
+        _sketchRectanglePlacementIntent = null;
+      }
       _fileStatusMessage = enabled
           ? 'Advanced Mode включён'
           : 'Advanced Mode выключен';
@@ -207,6 +213,10 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
   }
 
   void _selectViewportHit(ViewportHitResult? hit) {
+    if (_handleSketchRectanglePlacementHit(hit)) {
+      return;
+    }
+
     if (hit?.kind == ViewportHitKind.snapPoint) {
       final snapTarget = _snapTargetFromViewportHit(_project, hit!);
       final selection = _selectionFromViewportHit(hit);
@@ -245,6 +255,11 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     ViewportHitResult? hit,
     Offset globalPosition,
   ) async {
+    if (_sketchRectanglePlacementIntent != null) {
+      _cancelAdvancedSketchRectanglePlacement();
+      return;
+    }
+
     final selection =
         _selectionFromViewportHit(hit) ?? const SelectionModel.workspace();
     final snapTarget = hit != null && hit.kind == ViewportHitKind.snapPoint
@@ -459,7 +474,83 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     );
   }
 
-  void _addAdvancedSketchRectangle(String featureId) {
+  void _startAdvancedSketchRectanglePlacement(String featureId) {
+    final feature = _project.features
+        .where((feature) => feature.id == featureId)
+        .firstOrNull;
+    if (feature == null || feature.type != advancedSketchFeatureType) {
+      return;
+    }
+
+    final workplane = _mockSurfaceWorkplaneOverlay(
+      _project,
+      feature.targetSurface,
+    );
+    if (workplane == null) {
+      setState(() {
+        _fileStatusMessage = 'Для этой поверхности пока нет плоскости эскиза';
+      });
+      return;
+    }
+
+    final current = _sketchRectanglePlacementIntent;
+    if (current?.featureId == feature.id) {
+      _cancelAdvancedSketchRectanglePlacement();
+      return;
+    }
+
+    final selection = SelectionModel.feature(feature.id);
+    setState(() {
+      _selection = selection;
+      _activeSnapTarget = null;
+      _placementDialogCandidate = null;
+      _componentPlacementGuideActive = false;
+      _sketchRectanglePlacementIntent = _SketchRectanglePlacementIntent(
+        featureId: feature.id,
+        targetSurface: feature.targetSurface,
+      );
+      _fileStatusMessage = 'Кликните по поверхности эскиза';
+      _viewportController.setSelectedSemanticId(selection.viewportSemanticId);
+      _viewportController.setGhostPreview(_ghostPreviewFor(selection));
+    });
+  }
+
+  void _cancelAdvancedSketchRectanglePlacement() {
+    if (_sketchRectanglePlacementIntent == null) {
+      return;
+    }
+
+    setState(() {
+      _sketchRectanglePlacementIntent = null;
+      _fileStatusMessage = null;
+    });
+  }
+
+  bool _handleSketchRectanglePlacementHit(ViewportHitResult? hit) {
+    final intent = _sketchRectanglePlacementIntent;
+    if (intent == null) {
+      return false;
+    }
+
+    final localPosition = hit?.localPosition;
+    if (hit == null ||
+        hit.kind != ViewportHitKind.snapPoint ||
+        hit.semanticId != intent.targetSurface ||
+        localPosition == null) {
+      setState(() {
+        _fileStatusMessage = 'Кликните внутри поверхности эскиза';
+      });
+      return true;
+    }
+
+    _addAdvancedSketchRectangle(intent.featureId, center: localPosition);
+    return true;
+  }
+
+  void _addAdvancedSketchRectangle(
+    String featureId, {
+    Offset center = Offset.zero,
+  }) {
     final feature = _project.features
         .where((feature) => feature.id == featureId)
         .firstOrNull;
@@ -468,8 +559,9 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     }
 
     final entities = sketchEntitiesForFeature(feature);
-    final rectangle = defaultSketchRectangleEntity(
-      id: nextSketchEntityId(entities, 'rect'),
+    final rectangle = SketchEntityParameterAdapter.applyValues(
+      defaultSketchRectangleEntity(id: nextSketchEntityId(entities, 'rect')),
+      {'centerX': center.dx, 'centerY': center.dy},
     );
     final updatedFeature = advancedSketchWithEntities(feature, [
       ...entities,
@@ -703,6 +795,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       _activeSnapTarget = null;
       _placementDialogCandidate = null;
       _componentPlacementGuideActive = false;
+      _sketchRectanglePlacementIntent = null;
       _fileStatusMessage = null;
       _loadGeometry();
       _viewportController.setSelectedSemanticId(_selection.viewportSemanticId);
@@ -1291,6 +1384,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       _activeSnapTarget = null;
       _placementDialogCandidate = null;
       _componentPlacementGuideActive = false;
+      _sketchRectanglePlacementIntent = null;
       _fileStatusMessage = null;
       _loadGeometry();
       _viewportController.setSelectedSemanticId(_selection.viewportSemanticId);
@@ -1308,6 +1402,8 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       _selection = _validSelectionFor(_project, _selection);
       _activeSnapTarget = null;
       _placementDialogCandidate = null;
+      _componentPlacementGuideActive = false;
+      _sketchRectanglePlacementIntent = null;
       _fileStatusMessage = null;
       _loadGeometry();
       _viewportController.setSelectedSemanticId(_selection.viewportSemanticId);
@@ -1679,6 +1775,8 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                             preview: preview,
                             selection: _selection,
                             selectionDetails: details,
+                            sketchRectanglePlacementIntent:
+                                _sketchRectanglePlacementIntent,
                             activeSnapTarget: _activeSnapTarget,
                             activeSnapPlacementIssue: activeSnapPlacementIssue,
                             placementDialogCandidate: _placementDialogCandidate,
@@ -1696,6 +1794,8 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                             onContextMenu: _showViewportContextMenu,
                             onCancelComponentPlacementGuide:
                                 _cancelComponentPlacementGuide,
+                            onCancelSketchRectanglePlacement:
+                                _cancelAdvancedSketchRectanglePlacement,
                           ),
                         ),
                         if (_inspectorCollapsed)
@@ -1766,7 +1866,10 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                             onComponentPlacementParameterChanged:
                                 _updateComponentPlacementParameter,
                             onFeatureParameterChanged: _updateFeatureParameter,
-                            onAddSketchRectangle: _addAdvancedSketchRectangle,
+                            sketchRectanglePlacementIntent:
+                                _sketchRectanglePlacementIntent,
+                            onAddSketchRectangle:
+                                _startAdvancedSketchRectanglePlacement,
                             onSketchEntityParameterChanged:
                                 _updateAdvancedSketchEntityParameter,
                             onSketchEntityNudged: _nudgeAdvancedSketchEntity,
@@ -1917,6 +2020,26 @@ class _ActiveSnapTarget {
       label,
     );
   }
+}
+
+class _SketchRectanglePlacementIntent {
+  const _SketchRectanglePlacementIntent({
+    required this.featureId,
+    required this.targetSurface,
+  });
+
+  final String featureId;
+  final String targetSurface;
+
+  @override
+  bool operator ==(Object other) {
+    return other is _SketchRectanglePlacementIntent &&
+        other.featureId == featureId &&
+        other.targetSurface == targetSurface;
+  }
+
+  @override
+  int get hashCode => Object.hash(featureId, targetSurface);
 }
 
 _ActiveSnapTarget? _snapTargetFromViewportHit(
@@ -3762,6 +3885,7 @@ class _ViewportArea extends StatefulWidget {
     required this.preview,
     required this.selection,
     required this.selectionDetails,
+    required this.sketchRectanglePlacementIntent,
     required this.activeSnapTarget,
     required this.activeSnapPlacementIssue,
     required this.placementDialogCandidate,
@@ -3776,12 +3900,14 @@ class _ViewportArea extends StatefulWidget {
     required this.onHit,
     required this.onContextMenu,
     required this.onCancelComponentPlacementGuide,
+    required this.onCancelSketchRectanglePlacement,
   });
 
   final ProjectModel project;
   final GeometryPreview? preview;
   final SelectionModel selection;
   final ProjectSelectionDetails selectionDetails;
+  final _SketchRectanglePlacementIntent? sketchRectanglePlacementIntent;
   final _ActiveSnapTarget? activeSnapTarget;
   final ValidationMessage? activeSnapPlacementIssue;
   final ComponentPlacement? placementDialogCandidate;
@@ -3797,6 +3923,7 @@ class _ViewportArea extends StatefulWidget {
   final void Function(ViewportHitResult? hit, Offset globalPosition)
   onContextMenu;
   final VoidCallback onCancelComponentPlacementGuide;
+  final VoidCallback onCancelSketchRectanglePlacement;
 
   @override
   State<_ViewportArea> createState() => _ViewportAreaState();
@@ -3873,10 +4000,35 @@ class _ViewportAreaState extends State<_ViewportArea> {
 
   ViewportHitResult? _hitTestAt(Offset position, Size viewportSize) {
     final bodyDimensions = _mockViewportBodyDimensions(widget.project);
-    final workplaneOverlay = _mockWorkplaneOverlay(
+    final sketchPlacementWorkplane = _mockSketchRectanglePlacementWorkplane(
       widget.project,
-      widget.selection,
+      widget.sketchRectanglePlacementIntent,
     );
+    final placingSketchRectangle = sketchPlacementWorkplane != null;
+    final workplaneOverlay =
+        sketchPlacementWorkplane ??
+        _mockWorkplaneOverlay(widget.project, widget.selection);
+    if (placingSketchRectangle && workplaneOverlay != null) {
+      final layout = MockViewportLayout.fromSize(
+        viewportSize,
+        widget.viewportState,
+        bodyDimensions: bodyDimensions,
+      );
+      if (!layout.workplaneRect(workplaneOverlay).contains(position)) {
+        return null;
+      }
+
+      return ViewportHitResult(
+        kind: ViewportHitKind.snapPoint,
+        semanticId: workplaneOverlay.semanticId,
+        workplaneKind: workplaneOverlay.kind,
+        localPosition: layout.workplaneCanvasToLocal(
+          workplaneOverlay,
+          position,
+        ),
+      );
+    }
+
     final sketchRectanglePreviews = _mockSketchRectanglePreviews(
       widget.project,
       widget.selection,
@@ -3886,11 +4038,19 @@ class _ViewportAreaState extends State<_ViewportArea> {
       size: viewportSize,
       state: widget.viewportState,
       bodyDimensions: bodyDimensions,
-      componentPlacements: _mockComponentPlacementPreviews(widget.project),
+      componentPlacements: placingSketchRectangle
+          ? const []
+          : _mockComponentPlacementPreviews(widget.project),
       workplaneOverlay: workplaneOverlay,
-      features: _mockFeaturePreviews(widget.project),
-      featureGroups: _mockFeatureGroupPreviews(widget.project),
-      sketchRectangles: sketchRectanglePreviews,
+      features: placingSketchRectangle
+          ? const []
+          : _mockFeaturePreviews(widget.project),
+      featureGroups: placingSketchRectangle
+          ? const []
+          : _mockFeatureGroupPreviews(widget.project),
+      sketchRectangles: placingSketchRectangle
+          ? const []
+          : sketchRectanglePreviews,
     );
     final nativeHit = mockHit?.kind == ViewportHitKind.snapPoint
         ? null
@@ -3917,10 +4077,16 @@ class _ViewportAreaState extends State<_ViewportArea> {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final viewportSize = constraints.biggest;
-          final workplaneOverlay = _mockWorkplaneOverlay(
-            widget.project,
-            widget.selection,
-          );
+          final sketchPlacementWorkplane =
+              _mockSketchRectanglePlacementWorkplane(
+                widget.project,
+                widget.sketchRectanglePlacementIntent,
+              );
+          final sketchRectanglePlacementActive =
+              sketchPlacementWorkplane != null;
+          final workplaneOverlay =
+              sketchPlacementWorkplane ??
+              _mockWorkplaneOverlay(widget.project, widget.selection);
           final activeSnapPlacementPreview = _mockActiveSnapPlacementPreview(
             widget.project,
             widget.activeSnapTarget,
@@ -3952,7 +4118,9 @@ class _ViewportAreaState extends State<_ViewportArea> {
             onPointerCancel: _handlePointerCancel,
             onPointerSignal: _handlePointerSignal,
             child: MouseRegion(
-              cursor: SystemMouseCursors.grab,
+              cursor: sketchRectanglePlacementActive
+                  ? SystemMouseCursors.precise
+                  : SystemMouseCursors.grab,
               child: Stack(
                 children: [
                   Positioned.fill(
@@ -4065,6 +4233,16 @@ class _ViewportAreaState extends State<_ViewportArea> {
                         key: ValueKey('mock-workplane-overlay-active'),
                       ),
                     ),
+                  if (sketchRectanglePlacementActive)
+                    const Positioned(
+                      left: 0,
+                      top: 0,
+                      child: SizedBox(
+                        key: ValueKey(
+                          'advanced-sketch-rectangle-placement-active',
+                        ),
+                      ),
+                    ),
                   if (hasPreviewMesh &&
                       workplaneOverlay != null &&
                       !_nativeWorkplaneOverlayFocused(
@@ -4159,6 +4337,18 @@ class _ViewportAreaState extends State<_ViewportArea> {
                         ),
                       ),
                     ),
+                  if (sketchRectanglePlacementActive)
+                    Positioned(
+                      left: 18,
+                      right: 18,
+                      top: 78,
+                      child: Align(
+                        alignment: Alignment.topCenter,
+                        child: _SketchRectanglePlacementBanner(
+                          onCancel: widget.onCancelSketchRectanglePlacement,
+                        ),
+                      ),
+                    ),
                   Positioned(
                     left: 18,
                     bottom: 16,
@@ -4230,6 +4420,70 @@ class _ComponentPlacementGuideBanner extends StatelessWidget {
             const SizedBox(width: 8),
             IconButton(
               key: const ValueKey('component-placement-guide-cancel'),
+              tooltip: 'Отмена',
+              visualDensity: VisualDensity.compact,
+              onPressed: onCancel,
+              icon: const Icon(Icons.close_rounded, size: 18),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SketchRectanglePlacementBanner extends StatelessWidget {
+  const _SketchRectanglePlacementBanner({required this.onCancel});
+
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return DecoratedBox(
+      key: const ValueKey('sketch-rectangle-placement-banner'),
+      decoration: BoxDecoration(
+        color: const Color(0xEE1E2226),
+        border: Border.all(
+          color: theme.colorScheme.tertiary.withValues(alpha: 0.40),
+        ),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.crop_square_rounded,
+              size: 18,
+              color: theme.colorScheme.tertiary,
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Прямоугольник эскиза',
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelMedium,
+                  ),
+                  Text(
+                    'Клик по поверхности',
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              key: const ValueKey('sketch-rectangle-placement-cancel'),
               tooltip: 'Отмена',
               visualDensity: VisualDensity.compact,
               onPressed: onCancel,
@@ -4449,6 +4703,7 @@ class _Inspector extends StatelessWidget {
     required this.onEnclosureParameterChanged,
     required this.onComponentPlacementParameterChanged,
     required this.onFeatureParameterChanged,
+    required this.sketchRectanglePlacementIntent,
     required this.onAddSketchRectangle,
     required this.onSketchEntityParameterChanged,
     required this.onSketchEntityNudged,
@@ -4475,6 +4730,7 @@ class _Inspector extends StatelessWidget {
   onComponentPlacementParameterChanged;
   final void Function(String featureId, String parameterId, Object? value)
   onFeatureParameterChanged;
+  final _SketchRectanglePlacementIntent? sketchRectanglePlacementIntent;
   final ValueChanged<String> onAddSketchRectangle;
   final void Function(
     String featureId,
@@ -4633,6 +4889,9 @@ class _Inspector extends StatelessWidget {
             _AdvancedSketchEntityEditor(
               feature: selectedFeature,
               selectedEntityId: selectedSketchEntityId,
+              placingRectangle:
+                  sketchRectanglePlacementIntent?.featureId ==
+                  selectedFeature.id,
               workplaneSize: selectedSketchWorkplane == null
                   ? null
                   : Size(
@@ -5094,6 +5353,7 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
   const _AdvancedSketchEntityEditor({
     required this.feature,
     required this.selectedEntityId,
+    required this.placingRectangle,
     required this.workplaneSize,
     required this.onAddRectangle,
     required this.onEntitySelected,
@@ -5104,6 +5364,7 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
 
   final SemanticFeature feature;
   final String? selectedEntityId;
+  final bool placingRectangle;
   final Size? workplaneSize;
   final VoidCallback onAddRectangle;
   final ValueChanged<String> onEntitySelected;
@@ -5141,7 +5402,9 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
             ),
             IconButton(
               key: const ValueKey('advanced-sketch-add-rectangle'),
-              tooltip: 'Прямоугольник',
+              tooltip: placingRectangle
+                  ? 'Отменить прямоугольник'
+                  : 'Прямоугольник',
               icon: const Icon(Icons.crop_square_rounded),
               color: theme.colorScheme.tertiary,
               style: IconButton.styleFrom(
@@ -5150,7 +5413,7 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
                 fixedSize: const Size.square(34),
                 padding: EdgeInsets.zero,
                 backgroundColor: theme.colorScheme.tertiary.withValues(
-                  alpha: 0.10,
+                  alpha: placingRectangle ? 0.22 : 0.10,
                 ),
               ),
               onPressed: onAddRectangle,
@@ -11138,6 +11401,17 @@ MockViewportWorkplaneOverlay? _mockWorkplaneOverlay(
     rotationZDegrees: _positionAt(placement.rotation, 2),
     snapPoints: mountingPoints,
   );
+}
+
+MockViewportWorkplaneOverlay? _mockSketchRectanglePlacementWorkplane(
+  ProjectModel project,
+  _SketchRectanglePlacementIntent? intent,
+) {
+  if (intent == null) {
+    return null;
+  }
+
+  return _mockSurfaceWorkplaneOverlay(project, intent.targetSurface);
 }
 
 MockViewportWorkplaneOverlay? _mockSurfaceWorkplaneOverlay(

@@ -3459,6 +3459,50 @@ void main() {
     await tester.tap(addRectangle);
     await _pumpAsyncUi(tester);
 
+    expect(
+      find.byKey(const ValueKey('advanced-sketch-rectangle-placement-active')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('sketch-rectangle-placement-banner')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('mock-workplane-overlay-active')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('rect_1'), findsNothing);
+
+    await tester.tap(
+      find.byKey(const ValueKey('sketch-rectangle-placement-cancel')),
+    );
+    await _pumpAsyncUi(tester);
+
+    expect(
+      find.byKey(const ValueKey('advanced-sketch-rectangle-placement-active')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('sketch-rectangle-placement-banner')),
+      findsNothing,
+    );
+    expect(find.textContaining('rect_1'), findsNothing);
+
+    await tester.tap(addRectangle);
+    await _pumpAsyncUi(tester);
+
+    final viewportRect = tester.getRect(
+      find.byKey(const ValueKey('mock-viewport-canvas')),
+    );
+    final viewportLayout = MockViewportLayout.fromSize(
+      viewportRect.size,
+      const ViewportState(),
+    );
+    await tester.tapAt(
+      viewportRect.topLeft + viewportLayout.frontWallRect.center,
+    );
+    await _pumpAsyncUi(tester);
+
     expect(find.textContaining('rect_1'), findsWidgets);
     expect(
       find.byKey(
@@ -3469,6 +3513,14 @@ void main() {
     expect(
       find.byKey(const ValueKey('advanced-sketch-overlay-active')),
       findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('advanced-sketch-rectangle-placement-active')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('sketch-rectangle-placement-banner')),
+      findsNothing,
     );
     expect(
       find.byKey(const ValueKey('mock-workplane-overlay-active')),
@@ -3502,13 +3554,6 @@ void main() {
       findsOneWidget,
     );
 
-    final viewportRect = tester.getRect(
-      find.byKey(const ValueKey('mock-viewport-canvas')),
-    );
-    final viewportLayout = MockViewportLayout.fromSize(
-      viewportRect.size,
-      const ViewportState(),
-    );
     await tester.tapAt(
       viewportRect.topLeft + viewportLayout.frontWallRect.center,
     );

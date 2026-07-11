@@ -6102,3 +6102,49 @@ workplane, without blocking edits or using generated geometry.
 - Set `X` far enough toward the edge that the rectangle sticks out.
 - Confirm the inspector warns that the contour leaves the surface.
 - Undo the edit and confirm the warning disappears.
+
+---
+
+## M129 - Sketch Rectangle Click Placement
+
+### Goal
+Start the first safe sketch drawing/editing interaction: rectangle creation from
+a viewport workplane click, while keeping the result semantic and undoable.
+
+### Tasks
+- [x] Add a transient selected-sketch rectangle placement intent.
+- [x] Make the rectangle inspector action toggle click-to-place mode.
+- [x] Show a compact viewport cancel banner while placement is active.
+- [x] Use the owning sketch surface workplane as the placement hit target.
+- [x] Create the rectangle at the clicked semantic local position.
+- [x] Focus the new rectangle entity and clear the placement intent.
+- [x] Add widget coverage and update docs/tasks/worklog.
+
+### Done Criteria
+- Pressing the rectangle action on a selected sketch does not immediately create
+  a rectangle; it starts a visible placement mode.
+- Cancel clears the placement mode without changing project JSON.
+- Clicking the supported top-lid/front-wall sketch workplane creates `rect_N`
+  with `center` from the clicked local workplane coordinate.
+- The created rectangle is selected as a semantic sketch entity and remains
+  undoable/saveable.
+- Placement hit testing does not depend on generated mesh, B-Rep, OCCT topology,
+  or triangle ids.
+
+### Tests
+- `flutter test test\widget_test.dart --plain-name "advanced sketch command" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Enable Advanced Mode and create an `Эскиз` on `Front wall` or `Top lid`.
+- Click the rectangle icon in the sketch inspector.
+- Confirm a small viewport banner appears and no `rect_1` is created yet.
+- Cancel from the banner and confirm nothing was added.
+- Click the rectangle icon again, then click inside the highlighted workplane.
+- Confirm `rect_1` appears, is selected, and can still be nudged/edited/undone.

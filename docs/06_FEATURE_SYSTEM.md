@@ -87,10 +87,11 @@ supported entity is `rectangle`, with center, width, height, and corner-radius
 parameters.
 
 Sketch entities are still semantic helper data only. They do not generate
-B-Rep, mesh, cuts, extrusions, or topology IDs yet. The inspector can add the
-first rectangle entity to a selected sketch as an undoable project edit and can
-edit its X/Y center, width, height, and corner radius through
-`SketchEntityParameterAdapter`.
+B-Rep, mesh, cuts, extrusions, or topology IDs yet. The inspector can start a
+rectangle placement mode for a selected sketch; the next click on the supported
+surface workplane stores the rectangle center in semantic local coordinates as
+an undoable project edit. The inspector can then edit its X/Y center, width,
+height, and corner radius through `SketchEntityParameterAdapter`.
 
 Rectangle parameter edits replace the stored sketch entity semantically. The
 corner radius is clamped to half of the smaller side so the stored rectangle
