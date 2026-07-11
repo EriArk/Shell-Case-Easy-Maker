@@ -184,11 +184,12 @@ features.
 opens a compact dialog for a target surface and sketch name, then creates one
 `advanced_sketch` `SemanticFeature` with `operation=helper`, surface workplane
 placement, and a typed sketch `entities` list. When an advanced sketch is
-selected, the inspector can add the first rectangle entity as a separate
-undoable semantic edit. The selected rectangle exposes X/Y, width, height, and
-corner-radius fields through a schema-backed adapter; each parameter change is
-also a separate undoable semantic edit. The result is undoable and save/load
-safe, but it does not generate B-Rep, mesh, cut, or extrusion geometry yet.
+selected, the inspector can add rectangle and circle entities as separate
+undoable semantic edits. Selected entities expose schema-backed dimensions,
+position, and type-specific controls, plus `profileIntent` metadata for
+reference/cut/add future-operation hints. Each parameter or intent change is a
+separate undoable semantic edit. The result is undoable and save/load safe, but
+it does not generate B-Rep, mesh, cut, or extrusion geometry yet.
 
 Undo/redo now validates the active selection against the restored project. If
 the selected semantic object no longer exists after undo, the shell falls back
@@ -212,7 +213,7 @@ visible and disabled, instead of running empty callbacks.
   circular-cutout feature parameter edits, first button/mount feature-group
   parameter edits, first enclosure creation/component placement/USB-C
   cutout/button group/glass recess/circular cutout/mount group, and first
-  advanced sketch creation/rectangle entity edits.
+  advanced sketch creation/entity edits.
 - The toolbar export command currently exports the whole generated assembly.
   Part selection is still pending.
 - Selection and active surface context are available from the shell selection

@@ -173,10 +173,12 @@ viewport/native preview highlighting stay scoped to the owning
 `advanced_sketch` feature id. Entity editing currently happens through the
 selected sketch inspector, including schema-backed fields, 1 mm nudge actions,
 type-specific size actions, move-to-click center placement, duplication,
-deletion, keyboard nudge/resize shortcuts, keyboard command shortcuts,
-workplane center/fit actions, and semantic workplane-bounds warnings. Rectangle
-helpers also support corner-radius and rotation actions. The helper contour,
-its hit target, and bounds check still resolve back only to semantic sketch ids.
+profile-intent selection, deletion, keyboard nudge/resize shortcuts, keyboard
+command shortcuts, workplane center/fit actions, and semantic workplane-bounds
+warnings. Rectangle helpers also support corner-radius and rotation actions.
+The helper contour can be tinted by profile intent (`reference`, `cut`, `add`)
+without changing hit testing or creating geometry. The helper contour, its hit
+target, and bounds check still resolve back only to semantic sketch ids.
 
 The selected sketch inspector can also start transient rectangle or circle
 click-to-place modes. While active, the viewport uses the owning sketch surface
@@ -215,6 +217,8 @@ entity's semantic center and commits an undoable project edit.
   1 mm.
 - Use selected circle diameter buttons or the `Диаметр` field: change the
   circle diameter semantically.
+- Use selected sketch entity intent buttons: mark the contour as reference,
+  cut, or add for future sketch operations without generating geometry.
 - Use selected rectangle radius buttons: round corners by 1 mm or reset back
   to square corners.
 - Use selected rectangle rotation buttons or the `Поворот` field: rotate the

@@ -3639,6 +3639,15 @@ void main() {
     final duplicateRectangle = find.byKey(
       const ValueKey('sketch-entity-advanced_sketch_1-rect_1-duplicate'),
     );
+    final referenceIntent = find.byKey(
+      const ValueKey('sketch-entity-advanced_sketch_1-rect_1-intent-reference'),
+    );
+    final cutIntent = find.byKey(
+      const ValueKey('sketch-entity-advanced_sketch_1-rect_1-intent-cut'),
+    );
+    final addIntent = find.byKey(
+      const ValueKey('sketch-entity-advanced_sketch_1-rect_1-intent-add'),
+    );
     expect(nudgeRight, findsOneWidget);
     expect(nudgeUp, findsOneWidget);
     expect(deleteRectangle, findsOneWidget);
@@ -3652,6 +3661,51 @@ void main() {
     expect(fitWorkplane, findsOneWidget);
     expect(moveToClick, findsOneWidget);
     expect(duplicateRectangle, findsOneWidget);
+    expect(referenceIntent, findsOneWidget);
+    expect(cutIntent, findsOneWidget);
+    expect(addIntent, findsOneWidget);
+
+    await tester.ensureVisible(cutIntent);
+    await tester.pumpAndSettle();
+    await tester.tap(cutIntent);
+    await _pumpAsyncUi(tester);
+
+    await tester.tap(
+      find.byKey(const ValueKey('toolbar-command-${CommandIds.saveProject}')),
+    );
+    await _pumpAsyncUi(tester);
+
+    final cutIntentSaved = await fileService.readProject(saveFile);
+    final cutIntentSketch = cutIntentSaved.features.singleWhere(
+      (feature) => feature.id == 'advanced_sketch_1',
+    );
+    final cutIntentEntities = sketchEntitiesForFeature(cutIntentSketch);
+    expect(
+      cutIntentEntities.single.metadata[sketchProfileIntentKey],
+      sketchProfileIntentCut,
+    );
+
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+
+    await tester.tap(
+      find.byKey(const ValueKey('toolbar-command-${CommandIds.saveProject}')),
+    );
+    await _pumpAsyncUi(tester);
+
+    final referenceIntentSaved = await fileService.readProject(saveFile);
+    final referenceIntentSketch = referenceIntentSaved.features.singleWhere(
+      (feature) => feature.id == 'advanced_sketch_1',
+    );
+    final referenceIntentEntities = sketchEntitiesForFeature(
+      referenceIntentSketch,
+    );
+    expect(
+      referenceIntentEntities.single.metadata.containsKey(
+        sketchProfileIntentKey,
+      ),
+      isFalse,
+    );
 
     await tester.ensureVisible(addCircle);
     await tester.pumpAndSettle();

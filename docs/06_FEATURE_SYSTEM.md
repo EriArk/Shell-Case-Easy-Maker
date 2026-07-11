@@ -94,22 +94,28 @@ supported surface workplane stores the contour center in semantic local
 coordinates as an undoable project edit. The inspector can then edit its
 schema-backed values through `SketchEntityParameterAdapter`.
 
+Each sketch entity can also store `profileIntent` metadata. Supported values
+are `reference`, `cut`, and `add`; missing or unknown values read as
+`reference`. The selected-entity inspector exposes this as a compact semantic
+mode row. It is intentionally only a future-operation hint at this stage:
+changing it never creates B-Rep, mesh, booleans, extrusions, or topology ids.
+
 Rectangle parameter edits replace the stored sketch entity semantically. The
 corner radius is clamped to half of the smaller side so the stored rectangle
 stays valid for later drawing and geometry conversion work.
 
 Focused sketch entities also expose small inspector actions for 1 mm
 left/right/up/down nudges, moving the center to the next workplane click,
-duplication, workplane centering/fitting, and deletion. Rectangles add
-width/height, corner-radius, and rotation controls; circles add diameter
-controls. These actions still update only semantic `SketchEntity` data and are
-committed through normal undo history. Duplicate creates a new `rect_N` or
-`circle_N` entity with the same dimensions and a small center offset so it
-remains visible and editable. Workplane quick actions can set the contour
-center to `[0, 0]` or fit the supported dimensions to the surface workplane.
-When the parent sketch is on a supported top-lid/front-wall workplane, the same
-semantic values are checked against workplane bounds and can produce a warning
-if the contour leaves the surface.
+duplication, profile-intent selection, workplane centering/fitting, and
+deletion. Rectangles add width/height, corner-radius, and rotation controls;
+circles add diameter controls. These actions still update only semantic
+`SketchEntity` data and are committed through normal undo history. Duplicate
+creates a new `rect_N` or `circle_N` entity with the same dimensions, intent,
+and a small center offset so it remains visible and editable. Workplane quick
+actions can set the contour center to `[0, 0]` or fit the supported dimensions
+to the surface workplane. When the parent sketch is on a supported
+top-lid/front-wall workplane, the same semantic values are checked against
+workplane bounds and can produce a warning if the contour leaves the surface.
 
 When a rectangle entity has focus, workspace keyboard editing can call the same
 semantic edit paths: arrow keys nudge by 1 mm, and Shift+arrow resizes width or
@@ -124,11 +130,12 @@ entity is created or moved.
 When a sketch is selected, rectangle and circle entities can be drawn as
 helper-only viewport overlays. The overlay reads semantic `SketchEntity` values
 and does not make the contour a generated solid, cut, mesh primitive, or
-selectable OCCT topology item. Clicking the visible helper contour can focus
-the semantic `SketchEntity` in the inspector, but command context and
-viewport/native preview highlighting remain scoped to the parent
-`advanced_sketch` feature. Real sketch drawing handles remain a future
-interaction design problem.
+selectable OCCT topology item. The overlay color can reflect profile intent so
+`reference`, `cut`, and `add` contours are distinguishable while still staying
+helper-only. Clicking the visible helper contour can focus the semantic
+`SketchEntity` in the inspector, but command context and viewport/native
+preview highlighting remain scoped to the parent `advanced_sketch` feature.
+Real sketch drawing handles remain a future interaction design problem.
 
 ## Feature groups
 

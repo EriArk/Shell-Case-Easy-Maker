@@ -188,7 +188,10 @@ void main() {
         metadata: {'advanced': true},
       ),
       [
-        defaultSketchRectangleEntity(id: 'rect_1'),
+        sketchEntityWithProfileIntent(
+          defaultSketchRectangleEntity(id: 'rect_1'),
+          sketchProfileIntentCut,
+        ),
         defaultSketchCircleEntity(id: 'circle_1'),
       ],
     );
@@ -212,6 +215,8 @@ void main() {
     expect(entities.first.parameters['width'], 20.0);
     expect(entities.first.parameters['height'], 12.0);
     expect(entities.first.parameters['rotation'], 0.0);
+    expect(entities.first.metadata[sketchProfileIntentKey], 'cut');
+    expect(sketchProfileIntentFor(entities.first), sketchProfileIntentCut);
     expect(entities.last.id, 'circle_1');
     expect(entities.last.type, 'circle');
     expect(entities.last.parameters['diameter'], 12.0);

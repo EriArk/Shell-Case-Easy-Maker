@@ -148,6 +148,12 @@ reset write `cornerRadius`, while rotation reset writes `rotation=0`. These
 controls are shortcuts for the same inspector fields, not separate sketch
 operation state.
 
+Sketch profile intent is stored beside those schema-backed dimensions as
+`SketchEntity.metadata.profileIntent`. Supported values are `reference`, `cut`,
+and `add`; missing or invalid values read as `reference`. The inspector writes
+intent through an undoable semantic edit, and duplicate preserves the intent.
+Intent is deliberately not consumed by geometry yet.
+
 ## Current Limitations
 
 - Parameter values are not stored as a separate typed layer in `ProjectModel`

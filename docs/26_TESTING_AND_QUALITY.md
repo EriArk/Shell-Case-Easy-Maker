@@ -93,16 +93,18 @@ Use deterministic test fixtures.
   keyboard nudge/resize edits and keyboard duplicate/delete/cancel commands,
   center/fit the rectangle to the sketch workplane, rotate the rectangle
   through semantic inspector actions, use radius/reset shape quick actions,
-  keep command scope on the parent sketch, show/remove workplane-bounds
-  warnings, and keep the sketch as `helper.advanced_sketch` rather than
-  generated geometry.
+  set/save/undo sketch entity profile intent, keep command scope on the parent
+  sketch, show/remove workplane-bounds warnings, and keep the sketch as
+  `helper.advanced_sketch` rather than generated geometry.
 - Sketch entity adapter tests verify rectangle parameter defaults, semantic
   updates, circle parameter defaults/updates, numeric cleanup, stable entity
   replacement/removal, and corner-radius clamping plus semantic duplication and
-  rotation-aware/circle workplane-bounds warnings.
+  rotation-aware/circle workplane-bounds warnings. They also verify
+  profile-intent normalization and duplication as metadata.
 - Viewport controller tests verify that rotated sketch helper hit targets do
   not select the rectangle outside its rotated contour and that circle overlays
-  resolve to semantic sketch entity ids.
+  resolve to semantic sketch entity ids while preserving profile-intent
+  metadata.
 - Snap-seeded component placement can align semantic component anchors to the
   selected snap point without saving anchor UI state.
 - Snap-seeded manual USB-C creation stores front-wall face-local

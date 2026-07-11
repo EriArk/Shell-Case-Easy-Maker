@@ -6568,3 +6568,53 @@ validated without becoming generated geometry or mesh/topology state.
 - Use `Диаметр +` and confirm the circle grows.
 - Click the circle overlay in the viewport and confirm it focuses `circle_1`.
 - Press undo and confirm the circle diameter/addition rolls back cleanly.
+
+---
+
+## M139 - Sketch Entity Profile Intent
+
+### Goal
+Add semantic profile intent to Advanced Sketch entities as a safe bridge toward
+future cut/extrude operations: each helper contour can be marked as reference,
+cut, or add while still remaining helper-only project data.
+
+### Tasks
+- [x] Add normalized `profileIntent` helpers for `SketchEntity` metadata.
+- [x] Add undoable inspector controls for reference/cut/add intent.
+- [x] Preserve profile intent through save/load and duplication.
+- [x] Show profile intent in selection details.
+- [x] Tint helper overlays by profile intent without changing hit testing.
+- [x] Extend unit/widget/viewport/selection coverage and update docs/tasks/worklog.
+
+### Done Criteria
+- Missing or unknown profile intent reads as `reference`.
+- Changing a selected contour to `cut` stores
+  `metadata.profileIntent = "cut"` in project JSON.
+- Undo restores the previous intent without changing contour dimensions or
+  generated geometry.
+- Duplicate keeps the source contour's intent.
+- Viewport helper overlays can display distinct intent colors while still
+  resolving clicks to semantic sketch entity ids.
+- `advanced_sketch.operation` remains `helper`; no B-Rep, mesh, boolean,
+  extrusion, or topology id is created.
+
+### Tests
+- `flutter test test\sketch_entity_parameter_adapter_test.dart test\project_model_test.dart test\project_selection_resolver_test.dart --reporter compact`
+- `flutter test test\viewport_controller_test.dart --reporter compact`
+- `flutter test test\widget_test.dart --name "advanced sketch command creates semantic helper feature" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Enable Advanced Mode, create/select an `Эскиз`, and select `rect_1` or
+  `circle_1`.
+- In the selected contour row, click the cut/add/reference intent icons.
+- Confirm the helper contour tint changes and the inspector still selects the
+  same contour.
+- Save the project if desired and confirm Undo returns the previous intent.
+- Confirm no new 3D cut/extrude is generated yet; this is still semantic setup.

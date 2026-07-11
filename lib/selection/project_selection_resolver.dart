@@ -272,6 +272,10 @@ class ProjectSelectionResolver {
       properties: [
         ProjectSelectionProperty(label: 'Эскиз', value: feature.id),
         ProjectSelectionProperty(label: 'Тип', value: entity.type),
+        ProjectSelectionProperty(
+          label: 'Назначение',
+          value: _humanizeSketchProfileIntent(entity),
+        ),
         if (values.containsKey('width'))
           ProjectSelectionProperty(
             label: 'Ширина',
@@ -369,6 +373,14 @@ String _humanizeSketchEntity(SketchEntity entity) {
     'rectangle' => 'Прямоугольник ${entity.id}',
     'circle' => 'Круг ${entity.id}',
     _ => '${entity.type} ${entity.id}',
+  };
+}
+
+String _humanizeSketchProfileIntent(SketchEntity entity) {
+  return switch (sketchProfileIntentFor(entity)) {
+    sketchProfileIntentCut => 'Вырез',
+    sketchProfileIntentAdd => 'Выступ',
+    _ => 'Направляющий',
   };
 }
 

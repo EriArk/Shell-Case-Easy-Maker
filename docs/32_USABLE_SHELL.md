@@ -354,33 +354,34 @@ transient Advanced Mode toggle at the lower rail edge; when enabled, it reveals
 a separate advanced section with `Эскиз`. The command opens a compact dialog
 for a target surface and sketch name, then creates an undoable
 `advanced_sketch` helper feature. Selecting that sketch shows a compact
-inspector section with contour count and a rectangle icon; clicking it stores
-a transient click-to-place intent rather than immediately creating geometry.
-The next click on the supported sketch workplane stores a typed rectangle
-entity at that semantic local position. Rectangle entities expose compact X/Y,
-width, height, and radius fields in the same inspector section. When the
-selected sketch has a rectangle, the viewport draws a thin helper rectangle
-overlay without restoring the old full-surface workplane rectangle. Clicking
-inside that helper rectangle focuses the semantic rectangle entity in the
-inspector while keeping command scope and viewport/native preview highlighting
-on the parent sketch. The focused row has icon-only 1 mm nudge controls and a
-move-to-click action, plus width/height +/- 1 mm resize controls and a delete
-action, plus duplicate; these update semantic sketch metadata through undo
-history. The move-to-click action reuses the sketch workplane hit target and
-stores the next click as the rectangle center. Duplicate creates a new offset
-`rect_N` entity instead of copying generated geometry. A compact workplane row
-can center the rectangle on the sketch workplane or fit it to that workplane's
-current bounds. When the selected rectangle is focused, workspace arrow keys
-reuse the same semantic actions for 1 mm nudge and Shift+arrow resize while
-text fields keep their normal behavior.
-The focused rectangle also supports semantic command shortcuts: Ctrl+D
-duplicates, Delete/Backspace removes, and Escape cancels active placement or
-move pick mode.
-If the rectangle leaves the supported sketch workplane bounds, the inspector
-shows a semantic warning. These actions and warnings do not select generated
-mesh or topology. The switch itself does not change saved project JSON,
-undo/redo history, or geometry requests, and sketch entities do not generate
-geometry yet.
+inspector section with contour count and rectangle/circle icon actions;
+clicking either action stores a transient click-to-place intent rather than
+immediately creating geometry. The next click on the supported sketch
+workplane stores a typed semantic entity at that local position. Rectangle and
+circle entities expose compact schema-backed fields in the same inspector
+section, and the selected entity also exposes an icon-only intent row:
+reference, cut, or add. This intent is saved as entity metadata for future
+sketch operations, but it does not generate geometry yet.
+
+When the selected sketch has entities, the viewport draws thin helper contour
+overlays without restoring the old full-surface workplane rectangle. The helper
+color can reflect profile intent. Clicking inside a helper contour focuses the
+semantic entity in the inspector while keeping command scope and
+viewport/native preview highlighting on the parent sketch. The focused row has
+icon-only 1 mm nudge controls, move-to-click, duplicate, delete, workplane
+center/fit, and type-specific size controls; these update semantic sketch
+metadata through undo history. Duplicate creates a new offset `rect_N` or
+`circle_N` entity instead of copying generated geometry.
+
+When a sketch entity is focused, workspace arrow keys reuse the same semantic
+actions for 1 mm nudge; Shift+arrow resizes rectangle width/height or circle
+diameter while text fields keep normal behavior. Ctrl+D duplicates,
+Delete/Backspace removes, and Escape cancels active placement or move pick
+mode. If the contour leaves the supported sketch workplane bounds, the
+inspector shows a semantic warning. These actions and warnings do not select
+generated mesh or topology. The switch itself does not change saved project
+JSON, undo/redo history, or geometry requests, and sketch entities do not
+generate geometry yet.
 
 ## Current limitations
 

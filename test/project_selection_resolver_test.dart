@@ -74,7 +74,13 @@ void main() {
     expect(details.status, contains('rect_1'));
     expect(
       details.properties.map((property) => property.label),
-      containsAll(['Эскиз', 'Тип', 'Ширина', 'Высота', 'Центр']),
+      containsAll(['Эскиз', 'Тип', 'Назначение', 'Ширина', 'Высота', 'Центр']),
+    );
+    expect(
+      details.properties
+          .singleWhere((property) => property.label == 'Назначение')
+          .value,
+      'Направляющий',
     );
   });
 
@@ -103,6 +109,39 @@ void main() {
     expect(
       details.properties.map((property) => property.label),
       containsAll(['Эскиз', 'Тип', 'Диаметр', 'Центр']),
+    );
+  });
+
+  test('describes selected sketch entity profile intent', () {
+    final sketch = advancedSketchWithEntities(
+      const SemanticFeature(
+        id: 'advanced_sketch_1',
+        type: advancedSketchFeatureType,
+        targetSurface: 'main_enclosure.front_wall.outer',
+        operation: 'helper',
+        parameters: {'name': 'Front helper sketch'},
+        metadata: {'advanced': true},
+      ),
+      [
+        sketchEntityWithProfileIntent(
+          defaultSketchCircleEntity(id: 'circle_1'),
+          sketchProfileIntentAdd,
+        ),
+      ],
+    );
+    final project = ProjectModel.initial().replaceFeature(sketch);
+    final details = ProjectSelectionResolver(project).describe(
+      const SelectionModel.sketchEntity(
+        id: 'circle_1',
+        parentId: 'advanced_sketch_1',
+      ),
+    );
+
+    expect(
+      details.properties
+          .singleWhere((property) => property.label == 'Назначение')
+          .value,
+      'Выступ',
     );
   });
 

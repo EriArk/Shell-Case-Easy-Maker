@@ -29,6 +29,9 @@ and does not generate geometry yet.
 - `SketchEntity` currently supports `rectangle` with center, width, height,
   corner-radius, and rotation parameters, plus `circle` with center and
   diameter parameters.
+- Every sketch entity can carry a semantic `profileIntent`: `reference`,
+  `cut`, or `add`. The intent is stored as entity metadata and is a
+  future-operation hint only; `advanced_sketch.operation` remains `helper`.
 - Selecting an advanced sketch shows a compact inspector section with contour
   count, rectangle/circle actions, and schema-backed entity parameter fields.
 - The rectangle/circle actions start a click-to-place mode. The next click on
@@ -43,6 +46,7 @@ and does not generate geometry yet.
 - Creation is undoable and save/load-safe.
 - Rectangle/circle entity click placement is undoable and save/load-safe.
 - Rectangle/circle parameter edits are undoable and save/load-safe.
+- Profile intent edits are undoable and save/load-safe.
 - Focused sketch entity nudge/move-to-click/resize/duplicate/delete actions
   are undoable and save/load-safe.
 - Focused rectangle workplane quick actions can center the contour or fit it to

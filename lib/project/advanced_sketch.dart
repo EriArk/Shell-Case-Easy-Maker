@@ -3,6 +3,15 @@ import 'json_helpers.dart';
 
 const advancedSketchFeatureType = 'advanced_sketch';
 const sketchEntitiesKey = 'entities';
+const sketchProfileIntentKey = 'profileIntent';
+const sketchProfileIntentReference = 'reference';
+const sketchProfileIntentCut = 'cut';
+const sketchProfileIntentAdd = 'add';
+const sketchProfileIntents = [
+  sketchProfileIntentReference,
+  sketchProfileIntentCut,
+  sketchProfileIntentAdd,
+];
 
 class SketchEntity {
   const SketchEntity({
@@ -122,6 +131,40 @@ SketchEntity defaultSketchCircleEntity({required String id}) {
       'center': [0.0, 0.0],
       'diameter': 12.0,
     },
+  );
+}
+
+String normalizeSketchProfileIntent(Object? value) {
+  final intent = readString(
+    value,
+    fallback: sketchProfileIntentReference,
+  ).trim();
+  return sketchProfileIntents.contains(intent)
+      ? intent
+      : sketchProfileIntentReference;
+}
+
+String sketchProfileIntentFor(SketchEntity entity) {
+  return normalizeSketchProfileIntent(entity.metadata[sketchProfileIntentKey]);
+}
+
+SketchEntity sketchEntityWithProfileIntent(
+  SketchEntity entity,
+  String profileIntent,
+) {
+  final normalized = normalizeSketchProfileIntent(profileIntent);
+  final metadata = {...entity.metadata};
+  if (normalized == sketchProfileIntentReference) {
+    metadata.remove(sketchProfileIntentKey);
+  } else {
+    metadata[sketchProfileIntentKey] = normalized;
+  }
+
+  return SketchEntity(
+    id: entity.id,
+    type: entity.type,
+    parameters: entity.parameters,
+    metadata: metadata,
   );
 }
 

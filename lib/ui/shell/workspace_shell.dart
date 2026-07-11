@@ -746,6 +746,42 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     );
   }
 
+  void _updateAdvancedSketchEntityProfileIntent(
+    String featureId,
+    String entityId,
+    String profileIntent,
+  ) {
+    final feature = _project.features
+        .where((feature) => feature.id == featureId)
+        .firstOrNull;
+    if (feature == null || feature.type != advancedSketchFeatureType) {
+      return;
+    }
+
+    final entity = sketchEntitiesForFeature(
+      feature,
+    ).where((entity) => entity.id == entityId).firstOrNull;
+    if (entity == null) {
+      return;
+    }
+
+    final updatedEntity = sketchEntityWithProfileIntent(entity, profileIntent);
+    final updatedFeature = advancedSketchWithUpdatedEntity(
+      feature,
+      updatedEntity,
+    );
+
+    _commitProjectEdit(
+      id: 'advanced.sketch.entity.profileIntent',
+      label: 'Изменить назначение контура',
+      nextState: _project.replaceFeature(updatedFeature),
+      selection: SelectionModel.sketchEntity(
+        id: updatedEntity.id,
+        parentId: feature.id,
+      ),
+    );
+  }
+
   void _nudgeAdvancedSketchEntity(
     String featureId,
     String entityId,
@@ -2336,6 +2372,8 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                                 _startAdvancedSketchCirclePlacement,
                             onSketchEntityParameterChanged:
                                 _updateAdvancedSketchEntityParameter,
+                            onSketchEntityProfileIntentChanged:
+                                _updateAdvancedSketchEntityProfileIntent,
                             onSketchEntityNudged: _nudgeAdvancedSketchEntity,
                             onSketchEntityResized: _resizeAdvancedSketchEntity,
                             onSketchEntityRotated: _rotateAdvancedSketchEntity,
@@ -5244,6 +5282,7 @@ class _Inspector extends StatelessWidget {
     required this.onAddSketchRectangle,
     required this.onAddSketchCircle,
     required this.onSketchEntityParameterChanged,
+    required this.onSketchEntityProfileIntentChanged,
     required this.onSketchEntityNudged,
     required this.onSketchEntityResized,
     required this.onSketchEntityRotated,
@@ -5284,6 +5323,8 @@ class _Inspector extends StatelessWidget {
     Object? value,
   )
   onSketchEntityParameterChanged;
+  final void Function(String featureId, String entityId, String profileIntent)
+  onSketchEntityProfileIntentChanged;
   final void Function(String featureId, String entityId, double dx, double dy)
   onSketchEntityNudged;
   final void Function(
@@ -5487,6 +5528,13 @@ class _Inspector extends StatelessWidget {
                   entityId,
                   parameterId,
                   value,
+                );
+              },
+              onEntityProfileIntentChanged: (entityId, profileIntent) {
+                onSketchEntityProfileIntentChanged(
+                  selectedFeature.id,
+                  entityId,
+                  profileIntent,
                 );
               },
               onEntityNudged: (entityId, dx, dy) {
@@ -5962,6 +6010,7 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
     required this.onAddCircle,
     required this.onEntitySelected,
     required this.onEntityParameterChanged,
+    required this.onEntityProfileIntentChanged,
     required this.onEntityNudged,
     required this.onEntityResized,
     required this.onEntityRotated,
@@ -5983,6 +6032,8 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
   final ValueChanged<String> onEntitySelected;
   final void Function(String entityId, String parameterId, Object? value)
   onEntityParameterChanged;
+  final void Function(String entityId, String profileIntent)
+  onEntityProfileIntentChanged;
   final void Function(String entityId, double dx, double dy) onEntityNudged;
   final void Function(String entityId, double widthDelta, double heightDelta)
   onEntityResized;
@@ -6081,6 +6132,9 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
               onChanged: (parameterId, value) {
                 onEntityParameterChanged(entity.id, parameterId, value);
               },
+              onProfileIntentChanged: (profileIntent) {
+                onEntityProfileIntentChanged(entity.id, profileIntent);
+              },
               onNudge: (dx, dy) => onEntityNudged(entity.id, dx, dy),
               onResize: (widthDelta, heightDelta) {
                 onEntityResized(entity.id, widthDelta, heightDelta);
@@ -6108,6 +6162,7 @@ class _SketchEntityParameterEditor extends StatelessWidget {
     required this.workplaneSize,
     required this.onSelected,
     required this.onChanged,
+    required this.onProfileIntentChanged,
     required this.onNudge,
     required this.onResize,
     required this.onRotate,
@@ -6125,6 +6180,7 @@ class _SketchEntityParameterEditor extends StatelessWidget {
   final Size? workplaneSize;
   final VoidCallback onSelected;
   final void Function(String parameterId, Object? value) onChanged;
+  final ValueChanged<String> onProfileIntentChanged;
   final void Function(double dx, double dy) onNudge;
   final void Function(double widthDelta, double heightDelta) onResize;
   final ValueChanged<double> onRotate;
@@ -6139,6 +6195,7 @@ class _SketchEntityParameterEditor extends StatelessWidget {
     final theme = Theme.of(context);
     final schema = SketchEntityParameterAdapter.schemaFor(entity);
     final values = SketchEntityParameterAdapter.valuesFrom(entity);
+    final profileIntent = sketchProfileIntentFor(entity);
     final cornerRadius = readDouble(values['cornerRadius'], fallback: 0.0);
     final diameter = readDouble(values['diameter'], fallback: 12.0);
     final bounds = workplaneSize;
@@ -6280,6 +6337,13 @@ class _SketchEntityParameterEditor extends StatelessWidget {
                   onPressed: onDelete,
                 ),
               ],
+            ),
+            const SizedBox(height: 6),
+            _SketchProfileIntentRow(
+              featureId: featureId,
+              entityId: entity.id,
+              profileIntent: profileIntent,
+              onChanged: onProfileIntentChanged,
             ),
             if (entity.type == 'rectangle') ...[
               const SizedBox(height: 6),
@@ -6462,6 +6526,55 @@ class _SketchEntityActionButton extends StatelessWidget {
   }
 }
 
+class _SketchProfileIntentRow extends StatelessWidget {
+  const _SketchProfileIntentRow({
+    required this.featureId,
+    required this.entityId,
+    required this.profileIntent,
+    required this.onChanged,
+  });
+
+  final String featureId;
+  final String entityId;
+  final String profileIntent;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            'Назначение',
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        for (final intent in sketchProfileIntents) ...[
+          _SketchEntityActionButton(
+            buttonKey: ValueKey(
+              'sketch-entity-$featureId-$entityId-intent-$intent',
+            ),
+            icon: _sketchProfileIntentIcon(intent),
+            tooltip: _sketchProfileIntentLabel(intent),
+            selected: profileIntent == intent,
+            color: _sketchProfileIntentColor(theme, intent),
+            onPressed: profileIntent == intent
+                ? () {}
+                : () => onChanged(intent),
+          ),
+          if (intent != sketchProfileIntents.last) const SizedBox(width: 4),
+        ],
+      ],
+    );
+  }
+}
+
 class _SketchEntityResizeRow extends StatelessWidget {
   const _SketchEntityResizeRow({
     required this.label,
@@ -6583,6 +6696,38 @@ Color _parameterIssueColor(ThemeData theme, ParameterIssueSeverity severity) {
   return switch (severity) {
     ParameterIssueSeverity.warning => Colors.amber,
     ParameterIssueSeverity.error => theme.colorScheme.error,
+  };
+}
+
+Color _sketchProfileIntentColor(ThemeData theme, String intent) {
+  return switch (normalizeSketchProfileIntent(intent)) {
+    sketchProfileIntentCut => theme.colorScheme.error,
+    sketchProfileIntentAdd => theme.colorScheme.primary,
+    _ => theme.colorScheme.tertiary,
+  };
+}
+
+Color _sketchProfileIntentPaintColor(ColorScheme colorScheme, String intent) {
+  return switch (normalizeSketchProfileIntent(intent)) {
+    sketchProfileIntentCut => colorScheme.error,
+    sketchProfileIntentAdd => colorScheme.primary,
+    _ => colorScheme.tertiary,
+  };
+}
+
+IconData _sketchProfileIntentIcon(String intent) {
+  return switch (normalizeSketchProfileIntent(intent)) {
+    sketchProfileIntentCut => Icons.remove_circle_outline_rounded,
+    sketchProfileIntentAdd => Icons.add_circle_outline_rounded,
+    _ => Icons.construction_rounded,
+  };
+}
+
+String _sketchProfileIntentLabel(String intent) {
+  return switch (normalizeSketchProfileIntent(intent)) {
+    sketchProfileIntentCut => 'Вырез',
+    sketchProfileIntentAdd => 'Выступ',
+    _ => 'Направляющий',
   };
 }
 
@@ -11487,32 +11632,32 @@ class _ViewportPainter extends CustomPainter {
       return;
     }
 
-    final fill = Paint()
-      ..color = colorScheme.tertiary.withValues(
-        alpha: annotationMode ? 0.14 : 0.18,
-      )
-      ..style = PaintingStyle.fill;
-    final stroke = Paint()
-      ..color = colorScheme.tertiary.withValues(
-        alpha: annotationMode ? 0.90 : 0.95,
-      )
-      ..style = PaintingStyle.stroke
-      ..strokeJoin = StrokeJoin.round
-      ..strokeWidth = annotationMode ? 2.1 : 2.4;
     final shadow = Paint()
       ..color = Colors.black.withValues(alpha: 0.32)
       ..style = PaintingStyle.stroke
       ..strokeJoin = StrokeJoin.round
-      ..strokeWidth = stroke.strokeWidth + 3.2;
-    final centerFill = Paint()
-      ..color = colorScheme.tertiary.withValues(alpha: 0.96)
-      ..style = PaintingStyle.fill;
+      ..strokeWidth = (annotationMode ? 2.1 : 2.4) + 3.2;
     final centerStroke = Paint()
       ..color = const Color(0xFF151719).withValues(alpha: 0.80)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.4;
 
     for (final rectangle in sketchRectanglePreviews) {
+      final intentColor = _sketchProfileIntentPaintColor(
+        colorScheme,
+        rectangle.profileIntent,
+      );
+      final fill = Paint()
+        ..color = intentColor.withValues(alpha: annotationMode ? 0.14 : 0.18)
+        ..style = PaintingStyle.fill;
+      final stroke = Paint()
+        ..color = intentColor.withValues(alpha: annotationMode ? 0.90 : 0.95)
+        ..style = PaintingStyle.stroke
+        ..strokeJoin = StrokeJoin.round
+        ..strokeWidth = annotationMode ? 2.1 : 2.4;
+      final centerFill = Paint()
+        ..color = intentColor.withValues(alpha: 0.96)
+        ..style = PaintingStyle.fill;
       final selected =
           selection.kind == SelectionKind.sketchEntity &&
           selection.parentId == rectangle.featureId &&
@@ -11525,7 +11670,7 @@ class _ViewportPainter extends CustomPainter {
         rectangle.center,
       );
       final selectedStroke = Paint()
-        ..color = colorScheme.tertiary.withValues(alpha: 1)
+        ..color = intentColor.withValues(alpha: 1)
         ..style = PaintingStyle.stroke
         ..strokeJoin = StrokeJoin.round
         ..strokeWidth = annotationMode ? 2.8 : 3.2;
@@ -11537,7 +11682,7 @@ class _ViewportPainter extends CustomPainter {
         radius,
         selected
             ? (Paint()
-                ..color = colorScheme.tertiary.withValues(
+                ..color = intentColor.withValues(
                   alpha: annotationMode ? 0.20 : 0.25,
                 )
                 ..style = PaintingStyle.fill)
@@ -11565,30 +11710,30 @@ class _ViewportPainter extends CustomPainter {
       return;
     }
 
-    final fill = Paint()
-      ..color = colorScheme.tertiary.withValues(
-        alpha: annotationMode ? 0.14 : 0.18,
-      )
-      ..style = PaintingStyle.fill;
-    final stroke = Paint()
-      ..color = colorScheme.tertiary.withValues(
-        alpha: annotationMode ? 0.90 : 0.95,
-      )
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = annotationMode ? 2.1 : 2.4;
     final shadow = Paint()
       ..color = Colors.black.withValues(alpha: 0.32)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke.strokeWidth + 3.2;
-    final centerFill = Paint()
-      ..color = colorScheme.tertiary.withValues(alpha: 0.96)
-      ..style = PaintingStyle.fill;
+      ..strokeWidth = (annotationMode ? 2.1 : 2.4) + 3.2;
     final centerStroke = Paint()
       ..color = const Color(0xFF151719).withValues(alpha: 0.80)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.4;
 
     for (final circle in sketchCirclePreviews) {
+      final intentColor = _sketchProfileIntentPaintColor(
+        colorScheme,
+        circle.profileIntent,
+      );
+      final fill = Paint()
+        ..color = intentColor.withValues(alpha: annotationMode ? 0.14 : 0.18)
+        ..style = PaintingStyle.fill;
+      final stroke = Paint()
+        ..color = intentColor.withValues(alpha: annotationMode ? 0.90 : 0.95)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = annotationMode ? 2.1 : 2.4;
+      final centerFill = Paint()
+        ..color = intentColor.withValues(alpha: 0.96)
+        ..style = PaintingStyle.fill;
       final selected =
           selection.kind == SelectionKind.sketchEntity &&
           selection.parentId == circle.featureId &&
@@ -11596,7 +11741,7 @@ class _ViewportPainter extends CustomPainter {
       final center = circle.canvasCenter(layout);
       final radius = circle.canvasRadius(layout);
       final selectedStroke = Paint()
-        ..color = colorScheme.tertiary.withValues(alpha: 1)
+        ..color = intentColor.withValues(alpha: 1)
         ..style = PaintingStyle.stroke
         ..strokeWidth = annotationMode ? 2.8 : 3.2;
 
@@ -11605,7 +11750,7 @@ class _ViewportPainter extends CustomPainter {
         radius,
         selected
             ? (Paint()
-                ..color = colorScheme.tertiary.withValues(
+                ..color = intentColor.withValues(
                   alpha: annotationMode ? 0.20 : 0.25,
                 )
                 ..style = PaintingStyle.fill)
@@ -12527,6 +12672,7 @@ List<MockViewportSketchRectanglePreview> _mockSketchRectanglePreviews(
         height: readDouble(values['height'], fallback: 12.0),
         cornerRadius: readDouble(values['cornerRadius'], fallback: 0.0),
         rotationZDegrees: readDouble(values['rotation'], fallback: 0.0),
+        profileIntent: sketchProfileIntentFor(entity),
       ),
     );
   }
@@ -12579,6 +12725,7 @@ List<MockViewportSketchCirclePreview> _mockSketchCirclePreviews(
           readDouble(values['centerY'], fallback: 0.0),
         ),
         diameter: readDouble(values['diameter'], fallback: 12.0),
+        profileIntent: sketchProfileIntentFor(entity),
       ),
     );
   }

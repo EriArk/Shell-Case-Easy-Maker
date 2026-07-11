@@ -12654,3 +12654,96 @@ Commit and push M138, then continue toward sketch operation semantics.
 Keep additional sketch entity types schema-backed. Reuse semantic placement and
 edit paths where possible, and do not introduce mesh or OCCT topology ids into
 sketch focus/hit state.
+
+---
+
+## M139 - Sketch entity profile intent
+
+### Goal
+Add a semantic profile intent layer for Advanced Sketch entities so helper
+contours can be marked as `reference`, `cut`, or `add` before real sketch
+operation geometry exists.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/project/advanced_sketch.dart`,
+`lib/ui/shell/workspace_shell.dart`,
+`lib/viewport/viewport_controller.dart`,
+`lib/selection/project_selection_resolver.dart`,
+`test/sketch_entity_parameter_adapter_test.dart`, `test/project_model_test.dart`,
+`test/project_selection_resolver_test.dart`, `test/viewport_controller_test.dart`,
+`test/widget_test.dart`, `docs/05_PROJECT_FILE_FORMAT.md`,
+`docs/06_FEATURE_SYSTEM.md`, `docs/26_TESTING_AND_QUALITY.md`,
+`docs/30_ADVANCED_CAD_MODE.md`, `docs/32_USABLE_SHELL.md`,
+`docs/33_VIEWPORT_MVP.md`, and `docs/35_PARAMETER_MODEL.md`.
+
+### Changes made
+- `lib/project/advanced_sketch.dart`:
+  - Added normalized `profileIntent` metadata helpers for sketch entities.
+  - Supported intents are `reference`, `cut`, and `add`; missing/unknown values
+    read as `reference`.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added an undoable selected-contour intent command.
+  - Added compact intent buttons in the selected sketch entity inspector row.
+  - Tinted helper overlays by intent without changing hit testing or geometry.
+- `lib/viewport/viewport_controller.dart`:
+  - Added `profileIntent` to rectangle/circle helper preview records.
+- `lib/selection/project_selection_resolver.dart`:
+  - Shows selected sketch entity intent in selection details.
+- Tests:
+  - Added adapter, project roundtrip, selection, viewport, and widget coverage
+    for profile intent save/undo/duplication behavior.
+- Docs/tasks/roadmap:
+  - Added M139 and updated sketch docs from helper-shape-only to helper shape
+    plus future-operation intent metadata.
+
+### Tests run
+- `flutter pub get`:
+  - Passed.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter test test\sketch_entity_parameter_adapter_test.dart test\project_model_test.dart test\project_selection_resolver_test.dart --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --name "advanced sketch command creates semantic helper feature" --reporter compact`:
+  - Passed.
+- `flutter test test\viewport_controller_test.dart --reporter compact`:
+  - Passed.
+- `flutter analyze`:
+  - Passed.
+- `flutter test --reporter compact`:
+  - Passed, 261 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Yes by boundary. Intent edits only change `SketchEntity.metadata`; no B-Rep,
+    mesh, booleans, extrusions, OCCT topology, or generated ids are produced.
+- Serialization checked?
+  - Yes. Unit/widget coverage verifies `profileIntent: cut` in saved project
+    JSON and undo back to default reference metadata.
+- UI checked?
+  - Yes. Widget coverage verifies the selected contour exposes reference/cut/add
+    buttons and preserves the large Advanced Sketch flow.
+- Export checked?
+  - Yes. Latest Windows bundle was rebuilt with the native OCCT worker and the
+    release folder remains ignored by Git.
+
+### Known issues
+- Issue: `cut` and `add` are semantic intent only; they do not generate cuts or
+  protrusions yet.
+  - Severity: Expected.
+  - Next action: Use intent as input when real sketch operation semantics are
+    introduced.
+- Issue: Intent colors make helper contours easier to distinguish but still do
+  not replace proper direct sketch handles.
+  - Severity: Expected.
+  - Next action: Design handles after operation semantics stabilize.
+
+### Next step
+Commit and push M139, then continue toward actual sketch operation semantics.
+
+### Notes for future Codex sessions
+Keep `advanced_sketch.operation=helper` until a real operation pipeline exists.
+Do not make `profileIntent` drive generated geometry before validation,
+conversion rules, and undo/redo behavior are designed.

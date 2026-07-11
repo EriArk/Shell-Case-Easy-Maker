@@ -361,6 +361,7 @@ class MockViewportSketchRectanglePreview {
     required this.height,
     required this.cornerRadius,
     this.rotationZDegrees = 0,
+    this.profileIntent = 'reference',
   });
 
   final String featureId;
@@ -371,6 +372,7 @@ class MockViewportSketchRectanglePreview {
   final double height;
   final double cornerRadius;
   final double rotationZDegrees;
+  final String profileIntent;
 
   Rect canvasRect(MockViewportLayout layout) {
     final canvasCenter = layout.workplaneLocalToCanvas(workplane, center);
@@ -447,7 +449,8 @@ class MockViewportSketchRectanglePreview {
         other.width == width &&
         other.height == height &&
         other.cornerRadius == cornerRadius &&
-        other.rotationZDegrees == rotationZDegrees;
+        other.rotationZDegrees == rotationZDegrees &&
+        other.profileIntent == profileIntent;
   }
 
   @override
@@ -461,6 +464,7 @@ class MockViewportSketchRectanglePreview {
       height,
       cornerRadius,
       rotationZDegrees,
+      profileIntent,
     );
   }
 }
@@ -472,6 +476,7 @@ class MockViewportSketchCirclePreview {
     required this.workplane,
     required this.center,
     required this.diameter,
+    this.profileIntent = 'reference',
   });
 
   final String featureId;
@@ -479,6 +484,7 @@ class MockViewportSketchCirclePreview {
   final MockViewportWorkplaneOverlay workplane;
   final Offset center;
   final double diameter;
+  final String profileIntent;
 
   Offset canvasCenter(MockViewportLayout layout) {
     return layout.workplaneLocalToCanvas(workplane, center);
@@ -511,12 +517,20 @@ class MockViewportSketchCirclePreview {
         other.entityId == entityId &&
         other.workplane == workplane &&
         other.center == center &&
-        other.diameter == diameter;
+        other.diameter == diameter &&
+        other.profileIntent == profileIntent;
   }
 
   @override
   int get hashCode {
-    return Object.hash(featureId, entityId, workplane, center, diameter);
+    return Object.hash(
+      featureId,
+      entityId,
+      workplane,
+      center,
+      diameter,
+      profileIntent,
+    );
   }
 }
 

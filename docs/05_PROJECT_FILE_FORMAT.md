@@ -102,8 +102,10 @@ The first implementation lives under `lib/project/` and keeps project data seman
 Generated meshes, STL files, preview data, and OCCT topology are still excluded from the editable project model.
 
 Advanced sketch helper features store typed sketch entities in feature metadata.
-The first supported entity is a rectangle. Its center, width, height, and
-corner-radius values are editable semantic parameters:
+The first supported entities are rectangles and circles. Their dimensions stay
+in `parameters`; each entity can also carry `profileIntent` metadata with one
+of `reference`, `cut`, or `add`. That intent is an editable semantic hint for
+future sketch operations, not generated geometry:
 
 ```json
 {
@@ -118,18 +120,29 @@ corner-radius values are editable semantic parameters:
   "parameters": {
     "name": "Lid sketch",
     "plane": "surface",
-    "entityCount": 1
+    "entityCount": 2
   },
   "advanced": true,
   "entities": [
     {
       "id": "rect_1",
       "type": "rectangle",
+      "profileIntent": "cut",
       "parameters": {
         "center": [0.0, 0.0],
         "width": 32.5,
         "height": 12.0,
-        "cornerRadius": 0.0
+        "cornerRadius": 0.0,
+        "rotation": 0.0
+      }
+    },
+    {
+      "id": "circle_1",
+      "type": "circle",
+      "profileIntent": "add",
+      "parameters": {
+        "center": [16.0, 0.0],
+        "diameter": 12.0
       }
     }
   ]
@@ -171,7 +184,7 @@ Current behavior:
   groups sourced from a selected component placement's template mounting holes,
 - the Advanced Mode `Эскиз` rail command can append semantic
   `advanced_sketch` helper features, and the selected sketch inspector can add
-  and edit the first typed rectangle entity in its metadata,
+  and edit typed rectangle/circle entities and their profile intent metadata,
 - toolbar STEP/STL export writes an external generated artifact and does not
   update the clean project baseline,
 - generated previews are refreshed from the loaded semantic model.

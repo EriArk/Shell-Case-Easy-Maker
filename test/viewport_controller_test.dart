@@ -412,6 +412,7 @@ void main() {
         width: 24,
         height: 16,
         cornerRadius: 2,
+        profileIntent: 'cut',
       );
       const hitTester = MockViewportHitTester();
 
@@ -426,6 +427,7 @@ void main() {
       expect(hit?.kind, ViewportHitKind.feature);
       expect(hit?.semanticId, 'advanced_sketch_1');
       expect(hit?.childId, 'rect_1');
+      expect(rectangle.profileIntent, 'cut');
     },
   );
 
@@ -482,6 +484,7 @@ void main() {
       workplane: workplane,
       center: Offset(-18, 12),
       diameter: 18,
+      profileIntent: 'add',
     );
     const hitTester = MockViewportHitTester();
 
@@ -496,6 +499,7 @@ void main() {
     expect(hit?.kind, ViewportHitKind.feature);
     expect(hit?.semanticId, 'advanced_sketch_1');
     expect(hit?.childId, 'circle_1');
+    expect(circle.profileIntent, 'add');
   });
 
   test('mock hit tester returns semantic feature group ids', () {

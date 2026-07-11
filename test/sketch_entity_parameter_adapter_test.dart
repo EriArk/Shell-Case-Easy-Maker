@@ -99,6 +99,39 @@ void main() {
     expect(duplicate.parameters['diameter'], 18.0);
   });
 
+  test('sketch entity profile intent is semantic metadata', () {
+    final rectangle = defaultSketchRectangleEntity(id: 'rect_1');
+    final cutRectangle = sketchEntityWithProfileIntent(
+      rectangle,
+      sketchProfileIntentCut,
+    );
+    final invalidRectangle = sketchEntityWithProfileIntent(
+      rectangle,
+      'raw_boolean',
+    );
+    final duplicate = SketchEntityParameterAdapter.duplicateWithOffset(
+      cutRectangle,
+      id: 'rect_2',
+    );
+    final referenceRectangle = sketchEntityWithProfileIntent(
+      cutRectangle,
+      sketchProfileIntentReference,
+    );
+
+    expect(sketchProfileIntentFor(rectangle), sketchProfileIntentReference);
+    expect(cutRectangle.metadata[sketchProfileIntentKey], 'cut');
+    expect(sketchProfileIntentFor(cutRectangle), sketchProfileIntentCut);
+    expect(
+      sketchProfileIntentFor(invalidRectangle),
+      sketchProfileIntentReference,
+    );
+    expect(duplicate.metadata[sketchProfileIntentKey], 'cut');
+    expect(
+      referenceRectangle.metadata.containsKey(sketchProfileIntentKey),
+      isFalse,
+    );
+  });
+
   test('rectangle duplicate gets a new id and offset center', () {
     final rectangle = SketchEntityParameterAdapter.applyValues(
       defaultSketchRectangleEntity(id: 'rect_1'),
