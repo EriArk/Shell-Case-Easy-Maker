@@ -90,6 +90,16 @@ SemanticFeature advancedSketchWithUpdatedEntity(
   return advancedSketchWithEntities(feature, updatedEntities);
 }
 
+SemanticFeature advancedSketchWithoutEntity(
+  SemanticFeature feature,
+  String entityId,
+) {
+  return advancedSketchWithEntities(feature, [
+    for (final entity in sketchEntitiesForFeature(feature))
+      if (entity.id != entityId) entity,
+  ]);
+}
+
 SketchEntity defaultSketchRectangleEntity({required String id}) {
   return SketchEntity(
     id: id,

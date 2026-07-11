@@ -3495,6 +3495,23 @@ void main() {
       ),
       findsOneWidget,
     );
+    final nudgeRight = find.byKey(
+      const ValueKey('sketch-entity-advanced_sketch_1-rect_1-nudge-right'),
+    );
+    final nudgeUp = find.byKey(
+      const ValueKey('sketch-entity-advanced_sketch_1-rect_1-nudge-up'),
+    );
+    final deleteRectangle = find.byKey(
+      const ValueKey('sketch-entity-advanced_sketch_1-rect_1-delete'),
+    );
+    expect(nudgeRight, findsOneWidget);
+    expect(nudgeUp, findsOneWidget);
+    expect(deleteRectangle, findsOneWidget);
+
+    await tester.tap(nudgeRight);
+    await _pumpAsyncUi(tester);
+    await tester.tap(nudgeUp);
+    await _pumpAsyncUi(tester);
 
     await tester.enterText(
       find.byKey(
@@ -3528,6 +3545,7 @@ void main() {
     expect(entities, hasLength(1));
     expect(entities.single.id, 'rect_1');
     expect(entities.single.type, 'rectangle');
+    expect(entities.single.parameters['center'], [1.0, 1.0]);
     expect(entities.single.parameters['width'], 32.5);
     expect(entities.single.parameters['height'], 12.0);
 
@@ -3555,6 +3573,26 @@ void main() {
     await tester.tap(undoButton);
     await _pumpAsyncUi(tester);
 
+    expect(
+      find.byKey(
+        const ValueKey('sketch-entity-advanced_sketch_1-rect_1-selected'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+
+    expect(
+      find.byKey(
+        const ValueKey('sketch-entity-advanced_sketch_1-rect_1-selected'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(deleteRectangle);
+    await _pumpAsyncUi(tester);
+
     expect(find.textContaining('rect_1'), findsNothing);
     expect(
       find.byKey(
@@ -3562,6 +3600,31 @@ void main() {
       ),
       findsNothing,
     );
+    expect(
+      find.byKey(const ValueKey('advanced-sketch-overlay-active')),
+      findsNothing,
+    );
+    expect(find.text('advanced_sketch_1'), findsWidgets);
+
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+
+    expect(find.textContaining('rect_1'), findsWidgets);
+    expect(
+      find.byKey(
+        const ValueKey('sketch-entity-advanced_sketch_1-rect_1-selected'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('advanced-sketch-overlay-active')),
+      findsOneWidget,
+    );
+
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+
+    expect(find.textContaining('rect_1'), findsNothing);
     expect(
       find.byKey(const ValueKey('advanced-sketch-overlay-active')),
       findsNothing,

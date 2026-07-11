@@ -75,4 +75,26 @@ void main() {
     expect(entities.last.parameters['height'], 24.0);
     expect(updatedFeature.parameters['entityCount'], 2);
   });
+
+  test('advanced sketch can remove one entity by stable id', () {
+    final feature = advancedSketchWithEntities(
+      const SemanticFeature(
+        id: 'advanced_sketch_1',
+        type: advancedSketchFeatureType,
+        targetSurface: 'main_enclosure.top_lid.outer',
+        operation: 'helper',
+      ),
+      [
+        defaultSketchRectangleEntity(id: 'rect_1'),
+        defaultSketchRectangleEntity(id: 'rect_2'),
+      ],
+    );
+
+    final updatedFeature = advancedSketchWithoutEntity(feature, 'rect_1');
+    final entities = sketchEntitiesForFeature(updatedFeature);
+
+    expect(entities, hasLength(1));
+    expect(entities.single.id, 'rect_2');
+    expect(updatedFeature.parameters['entityCount'], 1);
+  });
 }

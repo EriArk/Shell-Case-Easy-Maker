@@ -361,10 +361,11 @@ inspector section. When the selected sketch has a rectangle, the viewport draws
 a thin helper rectangle overlay without restoring the old full-surface
 workplane rectangle. Clicking inside that helper rectangle focuses the
 semantic rectangle entity in the inspector while keeping command scope and
-viewport/native preview highlighting on the parent sketch; it does not select
-generated mesh or topology. The switch itself does not change saved project
-JSON, undo/redo history, or geometry requests, and sketch entities do not
-generate geometry yet.
+viewport/native preview highlighting on the parent sketch. The focused row has
+icon-only 1 mm nudge controls and a delete action; these update semantic sketch
+metadata through undo history and do not select generated mesh or topology. The
+switch itself does not change saved project JSON, undo/redo history, or
+geometry requests, and sketch entities do not generate geometry yet.
 
 ## Current limitations
 

@@ -528,6 +528,71 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     );
   }
 
+  void _nudgeAdvancedSketchEntity(
+    String featureId,
+    String entityId,
+    double dx,
+    double dy,
+  ) {
+    final feature = _project.features
+        .where((feature) => feature.id == featureId)
+        .firstOrNull;
+    if (feature == null || feature.type != advancedSketchFeatureType) {
+      return;
+    }
+
+    final entity = sketchEntitiesForFeature(
+      feature,
+    ).where((entity) => entity.id == entityId).firstOrNull;
+    if (entity == null || entity.type != 'rectangle') {
+      return;
+    }
+
+    final values = SketchEntityParameterAdapter.valuesFrom(entity);
+    final updatedEntity = SketchEntityParameterAdapter.applyValues(entity, {
+      ...values,
+      'centerX': readDouble(values['centerX'], fallback: 0.0) + dx,
+      'centerY': readDouble(values['centerY'], fallback: 0.0) + dy,
+    });
+    final updatedFeature = advancedSketchWithUpdatedEntity(
+      feature,
+      updatedEntity,
+    );
+
+    _commitProjectEdit(
+      id: 'advanced.sketch.entity.nudge',
+      label: 'Переместить контур',
+      nextState: _project.replaceFeature(updatedFeature),
+      selection: SelectionModel.sketchEntity(
+        id: updatedEntity.id,
+        parentId: feature.id,
+      ),
+    );
+  }
+
+  void _deleteAdvancedSketchEntity(String featureId, String entityId) {
+    final feature = _project.features
+        .where((feature) => feature.id == featureId)
+        .firstOrNull;
+    if (feature == null || feature.type != advancedSketchFeatureType) {
+      return;
+    }
+
+    final entities = sketchEntitiesForFeature(feature);
+    if (!entities.any((entity) => entity.id == entityId)) {
+      return;
+    }
+
+    final updatedFeature = advancedSketchWithoutEntity(feature, entityId);
+
+    _commitProjectEdit(
+      id: 'advanced.sketch.entity.delete',
+      label: 'Удалить контур',
+      nextState: _project.replaceFeature(updatedFeature),
+      selection: SelectionModel.feature(feature.id),
+    );
+  }
+
   void _updateComponentPlacementParameter(
     String placementId,
     String parameterId,
@@ -1704,6 +1769,8 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                             onAddSketchRectangle: _addAdvancedSketchRectangle,
                             onSketchEntityParameterChanged:
                                 _updateAdvancedSketchEntityParameter,
+                            onSketchEntityNudged: _nudgeAdvancedSketchEntity,
+                            onSketchEntityDeleted: _deleteAdvancedSketchEntity,
                             onFeatureGroupParameterChanged:
                                 _updateFeatureGroupParameter,
                             onCollapse: () => _setInspectorCollapsed(true),
@@ -4384,6 +4451,8 @@ class _Inspector extends StatelessWidget {
     required this.onFeatureParameterChanged,
     required this.onAddSketchRectangle,
     required this.onSketchEntityParameterChanged,
+    required this.onSketchEntityNudged,
+    required this.onSketchEntityDeleted,
     required this.onFeatureGroupParameterChanged,
     required this.onCollapse,
   });
@@ -4414,6 +4483,9 @@ class _Inspector extends StatelessWidget {
     Object? value,
   )
   onSketchEntityParameterChanged;
+  final void Function(String featureId, String entityId, double dx, double dy)
+  onSketchEntityNudged;
+  final void Function(String featureId, String entityId) onSketchEntityDeleted;
   final void Function(String groupId, String parameterId, Object? value)
   onFeatureGroupParameterChanged;
   final VoidCallback onCollapse;
@@ -4572,6 +4644,12 @@ class _Inspector extends StatelessWidget {
                   parameterId,
                   value,
                 );
+              },
+              onEntityNudged: (entityId, dx, dy) {
+                onSketchEntityNudged(selectedFeature.id, entityId, dx, dy);
+              },
+              onEntityDeleted: (entityId) {
+                onSketchEntityDeleted(selectedFeature.id, entityId);
               },
             ),
           ],
@@ -5008,6 +5086,8 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
     required this.onAddRectangle,
     required this.onEntitySelected,
     required this.onEntityParameterChanged,
+    required this.onEntityNudged,
+    required this.onEntityDeleted,
   });
 
   final SemanticFeature feature;
@@ -5016,6 +5096,8 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
   final ValueChanged<String> onEntitySelected;
   final void Function(String entityId, String parameterId, Object? value)
   onEntityParameterChanged;
+  final void Function(String entityId, double dx, double dy) onEntityNudged;
+  final ValueChanged<String> onEntityDeleted;
 
   @override
   Widget build(BuildContext context) {
@@ -5084,6 +5166,8 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
               onChanged: (parameterId, value) {
                 onEntityParameterChanged(entity.id, parameterId, value);
               },
+              onNudge: (dx, dy) => onEntityNudged(entity.id, dx, dy),
+              onDelete: () => onEntityDeleted(entity.id),
             ),
       ],
     );
@@ -5097,6 +5181,8 @@ class _SketchEntityParameterEditor extends StatelessWidget {
     required this.selected,
     required this.onSelected,
     required this.onChanged,
+    required this.onNudge,
+    required this.onDelete,
   });
 
   final String featureId;
@@ -5104,6 +5190,8 @@ class _SketchEntityParameterEditor extends StatelessWidget {
   final bool selected;
   final VoidCallback onSelected;
   final void Function(String parameterId, Object? value) onChanged;
+  final void Function(double dx, double dy) onNudge;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -5176,6 +5264,53 @@ class _SketchEntityParameterEditor extends StatelessWidget {
               ),
             ),
           ),
+          if (selected && entity.type == 'rectangle') ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                _SketchEntityActionButton(
+                  key: ValueKey(
+                    'sketch-entity-$featureId-${entity.id}-nudge-left',
+                  ),
+                  icon: Icons.keyboard_arrow_left_rounded,
+                  tooltip: 'Сдвинуть влево',
+                  onPressed: () => onNudge(-1, 0),
+                ),
+                _SketchEntityActionButton(
+                  key: ValueKey(
+                    'sketch-entity-$featureId-${entity.id}-nudge-right',
+                  ),
+                  icon: Icons.keyboard_arrow_right_rounded,
+                  tooltip: 'Сдвинуть вправо',
+                  onPressed: () => onNudge(1, 0),
+                ),
+                _SketchEntityActionButton(
+                  key: ValueKey(
+                    'sketch-entity-$featureId-${entity.id}-nudge-up',
+                  ),
+                  icon: Icons.keyboard_arrow_up_rounded,
+                  tooltip: 'Сдвинуть вверх',
+                  onPressed: () => onNudge(0, 1),
+                ),
+                _SketchEntityActionButton(
+                  key: ValueKey(
+                    'sketch-entity-$featureId-${entity.id}-nudge-down',
+                  ),
+                  icon: Icons.keyboard_arrow_down_rounded,
+                  tooltip: 'Сдвинуть вниз',
+                  onPressed: () => onNudge(0, -1),
+                ),
+                const Spacer(),
+                _SketchEntityActionButton(
+                  key: ValueKey('sketch-entity-$featureId-${entity.id}-delete'),
+                  icon: Icons.delete_outline_rounded,
+                  tooltip: 'Удалить контур',
+                  color: theme.colorScheme.error,
+                  onPressed: onDelete,
+                ),
+              ],
+            ),
+          ],
           if (schema != null) ...[
             const SizedBox(height: 8),
             for (final parameter in schema.parameters) ...[
@@ -5200,6 +5335,41 @@ class _SketchEntityParameterEditor extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+class _SketchEntityActionButton extends StatelessWidget {
+  const _SketchEntityActionButton({
+    super.key,
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+    this.color,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final foreground = color ?? theme.colorScheme.tertiary;
+
+    return IconButton(
+      tooltip: tooltip,
+      icon: Icon(icon, size: 18),
+      color: foreground,
+      style: IconButton.styleFrom(
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        minimumSize: const Size.square(30),
+        fixedSize: const Size.square(30),
+        padding: EdgeInsets.zero,
+        backgroundColor: foreground.withValues(alpha: 0.08),
+      ),
+      onPressed: onPressed,
     );
   }
 }

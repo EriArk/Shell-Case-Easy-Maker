@@ -145,6 +145,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M124 - Sketch Rectangle Helper Overlay
 - [x] M125 - Sketch Rectangle Overlay Hit Target
 - [x] M126 - Sketch Rectangle Entity Focus
+- [x] M127 - Sketch Rectangle Entity Actions
 
 ---
 
@@ -6009,3 +6010,52 @@ geometry boundaries scoped to the parent `advanced_sketch`.
 - Edit width/height and confirm the rectangle remains selected.
 - Undo rectangle creation and confirm the inspector falls back to the parent
   sketch.
+
+---
+
+## M127 - Sketch Rectangle Entity Actions
+
+### Goal
+Add safe semantic edit actions for the focused sketch rectangle: 1 mm nudge
+controls and delete, without viewport drag handles or geometry conversion.
+
+### Tasks
+- [x] Add a project helper to remove a `SketchEntity` by stable id.
+- [x] Add selected-rectangle inspector action buttons for left/right/up/down
+      nudges.
+- [x] Add a selected-rectangle delete action.
+- [x] Apply nudges through `SketchEntityParameterAdapter` so center coordinates
+      stay normalized.
+- [x] Commit nudge/delete through undo history.
+- [x] Keep nudge selection on the rectangle entity and delete selection on the
+      parent sketch.
+- [x] Extend unit/widget coverage and update docs/tasks/worklog.
+
+### Done Criteria
+- A focused rectangle row shows icon-only nudge and delete actions.
+- Nudge right/up updates saved rectangle `center` by `[1.0, 1.0]`.
+- Each nudge is undoable as a separate semantic edit.
+- Delete removes the rectangle entity, hides the helper overlay, and returns
+  selection to the parent `advanced_sketch`.
+- Undo after delete restores the rectangle entity without saving focus state.
+- No mesh, B-Rep, OCCT topology, or generated triangle ids are used.
+
+### Tests
+- `flutter test test\sketch_entity_parameter_adapter_test.dart --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "advanced sketch command" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Enable Advanced Mode and create an `Эскиз`.
+- Add a rectangle.
+- Click the right/up arrow buttons and confirm the helper rectangle moves.
+- Press undo twice and confirm the rectangle moves back.
+- Click the delete icon and confirm `rect_1` disappears and the parent sketch
+  remains selected.
+- Press undo and confirm `rect_1` returns.

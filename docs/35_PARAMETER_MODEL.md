@@ -112,8 +112,9 @@ to a schema-backed parameter bank:
 
 The adapter writes values back to `SketchEntity.parameters`, normalizes numeric
 precision for stable JSON, and clamps corner radius to half of the smaller
-side. These values remain semantic helper data until sketch drawing and
-geometry conversion are designed.
+side. Inspector nudge actions reuse these normalized center values so each
+movement stays a semantic undoable edit. These values remain semantic helper
+data until sketch drawing and geometry conversion are designed.
 
 ## Current Limitations
 

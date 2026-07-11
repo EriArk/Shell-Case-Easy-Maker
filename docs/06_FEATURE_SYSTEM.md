@@ -96,6 +96,10 @@ Rectangle parameter edits replace the stored sketch entity semantically. The
 corner radius is clamped to half of the smaller side so the stored rectangle
 stays valid for later drawing and geometry conversion work.
 
+Focused rectangle entities also expose small inspector actions for 1 mm
+left/right/up/down nudges and deletion. These actions still update only
+semantic `SketchEntity` data and are committed through normal undo history.
+
 When a sketch is selected, rectangle entities can be drawn as helper-only
 viewport overlays. The overlay reads semantic `SketchEntity` values and does
 not make the rectangle a generated solid, cut, mesh primitive, or selectable

@@ -98,6 +98,22 @@ OCCT topology or generated mesh IDs.
 - `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
   - Passed.
 - `flutter test --reporter compact`:
+  - Passed, 250 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Returned `True`.
+- `git status --short --ignored releases`:
+  - Confirmed `releases/` is ignored.
+- `git diff --check`:
+  - Passed with only the existing ROADMAP CRLF warning.
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter test --reporter compact`:
   - Passed, 249 tests.
 - `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
   - Passed and refreshed
@@ -11584,3 +11600,77 @@ with a safe sketch drawing/editing interaction slice.
 Keep `SelectionKind.sketchEntity` parent-scoped. Do not pass sketch entity ids
 to native preview range selection, generated geometry ids, or OCCT topology
 handles.
+
+---
+
+## M127 - Sketch rectangle entity actions
+
+### Goal
+Add safe semantic edit actions for focused sketch rectangles: 1 mm nudge
+controls and delete, without adding viewport drag handles or geometry
+conversion.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/project/advanced_sketch.dart`, `lib/ui/shell/workspace_shell.dart`,
+`test/sketch_entity_parameter_adapter_test.dart`, `test/widget_test.dart`,
+`docs/06_FEATURE_SYSTEM.md`, `docs/26_TESTING_AND_QUALITY.md`,
+`docs/30_ADVANCED_CAD_MODE.md`, `docs/32_USABLE_SHELL.md`,
+`docs/33_VIEWPORT_MVP.md`, and `docs/35_PARAMETER_MODEL.md`.
+
+### Changes made
+- `lib/project/advanced_sketch.dart`:
+  - Added `advancedSketchWithoutEntity` to remove sketch entities by stable id.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added selected rectangle icon actions for left/right/up/down 1 mm nudges.
+  - Added selected rectangle delete action.
+  - Applies nudges through `SketchEntityParameterAdapter.applyValues`.
+  - Commits nudge/delete through undo history.
+  - Keeps nudged rectangles selected as `SelectionKind.sketchEntity`.
+  - Returns selection to the parent sketch after delete.
+- Tests:
+  - Added unit coverage for stable entity removal.
+  - Extended the Advanced Sketch widget flow to verify nudge persistence,
+    nudge undo, delete, undo delete, and rectangle creation undo.
+- Docs/tasks/roadmap:
+  - Added M127 and documented the semantic nudge/delete boundary.
+
+### Tests run
+- `flutter test test\sketch_entity_parameter_adapter_test.dart --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "advanced sketch command" --reporter compact`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+
+### Validation
+- Geometry checked?
+  - Yes by boundary. Nudge/delete only rewrite semantic sketch entity data and
+    do not generate B-Rep, mesh, cuts, or topology ids.
+- Serialization checked?
+  - Yes. Widget save coverage verifies nudged center coordinates persist as
+    semantic project JSON.
+- UI checked?
+  - Yes. Widget coverage clicks nudge/delete controls and exercises undo.
+- Export checked?
+  - Latest Windows bundle rebuilt; STEP/STL behavior unchanged because sketch
+    nudge/delete actions are semantic UI edits only.
+
+### Known issues
+- Issue: There are still no viewport drag handles or direct resize handles.
+  - Severity: Expected.
+  - Next action: Design safe handle affordances or continue with constrained
+    sketch editing controls.
+- Issue: The overlay still supports only mock top-lid/front-wall surface
+  mappings.
+  - Severity: Expected.
+  - Next action: Expand supported surfaces when stable semantic local
+    coordinate systems are added.
+
+### Next step
+Run full validation, rebuild latest Windows bundle, commit, push, then continue
+with the next safe sketch drawing/editing slice.
+
+### Notes for future Codex sessions
+Keep inspector nudge/delete actions semantic and undoable. Do not convert
+sketch entity ids into generated geometry ids or topology references.

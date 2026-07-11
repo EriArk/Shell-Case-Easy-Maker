@@ -170,7 +170,8 @@ B-Rep, cuts, extrusions, topology ids, or generated-geometry sub-entities. The
 visible rectangle can be clicked as a semantic sketch-entity focus target: the
 UI selection can point at `rect_1`, while command context and viewport/native
 preview highlighting stay scoped to the owning `advanced_sketch` feature id.
-Rectangle editing currently happens through the selected sketch inspector.
+Rectangle editing currently happens through the selected sketch inspector,
+including schema-backed fields, 1 mm nudge actions, and deletion.
 
 ## Current Controls
 
@@ -180,6 +181,9 @@ Rectangle editing currently happens through the selected sketch inspector.
 - Click viewport mock objects: select semantic object.
 - Click inside a selected sketch helper rectangle: focus the semantic rectangle
   entity while keeping parent-sketch command scope.
+- Use selected rectangle inspector arrows: nudge the helper rectangle by 1 mm.
+- Use selected rectangle inspector delete: remove the semantic rectangle
+  entity.
 - Click a visible snap hint: select/highlight that transient snap target.
 - Click inside a selected top-lid/front-wall workplane: select a transient
   face-local target for surface commands.

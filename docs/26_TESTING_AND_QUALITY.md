@@ -88,11 +88,12 @@ Use deterministic test fixtures.
   semantic `advanced_sketch` helper feature, that the inspector can add the
   first typed rectangle entity, edit its rectangle parameters, show the
   helper-only rectangle overlay, click the overlay into semantic rectangle
-  focus, keep command scope on the parent sketch, and keep the sketch as
-  `helper.advanced_sketch` rather than generated geometry.
+  focus, nudge/delete the selected rectangle, keep command scope on the parent
+  sketch, and keep the sketch as `helper.advanced_sketch` rather than
+  generated geometry.
 - Sketch entity adapter tests verify rectangle parameter defaults, semantic
-  updates, numeric cleanup, stable entity replacement, and corner-radius
-  clamping.
+  updates, numeric cleanup, stable entity replacement/removal, and
+  corner-radius clamping.
 - Snap-seeded component placement can align semantic component anchors to the
   selected snap point without saving anchor UI state.
 - Snap-seeded manual USB-C creation stores front-wall face-local

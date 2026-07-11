@@ -39,6 +39,7 @@ generate geometry yet.
 - Creation is undoable and save/load-safe.
 - Rectangle entity creation is undoable and save/load-safe.
 - Rectangle parameter edits are undoable and save/load-safe.
+- Focused rectangle nudge/delete actions are undoable and save/load-safe.
 - Rectangle corner radius is clamped to half of the smaller side.
 - The default workflow remains generator-first; sketch creation is available
   only after Advanced Mode is enabled.
