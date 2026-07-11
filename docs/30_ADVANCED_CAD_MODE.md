@@ -8,6 +8,16 @@ Provide escape hatches for professional users and edge cases without harming beg
 
 Advanced mode is hidden/collapsed.
 
+The workspace shell now has a transient Advanced Mode toggle in the lower part
+of the left tool rail. It is off by default, is not saved in `ProjectModel`, and
+does not participate in undo/redo, file save/load, or geometry requests.
+
+When enabled, the rail reveals a separate advanced section. The first exposed
+tool is the `advanced.sketch` placeholder (`Эскиз`), but it remains disabled
+until the basic sketch workflow exists and has tests. This keeps the default
+experience generator-first while making the future escape hatch visible during
+development.
+
 ## Tools later
 
 - Sketch.
@@ -30,6 +40,8 @@ Advanced mode is hidden/collapsed.
 - Maintain undo/redo.
 - Maintain validation.
 - Keep advanced UI separate from beginner tool rail.
+- Do not make hidden advanced placeholders executable before the semantic,
+  validation, undo, and geometry boundaries are designed.
 
 ## Use cases
 

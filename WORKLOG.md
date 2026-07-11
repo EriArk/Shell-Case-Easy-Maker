@@ -10903,3 +10903,99 @@ interaction chunk.
 Guided component placement should remain a transient launcher over existing
 semantic snap targets and `_PlaceComponentDialog`. Do not store pending guide
 mode, viewport hit data, or generated mesh identifiers in `ProjectModel`.
+
+---
+
+## M120 - Advanced mode switch
+
+### Goal
+Add the first Advanced Mode switch while keeping low-level CAD tools hidden
+from the default maker workflow.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/ui/shell/workspace_shell.dart`, `test/widget_test.dart`,
+`docs/26_TESTING_AND_QUALITY.md`, `docs/30_ADVANCED_CAD_MODE.md`, and
+`docs/32_USABLE_SHELL.md`.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added transient `_advancedMode` shell state.
+  - Passed Advanced Mode into command contexts for rail, palette, and viewport
+    context filtering.
+  - Added a lower left-rail Advanced Mode toggle.
+  - Revealed the `advanced.sketch` placeholder only while Advanced Mode is on.
+  - Kept the placeholder disabled because the basic sketch workflow is not
+    implemented yet.
+  - Tightened rail icon button sizing so the extra advanced section does not
+    overflow the test/default shell height.
+  - Kept Advanced Mode state out of `ProjectModel`, undo/redo, save/load, and
+    geometry requests.
+- `test/widget_test.dart`:
+  - Added coverage that the advanced sketch tool is hidden by default, appears
+    only after enabling Advanced Mode, remains disabled, and hides again.
+- `ROADMAP.md`, `TASKS.md`, and docs:
+  - Added M120, marked the Advanced Mode switch complete, and documented the
+    transient/default-hidden behavior.
+
+### Tests run
+- `flutter test test\command_registry_test.dart --plain-name "advanced commands" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "advanced mode switch" --reporter compact`:
+  - Passed after tightening rail button sizing.
+- `flutter test test\widget_test.dart --plain-name "unimplemented rail" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "native preview hides mapped schematic feature overlays" --reporter compact`:
+  - Passed after removing the extra rail `Scrollable`.
+- `flutter test test\widget_test.dart --plain-name "selecting a feature updates contextual inspector" --reporter compact`:
+  - Passed after removing the extra rail `Scrollable`.
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed, 239 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Returned `True`.
+- `git status --short --ignored releases`:
+  - Confirmed `releases/` is ignored.
+- `git diff --check`:
+  - Passed with only the existing ROADMAP CRLF warning.
+
+### Validation
+- Geometry checked?
+  - No geometry generator changes. Advanced Mode only changes transient command
+    visibility.
+- Serialization checked?
+  - No project JSON schema changes. Advanced Mode is not saved.
+- UI checked?
+  - Yes. Widget tests cover hidden/visible/disabled advanced tools and the
+    rail no longer overflows at the default test height.
+- Export checked?
+  - Latest Windows bundle rebuilt; STEP/STL behavior unchanged.
+
+### Known issues
+- Issue: `Эскиз` is only a disabled placeholder.
+  - Severity: Expected.
+  - Next action: Implement the basic sketch tool only after its semantic model,
+    validation, undo, and geometry boundaries are designed.
+- Issue: Advanced Mode is session-transient.
+  - Severity: Expected.
+  - Next action: Add user preferences later if keeping the mode enabled between
+    launches becomes useful.
+
+### Next step
+Commit and push M120, then continue with the next safe chunk toward the basic
+advanced sketch foundation or another semantic generator workflow.
+
+### Notes for future Codex sessions
+Advanced Mode must remain an escape hatch. Do not move sketch/extrude/boolean
+into the default generator rail, and do not make advanced placeholders
+executable until they have semantic state, undo/redo, validation, and geometry
+service boundaries.

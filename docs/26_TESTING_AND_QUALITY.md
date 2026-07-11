@@ -81,6 +81,9 @@ Use deterministic test fixtures.
   existing snap-seeded command dialogs without saving popover state.
 - Command palettes filter available commands by semantic context and launch
   existing command handlers without saving palette/search state.
+- Advanced Mode UI tests verify that low-level tools are hidden by default,
+  appear only after enabling the transient switch, and remain disabled until
+  implemented.
 - Snap-seeded component placement can align semantic component anchors to the
   selected snap point without saving anchor UI state.
 - Snap-seeded manual USB-C creation stores front-wall face-local

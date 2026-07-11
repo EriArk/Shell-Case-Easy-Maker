@@ -349,6 +349,11 @@ Palette query/focus state is transient UI state only and is not stored in
 Future rail tools remain visible to show the intended workflow, but they are
 disabled until their semantic command behavior is implemented and tested.
 
+Advanced low-level tools are not part of the default rail. The shell has a
+transient Advanced Mode toggle at the lower rail edge; when enabled, it reveals
+a separate advanced section with the disabled `Эскиз` placeholder. The switch
+does not change saved project JSON, undo/redo history, or geometry requests.
+
 ## Current limitations
 
 - Only the first enclosure parameter bank, first USB-C/glass feature parameter

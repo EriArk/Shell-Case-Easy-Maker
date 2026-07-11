@@ -3353,6 +3353,32 @@ void main() {
     expect(tester.widget<IconButton>(generateCaseButton).onPressed, isNull);
   });
 
+  testWidgets('advanced mode switch reveals disabled advanced tools', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const CaseMakerApp());
+    await tester.pumpAndSettle();
+
+    final toggle = find.byKey(const ValueKey('advanced-mode-toggle'));
+    final sketchButton = find.byKey(
+      const ValueKey('rail-command-${CommandIds.advancedSketch}'),
+    );
+
+    expect(toggle, findsOneWidget);
+    expect(sketchButton, findsNothing);
+
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+
+    expect(sketchButton, findsOneWidget);
+    expect(tester.widget<IconButton>(sketchButton).onPressed, isNull);
+
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+
+    expect(sketchButton, findsNothing);
+  });
+
   testWidgets('save command writes current semantic project file', (
     tester,
   ) async {

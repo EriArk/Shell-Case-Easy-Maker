@@ -138,6 +138,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M117 - Command Palette Foundation
 - [x] M118 - Guided Enclosure Presets + Validation
 - [x] M119 - Guided Component Placement Pick Mode
+- [x] M120 - Advanced Mode Switch
 
 ---
 
@@ -5661,3 +5662,51 @@ applied.
 - Confirm the placement dialog reopens with a `Точка:` hint and X/Y matching the
   clicked point.
 - Cancel the dialog and confirm the guide banner disappears.
+
+---
+
+## M120 - Advanced Mode Switch
+
+### Goal
+Add the first explicit Advanced Mode switch while keeping low-level CAD tools
+out of the default maker workflow.
+
+### Tasks
+- [x] Add transient shell state for Advanced Mode.
+- [x] Keep the left rail semantic by default.
+- [x] Add a separate lower rail toggle for Advanced Mode.
+- [x] Reveal the first advanced `advanced.sketch` placeholder only when
+      Advanced Mode is enabled.
+- [x] Keep the placeholder disabled until the basic sketch tool is implemented.
+- [x] Keep Advanced Mode state out of `ProjectModel`, undo/redo, save/load, and
+      geometry requests.
+- [x] Prevent rail overflow at shorter window heights.
+- [x] Add widget coverage for the switch and hidden/visible advanced tool.
+- [x] Update docs/tasks/worklog.
+
+### Done Criteria
+- Default UI still shows semantic generator tools first.
+- `advanced.sketch` is absent until Advanced Mode is enabled.
+- Enabling Advanced Mode reveals the separate advanced tool placeholder without
+  making an unimplemented command clickable.
+- Disabling Advanced Mode hides advanced tools again.
+- No project JSON, geometry protocol, generated mesh, B-Rep, topology, or
+  triangle ID changes are introduced.
+
+### Tests
+- `flutter test test\widget_test.dart --plain-name "advanced mode switch" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "unimplemented rail" --reporter compact`
+- `flutter test test\command_registry_test.dart --plain-name "advanced commands" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Confirm the default left rail does not show `Эскиз`.
+- Click the Advanced Mode icon at the lower part of the left rail.
+- Confirm `Эскиз` appears in a separate advanced section but is disabled.
+- Click the Advanced Mode icon again and confirm `Эскиз` disappears.

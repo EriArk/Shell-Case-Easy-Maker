@@ -61,6 +61,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
   bool _projectBrowserCollapsed = false;
   bool _inspectorCollapsed = false;
   bool _componentPlacementGuideActive = false;
+  bool _advancedMode = false;
 
   ProjectModel get _project => _undoHistory.current;
   bool get _hasUnsavedChanges =>
@@ -185,6 +186,15 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     });
   }
 
+  void _setAdvancedMode(bool enabled) {
+    setState(() {
+      _advancedMode = enabled;
+      _fileStatusMessage = enabled
+          ? 'Advanced Mode включён'
+          : 'Advanced Mode выключен';
+    });
+  }
+
   void _setPlacementDialogCandidate(ComponentPlacement placement) {
     if (!mounted) {
       return;
@@ -290,7 +300,9 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
 
   Iterable<AppCommand> _contextMenuCommandsFor(SelectionModel selection) {
     final registry = CommandRegistry.core;
-    final commandContext = selection.toCommandContext();
+    final commandContext = selection.toCommandContext(
+      advancedMode: _advancedMode,
+    );
 
     return _contextMenuCommandIdsFor(selection).map(registry.byId).where((
       command,
@@ -354,6 +366,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
   Iterable<AppCommand> _commandPaletteCommands() {
     final registry = CommandRegistry.core;
     final commandContext = _selection.toCommandContext(
+      advancedMode: _advancedMode,
       canUndo: _undoHistory.canUndo,
       canRedo: _undoHistory.canRedo,
     );
@@ -1415,7 +1428,9 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                 _project,
                 surfaceLabels: surfaceLabels,
               ).describe(_selection);
-              final commandContext = _selection.toCommandContext();
+              final commandContext = _selection.toCommandContext(
+                advancedMode: _advancedMode,
+              );
               final activeSnapPlacementIssue = _placementDialogCandidate == null
                   ? _activeSnapPlacementIssue(_project, _activeSnapTarget)
                   : null;
@@ -1447,7 +1462,9 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                       children: [
                         _ToolRail(
                           commandContext: commandContext,
+                          advancedMode: _advancedMode,
                           commandActionFor: _commandActionFor,
+                          onAdvancedModeChanged: _setAdvancedMode,
                         ),
                         if (_projectBrowserCollapsed)
                           _CollapsedSidePanel(
@@ -2909,11 +2926,15 @@ typedef _CommandActionFor = VoidCallback? Function(String commandId);
 class _ToolRail extends StatelessWidget {
   const _ToolRail({
     required this.commandContext,
+    required this.advancedMode,
     required this.commandActionFor,
+    required this.onAdvancedModeChanged,
   });
 
   final CommandContext commandContext;
+  final bool advancedMode;
   final _CommandActionFor commandActionFor;
+  final ValueChanged<bool> onAdvancedModeChanged;
 
   static const commandIds = [
     CommandIds.createEnclosure,
@@ -2926,10 +2947,16 @@ class _ToolRail extends StatelessWidget {
     CommandIds.generateCase,
   ];
 
+  static const advancedCommandIds = [CommandIds.advancedSketch];
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final registry = CommandRegistry.core;
+    final advancedCommandContext = CommandContext(
+      activeScope: CommandScope.advanced,
+      advancedMode: advancedMode,
+    );
 
     return Container(
       width: 64,
@@ -2948,7 +2975,65 @@ class _ToolRail extends StatelessWidget {
               commandContext: commandContext,
               onPressed: commandActionFor(commandIds[index]),
             ),
+          const Spacer(),
+          Divider(
+            indent: 12,
+            endIndent: 12,
+            color: theme.dividerColor.withValues(alpha: 0.18),
+          ),
+          _AdvancedModeToggle(
+            enabled: advancedMode,
+            onChanged: onAdvancedModeChanged,
+          ),
+          if (advancedMode)
+            for (final commandId in advancedCommandIds)
+              _RailButton(
+                command: registry.byId(commandId),
+                commandContext: advancedCommandContext,
+                onPressed: commandActionFor(commandId),
+              ),
         ],
+      ),
+    );
+  }
+}
+
+class _AdvancedModeToggle extends StatelessWidget {
+  const _AdvancedModeToggle({required this.enabled, required this.onChanged});
+
+  final bool enabled;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = enabled
+        ? theme.colorScheme.tertiary
+        : theme.colorScheme.onSurfaceVariant;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Tooltip(
+        message: enabled ? 'Advanced Mode включён' : 'Advanced Mode',
+        child: IconButton(
+          key: const ValueKey('advanced-mode-toggle'),
+          constraints: const BoxConstraints.tightFor(width: 40, height: 40),
+          icon: const Icon(Icons.architecture_rounded),
+          padding: EdgeInsets.zero,
+          color: color,
+          style: IconButton.styleFrom(
+            backgroundColor: enabled
+                ? theme.colorScheme.tertiary.withValues(alpha: 0.14)
+                : Colors.transparent,
+            fixedSize: const Size.square(40),
+            minimumSize: const Size.square(40),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          onPressed: () => onChanged(!enabled),
+        ),
       ),
     );
   }
@@ -2979,7 +3064,9 @@ class _RailButton extends StatelessWidget {
         message: command.label,
         child: IconButton(
           key: ValueKey('rail-command-${command.id}'),
+          constraints: const BoxConstraints.tightFor(width: 40, height: 40),
           icon: Icon(_iconForCommand(command.icon)),
+          padding: EdgeInsets.zero,
           color: contextual && enabled
               ? theme.colorScheme.primary
               : theme.colorScheme.onSurfaceVariant,
@@ -2987,9 +3074,12 @@ class _RailButton extends StatelessWidget {
             backgroundColor: contextual && enabled
                 ? theme.colorScheme.primary.withValues(alpha: 0.12)
                 : Colors.transparent,
+            fixedSize: const Size.square(40),
+            minimumSize: const Size.square(40),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
           onPressed: enabled ? onPressed : null,
         ),
