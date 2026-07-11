@@ -1,3 +1,4 @@
+import '../project/advanced_sketch.dart';
 import '../project/json_helpers.dart';
 import 'geometry_protocol.dart';
 
@@ -76,6 +77,10 @@ class GeometryOperationPlanner {
       return _operationsForFeatureGroup(intent);
     }
 
+    if (intent.kind == advancedSketchFeatureType) {
+      return _operationsForAdvancedSketch(intent);
+    }
+
     return [
       GeometryBuildOperation(
         id: intent.id,
@@ -88,6 +93,64 @@ class GeometryOperationPlanner {
         source: intent.source,
       ),
     ];
+  }
+
+  static List<GeometryBuildOperation> _operationsForAdvancedSketch(
+    GeometryFeatureIntent intent,
+  ) {
+    final helper = GeometryBuildOperation(
+      id: intent.id,
+      kind: _operationKindForFeature(intent.kind),
+      semanticId: intent.id,
+      targetSurface: intent.targetSurface,
+      operation: intent.operation,
+      parameters: intent.parameters,
+      placement: intent.placement,
+      source: intent.source,
+    );
+    final entities = readObjectList(
+      intent.metadata[sketchEntitiesKey],
+      SketchEntity.fromJson,
+    );
+
+    return [
+      helper,
+      for (var index = 0; index < entities.length; index++)
+        if (sketchProfileIntentFor(entities[index]) !=
+            sketchProfileIntentReference)
+          _operationForSketchProfileEntity(intent, entities[index], index),
+    ];
+  }
+
+  static GeometryBuildOperation _operationForSketchProfileEntity(
+    GeometryFeatureIntent intent,
+    SketchEntity entity,
+    int index,
+  ) {
+    final profileIntent = sketchProfileIntentFor(entity);
+    final operation = switch (profileIntent) {
+      sketchProfileIntentCut => 'negative',
+      sketchProfileIntentAdd => 'positive',
+      _ => 'helper',
+    };
+
+    return GeometryBuildOperation(
+      id: '${intent.id}.${entity.id}',
+      kind: 'sketch.profile.$profileIntent',
+      semanticId: '${intent.id}.${entity.id}',
+      targetSurface: intent.targetSurface,
+      operation: operation,
+      parentId: intent.id,
+      itemIndex: index,
+      parameters: _sketchProfileEntityParameters(entity, profileIntent),
+      placement: intent.placement,
+      source: {
+        ...intent.source,
+        'sketchId': intent.id,
+        'sketchEntityId': entity.id,
+        'profileIntent': profileIntent,
+      },
+    );
   }
 
   static List<GeometryBuildOperation> _operationsForFeatureGroup(
@@ -128,6 +191,41 @@ class GeometryOperationPlanner {
         ),
     ];
   }
+}
+
+Map<String, Object?> _sketchProfileEntityParameters(
+  SketchEntity entity,
+  String profileIntent,
+) {
+  final center = readDoubleList(
+    entity.parameters['center'],
+    fallback: const [0.0, 0.0],
+  );
+  final centerX = center.isNotEmpty ? center[0] : 0.0;
+  final centerY = center.length > 1 ? center[1] : 0.0;
+  final base = <String, Object?>{
+    'entityType': entity.type,
+    'profileIntent': profileIntent,
+    'center': [centerX, centerY],
+  };
+
+  return switch (entity.type) {
+    'rectangle' => {
+      ...base,
+      'width': readDouble(entity.parameters['width'], fallback: 20.0),
+      'height': readDouble(entity.parameters['height'], fallback: 12.0),
+      'cornerRadius': readDouble(
+        entity.parameters['cornerRadius'],
+        fallback: 0.0,
+      ),
+      'rotation': readDouble(entity.parameters['rotation'], fallback: 0.0),
+    },
+    'circle' => {
+      ...base,
+      'diameter': readDouble(entity.parameters['diameter'], fallback: 12.0),
+    },
+    _ => {...base, if (entity.parameters.isNotEmpty) 'raw': entity.parameters},
+  };
 }
 
 String _operationKindForFeature(String featureKind) {

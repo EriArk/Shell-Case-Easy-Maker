@@ -24,6 +24,10 @@ and does not generate geometry yet.
 - `advanced_sketch` is stored as a normal `SemanticFeature`.
 - `operation` is `helper`, and the geometry operation plan reports
   `helper.advanced_sketch`.
+- Non-reference sketch entities can additionally appear in the request-scoped
+  operation plan as `sketch.profile.cut` or `sketch.profile.add`, with
+  deterministic semantic shape parameters. These entries are backend contract
+  data only and do not generate B-Rep yet.
 - The feature stores its target surface, display name, surface workplane
   placement, and typed sketch entities in metadata.
 - `SketchEntity` currently supports `rectangle` with center, width, height,

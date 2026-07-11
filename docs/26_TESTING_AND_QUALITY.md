@@ -23,6 +23,7 @@ If it changes geometry, serialization, validation, or UI state, test it.
 - Command system.
 - Geometry request feature-intent serialization and group item expansion.
 - Geometry operation-plan generation from feature intents.
+- Advanced sketch profile-intent operation planning.
 - Undo/redo grouping.
 - Input mapping.
 - Step system.
@@ -131,6 +132,9 @@ Use deterministic test fixtures.
   generated mesh, B-Rep, or topology IDs in the editable project model.
 - Geometry operation plans map feature/group intents to deterministic backend
   tasks without flattening editable feature groups.
+- Advanced sketch profile-operation tests verify that `cut`/`add` helper
+  contours become request-scoped future backend operations while the parent
+  sketch remains `helper.advanced_sketch`.
 - Validation status/details show warning and error messages.
 - Context popovers show correct actions.
 - Parameter knob updates model.

@@ -6618,3 +6618,49 @@ cut, or add while still remaining helper-only project data.
   same contour.
 - Save the project if desired and confirm Undo returns the previous intent.
 - Confirm no new 3D cut/extrude is generated yet; this is still semantic setup.
+
+---
+
+## M140 - Sketch Profile Operation Plan
+
+### Goal
+Expose Advanced Sketch `cut`/`add` contour intent to the geometry operation
+planner as deterministic request-scoped backend operations, while keeping the
+editable project and preview geometry helper-only.
+
+### Tasks
+- [x] Keep parent `advanced_sketch` operation as `helper.advanced_sketch`.
+- [x] Parse sketch entities from feature-intent metadata.
+- [x] Ignore `reference` contours in generated profile operations.
+- [x] Emit `sketch.profile.cut` with `operation=negative`.
+- [x] Emit `sketch.profile.add` with `operation=positive`.
+- [x] Include semantic shape parameters, parent sketch id, entity id, target
+      surface, placement, and source metadata.
+- [x] Cover planner and mock response metrics with tests.
+- [x] Update docs/tasks/worklog.
+
+### Done Criteria
+- A sketch with only reference contours still plans as one helper operation.
+- A sketch with one cut rectangle and one add circle plans as three operations:
+  parent helper, `sketch.profile.cut`, and `sketch.profile.add`.
+- Profile operations preserve rectangle/circle parameters and source
+  `sketchEntityId`.
+- Mock `GeometryResponse.metrics.operationPlan` exposes the same deterministic
+  operations.
+- No B-Rep, mesh, boolean, extrusion, or OCCT topology id is created.
+
+### Tests
+- `flutter test test\geometry_protocol_test.dart --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- No new manual UI poke is required for this backend-contract chunk.
+- Optional: open the latest exe and verify Advanced Sketch intent buttons still
+  behave as in M139.
+- Confirm no new 3D cut/extrude appears yet; this chunk only prepares the
+  operation plan for future geometry.

@@ -406,6 +406,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Basic sketch rectangle shape quick actions.
 - [x] Basic sketch circle entity foundation.
 - [x] Basic sketch entity profile intent.
+- [x] Basic sketch profile operation plan.
 - [ ] Basic sketch drawing/editing.
 - [ ] Extrude/cut.
 - [ ] Boolean.

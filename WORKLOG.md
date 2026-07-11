@@ -12747,3 +12747,83 @@ Commit and push M139, then continue toward actual sketch operation semantics.
 Keep `advanced_sketch.operation=helper` until a real operation pipeline exists.
 Do not make `profileIntent` drive generated geometry before validation,
 conversion rules, and undo/redo behavior are designed.
+
+---
+
+## M140 - Sketch profile operation plan
+
+### Goal
+Turn Advanced Sketch `cut`/`add` profile intent into deterministic
+request-scoped geometry operation-plan entries without generating real sketch
+geometry yet.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/geometry/geometry_operation_plan.dart`,
+`lib/geometry/geometry_protocol.dart`,
+`lib/geometry/geometry_service.dart`,
+`lib/project/advanced_sketch.dart`, `test/geometry_protocol_test.dart`,
+`docs/03_ARCHITECTURE_OVERVIEW.md`, `docs/04_GEOMETRY_ENGINE_OCCT.md`,
+`docs/06_FEATURE_SYSTEM.md`, `docs/26_TESTING_AND_QUALITY.md`, and
+`docs/30_ADVANCED_CAD_MODE.md`.
+
+### Changes made
+- `lib/geometry/geometry_operation_plan.dart`:
+  - Kept parent `advanced_sketch` planning as `helper.advanced_sketch`.
+  - Parsed sketch entities from feature-intent metadata.
+  - Ignored `reference` contours.
+  - Emitted `sketch.profile.cut` operations as `negative`.
+  - Emitted `sketch.profile.add` operations as `positive`.
+  - Preserved shape parameters, placement, target surface, parent sketch id,
+    entity id, profile intent, and source metadata.
+- `test/geometry_protocol_test.dart`:
+  - Added operation-plan coverage for a sketch with a reference rectangle, cut
+    rectangle, and add circle.
+  - Verified mock response metrics expose the same deterministic plan.
+- Docs/tasks/roadmap:
+  - Added M140 and documented that sketch profile operations are backend
+    contract data only, not generated B-Rep.
+
+### Tests run
+- `flutter test test\geometry_protocol_test.dart --reporter compact`:
+  - Passed.
+- `flutter pub get`:
+  - Passed.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter analyze`:
+  - Passed.
+- `flutter test --reporter compact`:
+  - Passed, 262 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed. Refreshed `releases/latest/windows/shell_case_easy_maker.exe`.
+
+### Validation
+- Geometry checked?
+  - Yes by boundary. This only changes `GeometryBuildOperation` planning and
+    mock response metrics; no B-Rep, mesh, booleans, extrusions, OCCT topology,
+    or generated ids are created.
+- Serialization checked?
+  - Yes. Planner consumes existing semantic feature-intent metadata from the
+    request and preserves deterministic operation JSON in mock metrics.
+- UI checked?
+  - Not applicable; no UI behavior changed.
+- Export checked?
+  - Yes. Latest Windows bundle was rebuilt locally and remains ignored by Git.
+
+### Known issues
+- Issue: `sketch.profile.cut/add` operations are not consumed by native OCCT
+  yet.
+  - Severity: Expected.
+  - Next action: Add a first narrow native geometry slice after operation
+    validation and conversion rules are documented.
+- Issue: There is still no direct sketch drawing/handle system.
+  - Severity: Expected.
+  - Next action: Continue with operation semantics before direct handles.
+
+### Next step
+Commit and push M140, then continue toward first real sketch cut/add geometry.
+
+### Notes for future Codex sessions
+Keep sketch profile operations request-scoped until the backend consumes them.
+Do not store generated profile operations back into `ProjectModel`.

@@ -99,6 +99,9 @@ are `reference`, `cut`, and `add`; missing or unknown values read as
 `reference`. The selected-entity inspector exposes this as a compact semantic
 mode row. It is intentionally only a future-operation hint at this stage:
 changing it never creates B-Rep, mesh, booleans, extrusions, or topology ids.
+The geometry operation planner can expose non-reference contours as
+request-scoped `sketch.profile.cut` or `sketch.profile.add` operations so the
+backend contract is deterministic before actual B-Rep generation is wired.
 
 Rectangle parameter edits replace the stored sketch entity semantically. The
 corner radius is clamped to half of the smaller side so the stored rectangle

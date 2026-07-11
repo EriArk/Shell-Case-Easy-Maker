@@ -110,11 +110,19 @@ operations before real B-Rep generation exists:
 - `glass_recess` -> `recess.glass`,
 - `circular_cutout` -> `cutout.circular`,
 - `rectangular_cutout` -> `cutout.rectangular`,
+- `advanced_sketch` -> `helper.advanced_sketch`,
+- `advanced_sketch` entities with `profileIntent=cut` ->
+  `sketch.profile.cut`,
+- `advanced_sketch` entities with `profileIntent=add` ->
+  `sketch.profile.add`,
 - `button_group` items -> `cutout.button`,
 - `standoff_mounts` items -> `mount.standoff`.
 
 The mock backend exposes this plan in response metrics for testing and worker
-development. The native OCCT worker now consumes front-wall `usb_c_cutout`
+development. Sketch profile operations are currently future backend input only:
+they preserve semantic contour IDs, shape parameters, workplane placement, and
+cut/add direction, but they do not generate B-Rep yet. The native OCCT worker
+now consumes front-wall `usb_c_cutout`
 intents, first-pass front-wall and top-lid `glass_recess` intents,
 front-wall/top-lid `circular_cutout` intents, front-wall/top-lid
 `rectangular_cutout` intents, and front-wall `button_group` item intents as

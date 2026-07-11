@@ -389,6 +389,108 @@ void main() {
     expect(operations.single.parameters['entityCount'], 0);
   });
 
+  test(
+    'operation planner emits sketch profile operations as future intent',
+    () async {
+      final sketch = advancedSketchWithEntities(
+        const SemanticFeature(
+          id: 'advanced_sketch_1',
+          type: advancedSketchFeatureType,
+          targetSurface: 'main_enclosure.top_lid.outer',
+          operation: 'helper',
+          source: {'type': 'advanced_mode'},
+          placement: {'mode': 'surface_workplane', 'anchor': 'center'},
+          parameters: {'name': 'Lid sketch', 'plane': 'surface'},
+          metadata: {'advanced': true},
+        ),
+        [
+          defaultSketchRectangleEntity(id: 'rect_reference'),
+          sketchEntityWithProfileIntent(
+            SketchEntity(
+              id: 'rect_cut',
+              type: 'rectangle',
+              parameters: const {
+                'center': [12.0, -4.0],
+                'width': 30.0,
+                'height': 14.0,
+                'cornerRadius': 2.0,
+                'rotation': 15.0,
+              },
+            ),
+            sketchProfileIntentCut,
+          ),
+          sketchEntityWithProfileIntent(
+            SketchEntity(
+              id: 'circle_add',
+              type: 'circle',
+              parameters: const {
+                'center': [-10.0, 8.0],
+                'diameter': 18.0,
+              },
+            ),
+            sketchProfileIntentAdd,
+          ),
+        ],
+      );
+      final project = ProjectModel.initial().copyWith(
+        features: [sketch],
+        featureGroups: const [],
+      );
+      final request = GeometryRequest.previewMesh(
+        project,
+        requestId: 'advanced_sketch_profile_operations',
+      );
+
+      final operations = GeometryOperationPlanner.fromRequest(request);
+
+      expect(operations.map((operation) => operation.id), [
+        'advanced_sketch_1',
+        'advanced_sketch_1.rect_cut',
+        'advanced_sketch_1.circle_add',
+      ]);
+      expect(operations.first.kind, 'helper.advanced_sketch');
+      expect(operations.first.operation, 'helper');
+      expect(operations.first.parameters['entityCount'], 3);
+
+      final cutOperation = operations[1];
+      expect(cutOperation.kind, 'sketch.profile.cut');
+      expect(cutOperation.operation, 'negative');
+      expect(cutOperation.parentId, 'advanced_sketch_1');
+      expect(cutOperation.itemIndex, 1);
+      expect(cutOperation.parameters['entityType'], 'rectangle');
+      expect(cutOperation.parameters['profileIntent'], sketchProfileIntentCut);
+      expect(cutOperation.parameters['center'], [12.0, -4.0]);
+      expect(cutOperation.parameters['width'], 30.0);
+      expect(cutOperation.parameters['height'], 14.0);
+      expect(cutOperation.parameters['cornerRadius'], 2.0);
+      expect(cutOperation.parameters['rotation'], 15.0);
+      expect(cutOperation.source['sketchEntityId'], 'rect_cut');
+
+      final addOperation = operations[2];
+      expect(addOperation.kind, 'sketch.profile.add');
+      expect(addOperation.operation, 'positive');
+      expect(addOperation.parentId, 'advanced_sketch_1');
+      expect(addOperation.itemIndex, 2);
+      expect(addOperation.parameters['entityType'], 'circle');
+      expect(addOperation.parameters['profileIntent'], sketchProfileIntentAdd);
+      expect(addOperation.parameters['center'], [-10.0, 8.0]);
+      expect(addOperation.parameters['diameter'], 18.0);
+      expect(addOperation.source['sketchId'], 'advanced_sketch_1');
+      expect(addOperation.source['sketchEntityId'], 'circle_add');
+
+      const service = MockGeometryService();
+      final response = await service.buildGeometry(request);
+      final operationPlan = response.metrics['operationPlan'] as List<Object?>;
+
+      expect(response.metrics['operationCount'], 3);
+      expect(operationPlan[1], isA<Map<String, Object?>>());
+      expect(
+        (operationPlan[1]! as Map<String, Object?>)['kind'],
+        'sketch.profile.cut',
+      );
+    },
+  );
+
   test('geometry response preserves preview mesh semantic mappings', () {
     const response = GeometryResponse(
       requestId: 'preview_001',
