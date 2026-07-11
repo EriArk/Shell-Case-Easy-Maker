@@ -58,6 +58,47 @@ void main() {
     expect(SketchEntityParameterAdapter.validate(rectangle), isEmpty);
   });
 
+  test('circle sketch entity exposes and updates semantic parameters', () {
+    final circle = defaultSketchCircleEntity(id: 'circle_1');
+
+    final values = SketchEntityParameterAdapter.valuesFrom(circle);
+    final moved = SketchEntityParameterAdapter.updateParameter(
+      circle,
+      'centerY',
+      -8,
+    );
+    final resized = SketchEntityParameterAdapter.updateParameter(
+      moved,
+      'diameter',
+      18,
+    );
+
+    expect(values['centerX'], 0.0);
+    expect(values['centerY'], 0.0);
+    expect(values['diameter'], 12.0);
+    expect(resized.parameters['center'], [0.0, -8.0]);
+    expect(resized.parameters['diameter'], 18.0);
+  });
+
+  test('circle duplicate gets a new id and offset center', () {
+    final circle = SketchEntityParameterAdapter.applyValues(
+      defaultSketchCircleEntity(id: 'circle_1'),
+      const {'centerX': -5.0, 'centerY': 4.0, 'diameter': 18.0},
+    );
+
+    final duplicate = SketchEntityParameterAdapter.duplicateWithOffset(
+      circle,
+      id: 'circle_2',
+      dx: 6,
+      dy: -6,
+    );
+
+    expect(duplicate.id, 'circle_2');
+    expect(duplicate.type, 'circle');
+    expect(duplicate.parameters['center'], [1.0, -2.0]);
+    expect(duplicate.parameters['diameter'], 18.0);
+  });
+
   test('rectangle duplicate gets a new id and offset center', () {
     final rectangle = SketchEntityParameterAdapter.applyValues(
       defaultSketchRectangleEntity(id: 'rect_1'),
@@ -131,6 +172,23 @@ void main() {
 
     expect(issues, hasLength(1));
     expect(issues.single.code, 'sketch.rectangle.workplaneBounds');
+  });
+
+  test('circle workplane bounds warning reports out of surface contours', () {
+    final circle = SketchEntityParameterAdapter.applyValues(
+      defaultSketchCircleEntity(id: 'circle_1'),
+      const {'centerX': 47.0, 'diameter': 12.0},
+    );
+
+    final issues = SketchEntityParameterAdapter.validateWithinWorkplane(
+      circle,
+      workplaneWidth: 100,
+      workplaneHeight: 100,
+    );
+
+    expect(issues, hasLength(1));
+    expect(issues.single.severity, ParameterIssueSeverity.warning);
+    expect(issues.single.code, 'sketch.circle.workplaneBounds');
   });
 
   test('advanced sketch can replace one entity by stable id', () {

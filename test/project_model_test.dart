@@ -187,7 +187,10 @@ void main() {
         parameters: {'name': 'Lid sketch', 'plane': 'surface'},
         metadata: {'advanced': true},
       ),
-      [defaultSketchRectangleEntity(id: 'rect_1')],
+      [
+        defaultSketchRectangleEntity(id: 'rect_1'),
+        defaultSketchCircleEntity(id: 'circle_1'),
+      ],
     );
     final project = ProjectModel.initial().replaceFeature(sketch);
 
@@ -202,13 +205,16 @@ void main() {
     expect(decodedSketch.source?['type'], 'advanced_mode');
     expect(decodedSketch.placement?['mode'], 'surface_workplane');
     expect(decodedSketch.parameters['name'], 'Lid sketch');
-    expect(decodedSketch.parameters['entityCount'], 1);
-    expect(entities, hasLength(1));
-    expect(entities.single.id, 'rect_1');
-    expect(entities.single.type, 'rectangle');
-    expect(entities.single.parameters['width'], 20.0);
-    expect(entities.single.parameters['height'], 12.0);
-    expect(entities.single.parameters['rotation'], 0.0);
+    expect(decodedSketch.parameters['entityCount'], 2);
+    expect(entities, hasLength(2));
+    expect(entities.first.id, 'rect_1');
+    expect(entities.first.type, 'rectangle');
+    expect(entities.first.parameters['width'], 20.0);
+    expect(entities.first.parameters['height'], 12.0);
+    expect(entities.first.parameters['rotation'], 0.0);
+    expect(entities.last.id, 'circle_1');
+    expect(entities.last.type, 'circle');
+    expect(entities.last.parameters['diameter'], 12.0);
   });
 
   test('project replaces or appends feature groups by stable id', () {

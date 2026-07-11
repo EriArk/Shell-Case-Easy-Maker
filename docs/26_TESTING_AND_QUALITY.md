@@ -86,9 +86,9 @@ Use deterministic test fixtures.
   implemented.
 - Advanced sketch tests verify that `Эскиз` creates an undoable/saveable
   semantic `advanced_sketch` helper feature, that the inspector can start and
-  cancel rectangle click placement, create the first typed rectangle entity from
-  a workplane click, edit its rectangle parameters, show the helper-only
-  rectangle overlay, click the overlay into semantic rectangle focus,
+  cancel rectangle click placement, create typed rectangle and circle entities
+  from workplane clicks, edit their parameters, show helper-only overlays,
+  click the overlay into semantic rectangle focus,
   nudge/move-to-click/resize/duplicate/delete the selected rectangle, apply
   keyboard nudge/resize edits and keyboard duplicate/delete/cancel commands,
   center/fit the rectangle to the sketch workplane, rotate the rectangle
@@ -97,11 +97,12 @@ Use deterministic test fixtures.
   warnings, and keep the sketch as `helper.advanced_sketch` rather than
   generated geometry.
 - Sketch entity adapter tests verify rectangle parameter defaults, semantic
-  updates, numeric cleanup, stable entity replacement/removal, and
-  corner-radius clamping plus semantic duplication and rotation-aware
-  workplane-bounds warnings.
+  updates, circle parameter defaults/updates, numeric cleanup, stable entity
+  replacement/removal, and corner-radius clamping plus semantic duplication and
+  rotation-aware/circle workplane-bounds warnings.
 - Viewport controller tests verify that rotated sketch helper hit targets do
-  not select the rectangle outside its rotated contour.
+  not select the rectangle outside its rotated contour and that circle overlays
+  resolve to semantic sketch entity ids.
 - Snap-seeded component placement can align semantic component anchors to the
   selected snap point without saving anchor UI state.
 - Snap-seeded manual USB-C creation stores front-wall face-local

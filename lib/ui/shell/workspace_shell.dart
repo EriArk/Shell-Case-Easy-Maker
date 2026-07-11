@@ -476,6 +476,17 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
   }
 
   void _startAdvancedSketchRectanglePlacement(String featureId) {
+    _startAdvancedSketchEntityPlacement(featureId, entityType: 'rectangle');
+  }
+
+  void _startAdvancedSketchCirclePlacement(String featureId) {
+    _startAdvancedSketchEntityPlacement(featureId, entityType: 'circle');
+  }
+
+  void _startAdvancedSketchEntityPlacement(
+    String featureId, {
+    required String entityType,
+  }) {
     final feature = _project.features
         .where((feature) => feature.id == featureId)
         .firstOrNull;
@@ -495,7 +506,9 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     }
 
     final current = _sketchRectanglePlacementIntent;
-    if (current?.featureId == feature.id && current?.entityId == null) {
+    if (current?.featureId == feature.id &&
+        current?.entityId == null &&
+        current?.entityType == entityType) {
       _cancelAdvancedSketchRectanglePlacement();
       return;
     }
@@ -509,6 +522,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       _sketchRectanglePlacementIntent = _SketchRectanglePlacementIntent(
         featureId: feature.id,
         targetSurface: feature.targetSurface,
+        entityType: entityType,
       );
       _fileStatusMessage = 'Кликните по поверхности эскиза';
       _viewportController.setSelectedSemanticId(selection.viewportSemanticId);
@@ -528,7 +542,8 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     final entity = sketchEntitiesForFeature(
       feature,
     ).where((entity) => entity.id == entityId).firstOrNull;
-    if (entity == null || entity.type != 'rectangle') {
+    if (entity == null ||
+        SketchEntityParameterAdapter.schemaFor(entity) == null) {
       return;
     }
 
@@ -561,6 +576,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       _sketchRectanglePlacementIntent = _SketchRectanglePlacementIntent(
         featureId: feature.id,
         targetSurface: feature.targetSurface,
+        entityType: entity.type,
         entityId: entity.id,
       );
       _fileStatusMessage = 'Кликните, куда переместить контур';
@@ -601,15 +617,20 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
 
     final entityId = intent.entityId;
     if (entityId == null) {
-      _addAdvancedSketchRectangle(intent.featureId, center: localPosition);
+      _addAdvancedSketchEntity(
+        intent.featureId,
+        entityType: intent.entityType,
+        center: localPosition,
+      );
     } else {
-      _moveAdvancedSketchRectangle(intent.featureId, entityId, localPosition);
+      _moveAdvancedSketchEntity(intent.featureId, entityId, localPosition);
     }
     return true;
   }
 
-  void _addAdvancedSketchRectangle(
+  void _addAdvancedSketchEntity(
     String featureId, {
+    required String entityType,
     Offset center = Offset.zero,
   }) {
     final feature = _project.features
@@ -620,27 +641,30 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     }
 
     final entities = sketchEntitiesForFeature(feature);
-    final rectangle = SketchEntityParameterAdapter.applyValues(
-      defaultSketchRectangleEntity(id: nextSketchEntityId(entities, 'rect')),
+    final entity = SketchEntityParameterAdapter.applyValues(
+      _defaultSketchEntity(
+        entityType,
+        id: nextSketchEntityId(entities, _sketchEntityIdPrefix(entityType)),
+      ),
       {'centerX': center.dx, 'centerY': center.dy},
     );
     final updatedFeature = advancedSketchWithEntities(feature, [
       ...entities,
-      rectangle,
+      entity,
     ]);
 
     _commitProjectEdit(
-      id: 'advanced.sketch.rectangle',
-      label: 'Добавить прямоугольник',
+      id: 'advanced.sketch.$entityType',
+      label: _addSketchEntityLabel(entityType),
       nextState: _project.replaceFeature(updatedFeature),
       selection: SelectionModel.sketchEntity(
-        id: rectangle.id,
+        id: entity.id,
         parentId: feature.id,
       ),
     );
   }
 
-  void _moveAdvancedSketchRectangle(
+  void _moveAdvancedSketchEntity(
     String featureId,
     String entityId,
     Offset center,
@@ -655,7 +679,8 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     final entity = sketchEntitiesForFeature(
       feature,
     ).where((entity) => entity.id == entityId).firstOrNull;
-    if (entity == null || entity.type != 'rectangle') {
+    if (entity == null ||
+        SketchEntityParameterAdapter.schemaFor(entity) == null) {
       return;
     }
 
@@ -737,7 +762,8 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     final entity = sketchEntitiesForFeature(
       feature,
     ).where((entity) => entity.id == entityId).firstOrNull;
-    if (entity == null || entity.type != 'rectangle') {
+    if (entity == null ||
+        SketchEntityParameterAdapter.schemaFor(entity) == null) {
       return;
     }
 
@@ -779,16 +805,26 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     final entity = sketchEntitiesForFeature(
       feature,
     ).where((entity) => entity.id == entityId).firstOrNull;
-    if (entity == null || entity.type != 'rectangle') {
+    if (entity == null ||
+        SketchEntityParameterAdapter.schemaFor(entity) == null) {
       return;
     }
 
     final values = SketchEntityParameterAdapter.valuesFrom(entity);
-    final updatedEntity = SketchEntityParameterAdapter.applyValues(entity, {
-      ...values,
-      'width': readDouble(values['width'], fallback: 20.0) + widthDelta,
-      'height': readDouble(values['height'], fallback: 12.0) + heightDelta,
-    });
+    final updatedEntity = switch (entity.type) {
+      'rectangle' => SketchEntityParameterAdapter.applyValues(entity, {
+        ...values,
+        'width': readDouble(values['width'], fallback: 20.0) + widthDelta,
+        'height': readDouble(values['height'], fallback: 12.0) + heightDelta,
+      }),
+      'circle' => SketchEntityParameterAdapter.applyValues(entity, {
+        ...values,
+        'diameter':
+            readDouble(values['diameter'], fallback: 12.0) +
+            (widthDelta != 0 ? widthDelta : heightDelta),
+      }),
+      _ => entity,
+    };
     final updatedFeature = advancedSketchWithUpdatedEntity(
       feature,
       updatedEntity,
@@ -859,7 +895,8 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     final entity = sketchEntitiesForFeature(
       feature,
     ).where((entity) => entity.id == entityId).firstOrNull;
-    if (entity == null || entity.type != 'rectangle') {
+    if (entity == null ||
+        SketchEntityParameterAdapter.schemaFor(entity) == null) {
       return;
     }
 
@@ -896,7 +933,8 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     final entity = sketchEntitiesForFeature(
       feature,
     ).where((entity) => entity.id == entityId).firstOrNull;
-    if (entity == null || entity.type != 'rectangle') {
+    if (entity == null ||
+        SketchEntityParameterAdapter.schemaFor(entity) == null) {
       return;
     }
 
@@ -912,13 +950,22 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     }
 
     final values = SketchEntityParameterAdapter.valuesFrom(entity);
-    final updatedEntity = SketchEntityParameterAdapter.applyValues(entity, {
-      ...values,
-      'centerX': 0.0,
-      'centerY': 0.0,
-      'width': workplane.width,
-      'height': workplane.height,
-    });
+    final updatedEntity = switch (entity.type) {
+      'rectangle' => SketchEntityParameterAdapter.applyValues(entity, {
+        ...values,
+        'centerX': 0.0,
+        'centerY': 0.0,
+        'width': workplane.width,
+        'height': workplane.height,
+      }),
+      'circle' => SketchEntityParameterAdapter.applyValues(entity, {
+        ...values,
+        'centerX': 0.0,
+        'centerY': 0.0,
+        'diameter': math.min(workplane.width, workplane.height),
+      }),
+      _ => entity,
+    };
     final updatedFeature = advancedSketchWithUpdatedEntity(
       feature,
       updatedEntity,
@@ -947,13 +994,14 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     final entity = entities
         .where((entity) => entity.id == entityId)
         .firstOrNull;
-    if (entity == null || entity.type != 'rectangle') {
+    if (entity == null ||
+        SketchEntityParameterAdapter.schemaFor(entity) == null) {
       return;
     }
 
     final duplicate = SketchEntityParameterAdapter.duplicateWithOffset(
       entity,
-      id: nextSketchEntityId(entities, 'rect'),
+      id: nextSketchEntityId(entities, _sketchEntityIdPrefix(entity.type)),
     );
     final updatedFeature = advancedSketchWithEntities(feature, [
       ...entities,
@@ -2284,6 +2332,8 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                                 _sketchRectanglePlacementIntent,
                             onAddSketchRectangle:
                                 _startAdvancedSketchRectanglePlacement,
+                            onAddSketchCircle:
+                                _startAdvancedSketchCirclePlacement,
                             onSketchEntityParameterChanged:
                                 _updateAdvancedSketchEntityParameter,
                             onSketchEntityNudged: _nudgeAdvancedSketchEntity,
@@ -2450,11 +2500,13 @@ class _SketchRectanglePlacementIntent {
   const _SketchRectanglePlacementIntent({
     required this.featureId,
     required this.targetSurface,
+    this.entityType = 'rectangle',
     this.entityId,
   });
 
   final String featureId;
   final String targetSurface;
+  final String entityType;
   final String? entityId;
 
   @override
@@ -2462,11 +2514,13 @@ class _SketchRectanglePlacementIntent {
     return other is _SketchRectanglePlacementIntent &&
         other.featureId == featureId &&
         other.targetSurface == targetSurface &&
+        other.entityType == entityType &&
         other.entityId == entityId;
   }
 
   @override
-  int get hashCode => Object.hash(featureId, targetSurface, entityId);
+  int get hashCode =>
+      Object.hash(featureId, targetSurface, entityType, entityId);
 }
 
 _ActiveSnapTarget? _snapTargetFromViewportHit(
@@ -3182,6 +3236,27 @@ SemanticFeature _defaultAdvancedSketchFeature({
     metadata: const {'advanced': true},
   );
   return advancedSketchWithEntities(feature, const []);
+}
+
+SketchEntity _defaultSketchEntity(String entityType, {required String id}) {
+  return switch (entityType) {
+    'circle' => defaultSketchCircleEntity(id: id),
+    _ => defaultSketchRectangleEntity(id: id),
+  };
+}
+
+String _sketchEntityIdPrefix(String entityType) {
+  return switch (entityType) {
+    'circle' => 'circle',
+    _ => 'rect',
+  };
+}
+
+String _addSketchEntityLabel(String entityType) {
+  return switch (entityType) {
+    'circle' => 'Добавить круг',
+    _ => 'Добавить прямоугольник',
+  };
 }
 
 FeatureGroup _defaultButtonGroup({
@@ -4460,6 +4535,10 @@ class _ViewportAreaState extends State<_ViewportArea> {
       widget.project,
       widget.selection,
     );
+    final sketchCirclePreviews = _mockSketchCirclePreviews(
+      widget.project,
+      widget.selection,
+    );
     final mockHit = _hitTester.hitTest(
       position: position,
       size: viewportSize,
@@ -4478,6 +4557,7 @@ class _ViewportAreaState extends State<_ViewportArea> {
       sketchRectangles: placingSketchRectangle
           ? const []
           : sketchRectanglePreviews,
+      sketchCircles: placingSketchRectangle ? const [] : sketchCirclePreviews,
     );
     final nativeHit = mockHit?.kind == ViewportHitKind.snapPoint
         ? null
@@ -4539,6 +4619,10 @@ class _ViewportAreaState extends State<_ViewportArea> {
             widget.project,
             widget.selection,
           );
+          final sketchCirclePreviews = _mockSketchCirclePreviews(
+            widget.project,
+            widget.selection,
+          );
 
           return Listener(
             behavior: HitTestBehavior.opaque,
@@ -4571,6 +4655,7 @@ class _ViewportAreaState extends State<_ViewportArea> {
                         featurePreviews: featurePreviews,
                         featureGroupPreviews: featureGroupPreviews,
                         sketchRectanglePreviews: sketchRectanglePreviews,
+                        sketchCirclePreviews: sketchCirclePreviews,
                         selection: widget.selection,
                         viewportState: widget.viewportState,
                       ),
@@ -4647,7 +4732,8 @@ class _ViewportAreaState extends State<_ViewportArea> {
                         ),
                       ),
                     ),
-                  if (sketchRectanglePreviews.isNotEmpty)
+                  if (sketchRectanglePreviews.isNotEmpty ||
+                      sketchCirclePreviews.isNotEmpty)
                     const Positioned(
                       left: 0,
                       top: 0,
@@ -4783,6 +4869,11 @@ class _ViewportAreaState extends State<_ViewportArea> {
                       child: Align(
                         alignment: Alignment.topCenter,
                         child: _SketchRectanglePlacementBanner(
+                          entityType:
+                              widget
+                                  .sketchRectanglePlacementIntent
+                                  ?.entityType ??
+                              'rectangle',
                           onCancel: widget.onCancelSketchRectanglePlacement,
                         ),
                       ),
@@ -4871,8 +4962,12 @@ class _ComponentPlacementGuideBanner extends StatelessWidget {
 }
 
 class _SketchRectanglePlacementBanner extends StatelessWidget {
-  const _SketchRectanglePlacementBanner({required this.onCancel});
+  const _SketchRectanglePlacementBanner({
+    required this.entityType,
+    required this.onCancel,
+  });
 
+  final String entityType;
   final VoidCallback onCancel;
 
   @override
@@ -4894,7 +4989,9 @@ class _SketchRectanglePlacementBanner extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.crop_square_rounded,
+              entityType == 'circle'
+                  ? Icons.circle_outlined
+                  : Icons.crop_square_rounded,
               size: 18,
               color: theme.colorScheme.tertiary,
             ),
@@ -4905,7 +5002,9 @@ class _SketchRectanglePlacementBanner extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Прямоугольник эскиза',
+                    entityType == 'circle'
+                        ? 'Круг эскиза'
+                        : 'Прямоугольник эскиза',
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.labelMedium,
                   ),
@@ -5143,6 +5242,7 @@ class _Inspector extends StatelessWidget {
     required this.onFeatureParameterChanged,
     required this.sketchRectanglePlacementIntent,
     required this.onAddSketchRectangle,
+    required this.onAddSketchCircle,
     required this.onSketchEntityParameterChanged,
     required this.onSketchEntityNudged,
     required this.onSketchEntityResized,
@@ -5176,6 +5276,7 @@ class _Inspector extends StatelessWidget {
   onFeatureParameterChanged;
   final _SketchRectanglePlacementIntent? sketchRectanglePlacementIntent;
   final ValueChanged<String> onAddSketchRectangle;
+  final ValueChanged<String> onAddSketchCircle;
   final void Function(
     String featureId,
     String entityId,
@@ -5352,7 +5453,13 @@ class _Inspector extends StatelessWidget {
               placingRectangle:
                   sketchRectanglePlacementIntent?.featureId ==
                       selectedFeature.id &&
-                  sketchRectanglePlacementIntent?.entityId == null,
+                  sketchRectanglePlacementIntent?.entityId == null &&
+                  sketchRectanglePlacementIntent?.entityType == 'rectangle',
+              placingCircle:
+                  sketchRectanglePlacementIntent?.featureId ==
+                      selectedFeature.id &&
+                  sketchRectanglePlacementIntent?.entityId == null &&
+                  sketchRectanglePlacementIntent?.entityType == 'circle',
               movingEntityId:
                   sketchRectanglePlacementIntent?.featureId ==
                       selectedFeature.id
@@ -5365,6 +5472,7 @@ class _Inspector extends StatelessWidget {
                       selectedSketchWorkplane.height,
                     ),
               onAddRectangle: () => onAddSketchRectangle(selectedFeature.id),
+              onAddCircle: () => onAddSketchCircle(selectedFeature.id),
               onEntitySelected: (entityId) {
                 onSelectionChanged(
                   SelectionModel.sketchEntity(
@@ -5847,9 +5955,11 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
     required this.feature,
     required this.selectedEntityId,
     required this.placingRectangle,
+    required this.placingCircle,
     required this.movingEntityId,
     required this.workplaneSize,
     required this.onAddRectangle,
+    required this.onAddCircle,
     required this.onEntitySelected,
     required this.onEntityParameterChanged,
     required this.onEntityNudged,
@@ -5865,9 +5975,11 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
   final SemanticFeature feature;
   final String? selectedEntityId;
   final bool placingRectangle;
+  final bool placingCircle;
   final String? movingEntityId;
   final Size? workplaneSize;
   final VoidCallback onAddRectangle;
+  final VoidCallback onAddCircle;
   final ValueChanged<String> onEntitySelected;
   final void Function(String entityId, String parameterId, Object? value)
   onEntityParameterChanged;
@@ -5925,6 +6037,23 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
                 ),
               ),
               onPressed: onAddRectangle,
+            ),
+            const SizedBox(width: 6),
+            IconButton(
+              key: const ValueKey('advanced-sketch-add-circle'),
+              tooltip: placingCircle ? 'Отменить круг' : 'Круг',
+              icon: const Icon(Icons.circle_outlined),
+              color: theme.colorScheme.tertiary,
+              style: IconButton.styleFrom(
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                minimumSize: const Size.square(34),
+                fixedSize: const Size.square(34),
+                padding: EdgeInsets.zero,
+                backgroundColor: theme.colorScheme.tertiary.withValues(
+                  alpha: placingCircle ? 0.22 : 0.10,
+                ),
+              ),
+              onPressed: onAddCircle,
             ),
           ],
         ),
@@ -6011,6 +6140,7 @@ class _SketchEntityParameterEditor extends StatelessWidget {
     final schema = SketchEntityParameterAdapter.schemaFor(entity);
     final values = SketchEntityParameterAdapter.valuesFrom(entity);
     final cornerRadius = readDouble(values['cornerRadius'], fallback: 0.0);
+    final diameter = readDouble(values['diameter'], fallback: 12.0);
     final bounds = workplaneSize;
     final issues = bounds == null
         ? SketchEntityParameterAdapter.validate(entity)
@@ -6084,7 +6214,7 @@ class _SketchEntityParameterEditor extends StatelessWidget {
               ),
             ),
           ),
-          if (selected && entity.type == 'rectangle') ...[
+          if (selected && schema != null) ...[
             const SizedBox(height: 8),
             Row(
               children: [
@@ -6151,85 +6281,119 @@ class _SketchEntityParameterEditor extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 6),
-            _SketchEntityResizeRow(
-              label: 'Ширина',
-              decreaseKey: ValueKey(
-                'sketch-entity-$featureId-${entity.id}-width-decrease',
+            if (entity.type == 'rectangle') ...[
+              const SizedBox(height: 6),
+              _SketchEntityResizeRow(
+                label: 'Ширина',
+                decreaseKey: ValueKey(
+                  'sketch-entity-$featureId-${entity.id}-width-decrease',
+                ),
+                increaseKey: ValueKey(
+                  'sketch-entity-$featureId-${entity.id}-width-increase',
+                ),
+                decreaseTooltip: 'Уменьшить ширину на 1 мм',
+                increaseTooltip: 'Увеличить ширину на 1 мм',
+                onDecrease: () => onResize(-1, 0),
+                onIncrease: () => onResize(1, 0),
               ),
-              increaseKey: ValueKey(
-                'sketch-entity-$featureId-${entity.id}-width-increase',
+              const SizedBox(height: 4),
+              _SketchEntityResizeRow(
+                label: 'Высота',
+                decreaseKey: ValueKey(
+                  'sketch-entity-$featureId-${entity.id}-height-decrease',
+                ),
+                increaseKey: ValueKey(
+                  'sketch-entity-$featureId-${entity.id}-height-increase',
+                ),
+                decreaseTooltip: 'Уменьшить высоту на 1 мм',
+                increaseTooltip: 'Увеличить высоту на 1 мм',
+                onDecrease: () => onResize(0, -1),
+                onIncrease: () => onResize(0, 1),
               ),
-              decreaseTooltip: 'Уменьшить ширину на 1 мм',
-              increaseTooltip: 'Увеличить ширину на 1 мм',
-              onDecrease: () => onResize(-1, 0),
-              onIncrease: () => onResize(1, 0),
-            ),
-            const SizedBox(height: 4),
-            _SketchEntityResizeRow(
-              label: 'Высота',
-              decreaseKey: ValueKey(
-                'sketch-entity-$featureId-${entity.id}-height-decrease',
+              const SizedBox(height: 4),
+              _SketchEntityResizeRow(
+                label: 'Радиус',
+                decreaseKey: ValueKey(
+                  'sketch-entity-$featureId-${entity.id}-corner-radius-decrease',
+                ),
+                increaseKey: ValueKey(
+                  'sketch-entity-$featureId-${entity.id}-corner-radius-increase',
+                ),
+                decreaseTooltip: 'Уменьшить радиус на 1 мм',
+                increaseTooltip: 'Увеличить радиус на 1 мм',
+                resetKey: ValueKey(
+                  'sketch-entity-$featureId-${entity.id}-corner-radius-reset',
+                ),
+                resetTooltip: 'Убрать скругление',
+                resetIcon: Icons.crop_square_rounded,
+                onDecrease: () => onChanged('cornerRadius', cornerRadius - 1),
+                onIncrease: () => onChanged('cornerRadius', cornerRadius + 1),
+                onReset: () => onChanged('cornerRadius', 0.0),
               ),
-              increaseKey: ValueKey(
-                'sketch-entity-$featureId-${entity.id}-height-increase',
+              const SizedBox(height: 4),
+              _SketchEntityResizeRow(
+                label: 'Поворот',
+                decreaseKey: ValueKey(
+                  'sketch-entity-$featureId-${entity.id}-rotation-decrease',
+                ),
+                increaseKey: ValueKey(
+                  'sketch-entity-$featureId-${entity.id}-rotation-increase',
+                ),
+                decreaseTooltip: 'Повернуть на -15°',
+                increaseTooltip: 'Повернуть на +15°',
+                resetKey: ValueKey(
+                  'sketch-entity-$featureId-${entity.id}-rotation-reset',
+                ),
+                resetTooltip: 'Сбросить поворот',
+                resetIcon: Icons.restart_alt_rounded,
+                onDecrease: () => onRotate(-15),
+                onIncrease: () => onRotate(15),
+                onReset: () => onChanged('rotation', 0.0),
               ),
-              decreaseTooltip: 'Уменьшить высоту на 1 мм',
-              increaseTooltip: 'Увеличить высоту на 1 мм',
-              onDecrease: () => onResize(0, -1),
-              onIncrease: () => onResize(0, 1),
-            ),
-            const SizedBox(height: 4),
-            _SketchEntityResizeRow(
-              label: 'Радиус',
-              decreaseKey: ValueKey(
-                'sketch-entity-$featureId-${entity.id}-corner-radius-decrease',
+              const SizedBox(height: 4),
+              _SketchEntityWorkplaneRow(
+                centerKey: ValueKey(
+                  'sketch-entity-$featureId-${entity.id}-center-workplane',
+                ),
+                fitKey: ValueKey(
+                  'sketch-entity-$featureId-${entity.id}-fit-workplane',
+                ),
+                onCenter: onCenter,
+                onFit: onFitToWorkplane,
               ),
-              increaseKey: ValueKey(
-                'sketch-entity-$featureId-${entity.id}-corner-radius-increase',
+            ] else if (entity.type == 'circle') ...[
+              const SizedBox(height: 6),
+              _SketchEntityResizeRow(
+                label: 'Диаметр',
+                decreaseKey: ValueKey(
+                  'sketch-entity-$featureId-${entity.id}-diameter-decrease',
+                ),
+                increaseKey: ValueKey(
+                  'sketch-entity-$featureId-${entity.id}-diameter-increase',
+                ),
+                decreaseTooltip: 'Уменьшить диаметр на 1 мм',
+                increaseTooltip: 'Увеличить диаметр на 1 мм',
+                resetKey: ValueKey(
+                  'sketch-entity-$featureId-${entity.id}-diameter-reset',
+                ),
+                resetTooltip: 'Вернуть диаметр',
+                resetIcon: Icons.restart_alt_rounded,
+                onDecrease: () => onChanged('diameter', diameter - 1),
+                onIncrease: () => onChanged('diameter', diameter + 1),
+                onReset: () => onChanged('diameter', 12.0),
               ),
-              decreaseTooltip: 'Уменьшить радиус на 1 мм',
-              increaseTooltip: 'Увеличить радиус на 1 мм',
-              resetKey: ValueKey(
-                'sketch-entity-$featureId-${entity.id}-corner-radius-reset',
+              const SizedBox(height: 4),
+              _SketchEntityWorkplaneRow(
+                centerKey: ValueKey(
+                  'sketch-entity-$featureId-${entity.id}-center-workplane',
+                ),
+                fitKey: ValueKey(
+                  'sketch-entity-$featureId-${entity.id}-fit-workplane',
+                ),
+                onCenter: onCenter,
+                onFit: onFitToWorkplane,
               ),
-              resetTooltip: 'Убрать скругление',
-              resetIcon: Icons.crop_square_rounded,
-              onDecrease: () => onChanged('cornerRadius', cornerRadius - 1),
-              onIncrease: () => onChanged('cornerRadius', cornerRadius + 1),
-              onReset: () => onChanged('cornerRadius', 0.0),
-            ),
-            const SizedBox(height: 4),
-            _SketchEntityResizeRow(
-              label: 'Поворот',
-              decreaseKey: ValueKey(
-                'sketch-entity-$featureId-${entity.id}-rotation-decrease',
-              ),
-              increaseKey: ValueKey(
-                'sketch-entity-$featureId-${entity.id}-rotation-increase',
-              ),
-              decreaseTooltip: 'Повернуть на -15°',
-              increaseTooltip: 'Повернуть на +15°',
-              resetKey: ValueKey(
-                'sketch-entity-$featureId-${entity.id}-rotation-reset',
-              ),
-              resetTooltip: 'Сбросить поворот',
-              resetIcon: Icons.restart_alt_rounded,
-              onDecrease: () => onRotate(-15),
-              onIncrease: () => onRotate(15),
-              onReset: () => onChanged('rotation', 0.0),
-            ),
-            const SizedBox(height: 4),
-            _SketchEntityWorkplaneRow(
-              centerKey: ValueKey(
-                'sketch-entity-$featureId-${entity.id}-center-workplane',
-              ),
-              fitKey: ValueKey(
-                'sketch-entity-$featureId-${entity.id}-fit-workplane',
-              ),
-              onCenter: onCenter,
-              onFit: onFitToWorkplane,
-            ),
+            ],
           ],
           if (schema != null) ...[
             const SizedBox(height: 8),
@@ -6425,6 +6589,7 @@ Color _parameterIssueColor(ThemeData theme, ParameterIssueSeverity severity) {
 IconData _sketchEntityIcon(SketchEntity entity) {
   return switch (entity.type) {
     'rectangle' => Icons.crop_square_rounded,
+    'circle' => Icons.circle_outlined,
     _ => Icons.polyline_rounded,
   };
 }
@@ -6432,15 +6597,21 @@ IconData _sketchEntityIcon(SketchEntity entity) {
 String _sketchEntityLabel(SketchEntity entity) {
   return switch (entity.type) {
     'rectangle' => 'Прямоугольник ${entity.id}',
+    'circle' => 'Круг ${entity.id}',
     _ => '${entity.type} ${entity.id}',
   };
 }
 
 String _sketchEntitySizeLabel(SketchEntity entity) {
-  if (entity.type != 'rectangle') {
-    return '';
-  }
+  return switch (entity.type) {
+    'rectangle' => _sketchRectangleSizeLabel(entity),
+    'circle' =>
+      'Ø ${_formatNumber(readDouble(entity.parameters['diameter'], fallback: 0.0))}',
+    _ => '',
+  };
+}
 
+String _sketchRectangleSizeLabel(SketchEntity entity) {
   final width = readDouble(entity.parameters['width'], fallback: 0.0);
   final height = readDouble(entity.parameters['height'], fallback: 0.0);
   final rotation = readDouble(entity.parameters['rotation'], fallback: 0.0);
@@ -10447,6 +10618,7 @@ class _ViewportPainter extends CustomPainter {
     required this.featurePreviews,
     required this.featureGroupPreviews,
     required this.sketchRectanglePreviews,
+    required this.sketchCirclePreviews,
     required this.selection,
     required this.viewportState,
   });
@@ -10462,6 +10634,7 @@ class _ViewportPainter extends CustomPainter {
   final List<MockViewportFeaturePreview> featurePreviews;
   final List<MockViewportFeatureGroupPreview> featureGroupPreviews;
   final List<MockViewportSketchRectanglePreview> sketchRectanglePreviews;
+  final List<MockViewportSketchCirclePreview> sketchCirclePreviews;
   final SelectionModel selection;
   final ViewportState viewportState;
 
@@ -10554,6 +10727,7 @@ class _ViewportPainter extends CustomPainter {
     _paintFeatureGroups(canvas, layout, annotationMode: previewMeshRendered);
     _paintWorkplaneOverlay(canvas, layout, annotationMode: previewMeshRendered);
     _paintSketchRectangles(canvas, layout, annotationMode: previewMeshRendered);
+    _paintSketchCircles(canvas, layout, annotationMode: previewMeshRendered);
     _paintGhostPreview(canvas, layout);
 
     final highlightPaint = Paint()
@@ -11382,6 +11556,68 @@ class _ViewportPainter extends CustomPainter {
     }
   }
 
+  void _paintSketchCircles(
+    Canvas canvas,
+    MockViewportLayout layout, {
+    required bool annotationMode,
+  }) {
+    if (sketchCirclePreviews.isEmpty) {
+      return;
+    }
+
+    final fill = Paint()
+      ..color = colorScheme.tertiary.withValues(
+        alpha: annotationMode ? 0.14 : 0.18,
+      )
+      ..style = PaintingStyle.fill;
+    final stroke = Paint()
+      ..color = colorScheme.tertiary.withValues(
+        alpha: annotationMode ? 0.90 : 0.95,
+      )
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = annotationMode ? 2.1 : 2.4;
+    final shadow = Paint()
+      ..color = Colors.black.withValues(alpha: 0.32)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke.strokeWidth + 3.2;
+    final centerFill = Paint()
+      ..color = colorScheme.tertiary.withValues(alpha: 0.96)
+      ..style = PaintingStyle.fill;
+    final centerStroke = Paint()
+      ..color = const Color(0xFF151719).withValues(alpha: 0.80)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4;
+
+    for (final circle in sketchCirclePreviews) {
+      final selected =
+          selection.kind == SelectionKind.sketchEntity &&
+          selection.parentId == circle.featureId &&
+          selection.id == circle.entityId;
+      final center = circle.canvasCenter(layout);
+      final radius = circle.canvasRadius(layout);
+      final selectedStroke = Paint()
+        ..color = colorScheme.tertiary.withValues(alpha: 1)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = annotationMode ? 2.8 : 3.2;
+
+      canvas.drawCircle(
+        center,
+        radius,
+        selected
+            ? (Paint()
+                ..color = colorScheme.tertiary.withValues(
+                  alpha: annotationMode ? 0.20 : 0.25,
+                )
+                ..style = PaintingStyle.fill)
+            : fill,
+      );
+      canvas.drawCircle(center, radius, shadow);
+      canvas.drawCircle(center, radius, selected ? selectedStroke : stroke);
+      canvas.drawCircle(center, 4.2 * layout.zoom, centerFill);
+      canvas.drawCircle(center, 4.2 * layout.zoom, centerStroke);
+    }
+  }
+
   void _paintGhostPreview(Canvas canvas, MockViewportLayout layout) {
     final ghost = viewportState.ghostPreview;
     if (ghost == null) {
@@ -11440,6 +11676,7 @@ class _ViewportPainter extends CustomPainter {
         oldDelegate.featurePreviews != featurePreviews ||
         oldDelegate.featureGroupPreviews != featureGroupPreviews ||
         oldDelegate.sketchRectanglePreviews != sketchRectanglePreviews ||
+        oldDelegate.sketchCirclePreviews != sketchCirclePreviews ||
         oldDelegate.selection != selection ||
         oldDelegate.viewportState != viewportState;
   }
@@ -12290,6 +12527,58 @@ List<MockViewportSketchRectanglePreview> _mockSketchRectanglePreviews(
         height: readDouble(values['height'], fallback: 12.0),
         cornerRadius: readDouble(values['cornerRadius'], fallback: 0.0),
         rotationZDegrees: readDouble(values['rotation'], fallback: 0.0),
+      ),
+    );
+  }
+
+  return previews;
+}
+
+List<MockViewportSketchCirclePreview> _mockSketchCirclePreviews(
+  ProjectModel project,
+  SelectionModel selection,
+) {
+  final featureId = switch (selection.kind) {
+    SelectionKind.feature => selection.id,
+    SelectionKind.sketchEntity => selection.parentId,
+    _ => null,
+  };
+  if (featureId == null) {
+    return const [];
+  }
+
+  final feature = project.features
+      .where((feature) => feature.id == featureId)
+      .firstOrNull;
+  if (feature == null || feature.type != advancedSketchFeatureType) {
+    return const [];
+  }
+
+  final workplane = _mockSurfaceWorkplaneOverlay(
+    project,
+    feature.targetSurface,
+  );
+  if (workplane == null) {
+    return const [];
+  }
+
+  final previews = <MockViewportSketchCirclePreview>[];
+  for (final entity in sketchEntitiesForFeature(feature)) {
+    if (entity.type != 'circle') {
+      continue;
+    }
+
+    final values = SketchEntityParameterAdapter.valuesFrom(entity);
+    previews.add(
+      MockViewportSketchCirclePreview(
+        featureId: feature.id,
+        entityId: entity.id,
+        workplane: workplane,
+        center: Offset(
+          readDouble(values['centerX'], fallback: 0.0),
+          readDouble(values['centerY'], fallback: 0.0),
+        ),
+        diameter: readDouble(values['diameter'], fallback: 12.0),
       ),
     );
   }

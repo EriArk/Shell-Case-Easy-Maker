@@ -154,40 +154,39 @@ pattern around that semantic surface point.
 ## Sketch Helper Overlays
 
 When an `advanced_sketch` helper feature is selected, the viewport can draw its
-rectangle `SketchEntity` values as a helper-only overlay on supported mock
-surface workplanes:
+rectangle and circle `SketchEntity` values as helper-only overlays on
+supported mock surface workplanes:
 - top lid,
 - front wall.
 
 The overlay reuses the same semantic local-to-canvas mapping as surface
 workplanes, but it does not bring back the full passive 2D workplane rectangle.
-Only the rectangle contour and center marker are drawn. This keeps the selected
+Only the helper contour and center marker are drawn. This keeps the selected
 sketch inspectable while avoiding the old large surface ghost over the native
 preview.
 
 Sketch helper overlays are display-only. They do not create preview mesh,
 B-Rep, cuts, extrusions, topology ids, or generated-geometry sub-entities. The
-visible rectangle can be clicked as a semantic sketch-entity focus target: the
-UI selection can point at `rect_1`, while command context and viewport/native
-preview highlighting stay scoped to the owning `advanced_sketch` feature id.
-Rectangle editing currently happens through the selected sketch inspector,
-including schema-backed fields, 1 mm nudge actions, width/height +/- 1 mm
-resize actions, corner-radius +/-/reset actions, +/- 15 degree rotation and
-rotation reset actions, move-to-click center placement, duplication, deletion,
-keyboard nudge/resize shortcuts, keyboard command shortcuts, workplane
-center/fit actions, and semantic workplane-bounds warnings. The helper
-contour, its hit target, and the bounds check use the stored rectangle
-rotation, but still resolve back only to semantic sketch ids.
+visible contour can be clicked as a semantic sketch-entity focus target: the UI
+selection can point at `rect_1` or `circle_1`, while command context and
+viewport/native preview highlighting stay scoped to the owning
+`advanced_sketch` feature id. Entity editing currently happens through the
+selected sketch inspector, including schema-backed fields, 1 mm nudge actions,
+type-specific size actions, move-to-click center placement, duplication,
+deletion, keyboard nudge/resize shortcuts, keyboard command shortcuts,
+workplane center/fit actions, and semantic workplane-bounds warnings. Rectangle
+helpers also support corner-radius and rotation actions. The helper contour,
+its hit target, and bounds check still resolve back only to semantic sketch ids.
 
-The selected sketch inspector can also start a transient rectangle
-click-to-place mode. While active, the viewport uses the owning sketch surface
+The selected sketch inspector can also start transient rectangle or circle
+click-to-place modes. While active, the viewport uses the owning sketch surface
 workplane as the hit target, shows a compact cancel banner, and converts the
-next workplane click into a semantic local rectangle center. This interaction
+next workplane click into a semantic local contour center. This interaction
 does not read generated mesh triangles or OCCT topology ids.
 
-Focused rectangles can reuse the same viewport pick path for move-to-click: the
-next supported workplane click replaces the selected rectangle's semantic
-center and commits an undoable project edit.
+Focused sketch entities can reuse the same viewport pick path for
+move-to-click: the next supported workplane click replaces the selected
+entity's semantic center and commits an undoable project edit.
 
 ## Current Controls
 
@@ -195,11 +194,12 @@ center and commits an undoable project edit.
 - Secondary or middle drag: pan.
 - Mouse wheel: zoom.
 - Click viewport mock objects: select semantic object.
-- Click inside a selected sketch helper rectangle: focus the semantic rectangle
+- Click inside a selected sketch helper contour: focus the semantic sketch
   entity while keeping parent-sketch command scope.
-- Use the selected sketch rectangle action, then click the supported workplane:
-  create a semantic rectangle at the clicked local position.
+- Use the selected sketch rectangle/circle action, then click the supported
+  workplane: create a semantic entity at the clicked local position.
 - Use selected rectangle inspector arrows: nudge the helper rectangle by 1 mm.
+- Use selected circle inspector arrows: nudge the helper circle by 1 mm.
 - Use keyboard arrows while a rectangle is selected: nudge the helper rectangle
   by 1 mm.
 - Use Shift+keyboard arrows while a rectangle is selected: resize width or
@@ -213,6 +213,8 @@ center and commits an undoable project edit.
   next supported workplane click.
 - Use selected rectangle inspector resize buttons: change width or height by
   1 mm.
+- Use selected circle diameter buttons or the `Диаметр` field: change the
+  circle diameter semantically.
 - Use selected rectangle radius buttons: round corners by 1 mm or reset back
   to square corners.
 - Use selected rectangle rotation buttons or the `Поворот` field: rotate the
@@ -220,10 +222,9 @@ center and commits an undoable project edit.
 - Use selected rectangle rotation reset: return the helper angle to 0 degrees.
 - Use selected rectangle workplane actions: center the helper contour on its
   sketch workplane or fit it to that workplane's bounds.
-- Use selected rectangle duplicate: create a new offset semantic rectangle and
-  focus it.
-- Use selected rectangle inspector delete: remove the semantic rectangle
-  entity.
+- Use selected sketch entity duplicate: create a new offset semantic contour
+  and focus it.
+- Use selected sketch entity inspector delete: remove the semantic entity.
 - Click a visible snap hint: select/highlight that transient snap target.
 - Click inside a selected top-lid/front-wall workplane: select a transient
   face-local target for surface commands.

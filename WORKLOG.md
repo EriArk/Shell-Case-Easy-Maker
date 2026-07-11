@@ -12551,3 +12551,106 @@ slice.
 Keep quick shape controls as parameter shortcuts. Do not create parallel
 operation state for radius or rotation reset, and do not introduce generated
 geometry ids into sketch entity focus.
+
+---
+
+## M138 - Sketch circle entity foundation
+
+### Goal
+Add a second Advanced Sketch entity type, `circle`, as semantic helper data:
+center + diameter, click placement, inspector editing, viewport overlay, and
+semantic hit testing without generated mesh/B-Rep/topology selection.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/project/advanced_sketch.dart`,
+`lib/parameters/sketch_entity_parameter_adapter.dart`,
+`lib/viewport/viewport_controller.dart`,
+`lib/ui/shell/workspace_shell.dart`,
+`lib/selection/project_selection_resolver.dart`,
+`test/sketch_entity_parameter_adapter_test.dart`, `test/project_model_test.dart`,
+`test/project_selection_resolver_test.dart`, `test/viewport_controller_test.dart`,
+`test/widget_test.dart`, `docs/06_FEATURE_SYSTEM.md`,
+`docs/26_TESTING_AND_QUALITY.md`, `docs/30_ADVANCED_CAD_MODE.md`,
+`docs/33_VIEWPORT_MVP.md`, and `docs/35_PARAMETER_MODEL.md`.
+
+### Changes made
+- `lib/project/advanced_sketch.dart`:
+  - Added `defaultSketchCircleEntity`.
+- `lib/parameters/sketch_entity_parameter_adapter.dart`:
+  - Added `circleSchema` with `centerX`, `centerY`, and `diameter`.
+  - Added circle normalization, duplicate-with-offset support, and workplane
+    bounds warnings.
+- `lib/viewport/viewport_controller.dart`:
+  - Added `MockViewportSketchCirclePreview`.
+  - Added circle overlay hit testing that resolves back to semantic sketch ids.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added a circle add action beside the rectangle action.
+  - Extended the existing click-to-place intent with `entityType`.
+  - Reused semantic move-to-click, nudge, duplicate, delete, center, and fit
+    paths for schema-backed sketch entities.
+  - Added circle diameter inspector quick actions.
+  - Added circle helper overlay rendering.
+- `lib/selection/project_selection_resolver.dart`:
+  - Shows circle sketch entities as `Круг` with `Диаметр`.
+- Tests:
+  - Added adapter, project model, selection resolver, viewport, and widget
+    coverage for circle entities.
+- Docs/tasks/roadmap:
+  - Added M138 and updated Advanced Sketch docs from rectangle-only to
+    rectangle + circle.
+
+### Tests run
+- `flutter pub get`:
+  - Passed.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter analyze`:
+  - Passed.
+- `flutter test test\sketch_entity_parameter_adapter_test.dart`:
+  - Passed.
+- `flutter test test\project_model_test.dart`:
+  - Passed.
+- `flutter test test\project_selection_resolver_test.dart`:
+  - Passed.
+- `flutter test test\viewport_controller_test.dart`:
+  - Passed.
+- `flutter test test\widget_test.dart --name "advanced sketch command creates semantic helper feature"`:
+  - Passed.
+- `flutter test --reporter compact`:
+  - Passed, 259 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Yes by boundary. Circle creation/editing is semantic helper data only and
+    does not query B-Rep, mesh triangles, OCCT topology, or generated ids.
+- Serialization checked?
+  - Yes. Unit/widget coverage verifies circle roundtrip and saved
+    `diameter: 13.0`.
+- UI checked?
+  - Yes. Widget coverage verifies circle placement, focus, diameter editing,
+    save, and undo.
+- Export checked?
+  - Yes. Latest Windows bundle was rebuilt with the native OCCT worker and the
+    release folder remains ignored by Git.
+
+### Known issues
+- Issue: Circle helper overlays are still 2D semantic sketch affordances, not
+  generated 3D cuts/extrusions.
+  - Severity: Expected.
+  - Next action: Add operation semantics before converting helper contours into
+    generated geometry.
+- Issue: Direct viewport drag handles are still not implemented for circles or
+  rectangles.
+  - Severity: Expected.
+  - Next action: Design handle rules after basic entity coverage stabilizes.
+
+### Next step
+Commit and push M138, then continue toward sketch operation semantics.
+
+### Notes for future Codex sessions
+Keep additional sketch entity types schema-backed. Reuse semantic placement and
+edit paths where possible, and do not introduce mesh or OCCT topology ids into
+sketch focus/hit state.

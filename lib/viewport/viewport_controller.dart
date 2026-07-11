@@ -465,6 +465,61 @@ class MockViewportSketchRectanglePreview {
   }
 }
 
+class MockViewportSketchCirclePreview {
+  const MockViewportSketchCirclePreview({
+    required this.featureId,
+    required this.entityId,
+    required this.workplane,
+    required this.center,
+    required this.diameter,
+  });
+
+  final String featureId;
+  final String entityId;
+  final MockViewportWorkplaneOverlay workplane;
+  final Offset center;
+  final double diameter;
+
+  Offset canvasCenter(MockViewportLayout layout) {
+    return layout.workplaneLocalToCanvas(workplane, center);
+  }
+
+  double canvasRadius(MockViewportLayout layout) {
+    final canvasCenter = this.canvasCenter(layout);
+    final radiusPoint = layout.workplaneLocalToCanvas(
+      workplane,
+      center.translate(diameter / 2, 0),
+    );
+    return (radiusPoint - canvasCenter).distance
+        .clamp(4 * layout.zoom, 5000)
+        .toDouble();
+  }
+
+  bool containsCanvasPoint(
+    MockViewportLayout layout,
+    Offset position, {
+    double inflate = 0,
+  }) {
+    return (position - canvasCenter(layout)).distance <=
+        canvasRadius(layout) + inflate;
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is MockViewportSketchCirclePreview &&
+        other.featureId == featureId &&
+        other.entityId == entityId &&
+        other.workplane == workplane &&
+        other.center == center &&
+        other.diameter == diameter;
+  }
+
+  @override
+  int get hashCode {
+    return Object.hash(featureId, entityId, workplane, center, diameter);
+  }
+}
+
 class MockViewportComponentPlacementPreview {
   const MockViewportComponentPlacementPreview({
     required this.semanticId,
@@ -1011,6 +1066,7 @@ class MockViewportHitTester {
     List<MockViewportFeaturePreview> features = const [],
     List<MockViewportFeatureGroupPreview> featureGroups = const [],
     List<MockViewportSketchRectanglePreview> sketchRectangles = const [],
+    List<MockViewportSketchCirclePreview> sketchCircles = const [],
   }) {
     final layout = MockViewportLayout.fromSize(
       size,
@@ -1028,6 +1084,20 @@ class MockViewportHitTester {
           kind: ViewportHitKind.feature,
           semanticId: rectangle.featureId,
           childId: rectangle.entityId,
+        );
+      }
+    }
+
+    for (final circle in sketchCircles.reversed) {
+      if (circle.containsCanvasPoint(
+        layout,
+        position,
+        inflate: 6 * state.zoom,
+      )) {
+        return ViewportHitResult(
+          kind: ViewportHitKind.feature,
+          semanticId: circle.featureId,
+          childId: circle.entityId,
         );
       }
     }

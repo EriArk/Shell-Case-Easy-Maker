@@ -3454,7 +3454,9 @@ void main() {
     final addRectangle = find.byKey(
       const ValueKey('advanced-sketch-add-rectangle'),
     );
+    final addCircle = find.byKey(const ValueKey('advanced-sketch-add-circle'));
     expect(addRectangle, findsOneWidget);
+    expect(addCircle, findsOneWidget);
 
     await tester.tap(addRectangle);
     await _pumpAsyncUi(tester);
@@ -3650,6 +3652,77 @@ void main() {
     expect(fitWorkplane, findsOneWidget);
     expect(moveToClick, findsOneWidget);
     expect(duplicateRectangle, findsOneWidget);
+
+    await tester.ensureVisible(addCircle);
+    await tester.pumpAndSettle();
+    await tester.tap(addCircle);
+    await _pumpAsyncUi(tester);
+
+    expect(
+      find.byKey(const ValueKey('advanced-sketch-rectangle-placement-active')),
+      findsOneWidget,
+    );
+    expect(find.text('Круг эскиза'), findsOneWidget);
+
+    await tester.tapAt(
+      viewportRect.topLeft + viewportLayout.frontWallRect.center,
+    );
+    await _pumpAsyncUi(tester);
+
+    expect(find.textContaining('circle_1'), findsWidgets);
+    expect(
+      find.byKey(
+        const ValueKey('sketch-entity-advanced_sketch_1-circle_1-selected'),
+      ),
+      findsOneWidget,
+    );
+
+    final diameterIncrease = find.byKey(
+      const ValueKey(
+        'sketch-entity-advanced_sketch_1-circle_1-diameter-increase',
+      ),
+    );
+    expect(diameterIncrease, findsOneWidget);
+
+    await tester.ensureVisible(diameterIncrease);
+    await tester.pumpAndSettle();
+    await tester.tap(diameterIncrease);
+    await _pumpAsyncUi(tester);
+
+    await tester.tap(
+      find.byKey(const ValueKey('toolbar-command-${CommandIds.saveProject}')),
+    );
+    await _pumpAsyncUi(tester);
+
+    final circleSaved = await fileService.readProject(saveFile);
+    final circleSketch = circleSaved.features.singleWhere(
+      (feature) => feature.id == 'advanced_sketch_1',
+    );
+    final circleEntities = sketchEntitiesForFeature(circleSketch);
+    expect(circleEntities, hasLength(2));
+    expect(circleEntities.last.id, 'circle_1');
+    expect(circleEntities.last.type, 'circle');
+    expect(circleEntities.last.parameters['diameter'], 13.0);
+
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+
+    expect(find.textContaining('circle_1'), findsNothing);
+    await tester.tap(
+      find.byKey(
+        const ValueKey('sketch-entity-advanced_sketch_1-rect_1-focus'),
+      ),
+    );
+    await _pumpAsyncUi(tester);
+
+    expect(
+      find.byKey(
+        const ValueKey('sketch-entity-advanced_sketch_1-rect_1-selected'),
+      ),
+      findsOneWidget,
+    );
 
     await tester.ensureVisible(cornerRadiusIncrease);
     await tester.pumpAndSettle();

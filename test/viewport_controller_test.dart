@@ -466,6 +466,38 @@ void main() {
     expect(hit?.childId, isNot('rect_1'));
   });
 
+  test('mock hit tester returns parent sketch feature for circle overlays', () {
+    const state = ViewportState();
+    const size = Size(900, 600);
+    final layout = MockViewportLayout.fromSize(size, state);
+    const workplane = MockViewportWorkplaneOverlay(
+      semanticId: 'main_enclosure.top_lid.outer',
+      kind: MockViewportWorkplaneKind.topLid,
+      width: 120,
+      height: 70,
+    );
+    const circle = MockViewportSketchCirclePreview(
+      featureId: 'advanced_sketch_1',
+      entityId: 'circle_1',
+      workplane: workplane,
+      center: Offset(-18, 12),
+      diameter: 18,
+    );
+    const hitTester = MockViewportHitTester();
+
+    final hit = hitTester.hitTest(
+      position: circle.canvasCenter(layout),
+      size: size,
+      state: state,
+      componentPlacements: const [],
+      sketchCircles: const [circle],
+    );
+
+    expect(hit?.kind, ViewportHitKind.feature);
+    expect(hit?.semanticId, 'advanced_sketch_1');
+    expect(hit?.childId, 'circle_1');
+  });
+
   test('mock hit tester returns semantic feature group ids', () {
     const state = ViewportState();
     const size = Size(900, 600);

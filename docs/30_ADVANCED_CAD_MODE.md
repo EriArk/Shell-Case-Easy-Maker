@@ -15,9 +15,9 @@ does not participate in undo/redo, file save/load, or geometry requests.
 When enabled, the rail reveals a separate advanced section. The first exposed
 tool is `advanced.sketch` (`Эскиз`). It creates a saved semantic
 `advanced_sketch` helper feature on a selected surface. The selected sketch can
-now store typed sketch entities; the first supported entity is a deterministic
-rectangle. It is intentionally not a freeform mesh/B-Rep editor and does not
-generate geometry yet.
+now store typed sketch entities; the first supported entities are deterministic
+rectangles and circles. It is intentionally not a freeform mesh/B-Rep editor
+and does not generate geometry yet.
 
 ## Current sketch foundation
 
@@ -26,24 +26,25 @@ generate geometry yet.
   `helper.advanced_sketch`.
 - The feature stores its target surface, display name, surface workplane
   placement, and typed sketch entities in metadata.
-- `SketchEntity` currently supports the first `rectangle` entity with center,
-  width, height, corner-radius, and rotation parameters.
+- `SketchEntity` currently supports `rectangle` with center, width, height,
+  corner-radius, and rotation parameters, plus `circle` with center and
+  diameter parameters.
 - Selecting an advanced sketch shows a compact inspector section with contour
-  count, a rectangle action, and rectangle parameter fields.
-- The rectangle action starts a click-to-place mode. The next click on the
-  supported sketch workplane creates the rectangle at that semantic local
-  position and focuses the new entity.
-- A selected sketch with rectangle entities draws a helper-only viewport
-  rectangle overlay on supported top-lid/front-wall mock workplanes.
-- Clicking that rectangle overlay focuses the semantic rectangle entity in the
+  count, rectangle/circle actions, and schema-backed entity parameter fields.
+- The rectangle/circle actions start a click-to-place mode. The next click on
+  the supported sketch workplane creates the entity at that semantic local
+  position and focuses it.
+- A selected sketch with rectangle or circle entities draws helper-only
+  viewport overlays on supported top-lid/front-wall mock workplanes.
+- Clicking a helper overlay focuses the semantic sketch entity in the
   inspector, while command context and viewport/native preview highlight remain
   scoped to the parent `advanced_sketch` feature. This is not mesh, B-Rep, or
   topology selection.
 - Creation is undoable and save/load-safe.
-- Rectangle entity click placement is undoable and save/load-safe.
-- Rectangle parameter edits are undoable and save/load-safe.
-- Focused rectangle nudge/move-to-click/resize/duplicate/delete actions are
-  undoable and save/load-safe.
+- Rectangle/circle entity click placement is undoable and save/load-safe.
+- Rectangle/circle parameter edits are undoable and save/load-safe.
+- Focused sketch entity nudge/move-to-click/resize/duplicate/delete actions
+  are undoable and save/load-safe.
 - Focused rectangle workplane quick actions can center the contour or fit it to
   the supported sketch workplane bounds while staying semantic.
 - Focused rectangle rotation is a semantic parameter edit. The helper overlay,
@@ -54,7 +55,7 @@ generate geometry yet.
   1 mm and Shift+arrows resize by 1 mm when a text field is not focused.
 - Focused rectangle keyboard commands also stay semantic: Ctrl+D duplicates,
   Delete/Backspace removes, and Escape cancels active placement/move mode.
-- Supported sketch workplanes report a warning when a rectangle extends beyond
+- Supported sketch workplanes report a warning when a contour extends beyond
   the surface bounds.
 - Rectangle corner radius is clamped to half of the smaller side.
 - The default workflow remains generator-first; sketch creation is available

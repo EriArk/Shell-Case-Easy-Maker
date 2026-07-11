@@ -78,6 +78,34 @@ void main() {
     );
   });
 
+  test('describes selected circle sketch entity with diameter', () {
+    final sketch = advancedSketchWithEntities(
+      const SemanticFeature(
+        id: 'advanced_sketch_1',
+        type: advancedSketchFeatureType,
+        targetSurface: 'main_enclosure.front_wall.outer',
+        operation: 'helper',
+        parameters: {'name': 'Front helper sketch'},
+        metadata: {'advanced': true},
+      ),
+      [defaultSketchCircleEntity(id: 'circle_1')],
+    );
+    final project = ProjectModel.initial().replaceFeature(sketch);
+    final details = ProjectSelectionResolver(project).describe(
+      const SelectionModel.sketchEntity(
+        id: 'circle_1',
+        parentId: 'advanced_sketch_1',
+      ),
+    );
+
+    expect(details.title, contains('Круг'));
+    expect(details.title, contains('circle_1'));
+    expect(
+      details.properties.map((property) => property.label),
+      containsAll(['Эскиз', 'Тип', 'Диаметр', 'Центр']),
+    );
+  });
+
   test('describes glass recess with human label', () {
     final project = ProjectModel.initial().replaceFeature(
       const SemanticFeature(

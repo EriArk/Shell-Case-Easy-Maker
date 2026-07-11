@@ -6513,3 +6513,58 @@ rotation while keeping every edit schema-backed and undoable.
 - Use radius reset and confirm the helper returns to square corners.
 - Rotate the helper, then use rotation reset and confirm it returns to 0°.
 - Press undo a few times and confirm each shape edit rolls back separately.
+
+---
+
+## M138 - Sketch Circle Entity Foundation
+
+### Goal
+Add the first second-shape Advanced Sketch entity: a semantic circle helper that
+can be placed, edited, selected in the viewport, saved, duplicated, nudged, and
+validated without becoming generated geometry or mesh/topology state.
+
+### Tasks
+- [x] Add `circle` `SketchEntity` defaults with center and diameter.
+- [x] Add a schema-backed circle parameter adapter.
+- [x] Add circle workplane-bounds validation.
+- [x] Add a circle add action in the Advanced Sketch inspector.
+- [x] Reuse click-to-place and move-to-click for circle entities.
+- [x] Add circle helper overlay rendering and hit testing.
+- [x] Reuse generic semantic nudge/duplicate/delete/center/fit paths.
+- [x] Extend unit/widget/viewport/selection coverage and update docs/tasks/worklog.
+
+### Done Criteria
+- A selected sketch exposes both rectangle and circle add actions.
+- Clicking the circle action and then the workplane creates `circle_1`.
+- `circle_1` stores semantic center and `diameter`.
+- The circle helper overlay is visible and clickable as a semantic sketch
+  entity focus target.
+- The inspector can edit diameter and save it to project JSON.
+- Undo can remove the circle edits without touching generated geometry.
+- Circle validation warns when the circle extends outside the supported
+  workplane.
+- Circle edits do not query mesh, B-Rep, OCCT topology, or generated triangle
+  ids.
+
+### Tests
+- `flutter test test\sketch_entity_parameter_adapter_test.dart`
+- `flutter test test\project_model_test.dart`
+- `flutter test test\project_selection_resolver_test.dart`
+- `flutter test test\viewport_controller_test.dart`
+- `flutter test test\widget_test.dart --name "advanced sketch command creates semantic helper feature"`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Enable Advanced Mode and select/create an `Эскиз`.
+- Click the circle icon in the sketch inspector, then click the sketch
+  workplane.
+- Confirm `circle_1` appears, is selected, and shows a `Диаметр` field.
+- Use `Диаметр +` and confirm the circle grows.
+- Click the circle overlay in the viewport and confirm it focuses `circle_1`.
+- Press undo and confirm the circle diameter/addition rolls back cleanly.

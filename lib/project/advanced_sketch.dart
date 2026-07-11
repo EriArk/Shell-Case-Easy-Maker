@@ -114,6 +114,17 @@ SketchEntity defaultSketchRectangleEntity({required String id}) {
   );
 }
 
+SketchEntity defaultSketchCircleEntity({required String id}) {
+  return SketchEntity(
+    id: id,
+    type: 'circle',
+    parameters: const {
+      'center': [0.0, 0.0],
+      'diameter': 12.0,
+    },
+  );
+}
+
 String nextSketchEntityId(Iterable<SketchEntity> entities, String prefix) {
   var index =
       entities.where((entity) => entity.id.startsWith(prefix)).length + 1;

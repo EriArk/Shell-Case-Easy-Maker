@@ -102,8 +102,8 @@ side, the locked flag, and the visibility flag, then writes those values back
 to the semantic `ComponentPlacement`. This is still UI-side schema usage; the
 saved project continues to store the typed placement fields.
 
-`SketchEntityParameterAdapter` maps the first Advanced Sketch rectangle entity
-to a schema-backed parameter bank:
+`SketchEntityParameterAdapter` maps Advanced Sketch rectangle and circle
+entities to schema-backed parameter banks. Rectangle parameters:
 - center X,
 - center Y,
 - width,
@@ -111,19 +111,24 @@ to a schema-backed parameter bank:
 - corner radius,
 - rotation.
 
+Circle parameters:
+- center X,
+- center Y,
+- diameter.
+
 The adapter writes values back to `SketchEntity.parameters`, normalizes numeric
 precision for stable JSON, and clamps corner radius to half of the smaller
 side. Inspector nudge, move-to-click, resize, and duplicate actions reuse these
 normalized values so each movement, size edit, angle edit, or offset copy stays
 a semantic undoable edit. When a supported sketch workplane size is available,
-the adapter can also report a warning if the rotated rectangle extends outside
-that workplane. These values remain semantic helper data until sketch drawing
-and geometry conversion are designed.
+the adapter can also report a warning if a rotated rectangle or circle extends
+outside that workplane. These values remain semantic helper data until sketch
+drawing and geometry conversion are designed.
 
-Workspace keyboard edits for focused sketch rectangles call the same semantic
+Workspace keyboard edits for focused sketch entities call the same semantic
 nudge/resize paths as inspector controls. Arrow keys update center values by
-1 mm, and Shift+arrow changes width or height by 1 mm after schema
-normalization.
+1 mm. Shift+arrow changes rectangle width/height, and for circles changes
+diameter by 1 mm after schema normalization.
 
 Keyboard command shortcuts reuse the same semantic duplicate/delete methods as
 the inspector controls. They do not introduce separate generated geometry ids
@@ -152,5 +157,5 @@ operation state.
   enclosure", belong in generator-specific semantic validation. The first pass
   now lives in `ProjectSemanticValidator`, not in `ParameterSchema`.
 - Only the rounded enclosure schema, first component placement editor schema,
-  and first sketch rectangle entity schema are wired into object-level UI
+  and first sketch rectangle/circle entity schemas are wired into object-level UI
   controls so far.

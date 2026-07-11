@@ -282,6 +282,11 @@ class ProjectSelectionResolver {
             label: 'Высота',
             value: '${_formatNumber(values['height'])} mm',
           ),
+        if (values.containsKey('diameter'))
+          ProjectSelectionProperty(
+            label: 'Диаметр',
+            value: '${_formatNumber(values['diameter'])} mm',
+          ),
         if (values.containsKey('centerX') && values.containsKey('centerY'))
           ProjectSelectionProperty(
             label: 'Центр',
@@ -362,6 +367,7 @@ String _humanizeFeature(SemanticFeature feature) {
 String _humanizeSketchEntity(SketchEntity entity) {
   return switch (entity.type) {
     'rectangle' => 'Прямоугольник ${entity.id}',
+    'circle' => 'Круг ${entity.id}',
     _ => '${entity.type} ${entity.id}',
   };
 }

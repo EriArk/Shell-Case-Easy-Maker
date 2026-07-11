@@ -62,31 +62,67 @@ class SketchEntityParameterAdapter {
     ],
   );
 
+  static const circleSchema = ParameterSchema(
+    id: 'sketch.circle',
+    label: 'Круг',
+    parameters: [
+      ParameterDefinition(
+        id: 'centerX',
+        label: 'X',
+        kind: ParameterKind.length,
+        unit: 'mm',
+        defaultValue: 0.0,
+        range: ParameterRange(min: -500, max: 500, step: 0.1),
+      ),
+      ParameterDefinition(
+        id: 'centerY',
+        label: 'Y',
+        kind: ParameterKind.length,
+        unit: 'mm',
+        defaultValue: 0.0,
+        range: ParameterRange(min: -500, max: 500, step: 0.1),
+      ),
+      ParameterDefinition(
+        id: 'diameter',
+        label: 'Диаметр',
+        kind: ParameterKind.length,
+        unit: 'mm',
+        defaultValue: 12.0,
+        range: ParameterRange(min: 1, max: 500, step: 0.1),
+      ),
+    ],
+  );
+
   static ParameterSchema? schemaFor(SketchEntity entity) {
     return switch (entity.type) {
       'rectangle' => rectangleSchema,
+      'circle' => circleSchema,
       _ => null,
     };
   }
 
   static Map<String, Object?> valuesFrom(SketchEntity entity) {
-    if (entity.type != 'rectangle') {
-      return const {};
-    }
-
     final center = readDoubleList(
       entity.parameters['center'],
       fallback: const [0.0, 0.0],
     );
 
-    return rectangleSchema.applyDefaults({
-      'centerX': center.isNotEmpty ? center[0] : 0.0,
-      'centerY': center.length > 1 ? center[1] : 0.0,
-      'width': entity.parameters['width'],
-      'height': entity.parameters['height'],
-      'cornerRadius': entity.parameters['cornerRadius'],
-      'rotation': entity.parameters['rotation'],
-    });
+    return switch (entity.type) {
+      'rectangle' => rectangleSchema.applyDefaults({
+        'centerX': center.isNotEmpty ? center[0] : 0.0,
+        'centerY': center.length > 1 ? center[1] : 0.0,
+        'width': entity.parameters['width'],
+        'height': entity.parameters['height'],
+        'cornerRadius': entity.parameters['cornerRadius'],
+        'rotation': entity.parameters['rotation'],
+      }),
+      'circle' => circleSchema.applyDefaults({
+        'centerX': center.isNotEmpty ? center[0] : 0.0,
+        'centerY': center.length > 1 ? center[1] : 0.0,
+        'diameter': entity.parameters['diameter'],
+      }),
+      _ => const {},
+    };
   }
 
   static SketchEntity updateParameter(
@@ -110,10 +146,17 @@ class SketchEntityParameterAdapter {
     SketchEntity entity,
     Map<String, Object?> values,
   ) {
-    if (entity.type != 'rectangle') {
-      return entity;
-    }
+    return switch (entity.type) {
+      'rectangle' => _applyRectangleValues(entity, values),
+      'circle' => _applyCircleValues(entity, values),
+      _ => entity,
+    };
+  }
 
+  static SketchEntity _applyRectangleValues(
+    SketchEntity entity,
+    Map<String, Object?> values,
+  ) {
     final normalized = rectangleSchema.applyDefaults(values);
     final width = _cleanDouble(_doubleValue(normalized, 'width'));
     final height = _cleanDouble(_doubleValue(normalized, 'height'));
@@ -140,6 +183,26 @@ class SketchEntityParameterAdapter {
     );
   }
 
+  static SketchEntity _applyCircleValues(
+    SketchEntity entity,
+    Map<String, Object?> values,
+  ) {
+    final normalized = circleSchema.applyDefaults(values);
+
+    return SketchEntity(
+      id: entity.id,
+      type: entity.type,
+      parameters: {
+        'center': [
+          _cleanDouble(_doubleValue(normalized, 'centerX')),
+          _cleanDouble(_doubleValue(normalized, 'centerY')),
+        ],
+        'diameter': _cleanDouble(_doubleValue(normalized, 'diameter')),
+      },
+      metadata: entity.metadata,
+    );
+  }
+
   static SketchEntity duplicateWithOffset(
     SketchEntity entity, {
     required String id,
@@ -153,7 +216,8 @@ class SketchEntityParameterAdapter {
       metadata: entity.metadata,
     );
 
-    if (entity.type != 'rectangle') {
+    final schema = schemaFor(entity);
+    if (schema == null) {
       return copy;
     }
 
@@ -173,6 +237,10 @@ class SketchEntityParameterAdapter {
 
     final values = valuesFrom(entity);
     final issues = schema.validate(values);
+    if (entity.type != 'rectangle') {
+      return issues;
+    }
+
     final width = _doubleValue(values, 'width');
     final height = _doubleValue(values, 'height');
     final radius = _doubleValue(values, 'cornerRadius');
@@ -196,11 +264,28 @@ class SketchEntityParameterAdapter {
     required double workplaneHeight,
   }) {
     final issues = validate(entity);
+    final values = valuesFrom(entity);
+    if (entity.type == 'circle') {
+      return [
+        ...issues,
+        if (!_circleInsideWorkplane(
+          values,
+          workplaneWidth: workplaneWidth,
+          workplaneHeight: workplaneHeight,
+        ))
+          const ParameterIssue(
+            parameterId: 'center',
+            severity: ParameterIssueSeverity.warning,
+            code: 'sketch.circle.workplaneBounds',
+            message: 'Контур выходит за поверхность.',
+          ),
+      ];
+    }
+
     if (entity.type != 'rectangle') {
       return issues;
     }
 
-    final values = valuesFrom(entity);
     final centerX = _doubleValue(values, 'centerX');
     final centerY = _doubleValue(values, 'centerY');
     final halfWidth = _doubleValue(values, 'width') / 2;
@@ -238,6 +323,23 @@ class SketchEntityParameterAdapter {
           message: 'Контур выходит за поверхность.',
         ),
     ];
+  }
+
+  static bool _circleInsideWorkplane(
+    Map<String, Object?> values, {
+    required double workplaneWidth,
+    required double workplaneHeight,
+  }) {
+    final centerX = _doubleValue(values, 'centerX');
+    final centerY = _doubleValue(values, 'centerY');
+    final radius = _doubleValue(values, 'diameter') / 2;
+    final workplaneHalfWidth = workplaneWidth / 2;
+    final workplaneHalfHeight = workplaneHeight / 2;
+
+    return centerX - radius >= -workplaneHalfWidth &&
+        centerX + radius <= workplaneHalfWidth &&
+        centerY - radius >= -workplaneHalfHeight &&
+        centerY + radius <= workplaneHalfHeight;
   }
 
   static double _doubleValue(Map<String, Object?> values, String id) {
