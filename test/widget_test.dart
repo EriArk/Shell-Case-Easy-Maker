@@ -3447,6 +3447,16 @@ void main() {
     expect(find.text('Front helper sketch'), findsWidgets);
     expect(find.text('advanced_sketch_1'), findsWidgets);
 
+    final addRectangle = find.byKey(
+      const ValueKey('advanced-sketch-add-rectangle'),
+    );
+    expect(addRectangle, findsOneWidget);
+
+    await tester.tap(addRectangle);
+    await _pumpAsyncUi(tester);
+
+    expect(find.textContaining('rect_1'), findsOneWidget);
+
     await tester.tap(
       find.byKey(const ValueKey('toolbar-command-${CommandIds.saveProject}')),
     );
@@ -3457,18 +3467,30 @@ void main() {
       (feature) => feature.id == 'advanced_sketch_1',
     );
 
-    expect(sketch.type, 'advanced_sketch');
+    final entities = sketchEntitiesForFeature(sketch);
+
+    expect(sketch.type, advancedSketchFeatureType);
     expect(sketch.operation, 'helper');
     expect(sketch.targetSurface, 'main_enclosure.front_wall.outer');
     expect(sketch.parameters['name'], 'Front helper sketch');
-    expect(sketch.parameters['entityCount'], 0);
+    expect(sketch.parameters['entityCount'], 1);
     expect(sketch.metadata['advanced'], isTrue);
-    expect(sketch.metadata['entities'], isEmpty);
+    expect(entities, hasLength(1));
+    expect(entities.single.id, 'rect_1');
+    expect(entities.single.type, 'rectangle');
+    expect(entities.single.parameters['width'], 20.0);
+    expect(entities.single.parameters['height'], 12.0);
 
     final undoButton = find.byKey(
       const ValueKey('toolbar-command-${CommandIds.undo}'),
     );
     expect(tester.widget<IconButton>(undoButton).onPressed, isNotNull);
+
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+
+    expect(find.textContaining('rect_1'), findsNothing);
+    expect(find.text('advanced_sketch_1'), findsWidgets);
 
     await tester.tap(undoButton);
     await _pumpAsyncUi(tester);

@@ -140,6 +140,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M119 - Guided Component Placement Pick Mode
 - [x] M120 - Advanced Mode Switch
 - [x] M121 - Basic Sketch Foundation
+- [x] M122 - Sketch Rectangle Entity Slice
 
 ---
 
@@ -5762,3 +5763,49 @@ object without introducing freeform CAD geometry into the default workflow.
 - Pick or keep a surface, enter a sketch name, and click `Создать`.
 - Confirm the new sketch appears under `Фичи` and is selected in the inspector.
 - Click undo and confirm the sketch disappears.
+
+---
+
+## M122 - Sketch Rectangle Entity Slice
+
+### Goal
+Give Advanced Sketch its first typed editable entity while keeping it semantic,
+helper-only, and out of the default beginner workflow.
+
+### Tasks
+- [x] Add a typed `SketchEntity` model and helpers for `advanced_sketch`
+      feature metadata.
+- [x] Add a default rectangle sketch entity with deterministic dimensions.
+- [x] Add an inspector-only rectangle action for selected advanced sketches.
+- [x] Keep rectangle creation undoable and save/load-safe.
+- [x] Keep sketch entities out of generated B-Rep, mesh, cut, extrusion, and
+      topology selection.
+- [x] Add model and widget coverage.
+- [x] Update docs/tasks/worklog.
+
+### Done Criteria
+- Selecting an advanced sketch shows a compact sketch section in the inspector.
+- Clicking the rectangle icon adds `rect_1` to the sketch `entities` list.
+- Saved project JSON preserves the rectangle entity and `entityCount`.
+- Undo once removes the rectangle while keeping the sketch; undo again removes
+  the sketch if it was just created.
+- Geometry planning still treats the sketch as `helper.advanced_sketch`.
+
+### Tests
+- `flutter test test\project_model_test.dart --plain-name "advanced sketch" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "advanced sketch command" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Enable Advanced Mode from the lower left rail.
+- Create an `Эскиз` on a surface.
+- Select that sketch under `Фичи`.
+- Click the square/rectangle icon in the inspector sketch section.
+- Confirm the inspector shows one contour, `rect_1`, and `20 x 12`.
+- Undo once and confirm `rect_1` disappears while the sketch remains.

@@ -176,34 +176,38 @@ void main() {
   });
 
   test('advanced sketch round trips as semantic helper feature', () {
-    final project = ProjectModel.initial().replaceFeature(
+    final sketch = advancedSketchWithEntities(
       const SemanticFeature(
         id: 'advanced_sketch_1',
-        type: 'advanced_sketch',
+        type: advancedSketchFeatureType,
         targetSurface: 'main_enclosure.top_lid.outer',
         operation: 'helper',
         source: {'type': 'advanced_mode'},
         placement: {'mode': 'surface_workplane', 'anchor': 'center'},
-        parameters: {
-          'name': 'Lid sketch',
-          'plane': 'surface',
-          'entityCount': 0,
-        },
-        metadata: {'advanced': true, 'entities': <Object?>[]},
+        parameters: {'name': 'Lid sketch', 'plane': 'surface'},
+        metadata: {'advanced': true},
       ),
+      [defaultSketchRectangleEntity(id: 'rect_1')],
     );
+    final project = ProjectModel.initial().replaceFeature(sketch);
 
     final decoded = ProjectModel.fromJson(project.toJson());
-    final sketch = decoded.features.singleWhere(
+    final decodedSketch = decoded.features.singleWhere(
       (feature) => feature.id == 'advanced_sketch_1',
     );
+    final entities = sketchEntitiesForFeature(decodedSketch);
 
-    expect(sketch.type, 'advanced_sketch');
-    expect(sketch.operation, 'helper');
-    expect(sketch.source?['type'], 'advanced_mode');
-    expect(sketch.placement?['mode'], 'surface_workplane');
-    expect(sketch.parameters['name'], 'Lid sketch');
-    expect(sketch.metadata['entities'], isEmpty);
+    expect(decodedSketch.type, advancedSketchFeatureType);
+    expect(decodedSketch.operation, 'helper');
+    expect(decodedSketch.source?['type'], 'advanced_mode');
+    expect(decodedSketch.placement?['mode'], 'surface_workplane');
+    expect(decodedSketch.parameters['name'], 'Lid sketch');
+    expect(decodedSketch.parameters['entityCount'], 1);
+    expect(entities, hasLength(1));
+    expect(entities.single.id, 'rect_1');
+    expect(entities.single.type, 'rectangle');
+    expect(entities.single.parameters['width'], 20.0);
+    expect(entities.single.parameters['height'], 12.0);
   });
 
   test('project replaces or appends feature groups by stable id', () {

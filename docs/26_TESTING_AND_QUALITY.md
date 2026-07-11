@@ -85,8 +85,9 @@ Use deterministic test fixtures.
   appear only after enabling the transient switch, and remain disabled until
   implemented.
 - Advanced sketch tests verify that `Эскиз` creates an undoable/saveable
-  semantic `advanced_sketch` helper feature, and that the operation planner
-  keeps it as `helper.advanced_sketch` rather than generated geometry.
+  semantic `advanced_sketch` helper feature, that the inspector can add the
+  first typed rectangle entity, and that the operation planner keeps the sketch
+  as `helper.advanced_sketch` rather than generated geometry.
 - Snap-seeded component placement can align semantic component anchors to the
   selected snap point without saving anchor UI state.
 - Snap-seeded manual USB-C creation stores front-wall face-local

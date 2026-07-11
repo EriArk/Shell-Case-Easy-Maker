@@ -353,9 +353,11 @@ Advanced low-level tools are not part of the default rail. The shell has a
 transient Advanced Mode toggle at the lower rail edge; when enabled, it reveals
 a separate advanced section with `Эскиз`. The command opens a compact dialog
 for a target surface and sketch name, then creates an undoable
-`advanced_sketch` helper feature with no drawable entities yet. The switch
+`advanced_sketch` helper feature. Selecting that sketch shows a compact
+inspector section with contour count and a rectangle icon; clicking it stores
+the first typed rectangle sketch entity as semantic project data. The switch
 itself does not change saved project JSON, undo/redo history, or geometry
-requests.
+requests, and sketch entities do not generate geometry yet.
 
 ## Current limitations
 
@@ -391,4 +393,5 @@ requests.
   component placement parameter edits, first
   USB-C/glass feature parameter edits, first button/mount feature-group
   parameter edits, first enclosure creation, first component placement, first
-  USB-C cutout, and first button group/glass recess/mount commands.
+  USB-C cutout, first button group/glass recess/mount commands, and first
+  advanced sketch creation/rectangle entity edits.

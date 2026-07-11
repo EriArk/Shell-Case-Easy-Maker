@@ -90,7 +90,9 @@ When schema changes:
 
 The first implementation lives under `lib/project/` and keeps project data semantic:
 - `ProjectModel` owns schema/version, units, bodies, component templates, placements, features, feature groups, constraints, and export presets.
-- `Enclosure`, `SemanticFeature`, `FeatureGroup`, `ComponentTemplate`, and `ComponentPlacement` are typed model entry points with JSON round-trip tests.
+- `Enclosure`, `SemanticFeature`, `SketchEntity`, `FeatureGroup`,
+  `ComponentTemplate`, and `ComponentPlacement` are typed model entry points
+  with JSON round-trip tests.
 - `ComponentPlacement.visible` is a typed semantic display flag. Missing values
   default to `true` for older project files; hidden placements remain editable
   project objects and are only omitted from the mock viewport placement preview.
@@ -98,6 +100,40 @@ The first implementation lives under `lib/project/` and keeps project data seman
 - `ProjectMigration` is the central entrypoint for schema upgrades and currently supports version 1.
 
 Generated meshes, STL files, preview data, and OCCT topology are still excluded from the editable project model.
+
+Advanced sketch helper features store typed sketch entities in feature metadata.
+The first supported entity is a rectangle:
+
+```json
+{
+  "id": "advanced_sketch_1",
+  "type": "advanced_sketch",
+  "targetSurface": "main_enclosure.top_lid.outer",
+  "operation": "helper",
+  "placement": {
+    "mode": "surface_workplane",
+    "anchor": "center"
+  },
+  "parameters": {
+    "name": "Lid sketch",
+    "plane": "surface",
+    "entityCount": 1
+  },
+  "advanced": true,
+  "entities": [
+    {
+      "id": "rect_1",
+      "type": "rectangle",
+      "parameters": {
+        "center": [0.0, 0.0],
+        "width": 20.0,
+        "height": 12.0,
+        "cornerRadius": 0.0
+      }
+    }
+  ]
+}
+```
 
 ## Open/save UI
 
@@ -132,6 +168,9 @@ Current behavior:
   length/width,
 - the `Крепёж` rail command can append semantic `standoff_mounts` feature
   groups sourced from a selected component placement's template mounting holes,
+- the Advanced Mode `Эскиз` rail command can append semantic
+  `advanced_sketch` helper features, and the selected sketch inspector can add
+  the first typed rectangle entity to its metadata,
 - toolbar STEP/STL export writes an external generated artifact and does not
   update the clean project baseline,
 - generated previews are refreshed from the loaded semantic model.

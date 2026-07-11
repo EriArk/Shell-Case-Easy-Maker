@@ -183,8 +183,10 @@ features.
 `advanced.sketch` is available only after Advanced Mode is enabled. The command
 opens a compact dialog for a target surface and sketch name, then creates one
 `advanced_sketch` `SemanticFeature` with `operation=helper`, surface workplane
-placement, and an empty `entities` list. The result is undoable and save/load
-safe, but it does not generate B-Rep, mesh, cut, or extrusion geometry yet.
+placement, and a typed sketch `entities` list. When an advanced sketch is
+selected, the inspector can add the first rectangle entity as a separate
+undoable semantic edit. The result is undoable and save/load safe, but it does
+not generate B-Rep, mesh, cut, or extrusion geometry yet.
 
 Undo/redo now validates the active selection against the restored project. If
 the selected semantic object no longer exists after undo, the shell falls back
@@ -208,7 +210,7 @@ visible and disabled, instead of running empty callbacks.
   circular-cutout feature parameter edits, first button/mount feature-group
   parameter edits, first enclosure creation/component placement/USB-C
   cutout/button group/glass recess/circular cutout/mount group, and first
-  advanced sketch creation only.
+  advanced sketch creation/rectangle entity edit.
 - The toolbar export command currently exports the whole generated assembly.
   Part selection is still pending.
 - Selection and active surface context are available from the shell selection

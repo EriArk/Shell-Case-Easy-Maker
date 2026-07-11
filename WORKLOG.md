@@ -11105,3 +11105,99 @@ Keep `advanced_sketch` semantic and helper-only until sketch entities,
 constraints, validation, undo grouping, and geometry-service conversion are
 designed. Do not use generated mesh/B-Rep or OCCT topology as editable sketch
 state.
+
+---
+
+## M122 - Sketch rectangle entity slice
+
+### Goal
+Add the first typed Advanced Sketch entity in a safe semantic-only way.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/ui/shell/workspace_shell.dart`, `lib/project/project_model.dart`,
+`lib/project/json_helpers.dart`, `test/widget_test.dart`,
+`test/project_model_test.dart`, `docs/05_PROJECT_FILE_FORMAT.md`,
+`docs/06_FEATURE_SYSTEM.md`, `docs/26_TESTING_AND_QUALITY.md`,
+`docs/30_ADVANCED_CAD_MODE.md`, `docs/31_COMMANDS_AND_UNDO.md`, and
+`docs/32_USABLE_SHELL.md`.
+
+### Changes made
+- `lib/project/advanced_sketch.dart`:
+  - Added `advancedSketchFeatureType`, `SketchEntity`, entity read/write
+    helpers, and the default rectangle entity.
+  - Added deterministic entity id generation for sketch-local ids such as
+    `rect_1`.
+- `lib/project/project_model.dart`:
+  - Exported the advanced sketch model helpers through the project model barrel.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added an undoable selected-sketch action for adding a rectangle entity.
+  - Added a compact inspector sketch section with contour count, rectangle
+    action, and entity rows.
+  - Kept advanced sketch creation using the typed helper constant and entity
+    helper.
+- Tests:
+  - Extended project-model round-trip coverage to include `rect_1`.
+  - Extended the Advanced Sketch widget flow to create, save, and undo the
+    rectangle entity.
+- Docs/tasks/roadmap:
+  - Added M122, marked the rectangle entity foundation complete, and documented
+    the helper-only boundary.
+
+### Tests run
+- `flutter test test\project_model_test.dart --plain-name "advanced sketch" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "advanced sketch command" --reporter compact`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter test --reporter compact`:
+  - Passed, 242 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Returned `True`.
+- `git status --short --ignored releases`:
+  - Confirmed `releases/` is ignored.
+- `git diff --check`:
+  - Passed with only the existing ROADMAP CRLF warning.
+
+### Validation
+- Geometry checked?
+  - Yes by boundary. The rectangle is stored as sketch metadata only; no
+    B-Rep, mesh, cut, extrusion, or topology ids are generated.
+- Serialization checked?
+  - Yes. `SketchEntity` round-trips through project JSON and is verified by the
+    widget save test.
+- UI checked?
+  - Yes. The inspector action adds `rect_1`, save preserves it, undo removes it,
+    and the created sketch can still be undone separately.
+- Export checked?
+  - Latest Windows bundle rebuilt; STEP/STL behavior unchanged because advanced
+    sketch entities are helper data only.
+
+### Known issues
+- Issue: The rectangle is not drawn as a real editable sketch overlay yet.
+  - Severity: Expected.
+  - Next action: Add viewport sketch drawing/selection after entity editing
+    semantics are stable.
+- Issue: The rectangle has fixed default dimensions only.
+  - Severity: Expected.
+  - Next action: Add inspector parameter editing and validation for sketch
+    entities before geometry conversion.
+
+### Next step
+Commit and push M122, then continue with sketch entity editing or viewport
+overlay selection.
+
+### Notes for future Codex sessions
+Keep `SketchEntity` as semantic project data. Do not make sketch entities depend
+on mesh triangles, generated B-Rep ids, or OCCT topology ids. Geometry conversion
+should go through `GeometryService` only after validation and undo semantics are
+designed.

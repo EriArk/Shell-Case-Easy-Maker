@@ -454,6 +454,31 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     );
   }
 
+  void _addAdvancedSketchRectangle(String featureId) {
+    final feature = _project.features
+        .where((feature) => feature.id == featureId)
+        .firstOrNull;
+    if (feature == null || feature.type != advancedSketchFeatureType) {
+      return;
+    }
+
+    final entities = sketchEntitiesForFeature(feature);
+    final rectangle = defaultSketchRectangleEntity(
+      id: nextSketchEntityId(entities, 'rect'),
+    );
+    final updatedFeature = advancedSketchWithEntities(feature, [
+      ...entities,
+      rectangle,
+    ]);
+
+    _commitProjectEdit(
+      id: 'advanced.sketch.rectangle',
+      label: 'Добавить прямоугольник',
+      nextState: _project.replaceFeature(updatedFeature),
+      selection: SelectionModel.feature(feature.id),
+    );
+  }
+
   void _updateComponentPlacementParameter(
     String placementId,
     String parameterId,
@@ -1008,7 +1033,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       builder: (context) => _AdvancedSketchDialog(
         surfaces: surfaces,
         initialFeature: _defaultAdvancedSketchFeature(
-          id: _nextFeatureId(_project, 'advanced_sketch'),
+          id: _nextFeatureId(_project, advancedSketchFeatureType),
           targetSurfaceId: targetSurfaceId,
           name: _defaultAdvancedSketchName(_project),
         ),
@@ -1624,6 +1649,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                             onComponentPlacementParameterChanged:
                                 _updateComponentPlacementParameter,
                             onFeatureParameterChanged: _updateFeatureParameter,
+                            onAddSketchRectangle: _addAdvancedSketchRectangle,
                             onFeatureGroupParameterChanged:
                                 _updateFeatureGroupParameter,
                             onCollapse: () => _setInspectorCollapsed(true),
@@ -2457,7 +2483,7 @@ String _nextFeatureId(ProjectModel project, String type) {
 String _defaultAdvancedSketchName(ProjectModel project) {
   final index =
       project.features
-          .where((feature) => feature.type == 'advanced_sketch')
+          .where((feature) => feature.type == advancedSketchFeatureType)
           .length +
       1;
   return 'Эскиз $index';
@@ -2468,16 +2494,17 @@ SemanticFeature _defaultAdvancedSketchFeature({
   required String targetSurfaceId,
   required String name,
 }) {
-  return SemanticFeature(
+  final feature = SemanticFeature(
     id: id,
-    type: 'advanced_sketch',
+    type: advancedSketchFeatureType,
     targetSurface: targetSurfaceId,
     operation: 'helper',
     source: const {'type': 'advanced_mode'},
     placement: const {'mode': 'surface_workplane', 'anchor': 'center'},
     parameters: {'name': name, 'plane': 'surface', 'entityCount': 0},
-    metadata: const {'advanced': true, 'entities': <Object?>[]},
+    metadata: const {'advanced': true},
   );
+  return advancedSketchWithEntities(feature, const []);
 }
 
 FeatureGroup _defaultButtonGroup({
@@ -4245,6 +4272,7 @@ class _Inspector extends StatelessWidget {
     required this.onEnclosureParameterChanged,
     required this.onComponentPlacementParameterChanged,
     required this.onFeatureParameterChanged,
+    required this.onAddSketchRectangle,
     required this.onFeatureGroupParameterChanged,
     required this.onCollapse,
   });
@@ -4266,6 +4294,7 @@ class _Inspector extends StatelessWidget {
   onComponentPlacementParameterChanged;
   final void Function(String featureId, String parameterId, Object? value)
   onFeatureParameterChanged;
+  final ValueChanged<String> onAddSketchRectangle;
   final void Function(String groupId, String parameterId, Object? value)
   onFeatureGroupParameterChanged;
   final VoidCallback onCollapse;
@@ -4392,6 +4421,14 @@ class _Inspector extends StatelessWidget {
                   value,
                 );
               },
+            ),
+          ],
+          if (selectedFeature != null &&
+              selectedFeature.type == advancedSketchFeatureType) ...[
+            const SizedBox(height: 14),
+            _AdvancedSketchEntityEditor(
+              feature: selectedFeature,
+              onAddRectangle: () => onAddSketchRectangle(selectedFeature.id),
             ),
           ],
           if (selectedFeatureGroup != null &&
@@ -4818,6 +4855,134 @@ class _FeatureParameterEditor extends StatelessWidget {
       ],
     );
   }
+}
+
+class _AdvancedSketchEntityEditor extends StatelessWidget {
+  const _AdvancedSketchEntityEditor({
+    required this.feature,
+    required this.onAddRectangle,
+  });
+
+  final SemanticFeature feature;
+  final VoidCallback onAddRectangle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final entities = sketchEntitiesForFeature(feature);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Divider(color: theme.dividerColor.withValues(alpha: 0.18)),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Icon(
+              Icons.architecture_rounded,
+              size: 18,
+              color: theme.colorScheme.tertiary,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Эскиз',
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            IconButton(
+              key: const ValueKey('advanced-sketch-add-rectangle'),
+              tooltip: 'Прямоугольник',
+              icon: const Icon(Icons.crop_square_rounded),
+              color: theme.colorScheme.tertiary,
+              style: IconButton.styleFrom(
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                minimumSize: const Size.square(34),
+                fixedSize: const Size.square(34),
+                padding: EdgeInsets.zero,
+                backgroundColor: theme.colorScheme.tertiary.withValues(
+                  alpha: 0.10,
+                ),
+              ),
+              onPressed: onAddRectangle,
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        _InspectorValue(label: 'Контуры', value: '${entities.length}'),
+        if (entities.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              'Контуров пока нет.',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          )
+        else
+          for (final entity in entities)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Row(
+                children: [
+                  Icon(
+                    _sketchEntityIcon(entity),
+                    size: 15,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _sketchEntityLabel(entity),
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurface,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    _sketchEntitySizeLabel(entity),
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+      ],
+    );
+  }
+}
+
+IconData _sketchEntityIcon(SketchEntity entity) {
+  return switch (entity.type) {
+    'rectangle' => Icons.crop_square_rounded,
+    _ => Icons.polyline_rounded,
+  };
+}
+
+String _sketchEntityLabel(SketchEntity entity) {
+  return switch (entity.type) {
+    'rectangle' => 'Прямоугольник ${entity.id}',
+    _ => '${entity.type} ${entity.id}',
+  };
+}
+
+String _sketchEntitySizeLabel(SketchEntity entity) {
+  if (entity.type != 'rectangle') {
+    return '';
+  }
+
+  final width = readDouble(entity.parameters['width'], fallback: 0.0);
+  final height = readDouble(entity.parameters['height'], fallback: 0.0);
+  return '${_formatNumber(width)} x ${_formatNumber(height)}';
 }
 
 class _FeatureGroupParameterEditor extends StatelessWidget {

@@ -79,6 +79,17 @@ The native OCCT worker consumes supported front-wall and top-lid
 presets, as generated B-Rep subtraction tools; the editable source remains the
 semantic feature parameters above.
 
+## Advanced sketch helpers
+
+`advanced_sketch` is a helper feature exposed only through Advanced Mode. It
+stores a selected surface workplane and typed `SketchEntity` metadata. The first
+supported entity is `rectangle`, with center, width, height, and corner-radius
+parameters.
+
+Sketch entities are still semantic helper data only. They do not generate
+B-Rep, mesh, cuts, extrusions, or topology IDs yet. The inspector can add the
+first rectangle entity to a selected sketch as an undoable project edit.
+
 ## Feature groups
 
 Repeated elements must be grouped:

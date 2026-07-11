@@ -9,6 +9,7 @@ import 'json_helpers.dart';
 import 'project_migration.dart';
 import 'schema.dart';
 
+export 'advanced_sketch.dart';
 export 'component_placement.dart';
 export 'component_template.dart';
 export 'enclosure.dart';

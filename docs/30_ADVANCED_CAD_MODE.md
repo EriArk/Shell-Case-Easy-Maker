@@ -14,9 +14,10 @@ does not participate in undo/redo, file save/load, or geometry requests.
 
 When enabled, the rail reveals a separate advanced section. The first exposed
 tool is `advanced.sketch` (`Эскиз`). It creates a saved semantic
-`advanced_sketch` helper feature on a selected surface, with an empty
-`entities` list. It is intentionally not a freeform mesh/B-Rep editor and does
-not generate geometry yet.
+`advanced_sketch` helper feature on a selected surface. The selected sketch can
+now store typed sketch entities; the first supported entity is a deterministic
+rectangle. It is intentionally not a freeform mesh/B-Rep editor and does not
+generate geometry yet.
 
 ## Current sketch foundation
 
@@ -24,8 +25,13 @@ not generate geometry yet.
 - `operation` is `helper`, and the geometry operation plan reports
   `helper.advanced_sketch`.
 - The feature stores its target surface, display name, surface workplane
-  placement, and empty sketch entities.
+  placement, and typed sketch entities in metadata.
+- `SketchEntity` currently supports the first `rectangle` entity with center,
+  width, height, and corner-radius parameters.
+- Selecting an advanced sketch shows a compact inspector section with contour
+  count and a rectangle action.
 - Creation is undoable and save/load-safe.
+- Rectangle entity creation is undoable and save/load-safe.
 - The default workflow remains generator-first; sketch creation is available
   only after Advanced Mode is enabled.
 
@@ -51,8 +57,8 @@ not generate geometry yet.
 - Maintain undo/redo.
 - Maintain validation.
 - Keep advanced UI separate from beginner tool rail.
-- Do not add drawable sketch entities before their semantic schema,
-  validation, undo, and geometry boundaries are designed.
+- Do not make sketch entities drive geometry before validation, drawing/editing
+  rules, undo behavior, and geometry boundaries are designed.
 
 ## Use cases
 
