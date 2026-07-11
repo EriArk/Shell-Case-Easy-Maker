@@ -12286,3 +12286,88 @@ slice.
 ### Notes for future Codex sessions
 Keep keyboard commands routed through existing semantic methods. Do not add
 mesh/B-Rep ids or generated topology references to shortcut state.
+
+---
+
+## M135 - Sketch rectangle workplane quick actions
+
+### Goal
+Add workplane-aware quick actions for focused sketch rectangles: center on the
+sketch workplane and fit to supported workplane bounds, without generated mesh
+selection, B-Rep edits, or OCCT topology ids.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/ui/shell/workspace_shell.dart`, `test/widget_test.dart`,
+`docs/06_FEATURE_SYSTEM.md`, `docs/26_TESTING_AND_QUALITY.md`,
+`docs/30_ADVANCED_CAD_MODE.md`, `docs/32_USABLE_SHELL.md`,
+`docs/33_VIEWPORT_MVP.md`, and `docs/35_PARAMETER_MODEL.md`.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added `_centerAdvancedSketchEntityOnWorkplane`.
+  - Added `_fitAdvancedSketchEntityToWorkplane`, using the selected sketch
+    surface workplane dimensions.
+  - Wired both actions through the inspector callback chain.
+  - Added a compact selected-rectangle `Плоскость` row with center and fit
+    icon actions.
+- `test/widget_test.dart`:
+  - Extended the Advanced Sketch flow to verify fit-to-front-wall dimensions,
+    center-on-workplane behavior after nudging, save serialization, and undo.
+- Docs/tasks/roadmap:
+  - Added M135 and documented workplane quick actions as semantic sketch helper
+    editing.
+
+### Tests run
+- `flutter test test\widget_test.dart --plain-name "advanced sketch command" --reporter compact`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with current
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 76 files checked, 0 changed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed; 252 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed `releases/latest/windows`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git status --short --ignored releases`:
+  - Passed; `releases/` is ignored.
+- `git diff --check`:
+  - Passed with the existing `ROADMAP.md` CRLF normalization warning only.
+
+### Validation
+- Geometry checked?
+  - Yes by boundary. Workplane quick actions update only semantic
+    `SketchEntity` center/width/height parameters and do not query B-Rep, mesh
+    triangles, OCCT topology, or generated preview ids.
+- Serialization checked?
+  - Yes. Widget coverage saves after fit and center actions and verifies
+    semantic parameters in project JSON.
+- UI checked?
+  - Yes. Widget coverage verifies the workplane action buttons and undo.
+- Export checked?
+  - Yes. Latest Windows bundle was rebuilt with the native OCCT worker and the
+    release folder remains ignored by Git.
+
+### Known issues
+- Issue: Fit uses the full supported workplane bounds without margin.
+  - Severity: Expected.
+  - Next action: Add margin/clearance presets once sketch operation semantics
+    are introduced.
+- Issue: Workplane quick actions are still limited to supported top-lid/front
+  wall mock workplanes.
+  - Severity: Expected.
+  - Next action: Expand supported workplanes when stable semantic local
+    coordinate systems are added.
+
+### Next step
+Commit and push M135, then continue with the next safe sketch drawing/editing
+slice.
+
+### Notes for future Codex sessions
+Keep workplane quick actions as semantic parameter edits. Do not introduce
+generated geometry or OCCT topology references into sketch entity state.

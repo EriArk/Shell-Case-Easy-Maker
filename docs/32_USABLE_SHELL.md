@@ -368,9 +368,11 @@ move-to-click action, plus width/height +/- 1 mm resize controls and a delete
 action, plus duplicate; these update semantic sketch metadata through undo
 history. The move-to-click action reuses the sketch workplane hit target and
 stores the next click as the rectangle center. Duplicate creates a new offset
-`rect_N` entity instead of copying generated geometry. When the selected
-rectangle is focused, workspace arrow keys reuse the same semantic actions for
-1 mm nudge and Shift+arrow resize while text fields keep their normal behavior.
+`rect_N` entity instead of copying generated geometry. A compact workplane row
+can center the rectangle on the sketch workplane or fit it to that workplane's
+current bounds. When the selected rectangle is focused, workspace arrow keys
+reuse the same semantic actions for 1 mm nudge and Shift+arrow resize while
+text fields keep their normal behavior.
 The focused rectangle also supports semantic command shortcuts: Ctrl+D
 duplicates, Delete/Backspace removes, and Escape cancels active placement or
 move pick mode.

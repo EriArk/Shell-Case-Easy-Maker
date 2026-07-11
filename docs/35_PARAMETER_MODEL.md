@@ -128,6 +128,10 @@ Keyboard command shortcuts reuse the same semantic duplicate/delete methods as
 the inspector controls. They do not introduce separate generated geometry ids
 or mesh-backed command state.
 
+Workplane quick actions are also parameter edits: center writes `centerX=0` and
+`centerY=0`, while fit writes the supported workplane width and height through
+the same schema normalization path.
+
 ## Current Limitations
 
 - Parameter values are not stored as a separate typed layer in `ProjectModel`

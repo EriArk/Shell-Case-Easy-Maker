@@ -6368,3 +6368,47 @@ Ctrl+D duplicates the selected rectangle, and Delete/Backspace removes it.
 - Select a rectangle and press Ctrl+D; confirm the duplicate appears selected.
 - Press Delete; confirm the selected rectangle is removed.
 - Press undo twice and confirm delete/duplicate roll back step by step.
+
+---
+
+## M135 - Sketch Rectangle Workplane Quick Actions
+
+### Goal
+Add safe workplane-aware quick actions for focused sketch rectangles: center the
+rectangle on its sketch workplane or fit it to the supported workplane bounds,
+without introducing generated-geometry edit state.
+
+### Tasks
+- [x] Add semantic center-on-workplane edit for selected rectangles.
+- [x] Add semantic fit-to-workplane edit using the selected sketch surface
+      workplane size.
+- [x] Keep both edits undoable and scoped to the selected sketch entity.
+- [x] Add compact selected-rectangle workplane action row.
+- [x] Extend widget coverage and update docs/tasks/worklog.
+
+### Done Criteria
+- The focused rectangle exposes workplane center and fit actions.
+- Fit on a front-wall sketch stores center `[0.0, 0.0]`, width `120.0`, and
+  height `28.0` for the sample enclosure.
+- Centering after a nudge stores center `[0.0, 0.0]` while preserving
+  width/height.
+- Undo restores each quick action one semantic edit at a time.
+- Quick actions update only semantic `SketchEntity` parameters and do not query
+  mesh, B-Rep, OCCT topology, or generated triangle ids.
+
+### Tests
+- `flutter test test\widget_test.dart --plain-name "advanced sketch command" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Select a rectangle on a front-wall or top-lid sketch.
+- Use the fit-to-workplane action and confirm the contour fills that workplane.
+- Undo and confirm the previous size returns.
+- Nudge the contour off center, then use center-on-workplane.
+- Confirm it returns to the workplane center without changing size.

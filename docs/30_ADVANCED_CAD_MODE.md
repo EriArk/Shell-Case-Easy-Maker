@@ -44,6 +44,8 @@ generate geometry yet.
 - Rectangle parameter edits are undoable and save/load-safe.
 - Focused rectangle nudge/move-to-click/resize/duplicate/delete actions are
   undoable and save/load-safe.
+- Focused rectangle workplane quick actions can center the contour or fit it to
+  the supported sketch workplane bounds while staying semantic.
 - Focused rectangle keyboard edits reuse those semantic paths: arrows nudge by
   1 mm and Shift+arrows resize by 1 mm when a text field is not focused.
 - Focused rectangle keyboard commands also stay semantic: Ctrl+D duplicates,

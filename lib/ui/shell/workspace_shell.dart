@@ -805,6 +805,96 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     );
   }
 
+  void _centerAdvancedSketchEntityOnWorkplane(
+    String featureId,
+    String entityId,
+  ) {
+    final feature = _project.features
+        .where((feature) => feature.id == featureId)
+        .firstOrNull;
+    if (feature == null || feature.type != advancedSketchFeatureType) {
+      return;
+    }
+
+    final entity = sketchEntitiesForFeature(
+      feature,
+    ).where((entity) => entity.id == entityId).firstOrNull;
+    if (entity == null || entity.type != 'rectangle') {
+      return;
+    }
+
+    final values = SketchEntityParameterAdapter.valuesFrom(entity);
+    final updatedEntity = SketchEntityParameterAdapter.applyValues(entity, {
+      ...values,
+      'centerX': 0.0,
+      'centerY': 0.0,
+    });
+    final updatedFeature = advancedSketchWithUpdatedEntity(
+      feature,
+      updatedEntity,
+    );
+
+    _commitProjectEdit(
+      id: 'advanced.sketch.entity.centerOnWorkplane',
+      label: 'Центрировать контур',
+      nextState: _project.replaceFeature(updatedFeature),
+      selection: SelectionModel.sketchEntity(
+        id: updatedEntity.id,
+        parentId: feature.id,
+      ),
+    );
+  }
+
+  void _fitAdvancedSketchEntityToWorkplane(String featureId, String entityId) {
+    final feature = _project.features
+        .where((feature) => feature.id == featureId)
+        .firstOrNull;
+    if (feature == null || feature.type != advancedSketchFeatureType) {
+      return;
+    }
+
+    final entity = sketchEntitiesForFeature(
+      feature,
+    ).where((entity) => entity.id == entityId).firstOrNull;
+    if (entity == null || entity.type != 'rectangle') {
+      return;
+    }
+
+    final workplane = _mockSurfaceWorkplaneOverlay(
+      _project,
+      feature.targetSurface,
+    );
+    if (workplane == null) {
+      setState(() {
+        _fileStatusMessage = 'Для этой поверхности пока нет плоскости эскиза';
+      });
+      return;
+    }
+
+    final values = SketchEntityParameterAdapter.valuesFrom(entity);
+    final updatedEntity = SketchEntityParameterAdapter.applyValues(entity, {
+      ...values,
+      'centerX': 0.0,
+      'centerY': 0.0,
+      'width': workplane.width,
+      'height': workplane.height,
+    });
+    final updatedFeature = advancedSketchWithUpdatedEntity(
+      feature,
+      updatedEntity,
+    );
+
+    _commitProjectEdit(
+      id: 'advanced.sketch.entity.fitToWorkplane',
+      label: 'Подогнать контур',
+      nextState: _project.replaceFeature(updatedFeature),
+      selection: SelectionModel.sketchEntity(
+        id: updatedEntity.id,
+        parentId: feature.id,
+      ),
+    );
+  }
+
   void _duplicateAdvancedSketchEntity(String featureId, String entityId) {
     final feature = _project.features
         .where((feature) => feature.id == featureId)
@@ -2158,6 +2248,10 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                                 _updateAdvancedSketchEntityParameter,
                             onSketchEntityNudged: _nudgeAdvancedSketchEntity,
                             onSketchEntityResized: _resizeAdvancedSketchEntity,
+                            onSketchEntityCentered:
+                                _centerAdvancedSketchEntityOnWorkplane,
+                            onSketchEntityFitToWorkplane:
+                                _fitAdvancedSketchEntityToWorkplane,
                             onSketchEntityMoveToClick:
                                 _startAdvancedSketchRectangleMove,
                             onSketchEntityDuplicated:
@@ -5011,6 +5105,8 @@ class _Inspector extends StatelessWidget {
     required this.onSketchEntityParameterChanged,
     required this.onSketchEntityNudged,
     required this.onSketchEntityResized,
+    required this.onSketchEntityCentered,
+    required this.onSketchEntityFitToWorkplane,
     required this.onSketchEntityMoveToClick,
     required this.onSketchEntityDuplicated,
     required this.onSketchEntityDeleted,
@@ -5054,6 +5150,9 @@ class _Inspector extends StatelessWidget {
     double heightDelta,
   )
   onSketchEntityResized;
+  final void Function(String featureId, String entityId) onSketchEntityCentered;
+  final void Function(String featureId, String entityId)
+  onSketchEntityFitToWorkplane;
   final void Function(String featureId, String entityId)
   onSketchEntityMoveToClick;
   final void Function(String featureId, String entityId)
@@ -5248,6 +5347,12 @@ class _Inspector extends StatelessWidget {
                   widthDelta,
                   heightDelta,
                 );
+              },
+              onEntityCentered: (entityId) {
+                onSketchEntityCentered(selectedFeature.id, entityId);
+              },
+              onEntityFitToWorkplane: (entityId) {
+                onSketchEntityFitToWorkplane(selectedFeature.id, entityId);
               },
               onEntityMoveToClick: (entityId) {
                 onSketchEntityMoveToClick(selectedFeature.id, entityId);
@@ -5698,6 +5803,8 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
     required this.onEntityParameterChanged,
     required this.onEntityNudged,
     required this.onEntityResized,
+    required this.onEntityCentered,
+    required this.onEntityFitToWorkplane,
     required this.onEntityMoveToClick,
     required this.onEntityDuplicated,
     required this.onEntityDeleted,
@@ -5715,6 +5822,8 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
   final void Function(String entityId, double dx, double dy) onEntityNudged;
   final void Function(String entityId, double widthDelta, double heightDelta)
   onEntityResized;
+  final ValueChanged<String> onEntityCentered;
+  final ValueChanged<String> onEntityFitToWorkplane;
   final ValueChanged<String> onEntityMoveToClick;
   final ValueChanged<String> onEntityDuplicated;
   final ValueChanged<String> onEntityDeleted;
@@ -5794,6 +5903,8 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
               onResize: (widthDelta, heightDelta) {
                 onEntityResized(entity.id, widthDelta, heightDelta);
               },
+              onCenter: () => onEntityCentered(entity.id),
+              onFitToWorkplane: () => onEntityFitToWorkplane(entity.id),
               onMoveToClick: () => onEntityMoveToClick(entity.id),
               onDuplicate: () => onEntityDuplicated(entity.id),
               onDelete: () => onEntityDeleted(entity.id),
@@ -5814,6 +5925,8 @@ class _SketchEntityParameterEditor extends StatelessWidget {
     required this.onChanged,
     required this.onNudge,
     required this.onResize,
+    required this.onCenter,
+    required this.onFitToWorkplane,
     required this.onMoveToClick,
     required this.onDuplicate,
     required this.onDelete,
@@ -5828,6 +5941,8 @@ class _SketchEntityParameterEditor extends StatelessWidget {
   final void Function(String parameterId, Object? value) onChanged;
   final void Function(double dx, double dy) onNudge;
   final void Function(double widthDelta, double heightDelta) onResize;
+  final VoidCallback onCenter;
+  final VoidCallback onFitToWorkplane;
   final VoidCallback onMoveToClick;
   final VoidCallback onDuplicate;
   final VoidCallback onDelete;
@@ -6005,6 +6120,17 @@ class _SketchEntityParameterEditor extends StatelessWidget {
               onDecrease: () => onResize(0, -1),
               onIncrease: () => onResize(0, 1),
             ),
+            const SizedBox(height: 4),
+            _SketchEntityWorkplaneRow(
+              centerKey: ValueKey(
+                'sketch-entity-$featureId-${entity.id}-center-workplane',
+              ),
+              fitKey: ValueKey(
+                'sketch-entity-$featureId-${entity.id}-fit-workplane',
+              ),
+              onCenter: onCenter,
+              onFit: onFitToWorkplane,
+            ),
           ],
           if (schema != null) ...[
             const SizedBox(height: 8),
@@ -6120,6 +6246,53 @@ class _SketchEntityResizeRow extends StatelessWidget {
           icon: Icons.add_rounded,
           tooltip: increaseTooltip,
           onPressed: onIncrease,
+        ),
+      ],
+    );
+  }
+}
+
+class _SketchEntityWorkplaneRow extends StatelessWidget {
+  const _SketchEntityWorkplaneRow({
+    required this.centerKey,
+    required this.fitKey,
+    required this.onCenter,
+    required this.onFit,
+  });
+
+  final Key centerKey;
+  final Key fitKey;
+  final VoidCallback onCenter;
+  final VoidCallback onFit;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            'Плоскость',
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        _SketchEntityActionButton(
+          buttonKey: centerKey,
+          icon: Icons.center_focus_strong_rounded,
+          tooltip: 'Центрировать на плоскости',
+          onPressed: onCenter,
+        ),
+        const SizedBox(width: 4),
+        _SketchEntityActionButton(
+          buttonKey: fitKey,
+          icon: Icons.fit_screen_rounded,
+          tooltip: 'Подогнать под плоскость',
+          onPressed: onFit,
         ),
       ],
     );

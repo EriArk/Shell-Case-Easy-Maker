@@ -3607,6 +3607,12 @@ void main() {
     final heightDecrease = find.byKey(
       const ValueKey('sketch-entity-advanced_sketch_1-rect_1-height-decrease'),
     );
+    final centerWorkplane = find.byKey(
+      const ValueKey('sketch-entity-advanced_sketch_1-rect_1-center-workplane'),
+    );
+    final fitWorkplane = find.byKey(
+      const ValueKey('sketch-entity-advanced_sketch_1-rect_1-fit-workplane'),
+    );
     final moveToClick = find.byKey(
       const ValueKey('sketch-entity-advanced_sketch_1-rect_1-move-to-click'),
     );
@@ -3618,6 +3624,8 @@ void main() {
     expect(deleteRectangle, findsOneWidget);
     expect(widthIncrease, findsOneWidget);
     expect(heightDecrease, findsOneWidget);
+    expect(centerWorkplane, findsOneWidget);
+    expect(fitWorkplane, findsOneWidget);
     expect(moveToClick, findsOneWidget);
     expect(duplicateRectangle, findsOneWidget);
 
@@ -3795,6 +3803,73 @@ void main() {
 
     await tester.tap(undoButton);
     await _pumpAsyncUi(tester);
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('20 x 12'), findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey('sketch-entity-advanced_sketch_1-rect_1-selected'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.ensureVisible(fitWorkplane);
+    await tester.pumpAndSettle();
+    await tester.tap(fitWorkplane);
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('120 x 28'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('toolbar-command-${CommandIds.saveProject}')),
+    );
+    await _pumpAsyncUi(tester);
+
+    final fitSaved = await fileService.readProject(saveFile);
+    final fitSketch = fitSaved.features.singleWhere(
+      (feature) => feature.id == 'advanced_sketch_1',
+    );
+    final fitEntities = sketchEntitiesForFeature(fitSketch);
+    expect(fitEntities.single.parameters['center'], [0.0, 0.0]);
+    expect(fitEntities.single.parameters['width'], 120.0);
+    expect(fitEntities.single.parameters['height'], 28.0);
+
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('20 x 12'), findsOneWidget);
+
+    await tester.ensureVisible(nudgeRight);
+    await tester.pumpAndSettle();
+    await tester.tap(nudgeRight);
+    await _pumpAsyncUi(tester);
+    await tester.tap(nudgeUp);
+    await _pumpAsyncUi(tester);
+
+    await tester.ensureVisible(centerWorkplane);
+    await tester.pumpAndSettle();
+    await tester.tap(centerWorkplane);
+    await _pumpAsyncUi(tester);
+
+    await tester.tap(
+      find.byKey(const ValueKey('toolbar-command-${CommandIds.saveProject}')),
+    );
+    await _pumpAsyncUi(tester);
+
+    final centeredSaved = await fileService.readProject(saveFile);
+    final centeredSketch = centeredSaved.features.singleWhere(
+      (feature) => feature.id == 'advanced_sketch_1',
+    );
+    final centeredEntities = sketchEntitiesForFeature(centeredSketch);
+    expect(centeredEntities.single.parameters['center'], [0.0, 0.0]);
+    expect(centeredEntities.single.parameters['width'], 20.0);
+    expect(centeredEntities.single.parameters['height'], 12.0);
+
     await tester.tap(undoButton);
     await _pumpAsyncUi(tester);
     await tester.tap(undoButton);
