@@ -12827,3 +12827,101 @@ Commit and push M140, then continue toward first real sketch cut/add geometry.
 ### Notes for future Codex sessions
 Keep sketch profile operations request-scoped until the backend consumes them.
 Do not store generated profile operations back into `ProjectModel`.
+
+---
+
+## M141 - Native sketch profile cut slice
+
+### Goal
+Route the first Advanced Sketch `profileIntent=cut` contours into the native
+OCCT generated preview while preserving semantic project state and keeping
+unsupported sketch operations future-only.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`docs/04_GEOMETRY_ENGINE_OCCT.md`, `docs/26_TESTING_AND_QUALITY.md`,
+`docs/27_RESEARCH_AND_REFERENCES.md`, `docs/30_ADVANCED_CAD_MODE.md`,
+`docs/31_COMMANDS_AND_UNDO.md`, `docs/32_USABLE_SHELL.md`,
+`lib/geometry/geometry_protocol.dart`,
+`lib/geometry/geometry_operation_plan.dart`,
+`lib/project/advanced_sketch.dart`, `occt_worker/native/src/occt_main.cpp`,
+`test/native_occt_geometry_regression_test.dart`, and
+`test/support/native_occt_geometry_fixture.dart`.
+
+### Changes made
+- `occt_worker/native/src/occt_main.cpp`:
+  - Added native parsing for `advanced_sketch.entities`.
+  - Converted `profileIntent=cut` circle entities into circular cutout
+    requests.
+  - Converted `profileIntent=cut` axis-aligned rectangle entities into
+    rectangular cutout requests.
+  - Reused existing supported top-lid/front-wall fit checks and cutout tool
+    paths.
+  - Kept reference contours, `profileIntent=add`, unsupported entity types, and
+    rotated rectangles out of native B-Rep for this slice.
+- `test/support/native_occt_geometry_fixture.dart`:
+  - Added a project fixture with a top-lid Advanced Sketch containing a
+    reference rectangle, cut circle, cut rectangle, and future add circle.
+- `test/native_occt_geometry_regression_test.dart`:
+  - Added regression coverage that verifies native preview mappings for sketch
+    cut entity ids and no mapping for the future add entity.
+- Docs/tasks/roadmap/research:
+  - Documented the first native sketch cut bridge, limitations, and follow-up
+    path.
+  - Updated command/usable-shell wording so docs no longer claim all sketch
+    intents are geometry-free future hints.
+
+### Tests run
+- `dart format test\support\native_occt_geometry_fixture.dart test\native_occt_geometry_regression_test.dart`:
+  - Passed.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`:
+  - Passed.
+- `flutter test test\native_occt_geometry_regression_test.dart --reporter compact`:
+  - Passed, 4 tests.
+- `flutter pub get`:
+  - Passed.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter analyze`:
+  - Passed.
+- `flutter test --reporter compact`:
+  - Passed, 263 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed. Refreshed `releases/latest/windows/shell_case_easy_maker.exe`.
+
+### Validation
+- Geometry checked?
+  - Yes for the native top-lid sketch cut slice. The regression test verifies
+    generated preview ranges for `advanced_sketch_1.lid_round_cut` and
+    `advanced_sketch_1.lid_rect_cut`.
+- Serialization checked?
+  - Yes by boundary. The editable project still stores semantic
+    `advanced_sketch` entities; no generated B-Rep, mesh, OCCT topology id, or
+    triangle id is saved.
+- UI checked?
+  - Not manually yet. This chunk changes native backend behavior; the latest
+    exe is rebuilt and has a meaningful poke checklist.
+- Export checked?
+  - Yes. Latest Windows bundle was rebuilt locally and remains ignored by Git.
+
+### Known issues
+- Issue: `profileIntent=add` is still future-operation intent only.
+  - Severity: Expected.
+  - Next action: Design positive protrusion semantics before native fuse/extrude
+    behavior.
+- Issue: Rotated rectangle cuts are skipped by native preview for now.
+  - Severity: Expected.
+  - Next action: Add workplane transform rules and validation before native
+    rotated cut tools.
+- Issue: Direct sketch drawing/edit handles still do not exist.
+  - Severity: Expected.
+  - Next action: Continue after backend semantics stabilize.
+
+### Next step
+Commit and push M141, then continue toward rotated sketch cuts,
+add/protrusion semantics, or direct sketch editing.
+
+### Notes for future Codex sessions
+Do not flatten sketch entities into standalone editable cutout features. The
+native worker may generate disposable B-Rep from them, but `ProjectModel`
+continues to store the semantic Advanced Sketch.

@@ -407,6 +407,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Basic sketch circle entity foundation.
 - [x] Basic sketch entity profile intent.
 - [x] Basic sketch profile operation plan.
+- [x] Basic sketch native profile cut slice.
 - [ ] Basic sketch drawing/editing.
 - [ ] Extrude/cut.
 - [ ] Boolean.

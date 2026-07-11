@@ -965,6 +965,57 @@ bool IsPositiveDimension(double value) {
   return std::isfinite(value) && value > 0.0;
 }
 
+bool IsApproximatelyZero(double value) {
+  return std::isfinite(value) && std::abs(value) <= 0.000001;
+}
+
+std::array<double, 2> SketchProfileSurfacePosition(
+    const EnclosureRequest& enclosure,
+    const std::string& target_surface,
+    const std::array<double, 2>& center) {
+  if (target_surface == enclosure.id + ".front_wall.outer") {
+    return {center[0], enclosure.size[2] / 2.0 + center[1]};
+  }
+
+  return center;
+}
+
+bool SketchProfileFitsSupportedSurface(const EnclosureRequest& enclosure,
+                                       const std::string& target_surface,
+                                       const std::array<double, 2>& center,
+                                       double width,
+                                       double height) {
+  if (!IsPositiveDimension(width) || !IsPositiveDimension(height) ||
+      !std::isfinite(center[0]) || !std::isfinite(center[1])) {
+    return false;
+  }
+
+  const bool targets_top_lid =
+      target_surface == enclosure.id + ".top_lid.outer";
+  const bool targets_front_wall =
+      target_surface == enclosure.id + ".front_wall.outer";
+  if (!targets_top_lid && !targets_front_wall) {
+    return false;
+  }
+
+  const double available_width =
+      enclosure.size[0] - enclosure.wall_thickness * 2.0;
+  const double available_height =
+      targets_top_lid ? enclosure.size[1] - enclosure.wall_thickness * 2.0
+                      : enclosure.size[2] - enclosure.wall_thickness * 2.0;
+  const double min_secondary =
+      targets_top_lid ? -available_height / 2.0 : enclosure.wall_thickness;
+  const double max_secondary =
+      targets_top_lid ? available_height / 2.0
+                      : enclosure.size[2] - enclosure.wall_thickness;
+
+  return width <= available_width && height <= available_height &&
+         center[0] - width / 2.0 >= -available_width / 2.0 &&
+         center[0] + width / 2.0 <= available_width / 2.0 &&
+         center[1] - height / 2.0 >= min_secondary &&
+         center[1] + height / 2.0 <= max_secondary;
+}
+
 double DefaultButtonCapDiameter(double cutout_diameter) {
   return std::max(0.8, cutout_diameter - kDefaultButtonCapClearance);
 }
@@ -1360,6 +1411,131 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
       }
 
       result.glass_recesses.push_back(recess);
+      continue;
+    }
+
+    if (kind == "advanced_sketch") {
+      if (intent_operation != "helper") {
+        continue;
+      }
+
+      const std::string sketch_id =
+          ExtractTopLevelStringField(intent, "id").value_or("advanced_sketch");
+      const std::string target_surface =
+          ExtractTopLevelStringField(intent, "targetSurface").value_or("");
+      if (target_surface != supported_front_surface &&
+          target_surface != supported_top_surface) {
+        continue;
+      }
+
+      const std::vector<std::string> entities =
+          ExtractTopLevelObjectArrayField(intent, "entities");
+      for (const std::string& entity : entities) {
+        const std::string profile_intent =
+            ExtractTopLevelStringField(entity, "profileIntent")
+                .value_or("reference");
+        if (profile_intent != "cut") {
+          continue;
+        }
+
+        const std::string entity_type =
+            ExtractTopLevelStringField(entity, "type").value_or("");
+        const std::string entity_id =
+            ExtractTopLevelStringField(entity, "id").value_or("entity");
+        const std::optional<std::string> entity_parameters =
+            ExtractTopLevelObjectField(entity, "parameters");
+        const std::array<double, 2> center =
+            entity_parameters.has_value()
+                ? ExtractTopLevelNumberArray2Field(*entity_parameters, "center")
+                      .value_or(std::array<double, 2>{0.0, 0.0})
+                : std::array<double, 2>{0.0, 0.0};
+        const std::array<double, 2> surface_position =
+            SketchProfileSurfacePosition(result.enclosure,
+                                         target_surface,
+                                         center);
+        const std::string profile_id = sketch_id + "." + entity_id;
+
+        if (entity_type == "circle") {
+          CircularCutoutRequest cutout;
+          cutout.id = profile_id;
+          cutout.target_surface = target_surface;
+          cutout.has_surface_position = true;
+          cutout.surface_position = surface_position;
+          if (entity_parameters.has_value()) {
+            cutout.diameter =
+                ExtractTopLevelNumberField(*entity_parameters, "diameter")
+                    .value_or(12.0);
+            cutout.depth =
+                ExtractTopLevelNumberField(*entity_parameters, "depth")
+                    .value_or(3.0);
+          }
+
+          if (!IsPositiveDimension(cutout.depth) ||
+              !SketchProfileFitsSupportedSurface(result.enclosure,
+                                                 cutout.target_surface,
+                                                 cutout.surface_position,
+                                                 cutout.diameter,
+                                                 cutout.diameter)) {
+            result.issue_code = "worker.geometry.invalid_sketch_profile_cut";
+            result.issue_message =
+                "Native OCCT worker sketch circle cuts must fit the target surface.";
+            return result;
+          }
+
+          result.circular_cutouts.push_back(cutout);
+          continue;
+        }
+
+        if (entity_type == "rectangle") {
+          RectangularCutoutRequest cutout;
+          cutout.id = profile_id;
+          cutout.target_surface = target_surface;
+          cutout.has_surface_position = true;
+          cutout.surface_position = surface_position;
+          double rotation = 0.0;
+          if (entity_parameters.has_value()) {
+            cutout.width =
+                ExtractTopLevelNumberField(*entity_parameters, "width")
+                    .value_or(20.0);
+            cutout.height =
+                ExtractTopLevelNumberField(*entity_parameters, "height")
+                    .value_or(12.0);
+            cutout.corner_radius =
+                ExtractTopLevelNumberField(*entity_parameters, "cornerRadius")
+                    .value_or(0.0);
+            cutout.depth =
+                ExtractTopLevelNumberField(*entity_parameters, "depth")
+                    .value_or(3.0);
+            rotation =
+                ExtractTopLevelNumberField(*entity_parameters, "rotation")
+                    .value_or(0.0);
+          }
+
+          if (!IsApproximatelyZero(rotation)) {
+            continue;
+          }
+
+          if (!IsPositiveDimension(cutout.depth) ||
+              !std::isfinite(cutout.corner_radius) ||
+              cutout.corner_radius < 0.0 ||
+              cutout.corner_radius * 2.0 >
+                  std::min(cutout.width, cutout.height) ||
+              !SketchProfileFitsSupportedSurface(result.enclosure,
+                                                 cutout.target_surface,
+                                                 cutout.surface_position,
+                                                 cutout.width,
+                                                 cutout.height)) {
+            result.issue_code = "worker.geometry.invalid_sketch_profile_cut";
+            result.issue_message =
+                "Native OCCT worker sketch rectangle cuts must fit the target surface.";
+            return result;
+          }
+
+          result.rectangular_cutouts.push_back(cutout);
+          continue;
+        }
+      }
+
       continue;
     }
 

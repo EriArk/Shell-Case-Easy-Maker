@@ -298,6 +298,65 @@ ProjectModel nativeOcctRectangularCutoutProject() {
   );
 }
 
+ProjectModel nativeOcctSketchProfileCutProject() {
+  final sketch = advancedSketchWithEntities(
+    const SemanticFeature(
+      id: 'advanced_sketch_1',
+      type: advancedSketchFeatureType,
+      targetSurface: 'main_enclosure.top_lid.outer',
+      operation: 'helper',
+      source: {'type': 'advanced_mode'},
+      placement: {'mode': 'surface_workplane', 'anchor': 'center'},
+      parameters: {'name': 'Lid sketch', 'plane': 'surface'},
+      metadata: {'advanced': true},
+    ),
+    [
+      defaultSketchRectangleEntity(id: 'reference_rect'),
+      sketchEntityWithProfileIntent(
+        const SketchEntity(
+          id: 'lid_round_cut',
+          type: 'circle',
+          parameters: {
+            'center': [-24.0, 0.0],
+            'diameter': 8.0,
+          },
+        ),
+        sketchProfileIntentCut,
+      ),
+      sketchEntityWithProfileIntent(
+        const SketchEntity(
+          id: 'lid_rect_cut',
+          type: 'rectangle',
+          parameters: {
+            'center': [24.0, 0.0],
+            'width': 18.0,
+            'height': 8.0,
+            'cornerRadius': 2.0,
+            'rotation': 0.0,
+          },
+        ),
+        sketchProfileIntentCut,
+      ),
+      sketchEntityWithProfileIntent(
+        const SketchEntity(
+          id: 'future_add',
+          type: 'circle',
+          parameters: {
+            'center': [0.0, 18.0],
+            'diameter': 6.0,
+          },
+        ),
+        sketchProfileIntentAdd,
+      ),
+    ],
+  );
+
+  return ProjectModel.initial().copyWith(
+    features: [sketch],
+    featureGroups: const [],
+  );
+}
+
 ProjectModel nativeOcctSwitchSourcedButtonProject() {
   final initial = ProjectModel.initial();
 

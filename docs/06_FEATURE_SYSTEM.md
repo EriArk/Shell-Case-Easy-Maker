@@ -87,21 +87,24 @@ first supported entities are `rectangle`, with center, width, height,
 corner-radius, and rotation parameters, and `circle`, with center and diameter
 parameters.
 
-Sketch entities are still semantic helper data only. They do not generate
-B-Rep, mesh, cuts, extrusions, or topology IDs yet. The inspector can start
-rectangle or circle placement mode for a selected sketch; the next click on the
-supported surface workplane stores the contour center in semantic local
-coordinates as an undoable project edit. The inspector can then edit its
-schema-backed values through `SketchEntityParameterAdapter`.
+Sketch entities are still semantic helper/editing data in `ProjectModel`.
+Supported `profileIntent=cut` circles and axis-aligned rectangles can generate
+disposable native OCCT preview cutouts, but generated B-Rep, mesh, and topology
+IDs are not stored as editable project state. The inspector can start rectangle
+or circle placement mode for a selected sketch; the next click on the supported
+surface workplane stores the contour center in semantic local coordinates as an
+undoable project edit. The inspector can then edit its schema-backed values
+through `SketchEntityParameterAdapter`.
 
 Each sketch entity can also store `profileIntent` metadata. Supported values
 are `reference`, `cut`, and `add`; missing or unknown values read as
 `reference`. The selected-entity inspector exposes this as a compact semantic
-mode row. It is intentionally only a future-operation hint at this stage:
-changing it never creates B-Rep, mesh, booleans, extrusions, or topology ids.
-The geometry operation planner can expose non-reference contours as
+mode row. The geometry operation planner can expose non-reference contours as
 request-scoped `sketch.profile.cut` or `sketch.profile.add` operations so the
-backend contract is deterministic before actual B-Rep generation is wired.
+backend contract is deterministic. The native OCCT preview currently consumes
+only validated `cut` circles and axis-aligned rectangles on supported
+workplanes; `add`, rotated rectangle cuts, and richer extrude behavior remain
+future slices.
 
 Rectangle parameter edits replace the stored sketch entity semantically. The
 corner radius is clamped to half of the smaller side so the stored rectangle

@@ -256,6 +256,57 @@ void main() {
   );
 
   test(
+    'native OCCT preview cuts advanced sketch profile contours',
+    () async {
+      final client = nativeOcctWorkerClient(repoRoot);
+      final response = await client.buildGeometry(
+        GeometryRequest.previewMesh(
+          nativeOcctSketchProfileCutProject(),
+          requestId: 'native_occt_sketch_profile_cuts',
+        ),
+      );
+
+      expect(response.requestId, 'native_occt_sketch_profile_cuts');
+      expect(response.status, GeometryResponseStatus.ok);
+      expect(response.backend, 'occt_worker_native_occt');
+      expect(response.hasErrors, isFalse);
+
+      final mesh = response.previewMesh;
+      expect(mesh, isNotNull);
+      expect(mesh!.vertexCount, greaterThan(0));
+      expect(mesh.triangleCount, greaterThan(0));
+      expect(nativeOcctTriangleRangesAreValid(mesh), isTrue);
+
+      final surfaceIds = mesh.surfaces
+          .map((surface) => surface.semanticId)
+          .toSet();
+      expect(surfaceIds, contains('advanced_sketch_1.lid_round_cut'));
+      expect(surfaceIds, contains('advanced_sketch_1.lid_rect_cut'));
+      expect(surfaceIds, isNot(contains('advanced_sketch_1.future_add')));
+
+      final metrics = response.metrics;
+      expect(metrics['featureIntentCount'], 1);
+      expect(metrics['nativeFeatureCutCount'], 0);
+      expect(metrics['nativeIgnoredFeatureIntentCount'], 0);
+      expect(metrics['nativeCircularCutoutCount'], 0);
+      expect(metrics['nativeRectangularCutoutCount'], 0);
+      expect(metrics['nativeGeneratedLidFeatureCutCount'], 2);
+      expect(metrics['nativeGeneratedLidCircularCutoutCount'], 1);
+      expect(metrics['nativeGeneratedLidRectangularCutoutCount'], 1);
+      expect(
+        metrics['nativeGeneratedLidRectangularCutoutFilletedEdgeCount'],
+        8,
+      );
+      expect(metrics, isNot(contains('topologyId')));
+      expect(metrics, isNot(contains('triangleId')));
+    },
+    skip: hasNativeWorker
+        ? false
+        : 'Native OCCT worker executable not built. Run tools/build_occt_worker_occt.ps1 -AllowVcpkgInstall.',
+    timeout: const Timeout(Duration(seconds: 90)),
+  );
+
+  test(
     'native OCCT preview cuts component switch-sourced top lid buttons',
     () async {
       final client = nativeOcctWorkerClient(repoRoot);

@@ -133,8 +133,11 @@ Use deterministic test fixtures.
 - Geometry operation plans map feature/group intents to deterministic backend
   tasks without flattening editable feature groups.
 - Advanced sketch profile-operation tests verify that `cut`/`add` helper
-  contours become request-scoped future backend operations while the parent
-  sketch remains `helper.advanced_sketch`.
+  contours become request-scoped backend operations while the parent sketch
+  remains `helper.advanced_sketch`.
+- Native OCCT regression tests verify that Advanced Sketch `cut` circles and
+  axis-aligned rectangles become generated preview cutouts mapped back to the
+  sketch entity ids, while `add` contours remain future-operation data.
 - Validation status/details show warning and error messages.
 - Context popovers show correct actions.
 - Parameter knob updates model.

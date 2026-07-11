@@ -6664,3 +6664,57 @@ editable project and preview geometry helper-only.
   behave as in M139.
 - Confirm no new 3D cut/extrude appears yet; this chunk only prepares the
   operation plan for future geometry.
+
+---
+
+## M141 - Native Sketch Profile Cut Slice
+
+### Goal
+Let the native OCCT preview consume the first Advanced Sketch `cut` contours as
+real generated cutouts, while keeping the editable project semantic and keeping
+unsupported sketch operations future-only.
+
+### Tasks
+- [x] Parse `advanced_sketch.entities` inside the native worker request parser.
+- [x] Convert `profileIntent=cut` circle entities to native circular cutout
+      requests.
+- [x] Convert `profileIntent=cut` axis-aligned rectangle entities to native
+      rectangular cutout requests.
+- [x] Keep reference contours, `profileIntent=add`, unsupported entity types,
+      and rotated rectangles out of native B-Rep for this slice.
+- [x] Reuse existing top-lid/front-wall fit validation and generated cutout
+      tool paths.
+- [x] Map preview ranges back to stable sketch entity ids.
+- [x] Cover the behavior with a native OCCT regression test.
+- [x] Update docs/tasks/worklog/research notes.
+
+### Done Criteria
+- A top-lid Advanced Sketch with one cut circle and one cut rectangle produces
+  generated lid cutouts in the native preview.
+- The preview mesh exposes semantic surface ids such as
+  `advanced_sketch_1.lid_round_cut` and `advanced_sketch_1.lid_rect_cut`.
+- A same-sketch `profileIntent=add` entity does not generate native geometry
+  yet.
+- No raw OCCT topology id, face id, or triangle id is saved or exposed as
+  editable project state.
+- Existing semantic cutout tests still pass.
+
+### Tests
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`
+- `flutter test test\native_occt_geometry_regression_test.dart --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Enable Advanced Mode and select/create an `Эскиз` on the top lid.
+- Add a circle or rectangle contour, set its intent to cut, and wait for the
+  native preview to refresh.
+- Confirm the contour cuts the generated lid preview.
+- Set another contour to add and confirm it still behaves as future intent
+  only.
+- Avoid rotated rectangle cut expectations for now; that is a later slice.

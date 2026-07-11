@@ -1462,3 +1462,57 @@ the preview mesh maps cut faces to the original semantic feature ids such as
   inserts while preserving semantic feature types.
 - Add material/printer-profile based clearance presets before treating generic
   holes as final printable hardware interfaces.
+
+---
+
+## 2026-07-11 - Native Advanced Sketch profile cut bridge
+
+## Question
+
+How should the native OCCT worker consume the first Advanced Sketch `cut`
+contours without making sketch geometry the editable source of truth or
+exposing low-level Boolean operations to the default UI?
+
+## Sources checked
+
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepAlgoAPI_Cut.hxx`
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepPrimAPI_MakeCylinder.hxx`
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepPrimAPI_MakeBox.hxx`
+- Existing native worker slices in `occt_worker/native/src/occt_main.cpp` for
+  semantic circular/rectangular cutouts, generated top-lid cutouts, preview
+  surface mapping, and request parsing.
+
+## Findings
+
+- The Flutter protocol already sends Advanced Sketch entities as semantic
+  `featureIntents` metadata, so the worker can consume the same semantic data
+  without adding raw OCCT ids or generated B-Rep to `ProjectModel`.
+- Existing native circular and rectangular cutout code already has the needed
+  B-Rep tools, fit validation, top-lid/front-wall orientation, metrics, and
+  preview surface mapping.
+- A first safe bridge can treat `profileIntent=cut` circle entities as
+  circular cutout requests and axis-aligned rectangle entities as rectangular
+  cutout requests. This keeps the implementation small and deterministic.
+- `profileIntent=add`, rotated rectangle cuts, direct sketch handles, and
+  extrusion depth UX need separate design before they become real geometry.
+- No GPL/AGPL code was copied.
+
+## Decision
+
+Parse Advanced Sketch `profileIntent=cut` circle and axis-aligned rectangle
+entities in the native worker and route them through the existing generated
+cutout pipeline. The generated preview maps cut faces back to stable sketch
+entity ids such as `advanced_sketch_1.lid_round_cut`, and the editable project
+continues to store only semantic sketch entities.
+
+## Follow-up tasks
+
+- Add native support for rotated sketch rectangle cuts after the workplane
+  transform and validation rules are explicit.
+- Design `profileIntent=add` as a semantic protrusion/generator before adding
+  native fuse/extrude behavior.
+- Add direct sketch drawing/edit handles without coupling selection to preview
+  mesh triangle ids.
