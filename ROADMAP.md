@@ -6412,3 +6412,59 @@ without introducing generated-geometry edit state.
 - Undo and confirm the previous size returns.
 - Nudge the contour off center, then use center-on-workplane.
 - Confirm it returns to the workplane center without changing size.
+
+---
+
+## M136 - Sketch Rectangle Semantic Rotation
+
+### Goal
+Let focused Advanced Sketch rectangles rotate as semantic helper contours:
+the inspector writes a `rotation` parameter, the helper overlay and click target
+use that angle, and bounds warnings account for rotated corners.
+
+### Tasks
+- [x] Add `rotation` to the rectangle sketch parameter schema and default
+      rectangle entity.
+- [x] Persist rotation in `SketchEntity.parameters` through normalized schema
+      edits, duplication, save/load, and undo/redo.
+- [x] Add compact selected-rectangle rotation quick actions.
+- [x] Draw sketch helper rectangles with the stored angle.
+- [x] Make sketch helper hit testing respect rotated bounds.
+- [x] Make workplane-bounds validation check rotated rectangle corners.
+- [x] Extend unit/widget coverage and update docs/tasks/worklog.
+
+### Done Criteria
+- A selected sketch rectangle exposes a `Поворот` field and +/- rotation
+  actions.
+- Pressing rotation + stores `rotation: 15.0` in project JSON and undo restores
+  it to `0.0`.
+- The helper overlay rotates visually while remaining a semantic
+  `SketchEntity`, not a mesh/B-Rep sub-object.
+- Clicking outside the rotated contour does not focus that rectangle even if
+  the point is inside its unrotated axis-aligned box.
+- Workplane bounds warnings use rotated rectangle corners.
+- Rotation updates only semantic `SketchEntity` parameters and do not query
+  mesh, B-Rep, OCCT topology, or generated triangle ids.
+
+### Tests
+- `flutter test test\sketch_entity_parameter_adapter_test.dart`
+- `flutter test test\viewport_controller_test.dart`
+- `flutter test test\project_model_test.dart`
+- `flutter test test\widget_test.dart --name "advanced sketch command creates semantic helper feature"`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Enable Advanced Mode and select/create an `Эскиз`.
+- Add a rectangle or select an existing `rect_1`.
+- Press the selected rectangle rotation + button and confirm the helper contour
+  visibly turns.
+- Try clicking just outside the rotated contour; it should not focus the
+  rectangle unless the click lands on the visible rotated helper shape.
+- Save, reopen later if desired, and confirm the rotation remains.
+- Press undo and confirm the contour returns to its previous angle.

@@ -429,6 +429,43 @@ void main() {
     },
   );
 
+  test('mock hit tester uses rotated bounds for sketch rectangles', () {
+    const state = ViewportState();
+    const size = Size(900, 600);
+    final layout = MockViewportLayout.fromSize(size, state);
+    const workplane = MockViewportWorkplaneOverlay(
+      semanticId: 'main_enclosure.top_lid.outer',
+      kind: MockViewportWorkplaneKind.topLid,
+      width: 120,
+      height: 70,
+    );
+    const rectangle = MockViewportSketchRectanglePreview(
+      featureId: 'advanced_sketch_1',
+      entityId: 'rect_1',
+      workplane: workplane,
+      center: Offset.zero,
+      width: 60,
+      height: 10,
+      cornerRadius: 1,
+      rotationZDegrees: 45,
+    );
+    const hitTester = MockViewportHitTester();
+
+    final rect = rectangle.canvasRect(layout);
+    final axisOnlyPoint = rect.center.translate(rect.width / 2 - 1, 0);
+
+    final hit = hitTester.hitTest(
+      position: axisOnlyPoint,
+      size: size,
+      state: state,
+      componentPlacements: const [],
+      sketchRectangles: const [rectangle],
+    );
+
+    expect(hit?.semanticId, isNot('advanced_sketch_1'));
+    expect(hit?.childId, isNot('rect_1'));
+  });
+
   test('mock hit tester returns semantic feature group ids', () {
     const state = ViewportState();
     const size = Size(900, 600);

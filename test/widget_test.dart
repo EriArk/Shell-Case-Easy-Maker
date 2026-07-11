@@ -3607,6 +3607,11 @@ void main() {
     final heightDecrease = find.byKey(
       const ValueKey('sketch-entity-advanced_sketch_1-rect_1-height-decrease'),
     );
+    final rotationIncrease = find.byKey(
+      const ValueKey(
+        'sketch-entity-advanced_sketch_1-rect_1-rotation-increase',
+      ),
+    );
     final centerWorkplane = find.byKey(
       const ValueKey('sketch-entity-advanced_sketch_1-rect_1-center-workplane'),
     );
@@ -3624,10 +3629,35 @@ void main() {
     expect(deleteRectangle, findsOneWidget);
     expect(widthIncrease, findsOneWidget);
     expect(heightDecrease, findsOneWidget);
+    expect(rotationIncrease, findsOneWidget);
     expect(centerWorkplane, findsOneWidget);
     expect(fitWorkplane, findsOneWidget);
     expect(moveToClick, findsOneWidget);
     expect(duplicateRectangle, findsOneWidget);
+
+    await tester.ensureVisible(rotationIncrease);
+    await tester.pumpAndSettle();
+    await tester.tap(rotationIncrease);
+    await _pumpAsyncUi(tester);
+
+    expect(find.textContaining('15°'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('toolbar-command-${CommandIds.saveProject}')),
+    );
+    await _pumpAsyncUi(tester);
+
+    final rotatedSaved = await fileService.readProject(saveFile);
+    final rotatedSketch = rotatedSaved.features.singleWhere(
+      (feature) => feature.id == 'advanced_sketch_1',
+    );
+    final rotatedEntities = sketchEntitiesForFeature(rotatedSketch);
+    expect(rotatedEntities.single.parameters['rotation'], 15.0);
+
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('20 x 12'), findsOneWidget);
 
     await tester.ensureVisible(moveToClick);
     await tester.pumpAndSettle();
@@ -3909,8 +3939,12 @@ void main() {
 
     expect(find.text('20 x 12'), findsOneWidget);
 
+    await tester.ensureVisible(nudgeRight);
+    await tester.pumpAndSettle();
     await tester.tap(nudgeRight);
     await _pumpAsyncUi(tester);
+    await tester.ensureVisible(nudgeUp);
+    await tester.pumpAndSettle();
     await tester.tap(nudgeUp);
     await _pumpAsyncUi(tester);
 
@@ -3949,6 +3983,7 @@ void main() {
     expect(entities.single.parameters['center'], [1.0, 1.0]);
     expect(entities.single.parameters['width'], 32.5);
     expect(entities.single.parameters['height'], 12.0);
+    expect(entities.single.parameters['rotation'], 0.0);
 
     await tester.tap(undoButton);
     await _pumpAsyncUi(tester);

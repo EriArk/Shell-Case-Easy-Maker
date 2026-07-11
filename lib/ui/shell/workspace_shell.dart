@@ -805,6 +805,46 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     );
   }
 
+  void _rotateAdvancedSketchEntity(
+    String featureId,
+    String entityId,
+    double rotationDelta,
+  ) {
+    final feature = _project.features
+        .where((feature) => feature.id == featureId)
+        .firstOrNull;
+    if (feature == null || feature.type != advancedSketchFeatureType) {
+      return;
+    }
+
+    final entity = sketchEntitiesForFeature(
+      feature,
+    ).where((entity) => entity.id == entityId).firstOrNull;
+    if (entity == null || entity.type != 'rectangle') {
+      return;
+    }
+
+    final values = SketchEntityParameterAdapter.valuesFrom(entity);
+    final updatedEntity = SketchEntityParameterAdapter.applyValues(entity, {
+      ...values,
+      'rotation': readDouble(values['rotation'], fallback: 0.0) + rotationDelta,
+    });
+    final updatedFeature = advancedSketchWithUpdatedEntity(
+      feature,
+      updatedEntity,
+    );
+
+    _commitProjectEdit(
+      id: 'advanced.sketch.entity.rotate',
+      label: 'Повернуть контур',
+      nextState: _project.replaceFeature(updatedFeature),
+      selection: SelectionModel.sketchEntity(
+        id: updatedEntity.id,
+        parentId: feature.id,
+      ),
+    );
+  }
+
   void _centerAdvancedSketchEntityOnWorkplane(
     String featureId,
     String entityId,
@@ -2248,6 +2288,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                                 _updateAdvancedSketchEntityParameter,
                             onSketchEntityNudged: _nudgeAdvancedSketchEntity,
                             onSketchEntityResized: _resizeAdvancedSketchEntity,
+                            onSketchEntityRotated: _rotateAdvancedSketchEntity,
                             onSketchEntityCentered:
                                 _centerAdvancedSketchEntityOnWorkplane,
                             onSketchEntityFitToWorkplane:
@@ -5105,6 +5146,7 @@ class _Inspector extends StatelessWidget {
     required this.onSketchEntityParameterChanged,
     required this.onSketchEntityNudged,
     required this.onSketchEntityResized,
+    required this.onSketchEntityRotated,
     required this.onSketchEntityCentered,
     required this.onSketchEntityFitToWorkplane,
     required this.onSketchEntityMoveToClick,
@@ -5150,6 +5192,8 @@ class _Inspector extends StatelessWidget {
     double heightDelta,
   )
   onSketchEntityResized;
+  final void Function(String featureId, String entityId, double rotationDelta)
+  onSketchEntityRotated;
   final void Function(String featureId, String entityId) onSketchEntityCentered;
   final void Function(String featureId, String entityId)
   onSketchEntityFitToWorkplane;
@@ -5346,6 +5390,13 @@ class _Inspector extends StatelessWidget {
                   entityId,
                   widthDelta,
                   heightDelta,
+                );
+              },
+              onEntityRotated: (entityId, rotationDelta) {
+                onSketchEntityRotated(
+                  selectedFeature.id,
+                  entityId,
+                  rotationDelta,
                 );
               },
               onEntityCentered: (entityId) {
@@ -5803,6 +5854,7 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
     required this.onEntityParameterChanged,
     required this.onEntityNudged,
     required this.onEntityResized,
+    required this.onEntityRotated,
     required this.onEntityCentered,
     required this.onEntityFitToWorkplane,
     required this.onEntityMoveToClick,
@@ -5822,6 +5874,7 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
   final void Function(String entityId, double dx, double dy) onEntityNudged;
   final void Function(String entityId, double widthDelta, double heightDelta)
   onEntityResized;
+  final void Function(String entityId, double rotationDelta) onEntityRotated;
   final ValueChanged<String> onEntityCentered;
   final ValueChanged<String> onEntityFitToWorkplane;
   final ValueChanged<String> onEntityMoveToClick;
@@ -5903,6 +5956,9 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
               onResize: (widthDelta, heightDelta) {
                 onEntityResized(entity.id, widthDelta, heightDelta);
               },
+              onRotate: (rotationDelta) {
+                onEntityRotated(entity.id, rotationDelta);
+              },
               onCenter: () => onEntityCentered(entity.id),
               onFitToWorkplane: () => onEntityFitToWorkplane(entity.id),
               onMoveToClick: () => onEntityMoveToClick(entity.id),
@@ -5925,6 +5981,7 @@ class _SketchEntityParameterEditor extends StatelessWidget {
     required this.onChanged,
     required this.onNudge,
     required this.onResize,
+    required this.onRotate,
     required this.onCenter,
     required this.onFitToWorkplane,
     required this.onMoveToClick,
@@ -5941,6 +5998,7 @@ class _SketchEntityParameterEditor extends StatelessWidget {
   final void Function(String parameterId, Object? value) onChanged;
   final void Function(double dx, double dy) onNudge;
   final void Function(double widthDelta, double heightDelta) onResize;
+  final ValueChanged<double> onRotate;
   final VoidCallback onCenter;
   final VoidCallback onFitToWorkplane;
   final VoidCallback onMoveToClick;
@@ -6119,6 +6177,20 @@ class _SketchEntityParameterEditor extends StatelessWidget {
               increaseTooltip: 'Увеличить высоту на 1 мм',
               onDecrease: () => onResize(0, -1),
               onIncrease: () => onResize(0, 1),
+            ),
+            const SizedBox(height: 4),
+            _SketchEntityResizeRow(
+              label: 'Поворот',
+              decreaseKey: ValueKey(
+                'sketch-entity-$featureId-${entity.id}-rotation-decrease',
+              ),
+              increaseKey: ValueKey(
+                'sketch-entity-$featureId-${entity.id}-rotation-increase',
+              ),
+              decreaseTooltip: 'Повернуть на -15°',
+              increaseTooltip: 'Повернуть на +15°',
+              onDecrease: () => onRotate(-15),
+              onIncrease: () => onRotate(15),
             ),
             const SizedBox(height: 4),
             _SketchEntityWorkplaneRow(
@@ -6327,7 +6399,13 @@ String _sketchEntitySizeLabel(SketchEntity entity) {
 
   final width = readDouble(entity.parameters['width'], fallback: 0.0);
   final height = readDouble(entity.parameters['height'], fallback: 0.0);
-  return '${_formatNumber(width)} x ${_formatNumber(height)}';
+  final rotation = readDouble(entity.parameters['rotation'], fallback: 0.0);
+  final size = '${_formatNumber(width)} x ${_formatNumber(height)}';
+  if (rotation.abs() < 0.000001) {
+    return size;
+  }
+
+  return '$size · ${_formatNumber(rotation)}°';
 }
 
 class _FeatureGroupParameterEditor extends StatelessWidget {
@@ -11223,7 +11301,7 @@ class _ViewportPainter extends CustomPainter {
           selection.id == rectangle.entityId;
       final rect = rectangle.canvasRect(layout);
       final radius = Radius.circular(rectangle.canvasCornerRadius(layout));
-      final rrect = RRect.fromRectAndRadius(rect, radius);
+      final rotationZDegrees = rectangle.canvasRotationZDegrees(layout);
       final center = layout.workplaneLocalToCanvas(
         rectangle.workplane,
         rectangle.center,
@@ -11234,8 +11312,11 @@ class _ViewportPainter extends CustomPainter {
         ..strokeJoin = StrokeJoin.round
         ..strokeWidth = annotationMode ? 2.8 : 3.2;
 
-      canvas.drawRRect(
-        rrect,
+      _drawRotatedRRect(
+        canvas,
+        rect,
+        rotationZDegrees,
+        radius,
         selected
             ? (Paint()
                 ..color = colorScheme.tertiary.withValues(
@@ -11244,8 +11325,14 @@ class _ViewportPainter extends CustomPainter {
                 ..style = PaintingStyle.fill)
             : fill,
       );
-      canvas.drawRRect(rrect, shadow);
-      canvas.drawRRect(rrect, selected ? selectedStroke : stroke);
+      _drawRotatedRRect(canvas, rect, rotationZDegrees, radius, shadow);
+      _drawRotatedRRect(
+        canvas,
+        rect,
+        rotationZDegrees,
+        radius,
+        selected ? selectedStroke : stroke,
+      );
       canvas.drawCircle(center, 4.2 * layout.zoom, centerFill);
       canvas.drawCircle(center, 4.2 * layout.zoom, centerStroke);
     }
@@ -12158,6 +12245,7 @@ List<MockViewportSketchRectanglePreview> _mockSketchRectanglePreviews(
         width: readDouble(values['width'], fallback: 20.0),
         height: readDouble(values['height'], fallback: 12.0),
         cornerRadius: readDouble(values['cornerRadius'], fallback: 0.0),
+        rotationZDegrees: readDouble(values['rotation'], fallback: 0.0),
       ),
     );
   }

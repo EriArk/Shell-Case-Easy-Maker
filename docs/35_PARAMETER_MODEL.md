@@ -108,16 +108,17 @@ to a schema-backed parameter bank:
 - center Y,
 - width,
 - height,
-- corner radius.
+- corner radius,
+- rotation.
 
 The adapter writes values back to `SketchEntity.parameters`, normalizes numeric
 precision for stable JSON, and clamps corner radius to half of the smaller
 side. Inspector nudge, move-to-click, resize, and duplicate actions reuse these
-normalized values so each movement, size edit, or offset copy stays a semantic
-undoable edit. When a supported sketch workplane size is available, the adapter
-can also report a warning if the rectangle extends outside that workplane.
-These values remain semantic helper data until sketch drawing and geometry
-conversion are designed.
+normalized values so each movement, size edit, angle edit, or offset copy stays
+a semantic undoable edit. When a supported sketch workplane size is available,
+the adapter can also report a warning if the rotated rectangle extends outside
+that workplane. These values remain semantic helper data until sketch drawing
+and geometry conversion are designed.
 
 Workspace keyboard edits for focused sketch rectangles call the same semantic
 nudge/resize paths as inspector controls. Arrow keys update center values by
@@ -131,6 +132,11 @@ or mesh-backed command state.
 Workplane quick actions are also parameter edits: center writes `centerX=0` and
 `centerY=0`, while fit writes the supported workplane width and height through
 the same schema normalization path.
+
+Rectangle rotation quick actions write the same `rotation` parameter as the
+schema-backed inspector field. The viewport helper overlay and hit target read
+that value as display/edit affordance only; generated geometry remains outside
+the editable sketch source of truth.
 
 ## Current Limitations
 

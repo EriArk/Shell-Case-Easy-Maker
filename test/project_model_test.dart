@@ -208,6 +208,7 @@ void main() {
     expect(entities.single.type, 'rectangle');
     expect(entities.single.parameters['width'], 20.0);
     expect(entities.single.parameters['height'], 12.0);
+    expect(entities.single.parameters['rotation'], 0.0);
   });
 
   test('project replaces or appends feature groups by stable id', () {

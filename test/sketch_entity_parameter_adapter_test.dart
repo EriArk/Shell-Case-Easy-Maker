@@ -14,6 +14,7 @@ void main() {
     expect(values['width'], 20.0);
     expect(values['height'], 12.0);
     expect(values['cornerRadius'], 0.0);
+    expect(values['rotation'], 0.0);
   });
 
   test('rectangle sketch entity updates semantic parameters', () {
@@ -29,10 +30,16 @@ void main() {
       'width',
       32.5,
     );
+    final rotated = SketchEntityParameterAdapter.updateParameter(
+      resized,
+      'rotation',
+      37,
+    );
 
-    expect(resized.parameters['center'], [7.2, 0.0]);
-    expect(resized.parameters['width'], 32.5);
-    expect(resized.parameters['height'], 12.0);
+    expect(rotated.parameters['center'], [7.2, 0.0]);
+    expect(rotated.parameters['width'], 32.5);
+    expect(rotated.parameters['height'], 12.0);
+    expect(rotated.parameters['rotation'], 37.0);
   });
 
   test('rectangle corner radius is clamped to half the smaller side', () {
@@ -54,6 +61,7 @@ void main() {
         'width': 32.0,
         'height': 14.0,
         'cornerRadius': 2.0,
+        'rotation': 30.0,
       },
     );
 
@@ -70,6 +78,7 @@ void main() {
     expect(duplicate.parameters['width'], 32.0);
     expect(duplicate.parameters['height'], 14.0);
     expect(duplicate.parameters['cornerRadius'], 2.0);
+    expect(duplicate.parameters['rotation'], 30.0);
   });
 
   test(
@@ -101,6 +110,22 @@ void main() {
       expect(issues.single.code, 'sketch.rectangle.workplaneBounds');
     },
   );
+
+  test('rectangle workplane bounds warning accounts for rotation', () {
+    final rectangle = SketchEntityParameterAdapter.applyValues(
+      defaultSketchRectangleEntity(id: 'rect_1'),
+      const {'width': 140.0, 'height': 20.0, 'rotation': 45.0},
+    );
+
+    final issues = SketchEntityParameterAdapter.validateWithinWorkplane(
+      rectangle,
+      workplaneWidth: 100,
+      workplaneHeight: 100,
+    );
+
+    expect(issues, hasLength(1));
+    expect(issues.single.code, 'sketch.rectangle.workplaneBounds');
+  });
 
   test('advanced sketch can replace one entity by stable id', () {
     final feature = advancedSketchWithEntities(

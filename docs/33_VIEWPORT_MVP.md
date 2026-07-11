@@ -172,10 +172,11 @@ UI selection can point at `rect_1`, while command context and viewport/native
 preview highlighting stay scoped to the owning `advanced_sketch` feature id.
 Rectangle editing currently happens through the selected sketch inspector,
 including schema-backed fields, 1 mm nudge actions, width/height +/- 1 mm
-resize actions, move-to-click center placement, duplication, deletion, keyboard
-nudge/resize shortcuts, keyboard command shortcuts, workplane center/fit
-actions, and semantic
-workplane-bounds warnings.
+resize actions, +/- 15 degree rotation actions, move-to-click center
+placement, duplication, deletion, keyboard nudge/resize shortcuts, keyboard
+command shortcuts, workplane center/fit actions, and semantic workplane-bounds
+warnings. The helper contour, its hit target, and the bounds check use the
+stored rectangle rotation, but still resolve back only to semantic sketch ids.
 
 The selected sketch inspector can also start a transient rectangle
 click-to-place mode. While active, the viewport uses the owning sketch surface
@@ -211,6 +212,8 @@ center and commits an undoable project edit.
   next supported workplane click.
 - Use selected rectangle inspector resize buttons: change width or height by
   1 mm.
+- Use selected rectangle rotation buttons or the `Поворот` field: rotate the
+  helper contour as a semantic angle edit.
 - Use selected rectangle workplane actions: center the helper contour on its
   sketch workplane or fit it to that workplane's bounds.
 - Use selected rectangle duplicate: create a new offset semantic rectangle and

@@ -109,6 +109,7 @@ SketchEntity defaultSketchRectangleEntity({required String id}) {
       'width': 20.0,
       'height': 12.0,
       'cornerRadius': 0.0,
+      'rotation': 0.0,
     },
   );
 }

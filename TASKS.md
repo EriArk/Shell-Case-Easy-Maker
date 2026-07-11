@@ -402,6 +402,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Basic sketch rectangle keyboard nudge/resize.
 - [x] Basic sketch rectangle keyboard command shortcuts.
 - [x] Basic sketch rectangle workplane center/fit actions.
+- [x] Basic sketch rectangle semantic rotation.
 - [ ] Basic sketch drawing/editing.
 - [ ] Extrude/cut.
 - [ ] Boolean.

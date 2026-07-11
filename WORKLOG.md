@@ -12371,3 +12371,100 @@ slice.
 ### Notes for future Codex sessions
 Keep workplane quick actions as semantic parameter edits. Do not introduce
 generated geometry or OCCT topology references into sketch entity state.
+
+---
+
+## M136 - Sketch rectangle semantic rotation
+
+### Goal
+Add semantic rotation to Advanced Sketch rectangle helpers without turning the
+helper overlay into generated-geometry selection or editable mesh state.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/parameters/sketch_entity_parameter_adapter.dart`,
+`lib/project/advanced_sketch.dart`, `lib/viewport/viewport_controller.dart`,
+`lib/ui/shell/workspace_shell.dart`, `test/sketch_entity_parameter_adapter_test.dart`,
+`test/viewport_controller_test.dart`, `test/project_model_test.dart`,
+`test/widget_test.dart`, `docs/26_TESTING_AND_QUALITY.md`,
+`docs/30_ADVANCED_CAD_MODE.md`, `docs/33_VIEWPORT_MVP.md`, and
+`docs/35_PARAMETER_MODEL.md`.
+
+### Changes made
+- `lib/parameters/sketch_entity_parameter_adapter.dart`:
+  - Added a schema-backed rectangle `rotation` angle parameter.
+  - Persists normalized rotation in `SketchEntity.parameters`.
+  - Preserves rotation through duplicate-with-offset.
+  - Updated workplane-bounds validation to test rotated rectangle corners.
+- `lib/project/advanced_sketch.dart`:
+  - Added default `rotation: 0.0` for new rectangle entities.
+- `lib/viewport/viewport_controller.dart`:
+  - Added `rotationZDegrees` to `MockViewportSketchRectanglePreview`.
+  - Made sketch rectangle hit testing use rotated local bounds.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added undoable `_rotateAdvancedSketchEntity`.
+  - Wired rotation through the inspector callback chain.
+  - Added selected-rectangle +/- 15 degree rotation quick actions.
+  - Draws helper rectangles with their stored angle.
+  - Shows non-zero rotation in the compact size label.
+- Tests:
+  - Extended adapter, project model, viewport, and Advanced Sketch widget
+    coverage for rotation persistence, undo, hit testing, and bounds checks.
+- Docs/tasks/roadmap:
+  - Added M136 and documented semantic rectangle rotation.
+
+### Tests run
+- `flutter test test\sketch_entity_parameter_adapter_test.dart`:
+  - Passed.
+- `flutter test test\viewport_controller_test.dart`:
+  - Passed.
+- `flutter test test\project_model_test.dart`:
+  - Passed.
+- `flutter test test\widget_test.dart --name "advanced sketch command creates semantic helper feature"`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with current
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 76 files checked, 0 changed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed; 254 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed `releases/latest/windows`.
+
+### Validation
+- Geometry checked?
+  - Yes by boundary. Rotation remains semantic helper data; no B-Rep, mesh
+    triangle, generated topology, or OCCT ids are used for editing.
+- Serialization checked?
+  - Yes. Unit/widget coverage verifies default `rotation: 0.0`, saved
+    `rotation: 15.0`, duplication preservation, and undo back to `0.0`.
+- UI checked?
+  - Yes. Widget coverage verifies the inspector rotation action, save, and
+    undo in the Advanced Sketch flow.
+- Export checked?
+  - Yes. Latest Windows bundle was rebuilt with the native OCCT worker and the
+    release folder remains ignored by Git.
+
+### Known issues
+- Issue: Rotation is currently inspector/button driven; there are no viewport
+  rotate handles yet.
+  - Severity: Expected.
+  - Next action: Add direct handles only after the sketch drawing/editing rules
+    are designed.
+- Issue: Rotated helper overlays are still 2D semantic sketch affordances, not
+  real generated 3D face selection.
+  - Severity: Expected.
+  - Next action: Continue toward actual sketch operation semantics before
+    converting helper contours into geometry operations.
+
+### Next step
+Commit and push M136, then continue with the next safe sketch drawing/editing
+slice.
+
+### Notes for future Codex sessions
+Keep sketch rotation as a semantic parameter. Do not couple rectangle focus,
+hit testing, or undo state to generated mesh triangles, OCCT topology ids, or
+native preview range internals.

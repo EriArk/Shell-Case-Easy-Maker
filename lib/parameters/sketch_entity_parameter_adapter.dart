@@ -51,6 +51,14 @@ class SketchEntityParameterAdapter {
         defaultValue: 0.0,
         range: ParameterRange(min: 0, max: 250, step: 0.1),
       ),
+      ParameterDefinition(
+        id: 'rotation',
+        label: 'Поворот',
+        kind: ParameterKind.angle,
+        unit: '°',
+        defaultValue: 0.0,
+        range: ParameterRange(min: -180, max: 180, step: 1),
+      ),
     ],
   );
 
@@ -77,6 +85,7 @@ class SketchEntityParameterAdapter {
       'width': entity.parameters['width'],
       'height': entity.parameters['height'],
       'cornerRadius': entity.parameters['cornerRadius'],
+      'rotation': entity.parameters['rotation'],
     });
   }
 
@@ -112,6 +121,7 @@ class SketchEntityParameterAdapter {
     final cornerRadius = _cleanDouble(
       _doubleValue(normalized, 'cornerRadius').clamp(0.0, maxRadius),
     );
+    final rotation = _cleanDouble(_doubleValue(normalized, 'rotation'));
 
     return SketchEntity(
       id: entity.id,
@@ -124,6 +134,7 @@ class SketchEntityParameterAdapter {
         'width': width,
         'height': height,
         'cornerRadius': cornerRadius,
+        'rotation': rotation,
       },
       metadata: entity.metadata,
     );
@@ -194,13 +205,28 @@ class SketchEntityParameterAdapter {
     final centerY = _doubleValue(values, 'centerY');
     final halfWidth = _doubleValue(values, 'width') / 2;
     final halfHeight = _doubleValue(values, 'height') / 2;
+    final rotationRadians = _doubleValue(values, 'rotation') * math.pi / 180;
+    final cos = math.cos(rotationRadians);
+    final sin = math.sin(rotationRadians);
     final workplaneHalfWidth = workplaneWidth / 2;
     final workplaneHalfHeight = workplaneHeight / 2;
     final inside =
-        centerX - halfWidth >= -workplaneHalfWidth &&
-        centerX + halfWidth <= workplaneHalfWidth &&
-        centerY - halfHeight >= -workplaneHalfHeight &&
-        centerY + halfHeight <= workplaneHalfHeight;
+        const [
+          _SketchCorner(-1, -1),
+          _SketchCorner(1, -1),
+          _SketchCorner(1, 1),
+          _SketchCorner(-1, 1),
+        ].every((corner) {
+          final localX = corner.xSign * halfWidth;
+          final localY = corner.ySign * halfHeight;
+          final x = centerX + localX * cos - localY * sin;
+          final y = centerY + localX * sin + localY * cos;
+
+          return x >= -workplaneHalfWidth &&
+              x <= workplaneHalfWidth &&
+              y >= -workplaneHalfHeight &&
+              y <= workplaneHalfHeight;
+        });
 
     return [
       ...issues,
@@ -223,4 +249,11 @@ class SketchEntityParameterAdapter {
     final rounded = double.parse(value.toStringAsFixed(6));
     return rounded.abs() < 0.000001 ? 0.0 : rounded;
   }
+}
+
+class _SketchCorner {
+  const _SketchCorner(this.xSign, this.ySign);
+
+  final double xSign;
+  final double ySign;
 }

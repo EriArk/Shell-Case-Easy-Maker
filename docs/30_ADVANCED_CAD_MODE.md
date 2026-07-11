@@ -27,7 +27,7 @@ generate geometry yet.
 - The feature stores its target surface, display name, surface workplane
   placement, and typed sketch entities in metadata.
 - `SketchEntity` currently supports the first `rectangle` entity with center,
-  width, height, and corner-radius parameters.
+  width, height, corner-radius, and rotation parameters.
 - Selecting an advanced sketch shows a compact inspector section with contour
   count, a rectangle action, and rectangle parameter fields.
 - The rectangle action starts a click-to-place mode. The next click on the
@@ -46,6 +46,8 @@ generate geometry yet.
   undoable and save/load-safe.
 - Focused rectangle workplane quick actions can center the contour or fit it to
   the supported sketch workplane bounds while staying semantic.
+- Focused rectangle rotation is a semantic parameter edit. The helper overlay,
+  click target, and workplane-bounds warning account for the stored angle.
 - Focused rectangle keyboard edits reuse those semantic paths: arrows nudge by
   1 mm and Shift+arrows resize by 1 mm when a text field is not focused.
 - Focused rectangle keyboard commands also stay semantic: Ctrl+D duplicates,

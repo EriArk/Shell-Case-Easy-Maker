@@ -360,6 +360,7 @@ class MockViewportSketchRectanglePreview {
     required this.width,
     required this.height,
     required this.cornerRadius,
+    this.rotationZDegrees = 0,
   });
 
   final String featureId;
@@ -369,6 +370,7 @@ class MockViewportSketchRectanglePreview {
   final double width;
   final double height;
   final double cornerRadius;
+  final double rotationZDegrees;
 
   Rect canvasRect(MockViewportLayout layout) {
     final canvasCenter = layout.workplaneLocalToCanvas(workplane, center);
@@ -405,12 +407,34 @@ class MockViewportSketchRectanglePreview {
     return scaled.clamp(0, rect.shortestSide / 2).toDouble();
   }
 
+  double canvasRotationZDegrees(MockViewportLayout layout) {
+    return rotationZDegrees +
+        (workplane.kind == MockViewportWorkplaneKind.componentPlacement
+            ? workplane.rotationZDegrees
+            : 0);
+  }
+
   bool containsCanvasPoint(
     MockViewportLayout layout,
     Offset position, {
     double inflate = 0,
   }) {
-    return canvasRect(layout).inflate(inflate).contains(position);
+    final rect = canvasRect(layout).inflate(inflate);
+    final radians = -canvasRotationZDegrees(layout) * math.pi / 180;
+    final cos = math.cos(radians);
+    final sin = math.sin(radians);
+    final offset = position - rect.center;
+    final local = Offset(
+      offset.dx * cos - offset.dy * sin,
+      offset.dx * sin + offset.dy * cos,
+    );
+    final localRect = Rect.fromCenter(
+      center: Offset.zero,
+      width: rect.width,
+      height: rect.height,
+    );
+
+    return localRect.contains(local);
   }
 
   @override
@@ -422,7 +446,8 @@ class MockViewportSketchRectanglePreview {
         other.center == center &&
         other.width == width &&
         other.height == height &&
-        other.cornerRadius == cornerRadius;
+        other.cornerRadius == cornerRadius &&
+        other.rotationZDegrees == rotationZDegrees;
   }
 
   @override
@@ -435,6 +460,7 @@ class MockViewportSketchRectanglePreview {
       width,
       height,
       cornerRadius,
+      rotationZDegrees,
     );
   }
 }
