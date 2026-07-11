@@ -865,6 +865,43 @@ void main() {
     );
   });
 
+  testWidgets('guided component placement picks viewport snap point', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const CaseMakerApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('rail-command-${CommandIds.placeComponent}')),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('place-component-pick-from-viewport')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('component-placement-guide-banner')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('Top lid').first);
+    await tester.pumpAndSettle();
+    await _tapTopLidWorkplane(tester, const Offset(30, 0));
+
+    expect(
+      find.byKey(const ValueKey('component-placement-guide-banner')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('place-component-snap-hint')),
+      findsOneWidget,
+    );
+    expect(_dialogNumberText(tester, 'place-component-x'), '30');
+    expect(_dialogNumberText(tester, 'place-component-y'), '0');
+  });
+
   testWidgets('active snap target inspector action opens placement dialog', (
     tester,
   ) async {

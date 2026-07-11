@@ -10816,3 +10816,90 @@ chunk.
 Enclosure presets must remain semantic parameter fill-ins. Do not introduce a
 new editable generated geometry type or save preset IDs into `ProjectModel`
 unless a real user-facing preset history/settings feature is designed.
+
+---
+
+## M119 - Guided component placement pick mode
+
+### Goal
+Add a first guided component placement flow: start placement, choose a viewport
+snap point, then continue in the existing placement dialog with that point
+already applied.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/ui/shell/workspace_shell.dart`, `test/widget_test.dart`,
+`docs/26_TESTING_AND_QUALITY.md`, `docs/32_USABLE_SHELL.md`, and
+`docs/33_VIEWPORT_MVP.md`.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added transient `_componentPlacementGuideActive` shell state.
+  - Added `Выбрать точку` to the placement dialog.
+  - Added a compact viewport guide banner with cancel action.
+  - Reused existing semantic snap hit testing and active snap target data.
+  - When guide mode is active, clicking a snap point clears the guide and
+    reopens the normal placement dialog with the snap hint and seeded X/Y.
+  - Kept guide state out of `ProjectModel`, undo/redo, save/load, and geometry
+    requests.
+- `test/widget_test.dart`:
+  - Added coverage for guided viewport pick mode reopening the placement dialog
+    from a top-lid snap point.
+  - Rechecked existing direct placement flows.
+- `ROADMAP.md`, `TASKS.md`, and docs:
+  - Added M119, marked guided component placement workflow complete, and
+    documented the transient viewport pick behavior.
+
+### Tests run
+- `flutter test test\widget_test.dart --plain-name "component placement" --reporter compact`:
+  - Passed, 5 tests.
+- `flutter test test\widget_test.dart --plain-name "place component" --reporter compact`:
+  - Passed, 6 tests.
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed, 238 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Returned `True`.
+- `git status --short --ignored releases`:
+  - Confirmed `releases/` is ignored.
+- `git diff --check`:
+  - Passed with only the existing ROADMAP CRLF warning.
+
+### Validation
+- Geometry checked?
+  - No geometry generator changes. The flow reuses existing semantic snap target
+    data and normal placement dialog commit.
+- Serialization checked?
+  - No project JSON changes. Pending guide state is not saved.
+- UI checked?
+  - Yes. Widget tests verify the guide banner, snap pick, dialog reopening, and
+    existing direct placement flows.
+- Export checked?
+  - Latest Windows bundle rebuilt; STEP/STL behavior unchanged.
+
+### Known issues
+- Issue: Guide mode still depends on currently visible semantic workplanes.
+  - Severity: Expected.
+  - Next action: Add richer surface discovery or hover affordances after native
+    face picking matures.
+- Issue: The guide banner is first-pass visual polish.
+  - Severity: Low.
+  - Next action: Polish with the broader interaction styling pass.
+
+### Next step
+Commit and push M119, then continue with another safe component/template or
+interaction chunk.
+
+### Notes for future Codex sessions
+Guided component placement should remain a transient launcher over existing
+semantic snap targets and `_PlaceComponentDialog`. Do not store pending guide
+mode, viewport hit data, or generated mesh identifiers in `ProjectModel`.

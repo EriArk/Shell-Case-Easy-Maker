@@ -101,6 +101,13 @@ does not become a saved `ComponentPlacement` unless the user confirms the
 placement dialog. The footprint is tinted by the semantic fit status from a
 temporary what-if placement.
 
+Component placement can also enter a guided viewport-pick mode from the
+placement dialog. The viewport shows a compact transient banner while waiting
+for a snap point. Clicking a semantic snap point immediately converts the hit
+back into the existing active snap target data and reopens the normal placement
+dialog. The guide mode is shell interaction state only; it does not persist to
+project JSON and does not introduce generated topology IDs into selection.
+
 ## Feature Markers
 
 The mock viewport draws selectable markers for semantic features:
@@ -154,6 +161,9 @@ pattern around that semantic surface point.
 - Click inside a selected top-lid/front-wall workplane: select a transient
   face-local target for surface commands.
 - Use the inspector snap action: open the snap-seeded component placement dialog.
+- Use `Выбрать точку` in the placement dialog: enter transient component
+  placement pick mode, then click a snap hint to reopen the placement dialog
+  from that point.
 - Use the inspector hole action: open the circular cutout dialog seeded from
   the clicked surface point.
 - Use the inspector USB-C action on a front-wall snap target: open the USB-C

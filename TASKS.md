@@ -223,7 +223,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] First-pass placement dialog quick position presets.
 - [x] First-pass placement dialog rotation editing.
 - [x] First-pass snap anchor selection for component placement.
-- [ ] Guided component placement workflow with viewport picking.
+- [x] Guided component placement workflow with viewport picking.
 - [x] Project switch centers and connector anchors to enclosure surfaces.
 
 ## Phase 7 — Component-driven enclosure generation

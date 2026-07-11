@@ -60,6 +60,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
   bool _fileBusy = false;
   bool _projectBrowserCollapsed = false;
   bool _inspectorCollapsed = false;
+  bool _componentPlacementGuideActive = false;
 
   ProjectModel get _project => _undoHistory.current;
   bool get _hasUnsavedChanges =>
@@ -152,6 +153,26 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     });
   }
 
+  void _startComponentPlacementGuide() {
+    setState(() {
+      _componentPlacementGuideActive = true;
+      _placementDialogCandidate = null;
+      _fileStatusMessage =
+          'Выберите поверхность или точку привязки для компонента';
+    });
+  }
+
+  void _cancelComponentPlacementGuide() {
+    if (!_componentPlacementGuideActive) {
+      return;
+    }
+
+    setState(() {
+      _componentPlacementGuideActive = false;
+      _fileStatusMessage = null;
+    });
+  }
+
   void _setProjectBrowserCollapsed(bool collapsed) {
     setState(() {
       _projectBrowserCollapsed = collapsed;
@@ -179,13 +200,24 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       final snapTarget = _snapTargetFromViewportHit(_project, hit!);
       final selection = _selectionFromViewportHit(hit);
       if (snapTarget != null && selection != null) {
+        final openGuidedPlacement = _componentPlacementGuideActive;
         setState(() {
           _selection = selection;
           _activeSnapTarget = snapTarget;
-          _fileStatusMessage = 'Точка привязки: ${snapTarget.label}';
+          _componentPlacementGuideActive = false;
+          _fileStatusMessage = openGuidedPlacement
+              ? 'Точка выбрана: ${snapTarget.label}'
+              : 'Точка привязки: ${snapTarget.label}';
           _viewportController.setSelectedSemanticId(selection.id);
           _viewportController.setGhostPreview(_ghostPreviewFor(selection));
         });
+        if (openGuidedPlacement) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _runPlaceComponentCommand();
+            }
+          });
+        }
       }
       return;
     }
@@ -509,6 +541,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       }
       _activeSnapTarget = null;
       _placementDialogCandidate = null;
+      _componentPlacementGuideActive = false;
       _fileStatusMessage = null;
       _loadGeometry();
       _viewportController.setSelectedSemanticId(_selection.id);
@@ -653,6 +686,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
         templates: _project.componentTemplates,
         initialPlacement: initialPlacement,
         onCandidateChanged: _setPlacementDialogCandidate,
+        onPickFromViewport: _startComponentPlacementGuide,
         snapTarget: snapTarget,
         snapHint: snapTarget?.label,
       ),
@@ -1055,6 +1089,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       _selection = _validSelectionFor(_project, _selection);
       _activeSnapTarget = null;
       _placementDialogCandidate = null;
+      _componentPlacementGuideActive = false;
       _fileStatusMessage = null;
       _loadGeometry();
       _viewportController.setSelectedSemanticId(_selection.id);
@@ -1442,6 +1477,8 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                             placementDialogCandidate: _placementDialogCandidate,
                             placementDialogCandidateIssue:
                                 placementDialogCandidateIssue,
+                            componentPlacementGuideActive:
+                                _componentPlacementGuideActive,
                             viewportState: _viewportController.state,
                             onOrbit: _orbitViewport,
                             onPan: _panViewport,
@@ -1450,6 +1487,8 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                             onViewPreset: _applyViewportPreset,
                             onHit: _selectViewportHit,
                             onContextMenu: _showViewportContextMenu,
+                            onCancelComponentPlacementGuide:
+                                _cancelComponentPlacementGuide,
                           ),
                         ),
                         if (_inspectorCollapsed)
@@ -3371,6 +3410,7 @@ class _ViewportArea extends StatefulWidget {
     required this.activeSnapPlacementIssue,
     required this.placementDialogCandidate,
     required this.placementDialogCandidateIssue,
+    required this.componentPlacementGuideActive,
     required this.viewportState,
     required this.onOrbit,
     required this.onPan,
@@ -3379,6 +3419,7 @@ class _ViewportArea extends StatefulWidget {
     required this.onViewPreset,
     required this.onHit,
     required this.onContextMenu,
+    required this.onCancelComponentPlacementGuide,
   });
 
   final ProjectModel project;
@@ -3389,6 +3430,7 @@ class _ViewportArea extends StatefulWidget {
   final ValidationMessage? activeSnapPlacementIssue;
   final ComponentPlacement? placementDialogCandidate;
   final ValidationMessage? placementDialogCandidateIssue;
+  final bool componentPlacementGuideActive;
   final ViewportState viewportState;
   final ValueChanged<Offset> onOrbit;
   final ValueChanged<Offset> onPan;
@@ -3398,6 +3440,7 @@ class _ViewportArea extends StatefulWidget {
   final ValueChanged<ViewportHitResult?> onHit;
   final void Function(ViewportHitResult? hit, Offset globalPosition)
   onContextMenu;
+  final VoidCallback onCancelComponentPlacementGuide;
 
   @override
   State<_ViewportArea> createState() => _ViewportAreaState();
@@ -3730,6 +3773,18 @@ class _ViewportAreaState extends State<_ViewportArea> {
                       onPreset: widget.onViewPreset,
                     ),
                   ),
+                  if (widget.componentPlacementGuideActive)
+                    Positioned(
+                      left: 18,
+                      right: 18,
+                      top: 78,
+                      child: Align(
+                        alignment: Alignment.topCenter,
+                        child: _ComponentPlacementGuideBanner(
+                          onCancel: widget.onCancelComponentPlacementGuide,
+                        ),
+                      ),
+                    ),
                   Positioned(
                     left: 18,
                     bottom: 16,
@@ -3744,6 +3799,70 @@ class _ViewportAreaState extends State<_ViewportArea> {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _ComponentPlacementGuideBanner extends StatelessWidget {
+  const _ComponentPlacementGuideBanner({required this.onCancel});
+
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return DecoratedBox(
+      key: const ValueKey('component-placement-guide-banner'),
+      decoration: BoxDecoration(
+        color: const Color(0xEE1E2226),
+        border: Border.all(
+          color: theme.colorScheme.primary.withValues(alpha: 0.35),
+        ),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.add_location_alt_rounded,
+              size: 18,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Размещение компонента',
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelMedium,
+                  ),
+                  Text(
+                    'Точка на корпусе',
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              key: const ValueKey('component-placement-guide-cancel'),
+              tooltip: 'Отмена',
+              visualDensity: VisualDensity.compact,
+              onPressed: onCancel,
+              icon: const Icon(Icons.close_rounded, size: 18),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -5678,6 +5797,7 @@ class _PlaceComponentDialog extends StatefulWidget {
     required this.templates,
     required this.initialPlacement,
     required this.onCandidateChanged,
+    required this.onPickFromViewport,
     this.snapTarget,
     this.snapHint,
   });
@@ -5686,6 +5806,7 @@ class _PlaceComponentDialog extends StatefulWidget {
   final List<ComponentTemplate> templates;
   final ComponentPlacement initialPlacement;
   final ValueChanged<ComponentPlacement> onCandidateChanged;
+  final VoidCallback onPickFromViewport;
   final _ActiveSnapTarget? snapTarget;
   final String? snapHint;
 
@@ -5953,6 +6074,15 @@ class _PlaceComponentDialogState extends State<_PlaceComponentDialog> {
         ),
       ),
       actions: [
+        TextButton.icon(
+          key: const ValueKey('place-component-pick-from-viewport'),
+          onPressed: () {
+            Navigator.of(context).pop();
+            widget.onPickFromViewport();
+          },
+          icon: const Icon(Icons.add_location_alt_rounded),
+          label: const Text('Выбрать точку'),
+        ),
         TextButton(
           key: const ValueKey('place-component-cancel'),
           onPressed: () => Navigator.of(context).pop(),

@@ -233,6 +233,12 @@ change and shows whether it fits before commit.
 While the dialog is open, the shell also keeps a transient candidate footprint
 in the viewport. Canceling clears that footprint; confirming replaces it with a
 normal semantic placement marker.
+The dialog can also switch into a guided viewport-pick mode with
+`Выбрать точку`. In that mode the viewport shows a compact placement banner;
+selecting a surface and clicking a snap point reopens the same placement dialog
+with the clicked point as the active snap target. The guide banner and pending
+pick are transient shell state only. They are not saved, sent to the geometry
+service, or committed to undo history.
 Confirming the dialog appends a semantic `ComponentPlacement`, selects it,
 refreshes the mock preview, and creates one undo history entry. If undo removes
 the selected placement, selection falls back to the workspace so the inspector

@@ -67,6 +67,9 @@ Use deterministic test fixtures.
 - Component placement dialogs validate current candidate values before commit.
 - Component placement dialog viewport candidates appear while dialogs are open
   and clear on cancel/confirm.
+- Guided component placement pick mode reuses semantic viewport snap targets,
+  reopens the normal placement dialog from the clicked point, and does not save
+  pending guide state.
 - Component placement dialogs show selected template board dimensions.
 - Component placement dialog quick presets update candidate coordinates and
   commit normal semantic placements.

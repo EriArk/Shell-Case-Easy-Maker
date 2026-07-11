@@ -137,6 +137,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M116 - Viewport Context Popover Foundation
 - [x] M117 - Command Palette Foundation
 - [x] M118 - Guided Enclosure Presets + Validation
+- [x] M119 - Guided Component Placement Pick Mode
 
 ---
 
@@ -5608,3 +5609,55 @@ as the same semantic rounded-enclosure parameters.
 - Undo once and confirm the sample body returns to `120 x 70 x 28 mm`.
 - Open `Корпус` again, set `Ширина` to `20` and `Стенка` to `8`, and confirm
   `Создать` is disabled with a red validation message.
+
+---
+
+## M119 - Guided Component Placement Pick Mode
+
+### Goal
+Let the user start component placement, choose a point in the viewport, and then
+continue in the existing placement dialog with the clicked snap point already
+applied.
+
+### Tasks
+- [x] Add a transient component-placement guide mode.
+- [x] Add a `Выбрать точку` action to the placement dialog.
+- [x] Show a compact viewport banner while the guide mode is active.
+- [x] Keep guide state out of `ProjectModel`, undo/redo, save/load, and geometry
+      requests.
+- [x] Reuse existing semantic snap hit testing and active snap target data.
+- [x] Open the normal placement dialog after a viewport snap point is selected.
+- [x] Preserve the existing direct `Компоненты` placement dialog flow.
+- [x] Add widget coverage for guided viewport picking and legacy placement flows.
+- [x] Update docs/tasks/worklog.
+
+### Done Criteria
+- `Компоненты` still opens the normal placement dialog.
+- The placement dialog can switch into viewport-pick mode.
+- The viewport shows a cancellable guide banner in that mode.
+- Selecting a surface and clicking a snap point opens the normal placement
+  dialog with the clicked X/Y and snap hint.
+- Confirm/cancel/undo behavior remains on the existing semantic placement path.
+- No generated mesh, B-Rep, topology, or triangle IDs are stored in project
+  state.
+
+### Tests
+- `flutter test test\widget_test.dart --plain-name "component placement" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "place component" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Click `Компоненты`.
+- In the placement dialog, click `Выбрать точку`.
+- Confirm the viewport shows a small `Размещение компонента` banner.
+- Select `Top lid` if its snap points are not already visible.
+- Click one of the lid snap points.
+- Confirm the placement dialog reopens with a `Точка:` hint and X/Y matching the
+  clicked point.
+- Cancel the dialog and confirm the guide banner disappears.
