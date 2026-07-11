@@ -32,6 +32,9 @@ generate geometry yet.
   count, a rectangle action, and rectangle parameter fields.
 - A selected sketch with rectangle entities draws a helper-only viewport
   rectangle overlay on supported top-lid/front-wall mock workplanes.
+- Clicking that rectangle overlay resolves back to the parent
+  `advanced_sketch` feature; it is not entity, mesh, B-Rep, or topology
+  selection.
 - Creation is undoable and save/load-safe.
 - Rectangle entity creation is undoable and save/load-safe.
 - Rectangle parameter edits are undoable and save/load-safe.

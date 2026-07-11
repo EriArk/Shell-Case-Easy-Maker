@@ -391,6 +391,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Basic sketch rectangle entity foundation.
 - [x] Basic sketch rectangle parameter editing.
 - [x] Basic sketch rectangle helper overlay.
+- [x] Basic sketch rectangle overlay hit target.
 - [ ] Basic sketch drawing/editing.
 - [ ] Extrude/cut.
 - [ ] Boolean.

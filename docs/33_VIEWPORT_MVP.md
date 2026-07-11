@@ -166,8 +166,9 @@ sketch inspectable while avoiding the old large surface ghost over the native
 preview.
 
 Sketch helper overlays are display-only. They do not create preview mesh,
-B-Rep, cuts, extrusions, topology ids, or hit-testable sub-entities yet.
-Clicking the viewport still selects normal semantic objects; rectangle editing
+B-Rep, cuts, extrusions, topology ids, or hit-testable sub-entities yet. The
+visible rectangle can be clicked as a semantic parent-sketch target, and that
+hit resolves to the owning `advanced_sketch` feature id. Rectangle editing
 currently happens through the selected sketch inspector.
 
 ## Current Controls
@@ -176,6 +177,8 @@ currently happens through the selected sketch inspector.
 - Secondary or middle drag: pan.
 - Mouse wheel: zoom.
 - Click viewport mock objects: select semantic object.
+- Click inside a selected sketch helper rectangle: keep/select the parent
+  `advanced_sketch` feature.
 - Click a visible snap hint: select/highlight that transient snap target.
 - Click inside a selected top-lid/front-wall workplane: select a transient
   face-local target for surface commands.

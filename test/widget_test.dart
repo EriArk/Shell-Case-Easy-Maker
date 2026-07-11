@@ -3469,6 +3469,21 @@ void main() {
       findsNothing,
     );
 
+    final viewportRect = tester.getRect(
+      find.byKey(const ValueKey('mock-viewport-canvas')),
+    );
+    final viewportLayout = MockViewportLayout.fromSize(
+      viewportRect.size,
+      const ViewportState(),
+    );
+    await tester.tapAt(
+      viewportRect.topLeft + viewportLayout.frontWallRect.center,
+    );
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('Front helper sketch'), findsWidgets);
+    expect(addRectangle, findsOneWidget);
+
     await tester.enterText(
       find.byKey(
         const ValueKey('sketch-entity-advanced_sketch_1-rect_1-width'),

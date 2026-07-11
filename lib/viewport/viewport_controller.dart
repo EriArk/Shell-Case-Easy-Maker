@@ -349,6 +349,94 @@ class MockViewportFeatureGroupPreview {
   }
 }
 
+class MockViewportSketchRectanglePreview {
+  const MockViewportSketchRectanglePreview({
+    required this.featureId,
+    required this.entityId,
+    required this.workplane,
+    required this.center,
+    required this.width,
+    required this.height,
+    required this.cornerRadius,
+  });
+
+  final String featureId;
+  final String entityId;
+  final MockViewportWorkplaneOverlay workplane;
+  final Offset center;
+  final double width;
+  final double height;
+  final double cornerRadius;
+
+  Rect canvasRect(MockViewportLayout layout) {
+    final canvasCenter = layout.workplaneLocalToCanvas(workplane, center);
+    final widthPoint = layout.workplaneLocalToCanvas(
+      workplane,
+      center.translate(width / 2, 0),
+    );
+    final heightPoint = layout.workplaneLocalToCanvas(
+      workplane,
+      center.translate(0, height / 2),
+    );
+    final canvasWidth = ((widthPoint - canvasCenter).distance * 2)
+        .clamp(8 * layout.zoom, 10000)
+        .toDouble();
+    final canvasHeight = ((heightPoint - canvasCenter).distance * 2)
+        .clamp(8 * layout.zoom, 10000)
+        .toDouble();
+
+    return Rect.fromCenter(
+      center: canvasCenter,
+      width: canvasWidth,
+      height: canvasHeight,
+    );
+  }
+
+  double canvasCornerRadius(MockViewportLayout layout) {
+    if (cornerRadius <= 0) {
+      return 0;
+    }
+
+    final rect = canvasRect(layout);
+    final safeWidth = width.clamp(1, 10000).toDouble();
+    final scaled = (cornerRadius / safeWidth) * rect.width;
+    return scaled.clamp(0, rect.shortestSide / 2).toDouble();
+  }
+
+  bool containsCanvasPoint(
+    MockViewportLayout layout,
+    Offset position, {
+    double inflate = 0,
+  }) {
+    return canvasRect(layout).inflate(inflate).contains(position);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is MockViewportSketchRectanglePreview &&
+        other.featureId == featureId &&
+        other.entityId == entityId &&
+        other.workplane == workplane &&
+        other.center == center &&
+        other.width == width &&
+        other.height == height &&
+        other.cornerRadius == cornerRadius;
+  }
+
+  @override
+  int get hashCode {
+    return Object.hash(
+      featureId,
+      entityId,
+      workplane,
+      center,
+      width,
+      height,
+      cornerRadius,
+    );
+  }
+}
+
 class MockViewportComponentPlacementPreview {
   const MockViewportComponentPlacementPreview({
     required this.semanticId,
@@ -894,12 +982,26 @@ class MockViewportHitTester {
     MockViewportWorkplaneOverlay? workplaneOverlay,
     List<MockViewportFeaturePreview> features = const [],
     List<MockViewportFeatureGroupPreview> featureGroups = const [],
+    List<MockViewportSketchRectanglePreview> sketchRectangles = const [],
   }) {
     final layout = MockViewportLayout.fromSize(
       size,
       state,
       bodyDimensions: bodyDimensions,
     );
+
+    for (final rectangle in sketchRectangles.reversed) {
+      if (rectangle.containsCanvasPoint(
+        layout,
+        position,
+        inflate: 6 * state.zoom,
+      )) {
+        return ViewportHitResult(
+          kind: ViewportHitKind.feature,
+          semanticId: rectangle.featureId,
+        );
+      }
+    }
 
     for (final feature in features.reversed) {
       if (layout

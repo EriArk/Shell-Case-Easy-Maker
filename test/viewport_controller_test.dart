@@ -392,6 +392,42 @@ void main() {
     expect(rectangularHit?.semanticId, 'rectangular_cutout_1');
   });
 
+  test(
+    'mock hit tester returns parent sketch feature for rectangle overlays',
+    () {
+      const state = ViewportState();
+      const size = Size(900, 600);
+      final layout = MockViewportLayout.fromSize(size, state);
+      const workplane = MockViewportWorkplaneOverlay(
+        semanticId: 'main_enclosure.top_lid.outer',
+        kind: MockViewportWorkplaneKind.topLid,
+        width: 120,
+        height: 70,
+      );
+      const rectangle = MockViewportSketchRectanglePreview(
+        featureId: 'advanced_sketch_1',
+        entityId: 'rect_1',
+        workplane: workplane,
+        center: Offset(18, -12),
+        width: 24,
+        height: 16,
+        cornerRadius: 2,
+      );
+      const hitTester = MockViewportHitTester();
+
+      final hit = hitTester.hitTest(
+        position: rectangle.canvasRect(layout).center,
+        size: size,
+        state: state,
+        componentPlacements: const [],
+        sketchRectangles: const [rectangle],
+      );
+
+      expect(hit?.kind, ViewportHitKind.feature);
+      expect(hit?.semanticId, 'advanced_sketch_1');
+    },
+  );
+
   test('mock hit tester returns semantic feature group ids', () {
     const state = ViewportState();
     const size = Size(900, 600);

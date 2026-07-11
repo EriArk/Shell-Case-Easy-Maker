@@ -11149,6 +11149,24 @@ Add the first typed Advanced Sketch entity in a safe semantic-only way.
   - Passed.
 - `flutter test test\widget_test.dart --plain-name "advanced sketch command" --reporter compact`:
   - Passed.
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed, 247 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Returned `True`.
+- `git status --short --ignored releases`:
+  - Confirmed `releases/` is ignored.
+- `git diff --check`:
+  - Passed with only the existing ROADMAP CRLF warning.
 - `flutter analyze`:
   - Passed with no issues.
 - `flutter pub get`:
@@ -11386,3 +11404,78 @@ entity selection affordances.
 Keep sketch overlays display-only until entity selection and geometry
 conversion are designed. Do not couple overlay rectangles to preview mesh
 triangles, B-Rep faces, or OCCT topology ids.
+
+---
+
+## M125 - Sketch rectangle overlay hit target
+
+### Goal
+Make the selected Advanced Sketch rectangle overlay clickable as a semantic
+parent sketch target without turning rectangle entities into mesh, B-Rep, or
+topology selections.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/viewport/viewport_controller.dart`, `lib/ui/shell/workspace_shell.dart`,
+`test/viewport_controller_test.dart`, `test/widget_test.dart`,
+`docs/06_FEATURE_SYSTEM.md`, `docs/26_TESTING_AND_QUALITY.md`,
+`docs/30_ADVANCED_CAD_MODE.md`, `docs/32_USABLE_SHELL.md`, and
+`docs/33_VIEWPORT_MVP.md`.
+
+### Changes made
+- `lib/viewport/viewport_controller.dart`:
+  - Added public `MockViewportSketchRectanglePreview` with shared canvas layout
+    and hit-test helpers.
+  - Added sketch rectangle overlay hit testing to `MockViewportHitTester`.
+  - Prioritized selected sketch rectangle hits before normal feature/group
+    markers so clicks on the helper do not fall through to objects underneath.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Reused the shared sketch rectangle preview model for painting.
+  - Passed selected sketch rectangle previews into viewport hit testing.
+  - Kept hits resolving to the parent `advanced_sketch` feature id.
+- Tests:
+  - Added controller coverage for rectangle overlay hit results.
+  - Extended the Advanced Sketch widget test to click the visible helper
+    rectangle and verify the sketch inspector remains selected.
+- Docs/tasks/roadmap:
+  - Added M125 and documented the no-sub-entity/no-topology boundary.
+
+### Tests run
+- `flutter test test\viewport_controller_test.dart --plain-name "parent sketch feature" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "advanced sketch command" --reporter compact`:
+  - Passed.
+
+### Validation
+- Geometry checked?
+  - Yes by boundary. The overlay hit result returns a stable semantic feature
+    id and does not use mesh triangles, B-Rep faces, or OCCT topology ids.
+- Serialization checked?
+  - No schema change. The selected rectangle still comes from existing
+    `SketchEntity` metadata.
+- UI checked?
+  - Yes. Widget coverage clicks the visible helper overlay and confirms the
+    selected sketch inspector stays active.
+- Export checked?
+  - Latest Windows bundle rebuilt; STEP/STL behavior unchanged because sketch
+    overlays still do not generate geometry.
+
+### Known issues
+- Issue: Rectangle sub-entity selection/edit handles are still not implemented.
+  - Severity: Expected.
+  - Next action: Design sketch entity editing affordances after the parent
+    overlay hit path is stable.
+- Issue: The overlay still supports only mock top-lid/front-wall surface
+  mappings.
+  - Severity: Expected.
+  - Next action: Expand supported surfaces when stable semantic local
+    coordinate systems are added.
+
+### Next step
+Run full validation, rebuild latest Windows bundle, commit, push, then continue
+with the next safe Advanced Sketch interaction slice.
+
+### Notes for future Codex sessions
+Keep sketch overlay hit testing semantic and parent-feature based until
+sub-entity editing is explicitly designed. Do not introduce mesh triangle ids,
+generated B-Rep ids, or OCCT topology handles into editable project state.

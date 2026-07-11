@@ -359,7 +359,9 @@ the first typed rectangle sketch entity as semantic project data. Rectangle
 entities expose compact X/Y, width, height, and radius fields in the same
 inspector section. When the selected sketch has a rectangle, the viewport draws
 a thin helper rectangle overlay without restoring the old full-surface
-workplane rectangle. The switch itself does not change saved project JSON,
+workplane rectangle. Clicking inside that helper rectangle keeps the parent
+sketch selected in the inspector; it does not select rectangle sub-entities or
+generated mesh/topology. The switch itself does not change saved project JSON,
 undo/redo history, or geometry requests, and sketch entities do not generate
 geometry yet.
 

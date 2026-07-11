@@ -143,6 +143,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M122 - Sketch Rectangle Entity Slice
 - [x] M123 - Sketch Rectangle Parameter Editing
 - [x] M124 - Sketch Rectangle Helper Overlay
+- [x] M125 - Sketch Rectangle Overlay Hit Target
 
 ---
 
@@ -5905,3 +5906,53 @@ semantic overlays without reintroducing the old large passive 2D workplane.
 - Confirm the old full workplane rectangle is not covering the model.
 - Change `Ширина` and confirm the helper rectangle changes size.
 - Undo until `rect_1` disappears and confirm the helper overlay disappears too.
+
+---
+
+## M125 - Sketch Rectangle Overlay Hit Target
+
+### Goal
+Make the visible selected-sketch rectangle overlay clickable as a semantic
+parent sketch target, without introducing mesh, topology, or sub-entity
+selection.
+
+### Tasks
+- [x] Move sketch rectangle preview layout/hit math into the viewport layer so
+      painting and hit testing share one model.
+- [x] Add rectangle overlay hit testing before normal feature/group markers so
+      clicks on the helper do not fall through to underlying USB-C, surface, or
+      placement targets.
+- [x] Return the parent `advanced_sketch` feature id from overlay hits.
+- [x] Keep rectangle entity ids internal to the sketch metadata for now; do not
+      expose them as selectable viewport entities.
+- [x] Extend controller/widget coverage for the overlay hit target.
+- [x] Update docs/tasks/worklog.
+
+### Done Criteria
+- Clicking inside the selected rectangle helper overlay keeps the selected
+  `advanced_sketch` in the inspector.
+- The hit result resolves to `ViewportHitKind.feature` with the parent sketch
+  semantic id.
+- The overlay still does not create preview mesh, B-Rep, cuts, extrusions,
+  topology ids, or editable sketch sub-selection.
+- Editing rectangle parameters continues to update the same semantic source
+  data.
+
+### Tests
+- `flutter test test\viewport_controller_test.dart --plain-name "parent sketch feature" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "advanced sketch command" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Enable Advanced Mode and create an `Эскиз` on `Front wall` or `Top lid`.
+- Add a rectangle from the selected sketch inspector.
+- Click inside the thin helper rectangle in the viewport.
+- Confirm the right inspector stays on the sketch instead of jumping to the
+  USB-C, body, or surface below it.
+- Change width/height and confirm the same overlay still responds to clicks.

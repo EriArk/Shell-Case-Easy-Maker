@@ -3760,6 +3760,10 @@ class _ViewportAreaState extends State<_ViewportArea> {
       widget.project,
       widget.selection,
     );
+    final sketchRectanglePreviews = _mockSketchRectanglePreviews(
+      widget.project,
+      widget.selection,
+    );
     final mockHit = _hitTester.hitTest(
       position: position,
       size: viewportSize,
@@ -3769,6 +3773,7 @@ class _ViewportAreaState extends State<_ViewportArea> {
       workplaneOverlay: workplaneOverlay,
       features: _mockFeaturePreviews(widget.project),
       featureGroups: _mockFeatureGroupPreviews(widget.project),
+      sketchRectangles: sketchRectanglePreviews,
     );
     final nativeHit = mockHit?.kind == ViewportHitKind.snapPoint
         ? null
@@ -9122,7 +9127,7 @@ class _ViewportPainter extends CustomPainter {
   final _ActiveSnapTarget? activeSnapTarget;
   final List<MockViewportFeaturePreview> featurePreviews;
   final List<MockViewportFeatureGroupPreview> featureGroupPreviews;
-  final List<_MockViewportSketchRectanglePreview> sketchRectanglePreviews;
+  final List<MockViewportSketchRectanglePreview> sketchRectanglePreviews;
   final SelectionModel selection;
   final ViewportState viewportState;
 
@@ -10654,86 +10659,6 @@ void _drawRotatedRRect(
   canvas.restore();
 }
 
-class _MockViewportSketchRectanglePreview {
-  const _MockViewportSketchRectanglePreview({
-    required this.featureId,
-    required this.entityId,
-    required this.workplane,
-    required this.center,
-    required this.width,
-    required this.height,
-    required this.cornerRadius,
-  });
-
-  final String featureId;
-  final String entityId;
-  final MockViewportWorkplaneOverlay workplane;
-  final Offset center;
-  final double width;
-  final double height;
-  final double cornerRadius;
-
-  Rect canvasRect(MockViewportLayout layout) {
-    final canvasCenter = layout.workplaneLocalToCanvas(workplane, center);
-    final widthPoint = layout.workplaneLocalToCanvas(
-      workplane,
-      center.translate(width / 2, 0),
-    );
-    final heightPoint = layout.workplaneLocalToCanvas(
-      workplane,
-      center.translate(0, height / 2),
-    );
-    final canvasWidth = ((widthPoint - canvasCenter).distance * 2)
-        .clamp(8 * layout.zoom, 10000)
-        .toDouble();
-    final canvasHeight = ((heightPoint - canvasCenter).distance * 2)
-        .clamp(8 * layout.zoom, 10000)
-        .toDouble();
-
-    return Rect.fromCenter(
-      center: canvasCenter,
-      width: canvasWidth,
-      height: canvasHeight,
-    );
-  }
-
-  double canvasCornerRadius(MockViewportLayout layout) {
-    if (cornerRadius <= 0) {
-      return 0;
-    }
-
-    final rect = canvasRect(layout);
-    final safeWidth = width.clamp(1, 10000).toDouble();
-    final scaled = (cornerRadius / safeWidth) * rect.width;
-    return scaled.clamp(0, rect.shortestSide / 2).toDouble();
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return other is _MockViewportSketchRectanglePreview &&
-        other.featureId == featureId &&
-        other.entityId == entityId &&
-        other.workplane == workplane &&
-        other.center == center &&
-        other.width == width &&
-        other.height == height &&
-        other.cornerRadius == cornerRadius;
-  }
-
-  @override
-  int get hashCode {
-    return Object.hash(
-      featureId,
-      entityId,
-      workplane,
-      center,
-      width,
-      height,
-      cornerRadius,
-    );
-  }
-}
-
 MockViewportBodyDimensions _mockViewportBodyDimensions(ProjectModel project) {
   final enclosure = project.bodies.firstOrNull;
   if (enclosure == null) {
@@ -10938,7 +10863,7 @@ bool _snapTargetMatches(
   return (target.localPosition - localPoint).distance < 0.001;
 }
 
-List<_MockViewportSketchRectanglePreview> _mockSketchRectanglePreviews(
+List<MockViewportSketchRectanglePreview> _mockSketchRectanglePreviews(
   ProjectModel project,
   SelectionModel selection,
 ) {
@@ -10961,7 +10886,7 @@ List<_MockViewportSketchRectanglePreview> _mockSketchRectanglePreviews(
     return const [];
   }
 
-  final previews = <_MockViewportSketchRectanglePreview>[];
+  final previews = <MockViewportSketchRectanglePreview>[];
   for (final entity in sketchEntitiesForFeature(feature)) {
     if (entity.type != 'rectangle') {
       continue;
@@ -10969,7 +10894,7 @@ List<_MockViewportSketchRectanglePreview> _mockSketchRectanglePreviews(
 
     final values = SketchEntityParameterAdapter.valuesFrom(entity);
     previews.add(
-      _MockViewportSketchRectanglePreview(
+      MockViewportSketchRectanglePreview(
         featureId: feature.id,
         entityId: entity.id,
         workplane: workplane,
