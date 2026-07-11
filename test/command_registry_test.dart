@@ -35,6 +35,32 @@ void main() {
     expect(save.undoBehavior, UndoBehavior.none);
   });
 
+  test('command palette command is global UI affordance without undo', () {
+    final registry = CommandRegistry.core;
+    final palette = registry.byId(CommandIds.commandPalette);
+
+    expect(palette.label, 'Команды');
+    expect(palette.undoBehavior, UndoBehavior.none);
+    expect(
+      palette.isAvailable(
+        const CommandContext(activeScope: CommandScope.workspace),
+      ),
+      isTrue,
+    );
+    expect(
+      palette.isAvailable(
+        const CommandContext(activeScope: CommandScope.surface),
+      ),
+      isTrue,
+    );
+    expect(
+      palette.isAvailable(
+        const CommandContext(activeScope: CommandScope.component),
+      ),
+      isTrue,
+    );
+  });
+
   test('USB-C command works from surface and component context', () {
     final registry = CommandRegistry.core;
     final addUsbC = registry.byId(CommandIds.addUsbC);

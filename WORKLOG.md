@@ -10636,3 +10636,93 @@ chunk from the roadmap.
 Viewport context popovers are transient UI affordances. Keep them filtered
 through `CommandRegistry` and existing command handlers; do not create a second
 command execution path or store popover state in `ProjectModel`.
+
+---
+
+## M117 - Command Palette Foundation
+
+### Goal
+Add a compact command palette for discovering and launching existing semantic
+commands from the toolbar or keyboard, without adding a second command system or
+saving palette state into the project.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/commands/command_ids.dart`, `lib/commands/command_registry.dart`,
+`lib/ui/shell/workspace_shell.dart`, `test/command_registry_test.dart`,
+`test/widget_test.dart`, `docs/26_TESTING_AND_QUALITY.md`, and
+`docs/32_USABLE_SHELL.md`.
+
+### Changes made
+- `lib/commands/command_ids.dart` and `lib/commands/command_registry.dart`:
+  - Added `workspace.command_palette` as a global, no-undo UI command.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added a top-toolbar command palette button.
+  - Added `Ctrl+K` shell focus handling.
+  - Added a searchable palette dialog filtered through `CommandRegistry`,
+    current selection context, undo/file state, and existing shell handlers.
+  - Routed selected palette commands into the same command handlers used by the
+    rail, toolbar, inspector shortcuts, and viewport context popover.
+  - Kept palette query/focus state transient and outside project JSON,
+    undo/redo, and geometry requests.
+- `test/command_registry_test.dart` and `test/widget_test.dart`:
+  - Added registry coverage for the palette command.
+  - Added widget coverage for toolbar opening, `Ctrl+K`, context filtering, and
+    launching a surface command from the palette.
+- `ROADMAP.md`, `TASKS.md`, and docs:
+  - Added M117, marked command palette foundation complete, and documented the
+    transient UI/testing expectations.
+
+### Tests run
+- `flutter test test\widget_test.dart --plain-name "command palette" --reporter compact`:
+  - Passed, 2 tests.
+- `flutter test test\command_registry_test.dart --reporter compact`:
+  - Passed, 9 tests.
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed, 235 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Returned `True`.
+- `git status --short --ignored releases`:
+  - Confirmed `releases/` is ignored.
+- `git diff --check`:
+  - Passed with only the existing ROADMAP CRLF warning.
+
+### Validation
+- Geometry checked?
+  - No geometry changes. The palette only opens existing command flows.
+- Serialization checked?
+  - No project serialization changes. Palette state is not saved.
+- UI checked?
+  - Yes. Widget tests verify toolbar access, keyboard access, filtering, and
+    launching a surface command.
+- Export checked?
+  - Latest Windows bundle rebuilt; STEP/STL behavior unchanged.
+
+### Known issues
+- Issue: The palette uses a first-pass compact dialog style.
+  - Severity: Expected.
+  - Next action: Polish command grouping/recents later when there are more
+    production commands.
+- Issue: Command labels are still hard-coded while localization is future work.
+  - Severity: Low.
+  - Next action: Move command/UI text into a localization layer when the app
+    gets full language support.
+
+### Next step
+Commit and push M117, then continue with the next safe workflow/interaction
+chunk.
+
+### Notes for future Codex sessions
+The command palette must stay a transient launcher over `CommandRegistry` and
+existing shell handlers. Do not store query text, focus state, or palette-only
+selection in `ProjectModel`, and do not add a parallel command execution path.

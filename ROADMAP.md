@@ -135,6 +135,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M114 - Native Active Snap Point De-Clutter
 - [x] M115 - Collapsible Workspace Side Panels
 - [x] M116 - Viewport Context Popover Foundation
+- [x] M117 - Command Palette Foundation
 
 ---
 
@@ -5502,3 +5503,56 @@ moving back to the left rail.
 - Confirm the cutout dialog opens and the X/Y fields match the clicked point.
 - Cancel the dialog and confirm normal left-click selection/orbit behavior still
   feels the same.
+
+---
+
+## M117 - Command Palette Foundation
+
+### Goal
+Add a compact command palette so common semantic commands can be found from the
+keyboard or toolbar while still using the existing command registry and command
+handlers.
+
+### Tasks
+- [x] Add `workspace.command_palette` metadata to the core command registry.
+- [x] Add a toolbar affordance for opening the palette.
+- [x] Add `Ctrl+K` keyboard access for the shell.
+- [x] Filter palette entries by the current semantic selection, undo state, file
+      busy state, and available shell handlers.
+- [x] Let palette entries launch existing command paths instead of creating a
+      second execution system.
+- [x] Keep palette/search state out of `ProjectModel`, undo/redo, save/load, and
+      geometry requests.
+- [x] Add widget and command-registry coverage.
+- [x] Update docs/tasks/worklog.
+
+### Done Criteria
+- The toolbar opens a searchable command palette.
+- `Ctrl+K` opens the same palette when the shell has focus.
+- Workspace selection shows only workspace-available commands.
+- Surface selection exposes surface commands such as `Отверстия`.
+- Choosing a command launches the same existing dialogs/actions used by the
+  rail, toolbar, inspector shortcuts, and viewport context popover.
+- No project JSON, semantic geometry request, or generated preview data changes
+  are introduced by opening/filtering the palette.
+
+### Tests
+- `flutter test test\widget_test.dart --plain-name "command palette" --reporter compact`
+- `flutter test test\command_registry_test.dart --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Click the command-palette icon in the top toolbar.
+- Confirm the palette opens and shows workspace commands.
+- Type `slot` while the project root is selected and confirm no surface-only
+  slot command is shown.
+- Select `Top lid`, open the palette again, type `slot`, and choose
+  `Отверстия`.
+- Confirm the cutout dialog opens, then cancel it.
+- Press `Ctrl+K` and confirm the same palette opens again.

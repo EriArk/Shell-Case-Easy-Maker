@@ -4,6 +4,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../app/app_strings.dart';
 import '../../commands/app_command.dart';
@@ -46,6 +47,7 @@ class WorkspaceShell extends StatefulWidget {
 
 class _WorkspaceShellState extends State<WorkspaceShell> {
   final _viewportController = ViewportController();
+  final _shellFocusNode = FocusNode(debugLabel: 'workspace-shell');
   late app_undo.UndoHistory<ProjectModel> _undoHistory;
   late Future<GeometryPreview> _previewFuture;
   late Future<ValidationReport> _validationFuture;
@@ -81,6 +83,12 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     } else if (oldWidget.geometryService != widget.geometryService) {
       _loadGeometry();
     }
+  }
+
+  @override
+  void dispose() {
+    _shellFocusNode.dispose();
+    super.dispose();
   }
 
   void _loadGeometry() {
@@ -287,6 +295,44 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     };
   }
 
+  Future<void> _showCommandPalette() async {
+    final commands = _commandPaletteCommands().toList();
+    if (commands.isEmpty) {
+      return;
+    }
+
+    final selectedCommandId = await showDialog<String>(
+      context: context,
+      builder: (context) => _CommandPaletteDialog(commands: commands),
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    _shellFocusNode.requestFocus();
+
+    if (selectedCommandId == null) {
+      return;
+    }
+
+    _commandActionFor(selectedCommandId)?.call();
+  }
+
+  Iterable<AppCommand> _commandPaletteCommands() {
+    final registry = CommandRegistry.core;
+    final commandContext = _selection.toCommandContext(
+      canUndo: _undoHistory.canUndo,
+      canRedo: _undoHistory.canRedo,
+    );
+
+    return registry.commands.where((command) {
+      return command.id != CommandIds.commandPalette &&
+          command.isAvailable(commandContext) &&
+          _commandActionFor(command.id) != null;
+    });
+  }
+
   void _updateEnclosureParameter(
     String enclosureId,
     String parameterId,
@@ -472,6 +518,12 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
 
   VoidCallback? _commandActionFor(String commandId) {
     return switch (commandId) {
+      CommandIds.undo => _undoHistory.canUndo ? _undo : null,
+      CommandIds.redo => _undoHistory.canRedo ? _redo : null,
+      CommandIds.openProject => _fileBusy ? null : _openProject,
+      CommandIds.saveProject => _fileBusy ? null : _saveProject,
+      CommandIds.exportProject => _fileBusy ? null : _chooseExportFormat,
+      CommandIds.commandPalette => _showCommandPalette,
       CommandIds.createEnclosure => () {
         _runCreateEnclosureCommand();
       },
@@ -1296,189 +1348,205 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: FutureBuilder<GeometryPreview>(
-          future: _previewFuture,
-          builder: (context, previewSnapshot) {
-            final preview = previewSnapshot.data;
-            final surfaceLabels = {
-              for (final surface in preview?.surfaces ?? <SelectableSurface>[])
-                surface.id: surface.label,
-              for (final surface
-                  in preview?.previewMesh?.surfaces ??
-                      <PreviewSurfaceMapping>[])
-                surface.semanticId: surface.label,
-            };
-            final details = ProjectSelectionResolver(
-              _project,
-              surfaceLabels: surfaceLabels,
-            ).describe(_selection);
-            final commandContext = _selection.toCommandContext();
-            final activeSnapPlacementIssue = _placementDialogCandidate == null
-                ? _activeSnapPlacementIssue(_project, _activeSnapTarget)
-                : null;
-            final placementDialogCandidateIssue =
-                _placementDialogCandidate == null
-                ? null
-                : _prospectivePlacementIssue(
-                    _project,
-                    _placementDialogCandidate!,
-                  );
+    return Focus(
+      focusNode: _shellFocusNode,
+      autofocus: true,
+      onKeyEvent: (_, event) {
+        if (event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.keyK &&
+            HardwareKeyboard.instance.isControlPressed) {
+          _showCommandPalette();
+          return KeyEventResult.handled;
+        }
 
-            return Column(
-              children: [
-                _TopToolbar(
-                  projectName: _project.projectName,
-                  canUndo: _undoHistory.canUndo,
-                  canRedo: _undoHistory.canRedo,
-                  fileBusy: _fileBusy,
-                  onOpen: _openProject,
-                  onSave: _saveProject,
-                  onExport: _chooseExportFormat,
-                  onUndo: _undo,
-                  onRedo: _redo,
-                ),
-                Expanded(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _ToolRail(
-                        commandContext: commandContext,
-                        commandActionFor: _commandActionFor,
-                      ),
-                      if (_projectBrowserCollapsed)
-                        _CollapsedSidePanel(
-                          key: const ValueKey('project-panel-collapsed'),
-                          side: _CollapsedPanelSide.left,
-                          icon: Icons.account_tree_rounded,
-                          tooltip: 'Показать проект',
-                          buttonKey: const ValueKey('project-panel-expand'),
-                          onPressed: () => _setProjectBrowserCollapsed(false),
-                        )
-                      else
-                        _ProjectBrowser(
-                          project: _project,
-                          surfaces: preview?.surfaces ?? const [],
-                          selection: _selection,
-                          onSelectionChanged: _select,
-                          onCollapse: () => _setProjectBrowserCollapsed(true),
-                        ),
-                      Expanded(
-                        child: _ViewportArea(
-                          project: _project,
-                          preview: preview,
-                          selection: _selection,
-                          selectionDetails: details,
-                          activeSnapTarget: _activeSnapTarget,
-                          activeSnapPlacementIssue: activeSnapPlacementIssue,
-                          placementDialogCandidate: _placementDialogCandidate,
-                          placementDialogCandidateIssue:
-                              placementDialogCandidateIssue,
-                          viewportState: _viewportController.state,
-                          onOrbit: _orbitViewport,
-                          onPan: _panViewport,
-                          onZoom: _zoomViewport,
-                          onFit: _fitViewport,
-                          onViewPreset: _applyViewportPreset,
-                          onHit: _selectViewportHit,
-                          onContextMenu: _showViewportContextMenu,
-                        ),
-                      ),
-                      if (_inspectorCollapsed)
-                        _CollapsedSidePanel(
-                          key: const ValueKey('inspector-panel-collapsed'),
-                          side: _CollapsedPanelSide.right,
-                          icon: Icons.tune_rounded,
-                          tooltip: 'Показать инспектор',
-                          buttonKey: const ValueKey('inspector-panel-expand'),
-                          onPressed: () => _setInspectorCollapsed(false),
-                        )
-                      else
-                        _Inspector(
-                          details: details,
-                          project: _project,
-                          selection: _selection,
-                          activeSnapTarget: _activeSnapTarget,
-                          activeSnapPlacementIssue: activeSnapPlacementIssue,
-                          onPlaceComponentFromSnap:
-                              _activeSnapTarget != null &&
-                                  _project.componentTemplates.isNotEmpty
-                              ? () {
-                                  _runPlaceComponentCommand();
-                                }
-                              : null,
-                          onCreateCircularCutoutFromSnap:
-                              _snapTargetCanCreateCircularCutout(
-                                _activeSnapTarget,
-                              )
-                              ? () {
-                                  _runCreateCircularCutoutCommand(_selection);
-                                }
-                              : null,
-                          onCreateUsbCFromSnap:
-                              _usbCSnapTargetFor(
-                                    _activeSnapTarget,
-                                    _selection.id ?? '',
-                                  ) !=
-                                  null
-                              ? () {
-                                  _runAddUsbCCommand(_selection);
-                                }
-                              : null,
-                          onCreateGlassRecessFromSnap:
-                              _surfaceSnapTargetFor(
-                                    _activeSnapTarget,
-                                    _selection.id ?? '',
-                                  ) !=
-                                  null
-                              ? () {
-                                  _runCreateGlassRecessCommand(_selection);
-                                }
-                              : null,
-                          onCreateButtonGroupFromSnap:
-                              _surfaceSnapTargetFor(
-                                    _activeSnapTarget,
-                                    _selection.id ?? '',
-                                  ) !=
-                                  null
-                              ? () {
-                                  _runCreateButtonGroupCommand(_selection);
-                                }
-                              : null,
-                          onClearSnapTarget: _clearActiveSnapTarget,
-                          onEnclosureParameterChanged:
-                              _updateEnclosureParameter,
-                          onComponentPlacementParameterChanged:
-                              _updateComponentPlacementParameter,
-                          onFeatureParameterChanged: _updateFeatureParameter,
-                          onFeatureGroupParameterChanged:
-                              _updateFeatureGroupParameter,
-                          onCollapse: () => _setInspectorCollapsed(true),
-                        ),
-                    ],
-                  ),
-                ),
-                FutureBuilder<ValidationReport>(
-                  future: _validationFuture,
-                  builder: (context, snapshot) {
-                    final report = snapshot.data;
-                    return _StatusBar(
-                      report: report,
-                      selectionDetails: details,
-                      fileStatusMessage: _fileStatusMessage,
-                      fileBusy: _fileBusy,
-                      hasUnsavedChanges: _hasUnsavedChanges,
-                      onShowValidationDetails:
-                          report != null && report.hasIssues
-                          ? () => _showValidationDetails(report)
-                          : null,
+        return KeyEventResult.ignored;
+      },
+      child: Scaffold(
+        body: SafeArea(
+          child: FutureBuilder<GeometryPreview>(
+            future: _previewFuture,
+            builder: (context, previewSnapshot) {
+              final preview = previewSnapshot.data;
+              final surfaceLabels = {
+                for (final surface
+                    in preview?.surfaces ?? <SelectableSurface>[])
+                  surface.id: surface.label,
+                for (final surface
+                    in preview?.previewMesh?.surfaces ??
+                        <PreviewSurfaceMapping>[])
+                  surface.semanticId: surface.label,
+              };
+              final details = ProjectSelectionResolver(
+                _project,
+                surfaceLabels: surfaceLabels,
+              ).describe(_selection);
+              final commandContext = _selection.toCommandContext();
+              final activeSnapPlacementIssue = _placementDialogCandidate == null
+                  ? _activeSnapPlacementIssue(_project, _activeSnapTarget)
+                  : null;
+              final placementDialogCandidateIssue =
+                  _placementDialogCandidate == null
+                  ? null
+                  : _prospectivePlacementIssue(
+                      _project,
+                      _placementDialogCandidate!,
                     );
-                  },
-                ),
-              ],
-            );
-          },
+
+              return Column(
+                children: [
+                  _TopToolbar(
+                    projectName: _project.projectName,
+                    canUndo: _undoHistory.canUndo,
+                    canRedo: _undoHistory.canRedo,
+                    fileBusy: _fileBusy,
+                    onOpen: _openProject,
+                    onSave: _saveProject,
+                    onExport: _chooseExportFormat,
+                    onCommandPalette: _showCommandPalette,
+                    onUndo: _undo,
+                    onRedo: _redo,
+                  ),
+                  Expanded(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _ToolRail(
+                          commandContext: commandContext,
+                          commandActionFor: _commandActionFor,
+                        ),
+                        if (_projectBrowserCollapsed)
+                          _CollapsedSidePanel(
+                            key: const ValueKey('project-panel-collapsed'),
+                            side: _CollapsedPanelSide.left,
+                            icon: Icons.account_tree_rounded,
+                            tooltip: 'Показать проект',
+                            buttonKey: const ValueKey('project-panel-expand'),
+                            onPressed: () => _setProjectBrowserCollapsed(false),
+                          )
+                        else
+                          _ProjectBrowser(
+                            project: _project,
+                            surfaces: preview?.surfaces ?? const [],
+                            selection: _selection,
+                            onSelectionChanged: _select,
+                            onCollapse: () => _setProjectBrowserCollapsed(true),
+                          ),
+                        Expanded(
+                          child: _ViewportArea(
+                            project: _project,
+                            preview: preview,
+                            selection: _selection,
+                            selectionDetails: details,
+                            activeSnapTarget: _activeSnapTarget,
+                            activeSnapPlacementIssue: activeSnapPlacementIssue,
+                            placementDialogCandidate: _placementDialogCandidate,
+                            placementDialogCandidateIssue:
+                                placementDialogCandidateIssue,
+                            viewportState: _viewportController.state,
+                            onOrbit: _orbitViewport,
+                            onPan: _panViewport,
+                            onZoom: _zoomViewport,
+                            onFit: _fitViewport,
+                            onViewPreset: _applyViewportPreset,
+                            onHit: _selectViewportHit,
+                            onContextMenu: _showViewportContextMenu,
+                          ),
+                        ),
+                        if (_inspectorCollapsed)
+                          _CollapsedSidePanel(
+                            key: const ValueKey('inspector-panel-collapsed'),
+                            side: _CollapsedPanelSide.right,
+                            icon: Icons.tune_rounded,
+                            tooltip: 'Показать инспектор',
+                            buttonKey: const ValueKey('inspector-panel-expand'),
+                            onPressed: () => _setInspectorCollapsed(false),
+                          )
+                        else
+                          _Inspector(
+                            details: details,
+                            project: _project,
+                            selection: _selection,
+                            activeSnapTarget: _activeSnapTarget,
+                            activeSnapPlacementIssue: activeSnapPlacementIssue,
+                            onPlaceComponentFromSnap:
+                                _activeSnapTarget != null &&
+                                    _project.componentTemplates.isNotEmpty
+                                ? () {
+                                    _runPlaceComponentCommand();
+                                  }
+                                : null,
+                            onCreateCircularCutoutFromSnap:
+                                _snapTargetCanCreateCircularCutout(
+                                  _activeSnapTarget,
+                                )
+                                ? () {
+                                    _runCreateCircularCutoutCommand(_selection);
+                                  }
+                                : null,
+                            onCreateUsbCFromSnap:
+                                _usbCSnapTargetFor(
+                                      _activeSnapTarget,
+                                      _selection.id ?? '',
+                                    ) !=
+                                    null
+                                ? () {
+                                    _runAddUsbCCommand(_selection);
+                                  }
+                                : null,
+                            onCreateGlassRecessFromSnap:
+                                _surfaceSnapTargetFor(
+                                      _activeSnapTarget,
+                                      _selection.id ?? '',
+                                    ) !=
+                                    null
+                                ? () {
+                                    _runCreateGlassRecessCommand(_selection);
+                                  }
+                                : null,
+                            onCreateButtonGroupFromSnap:
+                                _surfaceSnapTargetFor(
+                                      _activeSnapTarget,
+                                      _selection.id ?? '',
+                                    ) !=
+                                    null
+                                ? () {
+                                    _runCreateButtonGroupCommand(_selection);
+                                  }
+                                : null,
+                            onClearSnapTarget: _clearActiveSnapTarget,
+                            onEnclosureParameterChanged:
+                                _updateEnclosureParameter,
+                            onComponentPlacementParameterChanged:
+                                _updateComponentPlacementParameter,
+                            onFeatureParameterChanged: _updateFeatureParameter,
+                            onFeatureGroupParameterChanged:
+                                _updateFeatureGroupParameter,
+                            onCollapse: () => _setInspectorCollapsed(true),
+                          ),
+                      ],
+                    ),
+                  ),
+                  FutureBuilder<ValidationReport>(
+                    future: _validationFuture,
+                    builder: (context, snapshot) {
+                      final report = snapshot.data;
+                      return _StatusBar(
+                        report: report,
+                        selectionDetails: details,
+                        fileStatusMessage: _fileStatusMessage,
+                        fileBusy: _fileBusy,
+                        hasUnsavedChanges: _hasUnsavedChanges,
+                        onShowValidationDetails:
+                            report != null && report.hasIssues
+                            ? () => _showValidationDetails(report)
+                            : null,
+                      );
+                    },
+                  ),
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
@@ -2507,6 +2575,7 @@ class _TopToolbar extends StatelessWidget {
     required this.onOpen,
     required this.onSave,
     required this.onExport,
+    required this.onCommandPalette,
     required this.onUndo,
     required this.onRedo,
   });
@@ -2518,6 +2587,7 @@ class _TopToolbar extends StatelessWidget {
   final VoidCallback onOpen;
   final VoidCallback onSave;
   final VoidCallback onExport;
+  final VoidCallback onCommandPalette;
   final VoidCallback onUndo;
   final VoidCallback onRedo;
 
@@ -2561,6 +2631,11 @@ class _TopToolbar extends StatelessWidget {
             ),
           ),
           const Spacer(),
+          _ToolbarCommand(
+            command: registry.byId(CommandIds.commandPalette),
+            context: commandContext,
+            onPressed: onCommandPalette,
+          ),
           _ToolbarCommand(
             command: registry.byId(CommandIds.undo),
             context: commandContext,
@@ -2651,6 +2726,114 @@ class _ExportFormatTile extends StatelessWidget {
       title: Text(format.label),
       trailing: Text(extensionLabel),
       onTap: () => Navigator.of(context).pop(format),
+    );
+  }
+}
+
+class _CommandPaletteDialog extends StatefulWidget {
+  const _CommandPaletteDialog({required this.commands});
+
+  final List<AppCommand> commands;
+
+  @override
+  State<_CommandPaletteDialog> createState() => _CommandPaletteDialogState();
+}
+
+class _CommandPaletteDialogState extends State<_CommandPaletteDialog> {
+  String _query = '';
+
+  List<AppCommand> get _filteredCommands {
+    final normalizedQuery = _query.trim().toLowerCase();
+    if (normalizedQuery.isEmpty) {
+      return widget.commands;
+    }
+
+    return [
+      for (final command in widget.commands)
+        if (command.label.toLowerCase().contains(normalizedQuery) ||
+            command.id.toLowerCase().contains(normalizedQuery))
+          command,
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final commands = _filteredCommands;
+
+    return AlertDialog(
+      title: const Text('Команды'),
+      content: SizedBox(
+        width: 360,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              key: const ValueKey('command-palette-search'),
+              autofocus: true,
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.search_rounded),
+                labelText: 'Поиск',
+                isDense: true,
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (value) {
+                setState(() {
+                  _query = value;
+                });
+              },
+            ),
+            const SizedBox(height: 12),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 320),
+              child: commands.isEmpty
+                  ? SizedBox(
+                      key: const ValueKey('command-palette-empty'),
+                      height: 72,
+                      child: Center(
+                        child: Text(
+                          'Нет команд',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    )
+                  : ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: commands.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 4),
+                      itemBuilder: (context, index) {
+                        final command = commands[index];
+                        return ListTile(
+                          key: ValueKey(
+                            'command-palette-command-${command.id}',
+                          ),
+                          dense: true,
+                          leading: Icon(_iconForCommand(command.icon)),
+                          title: Text(
+                            command.label,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          subtitle: Text(
+                            command.id,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          onTap: () => Navigator.of(context).pop(command.id),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          key: const ValueKey('command-palette-cancel'),
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Отмена'),
+        ),
+      ],
     );
   }
 }
@@ -2783,6 +2966,7 @@ IconData _iconForCommand(String icon) {
     'open' => Icons.folder_open_rounded,
     'save' => Icons.save_outlined,
     'export' => Icons.file_download_outlined,
+    'command_palette' => Icons.manage_search_rounded,
     'enclosure' => Icons.crop_square_rounded,
     'component' => Icons.memory_rounded,
     'port' => Icons.settings_input_component_rounded,

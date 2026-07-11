@@ -6,6 +6,7 @@ class CommandIds {
   static const openProject = 'workspace.open_project';
   static const saveProject = 'workspace.save_project';
   static const exportProject = 'workspace.export_project';
+  static const commandPalette = 'workspace.command_palette';
 
   static const createEnclosure = 'enclosure.create';
   static const placeComponent = 'component.place';

@@ -70,6 +70,19 @@ class CoreCommands {
       undoBehavior: UndoBehavior.none,
     ),
     AppCommand(
+      id: CommandIds.commandPalette,
+      label: 'Команды',
+      icon: 'command_palette',
+      scopes: {
+        CommandScope.workspace,
+        CommandScope.enclosure,
+        CommandScope.surface,
+        CommandScope.component,
+        CommandScope.feature,
+      },
+      undoBehavior: UndoBehavior.none,
+    ),
+    AppCommand(
       id: CommandIds.createEnclosure,
       label: 'Корпус',
       icon: 'enclosure',

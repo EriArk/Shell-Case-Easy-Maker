@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shell_case_easy_maker/app/case_maker_app.dart';
 import 'package:shell_case_easy_maker/commands/command_ids.dart';
@@ -167,6 +168,96 @@ void main() {
     expect(find.byKey(const ValueKey('cutout-shape')), findsOneWidget);
     expect(_dialogNumberText(tester, 'circular-cutout-position-x'), '30');
     expect(_dialogNumberText(tester, 'circular-cutout-position-y'), '0');
+  });
+
+  testWidgets('command palette opens from toolbar and shortcut', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const CaseMakerApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey('toolbar-command-${CommandIds.commandPalette}'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('command-palette-search')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey('command-palette-command-${CommandIds.createEnclosure}'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey('command-palette-command-${CommandIds.generateSlot}'),
+      ),
+      findsNothing,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('command-palette-cancel')));
+    await tester.pumpAndSettle();
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.keyK);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.keyK);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('command-palette-search')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('command palette filters and launches surface command', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const CaseMakerApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Top lid').first);
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey('toolbar-command-${CommandIds.commandPalette}'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('command-palette-search')),
+      'slot',
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(
+        const ValueKey('command-palette-command-${CommandIds.generateSlot}'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey('command-palette-command-${CommandIds.createEnclosure}'),
+      ),
+      findsNothing,
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey('command-palette-command-${CommandIds.generateSlot}'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('cutout-shape')), findsOneWidget);
   });
 
   testWidgets('semantic validation warnings are visible in status bar', (

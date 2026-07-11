@@ -323,6 +323,14 @@ opens the existing cutout dialog with the clicked face-local X/Y values. The
 popover is transient UI state only and does not affect saved project JSON,
 undo/redo, or geometry requests.
 
+The top toolbar also exposes a compact command palette. It can be opened from
+the toolbar or with `Ctrl+K`, filters entries through the same
+`CommandRegistry` metadata and shell handlers, and launches the existing
+command paths. Workspace context stays limited to workspace actions, while a
+selected semantic surface exposes surface generators such as `Отверстия`.
+Palette query/focus state is transient UI state only and is not stored in
+`ProjectModel`, undo/redo history, project JSON, or geometry requests.
+
 Future rail tools remain visible to show the intended workflow, but they are
 disabled until their semantic command behavior is implemented and tested.
 

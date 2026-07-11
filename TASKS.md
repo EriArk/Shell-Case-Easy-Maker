@@ -47,7 +47,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Collapsible/sliding panels.
 - [x] Theme system foundation.
 - [x] Context popover foundation.
-- [ ] Command palette foundation.
+- [x] Command palette foundation.
 - [x] Navigation presets foundation.
 - [x] Compact semantic project browser.
 - [x] Enclosure parameter controls in contextual inspector.
