@@ -136,6 +136,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M115 - Collapsible Workspace Side Panels
 - [x] M116 - Viewport Context Popover Foundation
 - [x] M117 - Command Palette Foundation
+- [x] M118 - Guided Enclosure Presets + Validation
 
 ---
 
@@ -5556,3 +5557,54 @@ handlers.
   `Отверстия`.
 - Confirm the cutout dialog opens, then cancel it.
 - Press `Ctrl+K` and confirm the same palette opens again.
+
+---
+
+## M118 - Guided Enclosure Presets + Validation
+
+### Goal
+Make the first enclosure creation dialog more maker-friendly by adding guided
+size presets and live printability/fit checks while keeping the saved project
+as the same semantic rounded-enclosure parameters.
+
+### Tasks
+- [x] Add compact guided presets to `Создать корпус`.
+- [x] Apply presets through existing enclosure parameter values instead of a new
+      project schema.
+- [x] Show a live internal-size summary for the current dimensions.
+- [x] Block creation when wall thickness leaves too little internal space.
+- [x] Block creation when corner radius is impossible for the selected width and
+      depth.
+- [x] Show first-pass warnings for very thin/thick walls and tight screw-lid
+      bodies.
+- [x] Keep create/cancel/undo behavior unchanged.
+- [x] Add widget coverage for preset application and validation blocking.
+- [x] Update docs/tasks/worklog.
+
+### Done Criteria
+- The create-enclosure dialog offers guided presets for common first bodies.
+- Choosing a preset updates width/depth/height/wall/radius/lid controls.
+- Confirming a preset still commits one normal semantic enclosure edit.
+- Invalid combinations disable `Создать` and explain the problem in the dialog.
+- No new project JSON fields, geometry protocol fields, or editable generated
+  geometry are introduced.
+
+### Tests
+- `flutter test test\widget_test.dart --plain-name "create enclosure" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Click `Корпус` in the left rail.
+- Click the `Плата`, `Ручной`, and `Бокс` presets and confirm the numeric fields
+  and `Внутри:` summary update.
+- Pick `Ручной`, click `Создать`, and confirm the project shows
+  `160 x 84 x 34 mm`.
+- Undo once and confirm the sample body returns to `120 x 70 x 28 mm`.
+- Open `Корпус` again, set `Ширина` to `20` and `Стенка` to `8`, and confirm
+  `Создать` is disabled with a red validation message.

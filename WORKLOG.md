@@ -10726,3 +10726,93 @@ chunk.
 The command palette must stay a transient launcher over `CommandRegistry` and
 existing shell handlers. Do not store query text, focus state, or palette-only
 selection in `ProjectModel`, and do not add a parallel command execution path.
+
+---
+
+## M118 - Guided enclosure presets and validation
+
+### Goal
+Make the first enclosure creation dialog more useful for a maker by adding
+guided size presets and live validation, while keeping the editable project as
+the same semantic rounded-enclosure parameter set.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/ui/shell/workspace_shell.dart`, `test/widget_test.dart`,
+`docs/26_TESTING_AND_QUALITY.md`, and `docs/32_USABLE_SHELL.md`.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added `Плата`, `Ручной`, and `Бокс` guided presets to the create-enclosure
+    dialog.
+  - Presets apply existing semantic parameters: width, depth, height, wall
+    thickness, corner radius, and lid type.
+  - Added a live internal usable-size summary.
+  - Added dialog-level errors for unusable internal cavity and impossible
+    corner radius.
+  - Added first-pass warnings for very thin/thick walls and tight screw-lid
+    bodies.
+  - Kept create/cancel/undo behavior on the existing command path.
+- `test/widget_test.dart`:
+  - Added coverage that a guided preset updates fields and commits a normal
+    semantic enclosure edit.
+  - Added coverage that invalid wall/width combinations disable `Создать`, and
+    that applying a valid preset clears the blocking error.
+- `ROADMAP.md`, `TASKS.md`, and docs:
+  - Added M118, marked guided enclosure wizard presets/validation complete, and
+    documented the transient dialog guidance.
+
+### Tests run
+- `flutter test test\widget_test.dart --plain-name "create enclosure" --reporter compact`:
+  - Passed, 4 tests.
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed, 237 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Returned `True`.
+- `git status --short --ignored releases`:
+  - Confirmed `releases/` is ignored.
+- `git diff --check`:
+  - Passed with only the existing ROADMAP CRLF warning.
+
+### Validation
+- Geometry checked?
+  - No geometry generator changes. The dialog still commits normal semantic
+    rounded-enclosure values consumed by existing preview/export paths.
+- Serialization checked?
+  - No project JSON schema changes. Presets and validation messages are
+    dialog-only UI state.
+- UI checked?
+  - Yes. Widget tests verify preset application, commit behavior, blocking
+    validation, and recovery via preset.
+- Export checked?
+  - Latest Windows bundle rebuilt; STEP/STL behavior unchanged.
+
+### Known issues
+- Issue: Presets are currently hard-coded in the dialog.
+  - Severity: Expected.
+  - Next action: Move them into a reusable preset catalog if more enclosure
+    families are added.
+- Issue: Dialog validation is first-pass guidance, not a full printability
+  solver.
+  - Severity: Expected.
+  - Next action: Reuse/project these checks into semantic validation when
+    enclosure wizard workflows become richer.
+
+### Next step
+Commit and push M118, then continue with the next safe enclosure or workflow
+chunk.
+
+### Notes for future Codex sessions
+Enclosure presets must remain semantic parameter fill-ins. Do not introduce a
+new editable generated geometry type or save preset IDs into `ProjectModel`
+unless a real user-facing preset history/settings feature is designed.

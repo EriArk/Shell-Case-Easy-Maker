@@ -1843,6 +1843,97 @@ void main() {
     expect(tester.widget<IconButton>(undoButton).onPressed, isNull);
   });
 
+  testWidgets('create enclosure presets apply guided dimensions', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const CaseMakerApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('rail-command-${CommandIds.createEnclosure}')),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('create-enclosure-preset-handheld')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(_textFormFieldText(tester, 'create-enclosure-param-width'), '160');
+    expect(_textFormFieldText(tester, 'create-enclosure-param-depth'), '84');
+    expect(_textFormFieldText(tester, 'create-enclosure-param-height'), '34');
+    expect(
+      _textFormFieldText(tester, 'create-enclosure-param-wallThickness'),
+      '2.4',
+    );
+    expect(
+      find.byKey(const ValueKey('create-enclosure-validation-summary')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('create-enclosure-confirm')));
+    await _pumpAsyncUi(tester);
+
+    expect(find.text('160 x 84 x 34 mm'), findsWidgets);
+  });
+
+  testWidgets('create enclosure validation blocks unusable inner cavity', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const CaseMakerApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('rail-command-${CommandIds.createEnclosure}')),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('create-enclosure-param-width')),
+      '20',
+    );
+    await tester.pump();
+    await tester.enterText(
+      find.byKey(const ValueKey('create-enclosure-param-wallThickness')),
+      '8',
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('create-enclosure-validation-error-0')),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.byKey(const ValueKey('create-enclosure-confirm')),
+          )
+          .onPressed,
+      isNull,
+    );
+
+    final boardPreset = find.byKey(
+      const ValueKey('create-enclosure-preset-board_case'),
+    );
+    await tester.ensureVisible(boardPreset);
+    await tester.pumpAndSettle();
+    await tester.tap(boardPreset);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('create-enclosure-validation-error-0')),
+      findsNothing,
+    );
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.byKey(const ValueKey('create-enclosure-confirm')),
+          )
+          .onPressed,
+      isNotNull,
+    );
+  });
+
   testWidgets('place component rail command commits through undo history', (
     tester,
   ) async {
@@ -3748,6 +3839,11 @@ String _dialogNumberText(WidgetTester tester, String key) {
       matching: find.byType(TextFormField),
     ),
   );
+  return field.controller?.text ?? field.initialValue ?? '';
+}
+
+String _textFormFieldText(WidgetTester tester, String key) {
+  final field = tester.widget<TextFormField>(find.byKey(ValueKey(key)));
   return field.controller?.text ?? field.initialValue ?? '';
 }
 

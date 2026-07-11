@@ -172,7 +172,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 ## Phase 5 — Enclosure-first MVP
 
 - [x] First-pass create enclosure command/dialog.
-- [ ] Guided enclosure wizard presets and validation polish.
+- [x] Guided enclosure wizard presets and validation polish.
 - [x] First-pass box dimensions, wall thickness, corner radius.
 - [ ] Lid type: none / top / bottom / screw lid.
 - [x] First-pass lid type: none / top screw lid.

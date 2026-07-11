@@ -50,6 +50,9 @@ Use deterministic test fixtures.
 ### UI tests
 
 - Inspector changes with selection.
+- Guided enclosure presets update the same semantic enclosure parameters as
+  manual entry, and dialog validation blocks unusable size/wall/radius
+  combinations before commit.
 - Inspector visibility toggles update semantic state and viewport selection
   affordances.
 - Surface/component selection wires local workplane overlays without saving UI

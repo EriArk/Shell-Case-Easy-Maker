@@ -5274,11 +5274,58 @@ class _CreateEnclosureDialog extends StatefulWidget {
 
 class _CreateEnclosureDialogState extends State<_CreateEnclosureDialog> {
   late Map<String, Object?> _values;
+  late String? _selectedPresetId;
+
+  static const _presets = [
+    _EnclosurePreset(
+      id: 'board_case',
+      label: 'Плата',
+      description: '90 x 55 x 24 mm',
+      icon: Icons.memory_rounded,
+      values: {
+        'width': 90.0,
+        'depth': 55.0,
+        'height': 24.0,
+        'wallThickness': 2.0,
+        'cornerRadius': 4.0,
+        'lidType': 'top_screw_lid',
+      },
+    ),
+    _EnclosurePreset(
+      id: 'handheld',
+      label: 'Ручной',
+      description: '160 x 84 x 34 mm',
+      icon: Icons.sports_esports_rounded,
+      values: {
+        'width': 160.0,
+        'depth': 84.0,
+        'height': 34.0,
+        'wallThickness': 2.4,
+        'cornerRadius': 10.0,
+        'lidType': 'top_screw_lid',
+      },
+    ),
+    _EnclosurePreset(
+      id: 'desktop_box',
+      label: 'Бокс',
+      description: '120 x 90 x 42 mm',
+      icon: Icons.inventory_rounded,
+      values: {
+        'width': 120.0,
+        'depth': 90.0,
+        'height': 42.0,
+        'wallThickness': 2.4,
+        'cornerRadius': 6.0,
+        'lidType': 'top_screw_lid',
+      },
+    ),
+  ];
 
   @override
   void initState() {
     super.initState();
     _values = EnclosureParameterAdapter.valuesFrom(widget.initialEnclosure);
+    _selectedPresetId = _matchingPresetId(_values);
   }
 
   void _updateValue(String id, Object? value) {
@@ -5287,22 +5334,37 @@ class _CreateEnclosureDialogState extends State<_CreateEnclosureDialog> {
         ..._values,
         id: value,
       });
+      _selectedPresetId = _matchingPresetId(_values);
+    });
+  }
+
+  void _applyPreset(_EnclosurePreset preset) {
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _values = EnclosureParameterAdapter.schema.applyDefaults({
+        ..._values,
+        ...preset.values,
+      });
+      _selectedPresetId = preset.id;
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final schema = EnclosureParameterAdapter.schema;
-    final issues = EnclosureParameterAdapter.validateValues(_values);
+    final issues = _validationIssues();
+    final hasErrors = issues.any((issue) => issue.isError);
 
     return AlertDialog(
       title: const Text('Создать корпус'),
       content: SizedBox(
-        width: 340,
+        width: 390,
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              _buildPresetPicker(),
+              const SizedBox(height: 14),
               for (final parameter in schema.parameters) ...[
                 if (parameter.kind == ParameterKind.choice)
                   _ParameterChoiceField(
@@ -5321,19 +5383,7 @@ class _CreateEnclosureDialogState extends State<_CreateEnclosureDialog> {
                   ),
                 const SizedBox(height: 10),
               ],
-              for (final issue in issues)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      issue.message,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
-                      ),
-                    ),
-                  ),
-                ),
+              _buildValidationPanel(issues),
             ],
           ),
         ),
@@ -5346,7 +5396,7 @@ class _CreateEnclosureDialogState extends State<_CreateEnclosureDialog> {
         ),
         FilledButton(
           key: const ValueKey('create-enclosure-confirm'),
-          onPressed: issues.isEmpty
+          onPressed: !hasErrors
               ? () => Navigator.of(
                   context,
                 ).pop(Map<String, Object?>.from(_values))
@@ -5356,6 +5406,270 @@ class _CreateEnclosureDialogState extends State<_CreateEnclosureDialog> {
       ],
     );
   }
+
+  Widget _buildPresetPicker() {
+    final theme = Theme.of(context);
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          for (final preset in _presets)
+            ChoiceChip(
+              key: ValueKey('create-enclosure-preset-${preset.id}'),
+              avatar: Icon(preset.icon, size: 16),
+              label: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(preset.label),
+                  Text(preset.description, style: theme.textTheme.labelSmall),
+                ],
+              ),
+              selected: _selectedPresetId == preset.id,
+              onSelected: (_) => _applyPreset(preset),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildValidationPanel(List<_CreateEnclosureDialogIssue> issues) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final hasErrors = issues.any((issue) => issue.isError);
+    final hasWarnings = issues.any((issue) => !issue.isError);
+    final color = hasErrors
+        ? scheme.error
+        : hasWarnings
+        ? scheme.tertiary
+        : scheme.primary;
+    final background = color.withValues(alpha: 0.1);
+    final innerWidth = _innerWidth;
+    final innerDepth = _innerDepth;
+    final innerHeight = _innerHeight;
+
+    return Container(
+      key: const ValueKey('create-enclosure-validation-panel'),
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: background,
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                hasErrors
+                    ? Icons.error_outline_rounded
+                    : Icons.check_circle_outline_rounded,
+                size: 18,
+                color: color,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Внутри: ${_formatNumber(innerWidth)} x '
+                  '${_formatNumber(innerDepth)} x '
+                  '${_formatNumber(innerHeight)} mm',
+                  key: const ValueKey('create-enclosure-validation-summary'),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          for (var index = 0; index < issues.length; index++) ...[
+            const SizedBox(height: 6),
+            Text(
+              issues[index].message,
+              key: ValueKey(
+                issues[index].isError
+                    ? 'create-enclosure-validation-error-$index'
+                    : 'create-enclosure-validation-warning-$index',
+              ),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: issues[index].isError
+                    ? scheme.error
+                    : scheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  List<_CreateEnclosureDialogIssue> _validationIssues() {
+    final schemaIssues = EnclosureParameterAdapter.validateValues(
+      _values,
+    ).map(_schemaIssue).toList();
+    final issues = <_CreateEnclosureDialogIssue>[...schemaIssues];
+    final width = _numberValue('width');
+    final depth = _numberValue('depth');
+    final wall = _numberValue('wallThickness');
+    final cornerRadius = _numberValue('cornerRadius');
+    final lidType = _stringValue('lidType');
+
+    if (_innerWidth < 10 || _innerDepth < 10) {
+      issues.add(
+        const _CreateEnclosureDialogIssue.error(
+          'Внутри слишком мало места: уменьшите стенку или увеличьте ширину/глубину.',
+        ),
+      );
+    }
+
+    if (_innerHeight < 6) {
+      issues.add(
+        const _CreateEnclosureDialogIssue.error(
+          'Полезная высота слишком мала: увеличьте высоту или уменьшите стенку.',
+        ),
+      );
+    }
+
+    final maxCornerRadius = math.min(width, depth) / 2;
+    if (cornerRadius > maxCornerRadius) {
+      issues.add(
+        _CreateEnclosureDialogIssue.error(
+          'Радиус не может быть больше ${_formatNumber(maxCornerRadius)} mm для этого размера.',
+        ),
+      );
+    }
+
+    if (wall < 1.2) {
+      issues.add(
+        const _CreateEnclosureDialogIssue.warning(
+          'Стенка тонкая для FDM-печати; проверьте материал и сопло.',
+        ),
+      );
+    }
+
+    if (wall > 4.0) {
+      issues.add(
+        const _CreateEnclosureDialogIssue.warning(
+          'Толстые стенки увеличат время печати и расход пластика.',
+        ),
+      );
+    }
+
+    if (lidType == 'top_screw_lid' && math.min(width, depth) < 45) {
+      issues.add(
+        const _CreateEnclosureDialogIssue.warning(
+          'Для винтовой крышки мало места; проверьте стойки и углы.',
+        ),
+      );
+    }
+
+    return issues;
+  }
+
+  _CreateEnclosureDialogIssue _schemaIssue(ParameterIssue issue) {
+    final parameter = EnclosureParameterAdapter.schema.byId(issue.parameterId);
+    final range = parameter.range;
+    final unit = parameter.unit == null ? '' : ' ${parameter.unit}';
+    final message = switch (issue.code) {
+      'parameter.range' when range != null =>
+        '${parameter.label}: допустимо ${_formatNumber(range.min)}-'
+            '${_formatNumber(range.max)}$unit.',
+      'parameter.choice' => '${parameter.label}: выберите доступный вариант.',
+      'parameter.type' => '${parameter.label}: введите число.',
+      _ => '${parameter.label}: ${issue.message}',
+    };
+
+    return _CreateEnclosureDialogIssue.error(message);
+  }
+
+  double get _innerWidth =>
+      math.max(0, _numberValue('width') - _numberValue('wallThickness') * 2);
+
+  double get _innerDepth =>
+      math.max(0, _numberValue('depth') - _numberValue('wallThickness') * 2);
+
+  double get _innerHeight =>
+      math.max(0, _numberValue('height') - _numberValue('wallThickness'));
+
+  double _numberValue(String id) {
+    final value = _values[id];
+    final defaultValue = EnclosureParameterAdapter.schema.byId(id).defaultValue;
+    return value is num
+        ? value.toDouble()
+        : defaultValue is num
+        ? defaultValue.toDouble()
+        : 0;
+  }
+
+  String _stringValue(String id) {
+    final value = _values[id];
+    final defaultValue = EnclosureParameterAdapter.schema.byId(id).defaultValue;
+    return value is String
+        ? value
+        : defaultValue is String
+        ? defaultValue
+        : '';
+  }
+
+  static String? _matchingPresetId(Map<String, Object?> values) {
+    for (final preset in _presets) {
+      if (_presetMatches(preset, values)) {
+        return preset.id;
+      }
+    }
+
+    return null;
+  }
+
+  static bool _presetMatches(
+    _EnclosurePreset preset,
+    Map<String, Object?> values,
+  ) {
+    for (final entry in preset.values.entries) {
+      final current = values[entry.key];
+      final presetValue = entry.value;
+      if (current is num && presetValue is num) {
+        if ((current.toDouble() - presetValue.toDouble()).abs() > 0.001) {
+          return false;
+        }
+      } else if (current != presetValue) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+}
+
+class _EnclosurePreset {
+  const _EnclosurePreset({
+    required this.id,
+    required this.label,
+    required this.description,
+    required this.icon,
+    required this.values,
+  });
+
+  final String id;
+  final String label;
+  final String description;
+  final IconData icon;
+  final Map<String, Object?> values;
+}
+
+class _CreateEnclosureDialogIssue {
+  const _CreateEnclosureDialogIssue.error(this.message) : isError = true;
+
+  const _CreateEnclosureDialogIssue.warning(this.message) : isError = false;
+
+  final String message;
+  final bool isError;
 }
 
 class _PlaceComponentDialog extends StatefulWidget {

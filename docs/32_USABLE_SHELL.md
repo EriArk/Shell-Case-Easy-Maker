@@ -203,6 +203,15 @@ enclosure parameter schema as the inspector. Confirming the dialog updates the
 semantic `ProjectModel`, selects the enclosure, refreshes the mock preview, and
 creates one undo history entry.
 
+The create-enclosure dialog now includes guided presets for common first bodies
+(`Плата`, `Ручной`, and `Бокс`). Presets only fill the existing semantic
+rounded-enclosure parameters: width, depth, height, wall thickness, corner
+radius, and lid type. The dialog also shows the current internal usable size and
+blocks obviously unusable combinations, such as walls that leave too little
+internal space or a corner radius that cannot fit the selected width/depth.
+Thin/thick wall and tight screw-lid warnings stay dialog-only guidance; they
+are not saved as project state.
+
 Clicking `Компоненты` opens a compact placement dialog when the project has at
 least one `ComponentTemplate`. The command is available from workspace,
 enclosure, surface, and component contexts. If a snap hint was clicked first,
