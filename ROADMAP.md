@@ -6232,3 +6232,49 @@ its supported sketch workplane.
 - Click another point on the same sketch workplane and confirm the rectangle
   jumps there.
 - Press undo and confirm the rectangle returns to the previous center.
+
+---
+
+## M132 - Sketch Rectangle Duplicate
+
+### Goal
+Make repeated helper contours practical without flattening them into generated
+geometry: duplicate a focused sketch rectangle as a new semantic `SketchEntity`
+with a safe offset and immediate focus.
+
+### Tasks
+- [x] Add schema-backed rectangle duplication through
+      `SketchEntityParameterAdapter`.
+- [x] Preserve rectangle size/radius while assigning a new stable `rect_N` id.
+- [x] Offset the duplicate center so it is visible and editable immediately.
+- [x] Add a compact selected-rectangle duplicate action.
+- [x] Commit duplication through undo history and select the new rectangle.
+- [x] Extend adapter/widget coverage and update docs/tasks/worklog.
+
+### Done Criteria
+- The focused rectangle exposes a duplicate action.
+- Pressing it creates `rect_2` when `rect_1` is selected.
+- The duplicate keeps width, height, and corner radius, with center offset by
+  `+6, -6` mm from the source rectangle.
+- Saving after duplication stores both semantic entities.
+- Undo removes only the duplicate and leaves the source rectangle.
+- Duplication updates only semantic `SketchEntity` data and does not query mesh,
+  B-Rep, OCCT topology, or generated triangle ids.
+
+### Tests
+- `flutter test test\sketch_entity_parameter_adapter_test.dart --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "advanced sketch command" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Enable Advanced Mode and create an `Эскиз`.
+- Add/place a rectangle and select `rect_1`.
+- Press the duplicate action in the selected rectangle row.
+- Confirm `rect_2` appears slightly offset and becomes selected.
+- Press undo and confirm only `rect_2` disappears.

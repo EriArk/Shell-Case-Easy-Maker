@@ -801,6 +801,42 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     );
   }
 
+  void _duplicateAdvancedSketchEntity(String featureId, String entityId) {
+    final feature = _project.features
+        .where((feature) => feature.id == featureId)
+        .firstOrNull;
+    if (feature == null || feature.type != advancedSketchFeatureType) {
+      return;
+    }
+
+    final entities = sketchEntitiesForFeature(feature);
+    final entity = entities
+        .where((entity) => entity.id == entityId)
+        .firstOrNull;
+    if (entity == null || entity.type != 'rectangle') {
+      return;
+    }
+
+    final duplicate = SketchEntityParameterAdapter.duplicateWithOffset(
+      entity,
+      id: nextSketchEntityId(entities, 'rect'),
+    );
+    final updatedFeature = advancedSketchWithEntities(feature, [
+      ...entities,
+      duplicate,
+    ]);
+
+    _commitProjectEdit(
+      id: 'advanced.sketch.entity.duplicate',
+      label: 'Дублировать контур',
+      nextState: _project.replaceFeature(updatedFeature),
+      selection: SelectionModel.sketchEntity(
+        id: duplicate.id,
+        parentId: feature.id,
+      ),
+    );
+  }
+
   void _deleteAdvancedSketchEntity(String featureId, String entityId) {
     final feature = _project.features
         .where((feature) => feature.id == featureId)
@@ -2015,6 +2051,8 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                             onSketchEntityResized: _resizeAdvancedSketchEntity,
                             onSketchEntityMoveToClick:
                                 _startAdvancedSketchRectangleMove,
+                            onSketchEntityDuplicated:
+                                _duplicateAdvancedSketchEntity,
                             onSketchEntityDeleted: _deleteAdvancedSketchEntity,
                             onFeatureGroupParameterChanged:
                                 _updateFeatureGroupParameter,
@@ -4865,6 +4903,7 @@ class _Inspector extends StatelessWidget {
     required this.onSketchEntityNudged,
     required this.onSketchEntityResized,
     required this.onSketchEntityMoveToClick,
+    required this.onSketchEntityDuplicated,
     required this.onSketchEntityDeleted,
     required this.onFeatureGroupParameterChanged,
     required this.onCollapse,
@@ -4908,6 +4947,8 @@ class _Inspector extends StatelessWidget {
   onSketchEntityResized;
   final void Function(String featureId, String entityId)
   onSketchEntityMoveToClick;
+  final void Function(String featureId, String entityId)
+  onSketchEntityDuplicated;
   final void Function(String featureId, String entityId) onSketchEntityDeleted;
   final void Function(String groupId, String parameterId, Object? value)
   onFeatureGroupParameterChanged;
@@ -5101,6 +5142,9 @@ class _Inspector extends StatelessWidget {
               },
               onEntityMoveToClick: (entityId) {
                 onSketchEntityMoveToClick(selectedFeature.id, entityId);
+              },
+              onEntityDuplicated: (entityId) {
+                onSketchEntityDuplicated(selectedFeature.id, entityId);
               },
               onEntityDeleted: (entityId) {
                 onSketchEntityDeleted(selectedFeature.id, entityId);
@@ -5546,6 +5590,7 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
     required this.onEntityNudged,
     required this.onEntityResized,
     required this.onEntityMoveToClick,
+    required this.onEntityDuplicated,
     required this.onEntityDeleted,
   });
 
@@ -5562,6 +5607,7 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
   final void Function(String entityId, double widthDelta, double heightDelta)
   onEntityResized;
   final ValueChanged<String> onEntityMoveToClick;
+  final ValueChanged<String> onEntityDuplicated;
   final ValueChanged<String> onEntityDeleted;
 
   @override
@@ -5640,6 +5686,7 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
                 onEntityResized(entity.id, widthDelta, heightDelta);
               },
               onMoveToClick: () => onEntityMoveToClick(entity.id),
+              onDuplicate: () => onEntityDuplicated(entity.id),
               onDelete: () => onEntityDeleted(entity.id),
             ),
       ],
@@ -5659,6 +5706,7 @@ class _SketchEntityParameterEditor extends StatelessWidget {
     required this.onNudge,
     required this.onResize,
     required this.onMoveToClick,
+    required this.onDuplicate,
     required this.onDelete,
   });
 
@@ -5672,6 +5720,7 @@ class _SketchEntityParameterEditor extends StatelessWidget {
   final void Function(double dx, double dy) onNudge;
   final void Function(double widthDelta, double heightDelta) onResize;
   final VoidCallback onMoveToClick;
+  final VoidCallback onDuplicate;
   final VoidCallback onDelete;
 
   @override
@@ -5798,6 +5847,14 @@ class _SketchEntityParameterEditor extends StatelessWidget {
                       : 'Переместить кликом',
                   selected: movingToClick,
                   onPressed: onMoveToClick,
+                ),
+                _SketchEntityActionButton(
+                  buttonKey: ValueKey(
+                    'sketch-entity-$featureId-${entity.id}-duplicate',
+                  ),
+                  icon: Icons.content_copy_rounded,
+                  tooltip: 'Дублировать контур',
+                  onPressed: onDuplicate,
                 ),
                 const Spacer(),
                 _SketchEntityActionButton(

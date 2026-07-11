@@ -365,13 +365,14 @@ inside that helper rectangle focuses the semantic rectangle entity in the
 inspector while keeping command scope and viewport/native preview highlighting
 on the parent sketch. The focused row has icon-only 1 mm nudge controls and a
 move-to-click action, plus width/height +/- 1 mm resize controls and a delete
-action; these update semantic sketch metadata through undo history. The
-move-to-click action reuses the sketch workplane hit target and stores the next
-click as the rectangle center. If the rectangle leaves the supported sketch
-workplane bounds, the inspector shows a semantic warning. These actions and
-warnings do not select generated mesh or topology. The switch itself does not
-change saved project JSON, undo/redo history, or geometry requests, and sketch
-entities do not generate geometry yet.
+action, plus duplicate; these update semantic sketch metadata through undo
+history. The move-to-click action reuses the sketch workplane hit target and
+stores the next click as the rectangle center. Duplicate creates a new offset
+`rect_N` entity instead of copying generated geometry. If the rectangle leaves
+the supported sketch workplane bounds, the inspector shows a semantic warning.
+These actions and warnings do not select generated mesh or topology. The switch
+itself does not change saved project JSON, undo/redo history, or geometry
+requests, and sketch entities do not generate geometry yet.
 
 ## Current limitations
 

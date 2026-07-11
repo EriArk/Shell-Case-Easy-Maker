@@ -89,12 +89,14 @@ Use deterministic test fixtures.
   cancel rectangle click placement, create the first typed rectangle entity from
   a workplane click, edit its rectangle parameters, show the helper-only
   rectangle overlay, click the overlay into semantic rectangle focus,
-  nudge/move-to-click/resize/delete the selected rectangle, keep command scope
-  on the parent sketch, show/remove workplane-bounds warnings, and keep the
-  sketch as `helper.advanced_sketch` rather than generated geometry.
+  nudge/move-to-click/resize/duplicate/delete the selected rectangle, keep
+  command scope on the parent sketch, show/remove workplane-bounds warnings,
+  and keep the sketch as `helper.advanced_sketch` rather than generated
+  geometry.
 - Sketch entity adapter tests verify rectangle parameter defaults, semantic
   updates, numeric cleanup, stable entity replacement/removal, and
-  corner-radius clamping plus semantic workplane-bounds warnings.
+  corner-radius clamping plus semantic duplication and workplane-bounds
+  warnings.
 - Snap-seeded component placement can align semantic component anchors to the
   selected snap point without saving anchor UI state.
 - Snap-seeded manual USB-C creation stores front-wall face-local

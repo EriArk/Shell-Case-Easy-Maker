@@ -129,6 +129,31 @@ class SketchEntityParameterAdapter {
     );
   }
 
+  static SketchEntity duplicateWithOffset(
+    SketchEntity entity, {
+    required String id,
+    double dx = 6.0,
+    double dy = -6.0,
+  }) {
+    final copy = SketchEntity(
+      id: id,
+      type: entity.type,
+      parameters: entity.parameters,
+      metadata: entity.metadata,
+    );
+
+    if (entity.type != 'rectangle') {
+      return copy;
+    }
+
+    final values = valuesFrom(entity);
+    return applyValues(copy, {
+      ...values,
+      'centerX': _doubleValue(values, 'centerX') + dx,
+      'centerY': _doubleValue(values, 'centerY') + dy,
+    });
+  }
+
   static List<ParameterIssue> validate(SketchEntity entity) {
     final schema = schemaFor(entity);
     if (schema == null) {

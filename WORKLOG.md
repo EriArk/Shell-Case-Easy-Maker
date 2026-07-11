@@ -12023,3 +12023,93 @@ slice.
 ### Notes for future Codex sessions
 Keep move-to-click semantic and undoable. Do not couple sketch entity movement
 to generated triangle ids or OCCT topology ids.
+
+---
+
+## M132 - Sketch rectangle duplicate
+
+### Goal
+Make repeated helper contours practical by duplicating a focused sketch
+rectangle as a new semantic `SketchEntity`, without generated mesh selection,
+B-Rep edits, drag handles, or OCCT topology ids.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/parameters/sketch_entity_parameter_adapter.dart`,
+`lib/ui/shell/workspace_shell.dart`,
+`test/sketch_entity_parameter_adapter_test.dart`, `test/widget_test.dart`,
+`docs/06_FEATURE_SYSTEM.md`, `docs/26_TESTING_AND_QUALITY.md`,
+`docs/30_ADVANCED_CAD_MODE.md`, `docs/32_USABLE_SHELL.md`,
+`docs/33_VIEWPORT_MVP.md`, and `docs/35_PARAMETER_MODEL.md`.
+
+### Changes made
+- `lib/parameters/sketch_entity_parameter_adapter.dart`:
+  - Added `duplicateWithOffset`, which preserves rectangle dimensions/radius,
+    assigns a new id, and offsets the semantic center.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added `_duplicateAdvancedSketchEntity`.
+  - Wired duplicate through the inspector callback chain.
+  - Added a compact selected-rectangle duplicate icon action.
+  - Commits duplication through undo history and selects the new rectangle.
+- `test/sketch_entity_parameter_adapter_test.dart`:
+  - Added unit coverage for duplicate id, offset center, dimensions, and radius.
+- `test/widget_test.dart`:
+  - Extended the Advanced Sketch flow to duplicate `rect_1`, verify saved
+    `rect_2`, and undo the duplicate before continuing the existing scenario.
+- Docs/tasks/roadmap:
+  - Added M132 and documented duplication as semantic sketch helper editing.
+
+### Tests run
+- `flutter test test\sketch_entity_parameter_adapter_test.dart --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "advanced sketch command" --reporter compact`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with current
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 76 files checked, 0 changed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed; 252 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed `releases/latest/windows`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git status --short --ignored releases`:
+  - Passed; `releases/` is ignored.
+- `git diff --check`:
+  - Passed with the existing `ROADMAP.md` CRLF normalization warning only.
+
+### Validation
+- Geometry checked?
+  - Yes by boundary. Duplication updates only semantic `SketchEntity`
+    parameters and does not query B-Rep, mesh triangles, OCCT topology, or
+    generated preview ids.
+- Serialization checked?
+  - Yes. Widget coverage saves after duplication and verifies both semantic
+    entities.
+- UI checked?
+  - Yes. Widget coverage verifies the duplicate action, new `rect_2` selection,
+    and undo.
+- Export checked?
+  - Yes. Latest Windows bundle was rebuilt with the native OCCT worker and the
+    release folder remains ignored by Git.
+
+### Known issues
+- Issue: Duplicate uses a fixed `+6, -6` mm offset.
+  - Severity: Expected.
+  - Next action: Consider smarter placement after grid/snap settings exist.
+- Issue: Duplicate is inspector-triggered, not a viewport gesture.
+  - Severity: Expected.
+  - Next action: Continue toward direct viewport handles after semantic editing
+    remains stable.
+
+### Next step
+Commit and push M132, then continue with the next safe sketch drawing/editing
+slice.
+
+### Notes for future Codex sessions
+Keep duplication as semantic `SketchEntity` data. Do not copy generated mesh,
+B-Rep, or OCCT topology references.

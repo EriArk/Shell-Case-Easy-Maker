@@ -112,11 +112,12 @@ to a schema-backed parameter bank:
 
 The adapter writes values back to `SketchEntity.parameters`, normalizes numeric
 precision for stable JSON, and clamps corner radius to half of the smaller
-side. Inspector nudge, move-to-click, and resize actions reuse these normalized
-values so each movement or size edit stays a semantic undoable edit. When a
-supported sketch workplane size is available, the adapter can also report a
-warning if the rectangle extends outside that workplane. These values remain
-semantic helper data until sketch drawing and geometry conversion are designed.
+side. Inspector nudge, move-to-click, resize, and duplicate actions reuse these
+normalized values so each movement, size edit, or offset copy stays a semantic
+undoable edit. When a supported sketch workplane size is available, the adapter
+can also report a warning if the rectangle extends outside that workplane.
+These values remain semantic helper data until sketch drawing and geometry
+conversion are designed.
 
 ## Current Limitations
 

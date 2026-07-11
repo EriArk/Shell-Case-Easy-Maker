@@ -3585,12 +3585,16 @@ void main() {
     final moveToClick = find.byKey(
       const ValueKey('sketch-entity-advanced_sketch_1-rect_1-move-to-click'),
     );
+    final duplicateRectangle = find.byKey(
+      const ValueKey('sketch-entity-advanced_sketch_1-rect_1-duplicate'),
+    );
     expect(nudgeRight, findsOneWidget);
     expect(nudgeUp, findsOneWidget);
     expect(deleteRectangle, findsOneWidget);
     expect(widthIncrease, findsOneWidget);
     expect(heightDecrease, findsOneWidget);
     expect(moveToClick, findsOneWidget);
+    expect(duplicateRectangle, findsOneWidget);
 
     await tester.ensureVisible(moveToClick);
     await tester.pumpAndSettle();
@@ -3645,6 +3649,50 @@ void main() {
       find.byKey(const ValueKey('advanced-sketch-rectangle-move-active')),
       findsNothing,
     );
+    expect(
+      find.byKey(
+        const ValueKey('sketch-entity-advanced_sketch_1-rect_1-selected'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.ensureVisible(duplicateRectangle);
+    await tester.pumpAndSettle();
+    await tester.tap(duplicateRectangle);
+    await _pumpAsyncUi(tester);
+
+    expect(find.textContaining('rect_2'), findsWidgets);
+    expect(
+      find.byKey(
+        const ValueKey('sketch-entity-advanced_sketch_1-rect_2-selected'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('toolbar-command-${CommandIds.saveProject}')),
+    );
+    await _pumpAsyncUi(tester);
+
+    final duplicatedSaved = await fileService.readProject(saveFile);
+    final duplicatedSketch = duplicatedSaved.features.singleWhere(
+      (feature) => feature.id == 'advanced_sketch_1',
+    );
+    final duplicatedEntities = sketchEntitiesForFeature(duplicatedSketch);
+    expect(duplicatedEntities, hasLength(2));
+    expect(duplicatedEntities.last.id, 'rect_2');
+    expect(duplicatedEntities.last.parameters['center'], [6.0, -6.0]);
+
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+
+    expect(find.textContaining('rect_2'), findsNothing);
+    await tester.tap(
+      find.byKey(
+        const ValueKey('sketch-entity-advanced_sketch_1-rect_1-focus'),
+      ),
+    );
+    await _pumpAsyncUi(tester);
     expect(
       find.byKey(
         const ValueKey('sketch-entity-advanced_sketch_1-rect_1-selected'),

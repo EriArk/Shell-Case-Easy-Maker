@@ -45,6 +45,33 @@ void main() {
     expect(SketchEntityParameterAdapter.validate(rectangle), isEmpty);
   });
 
+  test('rectangle duplicate gets a new id and offset center', () {
+    final rectangle = SketchEntityParameterAdapter.applyValues(
+      defaultSketchRectangleEntity(id: 'rect_1'),
+      const {
+        'centerX': 10.0,
+        'centerY': -4.0,
+        'width': 32.0,
+        'height': 14.0,
+        'cornerRadius': 2.0,
+      },
+    );
+
+    final duplicate = SketchEntityParameterAdapter.duplicateWithOffset(
+      rectangle,
+      id: 'rect_2',
+      dx: 6,
+      dy: -6,
+    );
+
+    expect(duplicate.id, 'rect_2');
+    expect(duplicate.type, 'rectangle');
+    expect(duplicate.parameters['center'], [16.0, -10.0]);
+    expect(duplicate.parameters['width'], 32.0);
+    expect(duplicate.parameters['height'], 14.0);
+    expect(duplicate.parameters['cornerRadius'], 2.0);
+  });
+
   test(
     'rectangle workplane bounds warning reports out of surface contours',
     () {

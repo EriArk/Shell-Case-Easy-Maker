@@ -172,7 +172,7 @@ UI selection can point at `rect_1`, while command context and viewport/native
 preview highlighting stay scoped to the owning `advanced_sketch` feature id.
 Rectangle editing currently happens through the selected sketch inspector,
 including schema-backed fields, 1 mm nudge actions, width/height +/- 1 mm
-resize actions, move-to-click center placement, deletion, and semantic
+resize actions, move-to-click center placement, duplication, deletion, and semantic
 workplane-bounds warnings.
 
 The selected sketch inspector can also start a transient rectangle
@@ -200,6 +200,8 @@ center and commits an undoable project edit.
   next supported workplane click.
 - Use selected rectangle inspector resize buttons: change width or height by
   1 mm.
+- Use selected rectangle duplicate: create a new offset semantic rectangle and
+  focus it.
 - Use selected rectangle inspector delete: remove the semantic rectangle
   entity.
 - Click a visible snap hint: select/highlight that transient snap target.

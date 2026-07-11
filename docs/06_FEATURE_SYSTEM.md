@@ -99,11 +99,13 @@ stays valid for later drawing and geometry conversion work.
 
 Focused rectangle entities also expose small inspector actions for 1 mm
 left/right/up/down nudges, moving the center to the next workplane click,
-width/height +/- 1 mm resizing, and deletion. These actions still update only
-semantic `SketchEntity` data and are committed through normal undo history.
-When the parent sketch is on a supported top-lid/front-wall workplane, the same
-semantic values are checked against workplane bounds and can produce a warning
-if the rectangle leaves the surface.
+width/height +/- 1 mm resizing, duplication, and deletion. These actions still
+update only semantic `SketchEntity` data and are committed through normal undo
+history. Duplicate creates a new `rect_N` entity with the same dimensions and a
+small center offset so it remains visible and editable. When the parent sketch
+is on a supported top-lid/front-wall workplane, the same semantic values are
+checked against workplane bounds and can produce a warning if the rectangle
+leaves the surface.
 
 When a sketch is selected, rectangle entities can be drawn as helper-only
 viewport overlays. The overlay reads semantic `SketchEntity` values and does
