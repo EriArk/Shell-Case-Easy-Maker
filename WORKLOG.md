@@ -12199,3 +12199,90 @@ slice.
 ### Notes for future Codex sessions
 Keep keyboard editing routed through semantic edit methods. Do not add
 generated geometry ids or focus traversal hacks to sketch entity state.
+
+---
+
+## M134 - Sketch rectangle keyboard commands
+
+### Goal
+Add common selected-rectangle keyboard commands without fragile viewport drag
+state, generated mesh selection, B-Rep edits, or OCCT topology ids.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/ui/shell/workspace_shell.dart`, `test/widget_test.dart`,
+`docs/06_FEATURE_SYSTEM.md`, `docs/26_TESTING_AND_QUALITY.md`,
+`docs/30_ADVANCED_CAD_MODE.md`, `docs/32_USABLE_SHELL.md`,
+`docs/33_VIEWPORT_MVP.md`, and `docs/35_PARAMETER_MODEL.md`.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added Escape cancellation for active sketch rectangle placement/move
+    intents.
+  - Returned workspace focus when starting/canceling placement intents so
+    Escape is predictable after button clicks.
+  - Added Ctrl+D duplicate for selected sketch rectangle entities.
+  - Added Delete/Backspace removal for selected sketch rectangle entities.
+  - Kept command shortcuts behind the existing text-input focus guard.
+- `test/widget_test.dart`:
+  - Extended the Advanced Sketch flow to verify Escape cancels placement,
+    Ctrl+D duplicates the focused rectangle, Delete removes the focused
+    duplicate, and undo restores/removes shortcut edits step by step.
+- Docs/tasks/roadmap:
+  - Added M134 and documented keyboard commands as semantic sketch helper
+    editing.
+
+### Tests run
+- `flutter test test\widget_test.dart --plain-name "advanced sketch command" --reporter compact`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with current
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 76 files checked, 0 changed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed; 252 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed `releases/latest/windows`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git status --short --ignored releases`:
+  - Passed; `releases/` is ignored.
+- `git diff --check`:
+  - Passed with the existing `ROADMAP.md` CRLF normalization warning only.
+
+### Validation
+- Geometry checked?
+  - Yes by boundary. Keyboard commands call existing semantic cancel,
+    duplicate, and delete paths and do not query B-Rep, mesh triangles, OCCT
+    topology, or generated preview ids.
+- Serialization checked?
+  - Yes by existing duplicate/delete widget coverage in the Advanced Sketch
+    flow.
+- UI checked?
+  - Yes. Widget coverage verifies Escape, Ctrl+D, Delete, and undo behavior.
+- Export checked?
+  - Yes. Latest Windows bundle was rebuilt with the native OCCT worker and the
+    release folder remains ignored by Git.
+
+### Known issues
+- Issue: Keyboard command shortcuts are only implemented for rectangle sketch
+  entities.
+  - Severity: Expected.
+  - Next action: Reuse the same semantic command pattern for future sketch
+    entity types.
+- Issue: Escape currently cancels only active sketch rectangle placement/move
+  intents.
+  - Severity: Expected.
+  - Next action: Consider a broader transient-mode cancellation policy once
+    more interactive modes exist.
+
+### Next step
+Commit and push M134, then continue with the next safe sketch drawing/editing
+slice.
+
+### Notes for future Codex sessions
+Keep keyboard commands routed through existing semantic methods. Do not add
+mesh/B-Rep ids or generated topology references to shortcut state.

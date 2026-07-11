@@ -513,6 +513,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       _fileStatusMessage = 'Кликните по поверхности эскиза';
       _viewportController.setSelectedSemanticId(selection.viewportSemanticId);
       _viewportController.setGhostPreview(_ghostPreviewFor(selection));
+      _shellFocusNode.requestFocus();
     });
   }
 
@@ -565,6 +566,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       _fileStatusMessage = 'Кликните, куда переместить контур';
       _viewportController.setSelectedSemanticId(selection.viewportSemanticId);
       _viewportController.setGhostPreview(_ghostPreviewFor(selection));
+      _shellFocusNode.requestFocus();
     });
   }
 
@@ -576,6 +578,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     setState(() {
       _sketchRectanglePlacementIntent = null;
       _fileStatusMessage = null;
+      _shellFocusNode.requestFocus();
     });
   }
 
@@ -1870,6 +1873,12 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       return KeyEventResult.handled;
     }
 
+    if (event.logicalKey == LogicalKeyboardKey.escape &&
+        _sketchRectanglePlacementIntent != null) {
+      _cancelAdvancedSketchRectanglePlacement();
+      return KeyEventResult.handled;
+    }
+
     if (_textInputHasFocus()) {
       return KeyEventResult.ignored;
     }
@@ -1882,8 +1891,18 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       return KeyEventResult.ignored;
     }
 
+    if (event.logicalKey == LogicalKeyboardKey.keyD &&
+        HardwareKeyboard.instance.isControlPressed) {
+      _duplicateAdvancedSketchEntity(selectedFeatureId, selectedEntityId);
+      return KeyEventResult.handled;
+    }
+
     final shiftPressed = HardwareKeyboard.instance.isShiftPressed;
     switch (event.logicalKey) {
+      case LogicalKeyboardKey.delete:
+      case LogicalKeyboardKey.backspace:
+        _deleteAdvancedSketchEntity(selectedFeatureId, selectedEntityId);
+        break;
       case LogicalKeyboardKey.arrowLeft:
         if (shiftPressed) {
           _resizeAdvancedSketchEntity(

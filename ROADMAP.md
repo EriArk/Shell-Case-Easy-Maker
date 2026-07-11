@@ -6325,3 +6325,46 @@ its size, all through semantic undoable edits.
 - Press Arrow Right and Arrow Up; confirm the rectangle shifts by small steps.
 - Hold Shift and press Arrow Right / Arrow Down; confirm width/height changes.
 - Press undo repeatedly and confirm each keyboard edit rolls back separately.
+
+---
+
+## M134 - Sketch Rectangle Keyboard Commands
+
+### Goal
+Make common selected-rectangle operations reachable from the keyboard without
+adding fragile viewport drag state: Escape cancels active placement/move,
+Ctrl+D duplicates the selected rectangle, and Delete/Backspace removes it.
+
+### Tasks
+- [x] Add Escape cancellation for active sketch rectangle placement/move mode.
+- [x] Return focus to the workspace when entering/canceling sketch placement
+      intents.
+- [x] Add Ctrl+D duplicate for selected sketch rectangle entities.
+- [x] Add Delete/Backspace removal for selected sketch rectangle entities.
+- [x] Keep shortcut commands ignored while a text field is focused.
+- [x] Extend widget coverage and update docs/tasks/worklog.
+
+### Done Criteria
+- Escape clears active rectangle placement mode without creating `rect_1`.
+- Ctrl+D on selected `rect_1` creates and selects `rect_2`.
+- Delete removes the selected rectangle through undoable semantic history.
+- Undo restores shortcut delete/duplicate changes one command at a time.
+- Shortcuts update only semantic `SketchEntity` data and do not query mesh,
+  B-Rep, OCCT topology, or generated triangle ids.
+
+### Tests
+- `flutter test test\widget_test.dart --plain-name "advanced sketch command" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Start rectangle placement and press Escape; confirm the placement banner
+  disappears and no rectangle is created.
+- Select a rectangle and press Ctrl+D; confirm the duplicate appears selected.
+- Press Delete; confirm the selected rectangle is removed.
+- Press undo twice and confirm delete/duplicate roll back step by step.

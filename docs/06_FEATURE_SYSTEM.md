@@ -112,6 +112,11 @@ semantic edit paths: arrow keys nudge by 1 mm, and Shift+arrow resizes width or
 height by 1 mm. Text fields keep normal keyboard behavior, so typed parameter
 editing is not hijacked.
 
+The same focus guard applies to command shortcuts: Ctrl+D duplicates the
+selected rectangle and Delete/Backspace removes it through undoable semantic
+edits. Escape cancels active rectangle placement/move intents before any
+rectangle entity is created or moved.
+
 When a sketch is selected, rectangle entities can be drawn as helper-only
 viewport overlays. The overlay reads semantic `SketchEntity` values and does
 not make the rectangle a generated solid, cut, mesh primitive, or selectable

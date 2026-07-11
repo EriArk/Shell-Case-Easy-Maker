@@ -46,6 +46,8 @@ generate geometry yet.
   undoable and save/load-safe.
 - Focused rectangle keyboard edits reuse those semantic paths: arrows nudge by
   1 mm and Shift+arrows resize by 1 mm when a text field is not focused.
+- Focused rectangle keyboard commands also stay semantic: Ctrl+D duplicates,
+  Delete/Backspace removes, and Escape cancels active placement/move mode.
 - Supported sketch workplanes report a warning when a rectangle extends beyond
   the surface bounds.
 - Rectangle corner radius is clamped to half of the smaller side.

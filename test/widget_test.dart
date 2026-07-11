@@ -3473,6 +3473,31 @@ void main() {
     );
     expect(find.textContaining('rect_1'), findsNothing);
 
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await _pumpAsyncUi(tester);
+
+    expect(
+      find.byKey(const ValueKey('advanced-sketch-rectangle-placement-active')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('sketch-rectangle-placement-banner')),
+      findsNothing,
+    );
+    expect(find.textContaining('rect_1'), findsNothing);
+
+    await tester.tap(addRectangle);
+    await _pumpAsyncUi(tester);
+
+    expect(
+      find.byKey(const ValueKey('advanced-sketch-rectangle-placement-active')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('sketch-rectangle-placement-banner')),
+      findsOneWidget,
+    );
+
     await tester.tap(
       find.byKey(const ValueKey('sketch-rectangle-placement-cancel')),
     );
@@ -3687,6 +3712,46 @@ void main() {
     await _pumpAsyncUi(tester);
 
     expect(find.textContaining('rect_2'), findsNothing);
+    await tester.tap(
+      find.byKey(
+        const ValueKey('sketch-entity-advanced_sketch_1-rect_1-focus'),
+      ),
+    );
+    await _pumpAsyncUi(tester);
+    expect(
+      find.byKey(
+        const ValueKey('sketch-entity-advanced_sketch_1-rect_1-selected'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyD);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await _pumpAsyncUi(tester);
+
+    expect(find.textContaining('rect_2'), findsWidgets);
+    expect(
+      find.byKey(
+        const ValueKey('sketch-entity-advanced_sketch_1-rect_2-selected'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.delete);
+    await _pumpAsyncUi(tester);
+
+    expect(find.textContaining('rect_2'), findsNothing);
+    expect(find.textContaining('rect_1'), findsWidgets);
+
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+    expect(find.textContaining('rect_2'), findsWidgets);
+
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
+    expect(find.textContaining('rect_2'), findsNothing);
+
     await tester.tap(
       find.byKey(
         const ValueKey('sketch-entity-advanced_sketch_1-rect_1-focus'),

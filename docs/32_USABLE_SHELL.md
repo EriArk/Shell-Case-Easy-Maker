@@ -371,6 +371,9 @@ stores the next click as the rectangle center. Duplicate creates a new offset
 `rect_N` entity instead of copying generated geometry. When the selected
 rectangle is focused, workspace arrow keys reuse the same semantic actions for
 1 mm nudge and Shift+arrow resize while text fields keep their normal behavior.
+The focused rectangle also supports semantic command shortcuts: Ctrl+D
+duplicates, Delete/Backspace removes, and Escape cancels active placement or
+move pick mode.
 If the rectangle leaves the supported sketch workplane bounds, the inspector
 shows a semantic warning. These actions and warnings do not select generated
 mesh or topology. The switch itself does not change saved project JSON,

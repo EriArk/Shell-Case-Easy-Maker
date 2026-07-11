@@ -173,7 +173,8 @@ preview highlighting stay scoped to the owning `advanced_sketch` feature id.
 Rectangle editing currently happens through the selected sketch inspector,
 including schema-backed fields, 1 mm nudge actions, width/height +/- 1 mm
 resize actions, move-to-click center placement, duplication, deletion, keyboard
-nudge/resize shortcuts, and semantic workplane-bounds warnings.
+nudge/resize shortcuts, keyboard command shortcuts, and semantic
+workplane-bounds warnings.
 
 The selected sketch inspector can also start a transient rectangle
 click-to-place mode. While active, the viewport uses the owning sketch surface
@@ -200,6 +201,11 @@ center and commits an undoable project edit.
   by 1 mm.
 - Use Shift+keyboard arrows while a rectangle is selected: resize width or
   height by 1 mm.
+- Use Ctrl+D while a rectangle is selected: duplicate the semantic rectangle.
+- Use Delete or Backspace while a rectangle is selected: remove the semantic
+  rectangle.
+- Use Escape during rectangle placement or move-to-click: cancel the active
+  viewport pick mode.
 - Use selected rectangle move-to-click: move the helper rectangle center to the
   next supported workplane click.
 - Use selected rectangle inspector resize buttons: change width or height by
