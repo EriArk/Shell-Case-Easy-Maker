@@ -428,6 +428,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Basic sketch rectangle edge resize handles.
 - [x] Basic sketch distinct rectangle handle affordances.
 - [x] Basic sketch rectangle corner radius handle.
+- [x] Basic sketch drag role feedback.
 - [ ] Basic sketch drawing/editing.
 - [ ] Extrude/cut.
 - [ ] Boolean.

@@ -170,6 +170,17 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M149 - Direct Sketch Entity Activation
 - [x] M150 - Sketch Entity Placement Markers
 - [x] M151 - Rectangle Drag Draw
+- [x] M152 - Circle Drag Draw
+- [x] M153 - Line Sketch Entity Foundation
+- [x] M154 - Line Endpoint Handles
+- [x] M155 - Line Visible Handles
+- [x] M156 - Rectangle Corner Resize Handles
+- [x] M157 - Circle Radius Handle
+- [x] M158 - Rotated Rectangle Corner Handles
+- [x] M159 - Rectangle Edge Resize Handles
+- [x] M160 - Distinct Rectangle Handle Affordances
+- [x] M161 - Rectangle Corner Radius Handle
+- [x] M162 - Sketch Drag Role Feedback
 
 ---
 
@@ -7617,3 +7628,47 @@ the viewport without changing size, center, or rotation.
 - Find the small diamond handle inside the top-right corner.
 - Drag it inward/outward and confirm only corner rounding changes.
 - Try a rotated rectangle and confirm resize/body drag still works.
+
+---
+
+## M162 - Sketch Drag Role Feedback
+
+### Goal
+Make direct Advanced Sketch editing clearer while dragging by showing which
+semantic edit role is active: move, side/corner resize, corner-radius edit,
+circle diameter edit, or line endpoint edit.
+
+### Tasks
+- [x] Carry sketch entity type through the transient drag intent/preview state.
+- [x] Add a compact viewport badge for the active sketch drag role.
+- [x] Key the badge by semantic sketch feature/entity and normalized drag role.
+- [x] Keep the feedback transient; it disappears when the drag completes or is
+      canceled.
+- [x] Cover the corner-radius drag role feedback with a widget test.
+- [x] Update tasks/worklog.
+
+### Done Criteria
+- Dragging a sketch body still moves the semantic entity.
+- Dragging rectangle corner, side, and radius handles still uses the existing
+  semantic drag pipeline.
+- During drag, the viewport shows a compact role label such as
+  `Скругление угла`.
+- Saved project JSON stores semantic sketch parameters only.
+
+### Tests
+- `flutter test test\widget_test.dart --plain-name "selected rotated rectangle sketch entity edits corner radius handle" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Turn on Advanced Mode and select or create a rectangle.
+- Drag the rectangle body, a corner/side handle, and the small diamond radius
+  handle.
+- Confirm a compact drag-role badge appears near the top of the viewport and
+  changes meaningfully for each handle.
+- Release the mouse and confirm the badge disappears.

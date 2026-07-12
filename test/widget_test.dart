@@ -5123,6 +5123,21 @@ void main() {
         ),
         findsOneWidget,
       );
+      expect(
+        find.byKey(
+          const ValueKey('advanced-sketch-drag-role-advanced_sketch_1-rect_1'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey(
+            'advanced-sketch-drag-role-advanced_sketch_1-rect_1-topRight',
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Размер от угла'), findsOneWidget);
 
       await gesture.up();
       await _pumpAsyncUi(tester);
@@ -5239,6 +5254,21 @@ void main() {
         ),
         findsOneWidget,
       );
+      expect(
+        find.byKey(
+          const ValueKey('advanced-sketch-drag-role-advanced_sketch_1-rect_1'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey(
+            'advanced-sketch-drag-role-advanced_sketch_1-rect_1-right',
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Размер стороны'), findsOneWidget);
 
       await gesture.up();
       await _pumpAsyncUi(tester);
@@ -5353,6 +5383,21 @@ void main() {
         ),
         findsOneWidget,
       );
+      expect(
+        find.byKey(
+          const ValueKey('advanced-sketch-drag-role-advanced_sketch_1-rect_1'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey(
+            'advanced-sketch-drag-role-advanced_sketch_1-rect_1-cornerRadius',
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Скругление угла'), findsOneWidget);
 
       await gesture.up();
       await _pumpAsyncUi(tester);

@@ -2719,6 +2719,7 @@ class _SketchEntityDragIntent {
   const _SketchEntityDragIntent({
     required this.featureId,
     required this.entityId,
+    required this.entityType,
     required this.workplane,
     required this.grabOffset,
     this.dragRole,
@@ -2726,6 +2727,7 @@ class _SketchEntityDragIntent {
 
   final String featureId;
   final String entityId;
+  final String entityType;
   final MockViewportWorkplaneOverlay workplane;
   final Offset grabOffset;
   final String? dragRole;
@@ -2749,12 +2751,14 @@ class _SketchEntityDragPreview {
   const _SketchEntityDragPreview({
     required this.featureId,
     required this.entityId,
+    required this.entityType,
     required this.localPosition,
     this.dragRole,
   });
 
   final String featureId;
   final String entityId;
+  final String entityType;
   final Offset localPosition;
   final String? dragRole;
 }
@@ -4933,6 +4937,7 @@ class _ViewportAreaState extends State<_ViewportArea> {
         _sketchEntityDragPreview = _SketchEntityDragPreview(
           featureId: sketchDragIntent.featureId,
           entityId: sketchDragIntent.entityId,
+          entityType: sketchDragIntent.entityType,
           localPosition: localPosition,
           dragRole: sketchDragIntent.dragRole,
         );
@@ -5329,6 +5334,7 @@ class _ViewportAreaState extends State<_ViewportArea> {
     return _SketchEntityDragIntent(
       featureId: feature.id,
       entityId: entity.id,
+      entityType: entity.type,
       workplane: workplane,
       grabOffset: anchor - pointerLocal,
       dragRole: dragRole,
@@ -5928,6 +5934,16 @@ class _ViewportAreaState extends State<_ViewportArea> {
                         ),
                       ),
                     ),
+                  if (sketchDragPreview != null)
+                    Positioned(
+                      left: 18,
+                      right: 18,
+                      top: 78,
+                      child: Align(
+                        alignment: Alignment.topCenter,
+                        child: _SketchDragRoleBadge(preview: sketchDragPreview),
+                      ),
+                    ),
                   Positioned(
                     left: 18,
                     bottom: 16,
@@ -5945,6 +5961,126 @@ class _ViewportAreaState extends State<_ViewportArea> {
       ),
     );
   }
+}
+
+class _SketchDragRoleBadge extends StatelessWidget {
+  const _SketchDragRoleBadge({required this.preview});
+
+  final _SketchEntityDragPreview preview;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final keyPrefix =
+        'advanced-sketch-drag-role-${preview.featureId}-${preview.entityId}';
+
+    return KeyedSubtree(
+      key: ValueKey(keyPrefix),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 320),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: const Color(0xEE1E2226),
+            border: Border.all(
+              color: theme.colorScheme.primary.withValues(alpha: 0.42),
+            ),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  key: ValueKey(
+                    '$keyPrefix-${_sketchDragRoleKeyPart(preview.dragRole)}',
+                  ),
+                ),
+                Icon(
+                  _sketchDragRoleIcon(preview),
+                  size: 18,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _sketchDragRoleTitle(preview),
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelMedium,
+                      ),
+                      Text(
+                        _sketchDragRoleDetail(preview),
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+String _sketchDragRoleKeyPart(String? role) =>
+    role == null || role == 'body' ? 'body' : role;
+
+IconData _sketchDragRoleIcon(_SketchEntityDragPreview preview) {
+  final role = preview.dragRole;
+  return switch (preview.entityType) {
+    'rectangle' when isSketchRectangleCornerRadiusHandleRole(role) =>
+      Icons.tune_rounded,
+    'rectangle'
+        when isSketchRectangleCornerHandleRole(role) ||
+            isSketchRectangleEdgeHandleRole(role) =>
+      Icons.straighten_rounded,
+    'circle' when isSketchCircleRadiusHandleRole(role) =>
+      Icons.radio_button_unchecked_rounded,
+    'line' => Icons.horizontal_rule_rounded,
+    _ => Icons.open_with_rounded,
+  };
+}
+
+String _sketchDragRoleTitle(_SketchEntityDragPreview preview) {
+  final role = preview.dragRole;
+  return switch (preview.entityType) {
+    'rectangle' when isSketchRectangleCornerRadiusHandleRole(role) =>
+      'Скругление угла',
+    'rectangle' when isSketchRectangleEdgeHandleRole(role) => 'Размер стороны',
+    'rectangle' when isSketchRectangleCornerHandleRole(role) =>
+      'Размер от угла',
+    'rectangle' => 'Перемещение прямоугольника',
+    'circle' when isSketchCircleRadiusHandleRole(role) => 'Диаметр круга',
+    'circle' => 'Перемещение круга',
+    'line' when role == 'start' => 'Начало линии',
+    'line' when role == 'end' => 'Конец линии',
+    'line' => 'Перемещение линии',
+    _ => 'Перемещение контура',
+  };
+}
+
+String _sketchDragRoleDetail(_SketchEntityDragPreview preview) {
+  final role = preview.dragRole;
+  return switch (preview.entityType) {
+    'rectangle' when isSketchRectangleCornerRadiusHandleRole(role) =>
+      'Форма прямоугольника',
+    'rectangle'
+        when isSketchRectangleCornerHandleRole(role) ||
+            isSketchRectangleEdgeHandleRole(role) =>
+      'Размер контура',
+    'circle' when isSketchCircleRadiusHandleRole(role) => 'Размер контура',
+    'line' when role == 'start' || role == 'end' => 'Конец отрезка',
+    _ => 'Положение на плоскости',
+  };
 }
 
 class _ComponentPlacementGuideBanner extends StatelessWidget {

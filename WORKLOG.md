@@ -42,6 +42,85 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-07-12 - M162 sketch drag role feedback
+
+### Goal
+Make Advanced Sketch viewport editing more understandable while a drag is in
+progress by showing which semantic edit role is active.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/ui/shell/workspace_shell.dart`, and `test/widget_test.dart`.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Carried sketch entity type through transient drag intent/preview state.
+  - Added a compact viewport badge for active sketch drag roles.
+  - Added role labels for rectangle move/resize/radius, circle diameter, and
+    line endpoint/body drags.
+- `test/widget_test.dart`:
+  - Extended rotated rectangle corner, edge, and corner-radius drag tests to
+    assert the visible drag-role badge and normalized role marker.
+- `ROADMAP.md` and `TASKS.md`:
+  - Added/marked M162 sketch drag role feedback work.
+
+### Tests run
+- `flutter test test\widget_test.dart --plain-name "selected rotated rectangle sketch entity resizes from corner handle" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "selected rotated rectangle sketch entity resizes from edge handle" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "selected rotated rectangle sketch entity edits corner radius handle" --reporter compact`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed, 291 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Returned `True`.
+- `git status --short --ignored releases`:
+  - Confirmed `releases/` is ignored.
+- `git diff --check`:
+  - Passed with only the existing ROADMAP CRLF warning.
+
+### Validation
+- Geometry checked?
+  - Full regression suite still passed; this chunk only changes transient
+    viewport UI.
+- Serialization checked?
+  - Widget save tests still verify semantic sketch data; no drag role is
+    persisted.
+- UI checked?
+  - Widget tests cover the visible role badge during corner, edge, and
+    corner-radius drags.
+- Export checked?
+  - Latest Windows bundle build passed.
+
+### Known issues
+- Issue:
+  - The badge explains the current semantic sketch edit; true 3D face/part
+    selection remains a later roadmap item.
+  - Severity: Low.
+  - Next action: Continue toward fuller Advanced Sketch drawing/editing and
+    generated 3D affordances.
+
+### Next step
+Continue the next safe Advanced Sketch drawing/editing or generated 3D
+affordance slice.
+
+### Notes for future Codex sessions
+The active drag role is intentionally transient UI state; do not persist it in
+project JSON or expose mesh/topology ids.
+
+---
+
 ## 2026-07-12 - M161 rectangle corner radius handle
 
 ### Goal
