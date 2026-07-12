@@ -431,6 +431,53 @@ void main() {
     },
   );
 
+  test('mock hit tester reports selected rectangle corner roles', () {
+    const state = ViewportState();
+    const size = Size(900, 600);
+    final layout = MockViewportLayout.fromSize(size, state);
+    const workplane = MockViewportWorkplaneOverlay(
+      semanticId: 'main_enclosure.top_lid.outer',
+      kind: MockViewportWorkplaneKind.topLid,
+      width: 120,
+      height: 70,
+    );
+    const rectangle = MockViewportSketchRectanglePreview(
+      featureId: 'advanced_sketch_1',
+      entityId: 'rect_1',
+      workplane: workplane,
+      center: Offset.zero,
+      width: 24,
+      height: 16,
+      cornerRadius: 2,
+      handlesEnabled: true,
+    );
+    const hitTester = MockViewportHitTester();
+
+    final cornerHit = hitTester.hitTest(
+      position: rectangle.canvasHandlePoint(
+        layout,
+        sketchRectangleHandleTopRight,
+      ),
+      size: size,
+      state: state,
+      componentPlacements: const [],
+      sketchRectangles: const [rectangle],
+    );
+    final bodyHit = hitTester.hitTest(
+      position: rectangle.canvasRect(layout).center,
+      size: size,
+      state: state,
+      componentPlacements: const [],
+      sketchRectangles: const [rectangle],
+    );
+
+    expect(cornerHit?.kind, ViewportHitKind.feature);
+    expect(cornerHit?.semanticId, 'advanced_sketch_1');
+    expect(cornerHit?.childId, 'rect_1');
+    expect(cornerHit?.childRole, sketchRectangleHandleTopRight);
+    expect(bodyHit?.childRole, 'body');
+  });
+
   test('mock hit tester uses rotated bounds for sketch rectangles', () {
     const state = ViewportState();
     const size = Size(900, 600);

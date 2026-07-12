@@ -67,6 +67,22 @@ enum MockViewportFeatureGroupKind { buttonGroup, standoffMounts }
 
 enum MockViewportWorkplaneKind { topLid, frontWall, componentPlacement }
 
+const sketchRectangleHandleTopLeft = 'topLeft';
+const sketchRectangleHandleTopRight = 'topRight';
+const sketchRectangleHandleBottomLeft = 'bottomLeft';
+const sketchRectangleHandleBottomRight = 'bottomRight';
+
+const sketchRectangleCornerHandleRoles = [
+  sketchRectangleHandleTopLeft,
+  sketchRectangleHandleTopRight,
+  sketchRectangleHandleBottomLeft,
+  sketchRectangleHandleBottomRight,
+];
+
+bool isSketchRectangleCornerHandleRole(String? role) {
+  return sketchRectangleCornerHandleRoles.contains(role);
+}
+
 class ViewportController {
   ViewportController({ViewportState initialState = const ViewportState()})
     : _state = initialState;
@@ -364,6 +380,7 @@ class MockViewportSketchRectanglePreview {
     required this.cornerRadius,
     this.rotationZDegrees = 0,
     this.profileIntent = 'reference',
+    this.handlesEnabled = false,
   });
 
   final String featureId;
@@ -375,6 +392,7 @@ class MockViewportSketchRectanglePreview {
   final double cornerRadius;
   final double rotationZDegrees;
   final String profileIntent;
+  final bool handlesEnabled;
 
   Rect canvasRect(MockViewportLayout layout) {
     final canvasCenter = layout.workplaneLocalToCanvas(workplane, center);
@@ -418,6 +436,26 @@ class MockViewportSketchRectanglePreview {
             : 0);
   }
 
+  Offset canvasHandlePoint(MockViewportLayout layout, String role) {
+    final rect = canvasRect(layout);
+    final point = switch (role) {
+      sketchRectangleHandleTopLeft => rect.topLeft,
+      sketchRectangleHandleTopRight => rect.topRight,
+      sketchRectangleHandleBottomLeft => rect.bottomLeft,
+      sketchRectangleHandleBottomRight => rect.bottomRight,
+      _ => rect.center,
+    };
+    final radians = canvasRotationZDegrees(layout) * math.pi / 180;
+    final cos = math.cos(radians);
+    final sin = math.sin(radians);
+    final offset = point - rect.center;
+    return rect.center +
+        Offset(
+          offset.dx * cos - offset.dy * sin,
+          offset.dx * sin + offset.dy * cos,
+        );
+  }
+
   bool containsCanvasPoint(
     MockViewportLayout layout,
     Offset position, {
@@ -441,6 +479,28 @@ class MockViewportSketchRectanglePreview {
     return localRect.contains(local);
   }
 
+  String? hitRoleForCanvasPoint(
+    MockViewportLayout layout,
+    Offset position, {
+    double handleRadius = 0,
+    double bodyInflate = 0,
+  }) {
+    if (handlesEnabled) {
+      for (final role in sketchRectangleCornerHandleRoles) {
+        if ((position - canvasHandlePoint(layout, role)).distance <=
+            handleRadius) {
+          return role;
+        }
+      }
+    }
+
+    if (containsCanvasPoint(layout, position, inflate: bodyInflate)) {
+      return 'body';
+    }
+
+    return null;
+  }
+
   @override
   bool operator ==(Object other) {
     return other is MockViewportSketchRectanglePreview &&
@@ -452,7 +512,8 @@ class MockViewportSketchRectanglePreview {
         other.height == height &&
         other.cornerRadius == cornerRadius &&
         other.rotationZDegrees == rotationZDegrees &&
-        other.profileIntent == profileIntent;
+        other.profileIntent == profileIntent &&
+        other.handlesEnabled == handlesEnabled;
   }
 
   @override
@@ -467,6 +528,7 @@ class MockViewportSketchRectanglePreview {
       cornerRadius,
       rotationZDegrees,
       profileIntent,
+      handlesEnabled,
     );
   }
 }
@@ -1202,15 +1264,18 @@ class MockViewportHitTester {
     }
 
     for (final rectangle in sketchRectangles.reversed) {
-      if (rectangle.containsCanvasPoint(
+      final hitRole = rectangle.hitRoleForCanvasPoint(
         layout,
         position,
-        inflate: 6 * state.zoom,
-      )) {
+        handleRadius: 8 * state.zoom,
+        bodyInflate: 6 * state.zoom,
+      );
+      if (hitRole != null) {
         return ViewportHitResult(
           kind: ViewportHitKind.feature,
           semanticId: rectangle.featureId,
           childId: rectangle.entityId,
+          childRole: hitRole,
         );
       }
     }

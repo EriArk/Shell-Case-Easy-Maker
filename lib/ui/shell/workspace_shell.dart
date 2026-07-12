@@ -812,19 +812,27 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     }
 
     final values = SketchEntityParameterAdapter.valuesFrom(entity);
-    final updatedEntity = SketchEntityParameterAdapter.applyValues(entity, {
-      ...values,
-      if (entity.type == 'line' && dragRole == 'start') ...{
-        'startX': center.dx,
-        'startY': center.dy,
-      } else if (entity.type == 'line' && dragRole == 'end') ...{
-        'endX': center.dx,
-        'endY': center.dy,
-      } else ...{
-        'centerX': center.dx,
-        'centerY': center.dy,
-      },
-    });
+    final updatedValues =
+        entity.type == 'rectangle' &&
+            isSketchRectangleCornerHandleRole(dragRole)
+        ? _sketchRectangleValuesForCornerDrag(values, dragRole!, center)
+        : {
+            ...values,
+            if (entity.type == 'line' && dragRole == 'start') ...{
+              'startX': center.dx,
+              'startY': center.dy,
+            } else if (entity.type == 'line' && dragRole == 'end') ...{
+              'endX': center.dx,
+              'endY': center.dy,
+            } else ...{
+              'centerX': center.dx,
+              'centerY': center.dy,
+            },
+          };
+    final updatedEntity = SketchEntityParameterAdapter.applyValues(
+      entity,
+      updatedValues,
+    );
     final updatedFeature = advancedSketchWithUpdatedEntity(
       feature,
       updatedEntity,
@@ -2852,6 +2860,56 @@ Offset _rotateLocalOffset(Offset point, double degrees) {
 
 String _formatSnapPoint(Offset point) {
   return '${_formatNumber(point.dx)} x ${_formatNumber(point.dy)} mm';
+}
+
+Offset _sketchRectangleCornerFromValues(
+  Map<String, Object?> values,
+  String role,
+) {
+  final center = Offset(
+    readDouble(values['centerX'], fallback: 0.0),
+    readDouble(values['centerY'], fallback: 0.0),
+  );
+  final halfWidth = readDouble(values['width'], fallback: 20.0) / 2;
+  final halfHeight = readDouble(values['height'], fallback: 12.0) / 2;
+  return switch (role) {
+    sketchRectangleHandleTopLeft => center + Offset(-halfWidth, halfHeight),
+    sketchRectangleHandleTopRight => center + Offset(halfWidth, halfHeight),
+    sketchRectangleHandleBottomLeft => center + Offset(-halfWidth, -halfHeight),
+    sketchRectangleHandleBottomRight => center + Offset(halfWidth, -halfHeight),
+    _ => center,
+  };
+}
+
+Map<String, Object?> _sketchRectangleValuesForCornerDrag(
+  Map<String, Object?> values,
+  String draggedRole,
+  Offset draggedCorner,
+) {
+  final fixedRole = switch (draggedRole) {
+    sketchRectangleHandleTopLeft => sketchRectangleHandleBottomRight,
+    sketchRectangleHandleTopRight => sketchRectangleHandleBottomLeft,
+    sketchRectangleHandleBottomLeft => sketchRectangleHandleTopRight,
+    sketchRectangleHandleBottomRight => sketchRectangleHandleTopLeft,
+    _ => null,
+  };
+  if (fixedRole == null) {
+    return values;
+  }
+
+  final fixedCorner = _sketchRectangleCornerFromValues(values, fixedRole);
+  final left = math.min(fixedCorner.dx, draggedCorner.dx);
+  final right = math.max(fixedCorner.dx, draggedCorner.dx);
+  final top = math.min(fixedCorner.dy, draggedCorner.dy);
+  final bottom = math.max(fixedCorner.dy, draggedCorner.dy);
+
+  return {
+    ...values,
+    'centerX': (left + right) / 2,
+    'centerY': (top + bottom) / 2,
+    'width': right - left,
+    'height': bottom - top,
+  };
 }
 
 bool _snapTargetCanCreateCircularCutout(_ActiveSnapTarget? target) {
@@ -5112,13 +5170,16 @@ class _ViewportAreaState extends State<_ViewportArea> {
       bodyDimensions: _mockViewportBodyDimensions(widget.project),
     );
     final pointerLocal = layout.workplaneCanvasToLocal(workplane, position);
-    final dragRole = entity.type == 'line'
-        ? switch (hit.childRole) {
-            'start' => 'start',
-            'end' => 'end',
-            _ => 'body',
-          }
-        : null;
+    final dragRole = switch (entity.type) {
+      'line' => switch (hit.childRole) {
+        'start' => 'start',
+        'end' => 'end',
+        _ => 'body',
+      },
+      'rectangle' =>
+        isSketchRectangleCornerHandleRole(hit.childRole) ? hit.childRole : null,
+      _ => null,
+    };
     final anchor = switch (dragRole) {
       'start' => Offset(
         readDouble(values['startX'], fallback: -10.0),
@@ -5128,6 +5189,8 @@ class _ViewportAreaState extends State<_ViewportArea> {
         readDouble(values['endX'], fallback: 10.0),
         readDouble(values['endY'], fallback: 0.0),
       ),
+      final role when isSketchRectangleCornerHandleRole(role) =>
+        _sketchRectangleCornerFromValues(values, role!),
       _ => Offset(
         readDouble(values['centerX'], fallback: 0.0),
         readDouble(values['centerY'], fallback: 0.0),
@@ -5140,6 +5203,67 @@ class _ViewportAreaState extends State<_ViewportArea> {
       workplane: workplane,
       grabOffset: anchor - pointerLocal,
       dragRole: dragRole,
+    );
+  }
+
+  List<Widget> _selectedSketchRectangleHandleMarkers(
+    List<MockViewportSketchRectanglePreview> sketchRectanglePreviews,
+    Size viewportSize,
+  ) {
+    final selection = widget.selection;
+    if (selection.kind != SelectionKind.sketchEntity ||
+        selection.parentId == null ||
+        selection.id == null) {
+      return const [];
+    }
+
+    final rectangle = sketchRectanglePreviews
+        .where(
+          (rectangle) =>
+              rectangle.featureId == selection.parentId &&
+              rectangle.entityId == selection.id &&
+              rectangle.handlesEnabled,
+        )
+        .firstOrNull;
+    if (rectangle == null) {
+      return const [];
+    }
+
+    final layout = MockViewportLayout.fromSize(
+      viewportSize,
+      widget.viewportState,
+      bodyDimensions: _mockViewportBodyDimensions(widget.project),
+    );
+
+    return [
+      for (final role in sketchRectangleCornerHandleRoles)
+        _sketchRectangleHandleMarker(
+          rectangle,
+          role,
+          rectangle.canvasHandlePoint(layout, role),
+        ),
+    ];
+  }
+
+  Widget _sketchRectangleHandleMarker(
+    MockViewportSketchRectanglePreview rectangle,
+    String role,
+    Offset center,
+  ) {
+    const markerExtent = 18.0;
+    return Positioned(
+      left: center.dx - markerExtent / 2,
+      top: center.dy - markerExtent / 2,
+      width: markerExtent,
+      height: markerExtent,
+      child: IgnorePointer(
+        child: SizedBox.expand(
+          key: ValueKey(
+            'advanced-sketch-rectangle-handle-${rectangle.featureId}-'
+            '${rectangle.entityId}-$role',
+          ),
+        ),
+      ),
     );
   }
 
@@ -5393,6 +5517,10 @@ class _ViewportAreaState extends State<_ViewportArea> {
                         key: ValueKey('advanced-sketch-overlay-active'),
                       ),
                     ),
+                  ..._selectedSketchRectangleHandleMarkers(
+                    sketchRectanglePreviews,
+                    viewportSize,
+                  ),
                   ..._selectedSketchLineHandleMarkers(
                     sketchLinePreviews,
                     viewportSize,
@@ -12471,6 +12599,18 @@ class _ViewportPainter extends CustomPainter {
       );
       canvas.drawCircle(center, 4.2 * layout.zoom, centerFill);
       canvas.drawCircle(center, 4.2 * layout.zoom, centerStroke);
+      if (selected && rectangle.handlesEnabled) {
+        for (final role in sketchRectangleCornerHandleRoles) {
+          _drawSketchHandle(
+            canvas,
+            rectangle.canvasHandlePoint(layout, role),
+            radius: 5.5 * layout.zoom,
+            fillColor: const Color(0xFF151719).withValues(alpha: 0.96),
+            strokeColor: intentColor.withValues(alpha: 1),
+            dotColor: intentColor.withValues(alpha: 0.96),
+          );
+        }
+      }
     }
   }
 
@@ -12585,7 +12725,7 @@ class _ViewportPainter extends CustomPainter {
       canvas.drawLine(start, end, selected ? selectedStroke : stroke);
       if (selected) {
         final endpointRadius = 5.7 * layout.zoom;
-        _drawSketchLineHandle(
+        _drawSketchHandle(
           canvas,
           start,
           radius: endpointRadius,
@@ -12593,7 +12733,7 @@ class _ViewportPainter extends CustomPainter {
           strokeColor: intentColor.withValues(alpha: 1),
           dotColor: intentColor.withValues(alpha: 0.96),
         );
-        _drawSketchLineHandle(
+        _drawSketchHandle(
           canvas,
           end,
           radius: endpointRadius,
@@ -13323,7 +13463,7 @@ void _drawRotatedRRect(
   canvas.restore();
 }
 
-void _drawSketchLineHandle(
+void _drawSketchHandle(
   Canvas canvas,
   Offset center, {
   required double radius,
@@ -13591,6 +13731,11 @@ List<MockViewportSketchRectanglePreview> _mockSketchRectanglePreviews(
       }
 
       final values = SketchEntityParameterAdapter.valuesFrom(entity);
+      final rotationZDegrees = readDouble(values['rotation'], fallback: 0.0);
+      final selected =
+          selection.kind == SelectionKind.sketchEntity &&
+          selection.parentId == feature.id &&
+          selection.id == entity.id;
       previews.add(
         MockViewportSketchRectanglePreview(
           featureId: feature.id,
@@ -13603,8 +13748,9 @@ List<MockViewportSketchRectanglePreview> _mockSketchRectanglePreviews(
           width: readDouble(values['width'], fallback: 20.0),
           height: readDouble(values['height'], fallback: 12.0),
           cornerRadius: readDouble(values['cornerRadius'], fallback: 0.0),
-          rotationZDegrees: readDouble(values['rotation'], fallback: 0.0),
+          rotationZDegrees: rotationZDegrees,
           profileIntent: sketchProfileIntentFor(entity),
+          handlesEnabled: selected && rotationZDegrees.abs() < 0.001,
         ),
       );
     }
@@ -13628,17 +13774,50 @@ extension _SketchRectanglePreviewDrag
       if (rectangle.featureId == preview.featureId &&
           rectangle.entityId == preview.entityId) {
         changed = true;
+        final draggedValues =
+            isSketchRectangleCornerHandleRole(preview.dragRole)
+            ? _sketchRectangleValuesForCornerDrag(
+                {
+                  'centerX': rectangle.center.dx,
+                  'centerY': rectangle.center.dy,
+                  'width': rectangle.width,
+                  'height': rectangle.height,
+                  'cornerRadius': rectangle.cornerRadius,
+                  'rotation': rectangle.rotationZDegrees,
+                },
+                preview.dragRole!,
+                preview.localPosition,
+              )
+            : null;
         next.add(
           MockViewportSketchRectanglePreview(
             featureId: rectangle.featureId,
             entityId: rectangle.entityId,
             workplane: rectangle.workplane,
-            center: preview.localPosition,
-            width: rectangle.width,
-            height: rectangle.height,
-            cornerRadius: rectangle.cornerRadius,
+            center: draggedValues == null
+                ? preview.localPosition
+                : Offset(
+                    readDouble(draggedValues['centerX'], fallback: 0.0),
+                    readDouble(draggedValues['centerY'], fallback: 0.0),
+                  ),
+            width: draggedValues == null
+                ? rectangle.width
+                : readDouble(draggedValues['width'], fallback: rectangle.width),
+            height: draggedValues == null
+                ? rectangle.height
+                : readDouble(
+                    draggedValues['height'],
+                    fallback: rectangle.height,
+                  ),
+            cornerRadius: draggedValues == null
+                ? rectangle.cornerRadius
+                : readDouble(
+                    draggedValues['cornerRadius'],
+                    fallback: rectangle.cornerRadius,
+                  ),
             rotationZDegrees: rectangle.rotationZDegrees,
             profileIntent: rectangle.profileIntent,
+            handlesEnabled: rectangle.handlesEnabled,
           ),
         );
       } else {

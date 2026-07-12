@@ -422,6 +422,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Basic sketch line entity foundation.
 - [x] Basic sketch line endpoint handles.
 - [x] Basic sketch line visible handles.
+- [x] Basic sketch rectangle corner resize handles.
 - [ ] Basic sketch drawing/editing.
 - [ ] Extrude/cut.
 - [ ] Boolean.

@@ -4772,6 +4772,111 @@ void main() {
     expect(movedEntity.parameters['center'], [18.0, -4.0]);
   });
 
+  testWidgets('selected rectangle sketch entity resizes from corner handle', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final fileService = _MemoryProjectFileService();
+    final saveFile = File('corner_resize_sketch_case.enclosure.json');
+    final dialog = _FakeProjectFileDialogService(saveFile: saveFile);
+    final sketch = advancedSketchWithEntities(
+      const SemanticFeature(
+        id: 'advanced_sketch_1',
+        type: advancedSketchFeatureType,
+        targetSurface: 'main_enclosure.front_wall.outer',
+        operation: 'helper',
+        parameters: {'name': 'Corner resize sketch'},
+        metadata: {'advanced': true},
+      ),
+      [defaultSketchRectangleEntity(id: 'rect_1')],
+    );
+    final project = ProjectModel.initial().copyWith(
+      componentTemplates: const [],
+      componentPlacements: const [],
+      features: [sketch],
+      featureGroups: const [],
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkspaceShell(
+          project: project,
+          geometryService: const MockGeometryService(),
+          projectFileService: fileService,
+          projectFileDialogService: dialog,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('advanced-mode-toggle')));
+    await _pumpAsyncUi(tester);
+
+    expect(
+      find.byKey(
+        const ValueKey(
+          'advanced-sketch-rectangle-handle-advanced_sketch_1-rect_1-topRight',
+        ),
+      ),
+      findsNothing,
+    );
+
+    await tester.tapAt(_frontWallCanvasPoint(tester, Offset.zero));
+    await _pumpAsyncUi(tester);
+
+    expect(
+      find.byKey(
+        const ValueKey('sketch-entity-advanced_sketch_1-rect_1-selected'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey(
+          'advanced-sketch-rectangle-handle-advanced_sketch_1-rect_1-topRight',
+        ),
+      ),
+      findsOneWidget,
+    );
+
+    final dragStart = _frontWallCanvasPoint(tester, const Offset(10, 6));
+    final dragEnd = _frontWallCanvasPoint(tester, const Offset(16, 9));
+    final gesture = await tester.startGesture(
+      dragStart,
+      kind: PointerDeviceKind.mouse,
+      buttons: kPrimaryMouseButton,
+    );
+    await gesture.moveTo(dragEnd);
+    await tester.pump();
+
+    expect(
+      find.byKey(
+        const ValueKey(
+          'advanced-sketch-entity-drag-preview-advanced_sketch_1-rect_1',
+        ),
+      ),
+      findsOneWidget,
+    );
+
+    await gesture.up();
+    await _pumpAsyncUi(tester);
+
+    await tester.tap(
+      find.byKey(const ValueKey('toolbar-command-${CommandIds.saveProject}')),
+    );
+    await _pumpAsyncUi(tester);
+
+    final saved = await fileService.readProject(saveFile);
+    final savedSketch = saved.features.singleWhere(
+      (feature) => feature.id == 'advanced_sketch_1',
+    );
+    final savedEntity = sketchEntitiesForFeature(savedSketch).single;
+    expect(savedEntity.parameters['center'], [3.0, 1.5]);
+    expect(savedEntity.parameters['width'], 26.0);
+    expect(savedEntity.parameters['height'], 15.0);
+  });
+
   testWidgets('circle placement exposes generic sketch entity markers', (
     tester,
   ) async {

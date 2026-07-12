@@ -7351,3 +7351,46 @@ show stable start/body/end handles that match the direct-drag behavior.
 - Confirm the selected line has obvious endpoint handles.
 - Drag the middle/body handle and confirm the whole line moves.
 - Drag either endpoint handle and confirm only that endpoint moves.
+
+---
+
+## M156 - Rectangle Corner Resize Handles
+
+### Goal
+Let a selected sketch rectangle be resized directly from viewport corner
+handles while preserving semantic `center`, `width`, and `height` project data.
+
+### Tasks
+- [x] Add rectangle corner hit roles for selected rectangle handles.
+- [x] Add selected rectangle corner handle markers in the viewport overlay.
+- [x] Render selected rectangle corner handles in the sketch painter.
+- [x] Reuse the existing sketch drag pipeline for live resize preview.
+- [x] Commit corner drags as semantic `center` / `width` / `height` updates.
+- [x] Keep rotated rectangles on inspector-based resize until rotation-aware
+      handle math is designed.
+- [x] Cover hit roles and saved semantic resize data with tests.
+- [x] Update tasks/worklog.
+
+### Done Criteria
+- Unselected rectangles still drag/move as before.
+- Selecting a non-rotated rectangle reveals four corner handles.
+- Dragging a corner updates the rectangle size and center using the opposite
+  corner as the fixed anchor.
+- Saved project JSON stores semantic rectangle parameters only.
+- No mesh, generated B-Rep, or topology id becomes editable state.
+
+### Tests
+- `flutter test test\viewport_controller_test.dart test\widget_test.dart --name "rectangle|sketch entity" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Turn on Advanced Mode and select or create a rectangle.
+- Confirm four corner handles appear on the selected rectangle.
+- Drag a corner and confirm the opposite corner stays visually anchored.
+- Save/reopen if useful and confirm the new rectangle size persists.

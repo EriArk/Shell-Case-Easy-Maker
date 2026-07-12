@@ -14045,3 +14045,82 @@ storage or geometry generation.
 ### Next step
 Commit and push M155, then continue toward direct rectangle/circle resize
 handles.
+
+---
+
+## 2026-07-12 - M156 Rectangle corner resize handles
+
+### Goal
+Add direct viewport resize for selected sketch rectangles using corner handles,
+while keeping the editable project as semantic rectangle parameters.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/viewport/viewport_controller.dart`, `lib/ui/shell/workspace_shell.dart`,
+`test/viewport_controller_test.dart`, and `test/widget_test.dart`.
+
+### Changes made
+- `lib/viewport/viewport_controller.dart`:
+  - Added stable rectangle corner role constants.
+  - Added selected-rectangle handle hit roles for four corners.
+  - Keeps body hits available as `body`.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Enables corner handles only for selected, non-rotated sketch rectangles.
+  - Adds non-intercepting viewport markers for rectangle corner handles.
+  - Paints selected rectangle corner handles in the viewport.
+  - Reuses sketch drag preview for live rectangle resize.
+  - Commits corner drags as semantic `center`, `width`, and `height` updates.
+- `test/viewport_controller_test.dart`:
+  - Added rectangle corner role hit-test coverage.
+- `test/widget_test.dart`:
+  - Added direct top-right corner resize coverage and saved project assertions.
+- `ROADMAP.md` and `TASKS.md`:
+  - Added M156 and marked rectangle corner resize handles complete.
+
+### Tests run
+- `dart format lib\viewport\viewport_controller.dart lib\ui\shell\workspace_shell.dart test\viewport_controller_test.dart test\widget_test.dart`:
+  - Passed; `lib/ui/shell/workspace_shell.dart` was formatted.
+- `flutter test test\viewport_controller_test.dart test\widget_test.dart --name "rectangle|sketch entity" --reporter compact`:
+  - Failed once while aligning visual top/bottom roles to workplane local Y.
+  - Passed after correcting corner role mapping; 15 matching tests.
+- `flutter pub get`:
+  - Passed; dependency graph resolved with existing newer-package notices.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 76 files checked.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed; 284 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed; rebuilt `releases/latest/windows`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git status --short --ignored releases`:
+  - Passed; `releases/` remains ignored.
+- `git diff --check`:
+  - Passed; only the existing `ROADMAP.md` CRLF normalization warning was
+    reported.
+
+### Validation
+- Geometry checked?
+  - No native generated geometry changed; this only edits semantic sketch
+    rectangle parameters.
+- Serialization checked?
+  - Yes. Widget coverage saves semantic rectangle `center`, `width`, and
+    `height` after corner drag.
+- UI checked?
+  - Yes. Targeted widget coverage verifies selected top-right handle marker,
+    live drag preview, and saved resize result.
+- Export checked?
+  - Yes. Latest manual Windows bundle rebuilt at
+    `releases/latest/windows/shell_case_easy_maker.exe`.
+
+### Known issues
+- Issue: Rotated rectangles still use inspector resize controls; direct corner
+  resize is only enabled when rotation is effectively zero.
+  - Severity: Medium.
+  - Next action: Add rotation-aware handle math in a later sketch editing slice.
+
+### Next step
+Commit and push M156, then continue toward circle radius handles or
+rotation-aware rectangle handles.
