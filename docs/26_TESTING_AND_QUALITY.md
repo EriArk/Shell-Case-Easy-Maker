@@ -136,8 +136,9 @@ Use deterministic test fixtures.
   contours become request-scoped backend operations while the parent sketch
   remains `helper.advanced_sketch`.
 - Native OCCT regression tests verify that Advanced Sketch `cut` circles and
-  axis-aligned rectangles become generated preview cutouts mapped back to the
-  sketch entity ids, while `add` contours remain future-operation data.
+  rectangles, including rotated rectangles, become generated preview cutouts
+  mapped back to the sketch entity ids, while `add` contours remain
+  future-operation data.
 - Validation status/details show warning and error messages.
 - Context popovers show correct actions.
 - Parameter knob updates model.

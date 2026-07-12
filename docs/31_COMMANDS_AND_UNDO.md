@@ -189,9 +189,9 @@ undoable semantic edits. Selected entities expose schema-backed dimensions,
 position, and type-specific controls, plus `profileIntent` metadata for
 reference/cut/add operation hints. Each parameter or intent change is a
 separate undoable semantic edit. The result is undoable and save/load safe.
-Native preview can consume validated `cut` circles and axis-aligned rectangles
-as disposable generated cutouts, while generated B-Rep, mesh, and topology IDs
-remain outside editable project state.
+Native preview can consume validated `cut` circles and rectangles, including
+rotated rectangles, as disposable generated cutouts, while generated B-Rep,
+mesh, and topology IDs remain outside editable project state.
 
 Undo/redo now validates the active selection against the restored project. If
 the selected semantic object no longer exists after undo, the shell falls back

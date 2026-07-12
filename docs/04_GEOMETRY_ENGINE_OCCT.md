@@ -121,12 +121,13 @@ geometry slices:
 
 The mock backend exposes this plan in response metrics for testing and worker
 development. The native OCCT worker now consumes `profileIntent=cut` sketch
-entities for first-pass circle and axis-aligned rectangle cuts on supported
-front-wall/top-lid sketch workplanes. These sketch cuts reuse the existing
+entities for first-pass circle and rectangle cuts, including rotated
+rectangles, on supported front-wall/top-lid sketch workplanes. These sketch
+cuts reuse the existing
 semantic circular/rectangular cutout tool path, map preview ranges back to
 stable sketch entity ids such as `advanced_sketch_1.lid_rect_cut`, and remain
-disposable generated B-Rep. `profileIntent=add`, rotated rectangles, and richer
-sketch extrusion semantics remain future backend work. The native OCCT worker
+disposable generated B-Rep. `profileIntent=add` and richer sketch extrusion
+semantics remain future backend work. The native OCCT worker
 also consumes front-wall `usb_c_cutout`
 intents, first-pass front-wall and top-lid `glass_recess` intents,
 front-wall/top-lid `circular_cutout` intents, front-wall/top-lid

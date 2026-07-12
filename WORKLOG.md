@@ -12925,3 +12925,90 @@ add/protrusion semantics, or direct sketch editing.
 Do not flatten sketch entities into standalone editable cutout features. The
 native worker may generate disposable B-Rep from them, but `ProjectModel`
 continues to store the semantic Advanced Sketch.
+
+---
+
+## 2026-07-11 - M142 Native rotated sketch rectangle cut
+
+### Goal
+Let native OCCT preview consume rotated Advanced Sketch rectangle cuts while
+keeping the editable project semantic and topology-free.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`docs/03_ARCHITECTURE_OVERVIEW.md`, `docs/04_GEOMETRY_ENGINE_OCCT.md`,
+`docs/06_FEATURE_SYSTEM.md`, `docs/26_TESTING_AND_QUALITY.md`,
+`docs/27_RESEARCH_AND_REFERENCES.md`, `docs/30_ADVANCED_CAD_MODE.md`,
+`docs/31_COMMANDS_AND_UNDO.md`, `docs/32_USABLE_SHELL.md`,
+`occt_worker/native/src/occt_main.cpp`,
+`test/native_occt_geometry_regression_test.dart`, and
+`test/support/native_occt_geometry_fixture.dart`.
+
+### Changes made
+- `occt_worker/native/src/occt_main.cpp`:
+  - Parsed rectangle `rotation` into native rectangular cutout requests.
+  - Added rotated-rectangle corner/bounds helpers for fit validation and
+    preview range mapping.
+  - Rotated rectangular cutout tools around the front-wall or top-lid surface
+    normal before boolean subtraction.
+  - Kept USB-C cutouts unchanged and kept generated B-Rep disposable.
+- `test/support/native_occt_geometry_fixture.dart`:
+  - Added `lid_rotated_rect_cut` to the native Advanced Sketch fixture.
+- `test/native_occt_geometry_regression_test.dart`:
+  - Verified the rotated sketch cut semantic surface id and updated generated
+    lid rectangular cut metrics.
+- Docs/tasks/roadmap/research:
+  - Added M142, updated current Advanced Sketch/native cut docs, and recorded
+    the OCCT transform research note.
+
+### Tests run
+- `dart format test\support\native_occt_geometry_fixture.dart test\native_occt_geometry_regression_test.dart`:
+  - Passed.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`:
+  - Passed.
+- `flutter test test\native_occt_geometry_regression_test.dart --reporter compact`:
+  - Passed, 4 tests.
+- `flutter pub get`:
+  - Passed.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter analyze`:
+  - Passed.
+- `flutter test --reporter compact`:
+  - Passed, 263 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed. Refreshed `releases/latest/windows/shell_case_easy_maker.exe`.
+- `git diff --check`:
+  - Passed.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git status --short --ignored releases`:
+  - Passed. `releases/` remains ignored.
+
+### Validation
+- Geometry checked?
+  - Yes. Native regression verifies generated cut ranges for
+    `advanced_sketch_1.lid_round_cut`, `advanced_sketch_1.lid_rect_cut`, and
+    `advanced_sketch_1.lid_rotated_rect_cut`.
+- Serialization checked?
+  - Yes by boundary. The editable project still stores semantic
+    `advanced_sketch` entities; no generated B-Rep, mesh, OCCT topology id, or
+    triangle id is saved.
+- UI checked?
+  - Not manually in this session. The latest exe was rebuilt and has a useful
+    poke checklist for the rotated cut behavior.
+- Export checked?
+  - Yes. Latest Windows bundle was rebuilt locally and remains ignored by Git.
+
+### Known issues
+- Issue: `profileIntent=add` is still future-operation intent only.
+  - Severity: Expected.
+  - Next action: Design positive protrusion semantics before native fuse/extrude
+    behavior.
+- Issue: Direct sketch drawing/edit handles still do not exist.
+  - Severity: Expected.
+  - Next action: Continue after backend semantics stabilize.
+
+### Next step
+Commit and push M142, then continue toward `profileIntent=add` semantics or
+direct sketch drawing/edit handles.

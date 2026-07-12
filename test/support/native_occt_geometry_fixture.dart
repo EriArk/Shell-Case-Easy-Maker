@@ -339,6 +339,20 @@ ProjectModel nativeOcctSketchProfileCutProject() {
       ),
       sketchEntityWithProfileIntent(
         const SketchEntity(
+          id: 'lid_rotated_rect_cut',
+          type: 'rectangle',
+          parameters: {
+            'center': [0.0, -16.0],
+            'width': 18.0,
+            'height': 8.0,
+            'cornerRadius': 2.0,
+            'rotation': 30.0,
+          },
+        ),
+        sketchProfileIntentCut,
+      ),
+      sketchEntityWithProfileIntent(
+        const SketchEntity(
           id: 'future_add',
           type: 'circle',
           parameters: {

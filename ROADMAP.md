@@ -147,6 +147,20 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M126 - Sketch Rectangle Entity Focus
 - [x] M127 - Sketch Rectangle Entity Actions
 - [x] M128 - Sketch Rectangle Bounds Warning
+- [x] M129 - Sketch Rectangle Click Placement
+- [x] M130 - Sketch Rectangle Resize Buttons
+- [x] M131 - Sketch Rectangle Move-To-Click
+- [x] M132 - Sketch Rectangle Duplicate
+- [x] M133 - Sketch Rectangle Keyboard Editing
+- [x] M134 - Sketch Rectangle Keyboard Commands
+- [x] M135 - Sketch Rectangle Workplane Quick Actions
+- [x] M136 - Sketch Rectangle Semantic Rotation
+- [x] M137 - Sketch Rectangle Shape Quick Actions
+- [x] M138 - Sketch Circle Entity Foundation
+- [x] M139 - Sketch Entity Profile Intent
+- [x] M140 - Sketch Profile Operation Plan
+- [x] M141 - Native Sketch Profile Cut Slice
+- [x] M142 - Native Rotated Sketch Rectangle Cut
 
 ---
 
@@ -6718,3 +6732,50 @@ unsupported sketch operations future-only.
 - Set another contour to add and confirm it still behaves as future intent
   only.
 - Avoid rotated rectangle cut expectations for now; that is a later slice.
+
+---
+
+## M142 - Native Rotated Sketch Rectangle Cut
+
+### Goal
+Let native OCCT preview consume rotated Advanced Sketch rectangle cuts without
+changing the editable project source of truth or exposing raw topology ids.
+
+### Tasks
+- [x] Parse sketch rectangle `rotation` into native rectangular cutout requests.
+- [x] Validate rotated rectangle corners against supported top-lid/front-wall
+      workplane bounds.
+- [x] Rotate generated rectangular cut tools around the target surface normal.
+- [x] Keep preview range mapping semantic and stable for rotated sketch entity
+      ids.
+- [x] Cover the behavior with a native OCCT regression fixture/test.
+- [x] Update docs/tasks/worklog/research notes.
+
+### Done Criteria
+- A top-lid Advanced Sketch rotated rectangle with `profileIntent=cut`
+  generates a native preview cutout.
+- The preview mesh exposes `advanced_sketch_1.lid_rotated_rect_cut`.
+- `profileIntent=add` remains future-operation data and does not generate
+  native geometry.
+- No raw OCCT topology id, face id, or triangle id is saved or exposed as
+  editable project state.
+
+### Tests
+- `dart format test\support\native_occt_geometry_fixture.dart test\native_occt_geometry_regression_test.dart`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`
+- `flutter test test\native_occt_geometry_regression_test.dart --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Enable Advanced Mode and select/create an Advanced Sketch on the top lid.
+- Add/select a rectangle, set its intent to cut, then rotate it with the
+  rectangle controls.
+- Confirm the native preview cut follows the rectangle angle instead of
+  remaining axis-aligned.
+- Set a contour to add and confirm it still stays future-only for now.

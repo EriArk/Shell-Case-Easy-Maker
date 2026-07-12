@@ -1,6 +1,7 @@
 #include <BRepBndLib.hxx>
 #include <BRepAlgoAPI_Cut.hxx>
 #include <BRepAlgoAPI_Fuse.hxx>
+#include <BRepBuilderAPI_Transform.hxx>
 #include <BRepCheck_Analyzer.hxx>
 #include <BRepFilletAPI_MakeFillet.hxx>
 #include <BRepGProp.hxx>
@@ -26,9 +27,11 @@
 #include <TopoDS_Edge.hxx>
 #include <TopoDS_Face.hxx>
 #include <TopoDS_Shape.hxx>
+#include <gp_Ax1.hxx>
 #include <gp_Ax2.hxx>
 #include <gp_Dir.hxx>
 #include <gp_Pnt.hxx>
+#include <gp_Trsf.hxx>
 #include <gp_Vec.hxx>
 
 #include <algorithm>
@@ -78,6 +81,7 @@ constexpr double kButtonGuideWallThickness = 0.45;
 constexpr double kButtonGuideMinLength = 0.2;
 constexpr double kButtonTravelStopThickness = 0.35;
 constexpr double kButtonTravelStopShoulder = 0.35;
+constexpr double kPi = 3.14159265358979323846;
 
 struct NativeRequestEnvelope {
   std::string request_id = kInvalidRequestId;
@@ -157,6 +161,7 @@ struct RectangularCutoutRequest {
   double height = 10.0;
   double depth = 3.0;
   double corner_radius = 2.0;
+  double rotation_degrees = 0.0;
   bool has_surface_position = false;
   std::array<double, 2> surface_position = {0.0, 0.0};
 };
@@ -969,6 +974,84 @@ bool IsApproximatelyZero(double value) {
   return std::isfinite(value) && std::abs(value) <= 0.000001;
 }
 
+double DegreesToRadians(double degrees) {
+  return degrees * kPi / 180.0;
+}
+
+std::array<std::array<double, 2>, 4> RotatedRectangleCorners(
+    const std::array<double, 2>& center,
+    double width,
+    double height,
+    double rotation_degrees) {
+  const double half_width = width / 2.0;
+  const double half_height = height / 2.0;
+  const double radians = DegreesToRadians(rotation_degrees);
+  const double cos_angle = std::cos(radians);
+  const double sin_angle = std::sin(radians);
+  const std::array<std::array<double, 2>, 4> local_corners = {
+      std::array<double, 2>{-half_width, -half_height},
+      std::array<double, 2>{half_width, -half_height},
+      std::array<double, 2>{half_width, half_height},
+      std::array<double, 2>{-half_width, half_height}};
+  std::array<std::array<double, 2>, 4> corners = {};
+  for (std::size_t index = 0; index < local_corners.size(); ++index) {
+    const double local_x = local_corners[index][0];
+    const double local_y = local_corners[index][1];
+    corners[index] = {
+        center[0] + local_x * cos_angle - local_y * sin_angle,
+        center[1] + local_x * sin_angle + local_y * cos_angle};
+  }
+  return corners;
+}
+
+std::array<double, 4> RotatedRectangleBounds2D(
+    const std::array<double, 2>& center,
+    double width,
+    double height,
+    double rotation_degrees,
+    double tolerance) {
+  const std::array<std::array<double, 2>, 4> corners =
+      RotatedRectangleCorners(center, width, height, rotation_degrees);
+  double min_x = std::numeric_limits<double>::infinity();
+  double max_x = -std::numeric_limits<double>::infinity();
+  double min_y = std::numeric_limits<double>::infinity();
+  double max_y = -std::numeric_limits<double>::infinity();
+  for (const std::array<double, 2>& corner : corners) {
+    min_x = std::min(min_x, corner[0]);
+    max_x = std::max(max_x, corner[0]);
+    min_y = std::min(min_y, corner[1]);
+    max_y = std::max(max_y, corner[1]);
+  }
+  return {min_x - tolerance, max_x + tolerance, min_y - tolerance,
+          max_y + tolerance};
+}
+
+bool RotatedRectangleFitsBounds(const std::array<double, 2>& center,
+                                double width,
+                                double height,
+                                double rotation_degrees,
+                                double min_x,
+                                double max_x,
+                                double min_y,
+                                double max_y,
+                                double tolerance) {
+  if (!IsPositiveDimension(width) || !IsPositiveDimension(height) ||
+      !std::isfinite(rotation_degrees) || !std::isfinite(center[0]) ||
+      !std::isfinite(center[1])) {
+    return false;
+  }
+
+  const std::array<std::array<double, 2>, 4> corners =
+      RotatedRectangleCorners(center, width, height, rotation_degrees);
+  for (const std::array<double, 2>& corner : corners) {
+    if (corner[0] < min_x - tolerance || corner[0] > max_x + tolerance ||
+        corner[1] < min_y - tolerance || corner[1] > max_y + tolerance) {
+      return false;
+    }
+  }
+  return true;
+}
+
 std::array<double, 2> SketchProfileSurfacePosition(
     const EnclosureRequest& enclosure,
     const std::string& target_surface,
@@ -984,12 +1067,8 @@ bool SketchProfileFitsSupportedSurface(const EnclosureRequest& enclosure,
                                        const std::string& target_surface,
                                        const std::array<double, 2>& center,
                                        double width,
-                                       double height) {
-  if (!IsPositiveDimension(width) || !IsPositiveDimension(height) ||
-      !std::isfinite(center[0]) || !std::isfinite(center[1])) {
-    return false;
-  }
-
+                                       double height,
+                                       double rotation_degrees = 0.0) {
   const bool targets_top_lid =
       target_surface == enclosure.id + ".top_lid.outer";
   const bool targets_front_wall =
@@ -1008,12 +1087,17 @@ bool SketchProfileFitsSupportedSurface(const EnclosureRequest& enclosure,
   const double max_secondary =
       targets_top_lid ? available_height / 2.0
                       : enclosure.size[2] - enclosure.wall_thickness;
+  const double tolerance = 0.000001;
 
-  return width <= available_width && height <= available_height &&
-         center[0] - width / 2.0 >= -available_width / 2.0 &&
-         center[0] + width / 2.0 <= available_width / 2.0 &&
-         center[1] - height / 2.0 >= min_secondary &&
-         center[1] + height / 2.0 <= max_secondary;
+  return RotatedRectangleFitsBounds(center,
+                                    width,
+                                    height,
+                                    rotation_degrees,
+                                    -available_width / 2.0,
+                                    available_width / 2.0,
+                                    min_secondary,
+                                    max_secondary,
+                                    tolerance);
 }
 
 double DefaultButtonCapDiameter(double cutout_diameter) {
@@ -1492,7 +1576,6 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
           cutout.target_surface = target_surface;
           cutout.has_surface_position = true;
           cutout.surface_position = surface_position;
-          double rotation = 0.0;
           if (entity_parameters.has_value()) {
             cutout.width =
                 ExtractTopLevelNumberField(*entity_parameters, "width")
@@ -1506,13 +1589,9 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
             cutout.depth =
                 ExtractTopLevelNumberField(*entity_parameters, "depth")
                     .value_or(3.0);
-            rotation =
+            cutout.rotation_degrees =
                 ExtractTopLevelNumberField(*entity_parameters, "rotation")
                     .value_or(0.0);
-          }
-
-          if (!IsApproximatelyZero(rotation)) {
-            continue;
           }
 
           if (!IsPositiveDimension(cutout.depth) ||
@@ -1524,7 +1603,8 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
                                                  cutout.target_surface,
                                                  cutout.surface_position,
                                                  cutout.width,
-                                                 cutout.height)) {
+                                                 cutout.height,
+                                                 cutout.rotation_degrees)) {
             result.issue_code = "worker.geometry.invalid_sketch_profile_cut";
             result.issue_message =
                 "Native OCCT worker sketch rectangle cuts must fit the target surface.";
@@ -1647,6 +1727,8 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
             ExtractTopLevelNumberField(*parameters, "depth").value_or(3.0);
         cutout.corner_radius =
             ExtractTopLevelNumberField(*parameters, "cornerRadius").value_or(2.0);
+        cutout.rotation_degrees =
+            ExtractTopLevelNumberField(*parameters, "rotation").value_or(0.0);
         parameter_position_x =
             ExtractTopLevelNumberField(*parameters, "positionX").value_or(0.0);
         parameter_position_y =
@@ -3186,10 +3268,15 @@ bool RectangularCutoutFitsFrontSurface(
   const double min_z = enclosure.wall_thickness;
   const double max_z = enclosure.size[2] - enclosure.wall_thickness;
   const double tolerance = 0.000001;
-  return center[0] - cutout.width / 2.0 >= -inner_width / 2.0 - tolerance &&
-         center[0] + cutout.width / 2.0 <= inner_width / 2.0 + tolerance &&
-         center[1] - cutout.height / 2.0 >= min_z - tolerance &&
-         center[1] + cutout.height / 2.0 <= max_z + tolerance;
+  return RotatedRectangleFitsBounds(center,
+                                    cutout.width,
+                                    cutout.height,
+                                    cutout.rotation_degrees,
+                                    -inner_width / 2.0,
+                                    inner_width / 2.0,
+                                    min_z,
+                                    max_z,
+                                    tolerance);
 }
 
 bool RectangularCutoutFitsTopLidSurface(
@@ -3201,10 +3288,15 @@ bool RectangularCutoutFitsTopLidSurface(
   const double inner_depth =
       enclosure.size[1] - enclosure.wall_thickness * 2.0;
   const double tolerance = 0.000001;
-  return center[0] - cutout.width / 2.0 >= -inner_width / 2.0 - tolerance &&
-         center[0] + cutout.width / 2.0 <= inner_width / 2.0 + tolerance &&
-         center[1] - cutout.height / 2.0 >= -inner_depth / 2.0 - tolerance &&
-         center[1] + cutout.height / 2.0 <= inner_depth / 2.0 + tolerance;
+  return RotatedRectangleFitsBounds(center,
+                                    cutout.width,
+                                    cutout.height,
+                                    cutout.rotation_degrees,
+                                    -inner_width / 2.0,
+                                    inner_width / 2.0,
+                                    -inner_depth / 2.0,
+                                    inner_depth / 2.0,
+                                    tolerance);
 }
 
 double EffectiveCircularCutDepth(double requested_depth,
@@ -3225,6 +3317,23 @@ double EffectiveRectangularCutDepth(double requested_depth,
   }
 
   return requested_depth;
+}
+
+TopoDS_Shape RotateShapeAroundAxis(const TopoDS_Shape& shape,
+                                   const gp_Ax1& axis,
+                                   double rotation_degrees) {
+  if (IsApproximatelyZero(rotation_degrees)) {
+    return shape;
+  }
+
+  gp_Trsf rotation;
+  rotation.SetRotation(axis, DegreesToRadians(rotation_degrees));
+  BRepBuilderAPI_Transform transform(shape, rotation, true, false);
+  const TopoDS_Shape rotated = transform.Shape();
+  if (rotated.IsNull()) {
+    throw std::runtime_error("OCCT generated a null rotated cutout tool.");
+  }
+  return rotated;
 }
 
 bool FaceIntersectsUsbCCutout(const FaceBounds& face_bounds,
@@ -3381,10 +3490,16 @@ bool FaceIntersectsRectangularCutout(
   const std::array<double, 2> center =
       RectangularCutoutCenter(enclosure, cutout);
   const double tolerance = PreviewSurfaceTolerance(metrics);
-  const double cutout_min_x = center[0] - cutout.width / 2.0 - tolerance;
-  const double cutout_max_x = center[0] + cutout.width / 2.0 + tolerance;
-  const double cutout_min_z = center[1] - cutout.height / 2.0 - tolerance;
-  const double cutout_max_z = center[1] + cutout.height / 2.0 + tolerance;
+  const std::array<double, 4> outline_bounds =
+      RotatedRectangleBounds2D(center,
+                               cutout.width,
+                               cutout.height,
+                               cutout.rotation_degrees,
+                               tolerance);
+  const double cutout_min_x = outline_bounds[0];
+  const double cutout_max_x = outline_bounds[1];
+  const double cutout_min_z = outline_bounds[2];
+  const double cutout_max_z = outline_bounds[3];
   const double front_y = -enclosure.size[1] / 2.0;
   const double cut_depth =
       std::min(cutout.depth, enclosure.wall_thickness);
@@ -3869,10 +3984,16 @@ bool FaceIntersectsGeneratedTopLidRectangularCutout(
   const std::array<double, 2> center =
       RectangularCutoutCenter(enclosure, cutout);
   const double tolerance = PreviewSurfaceTolerance(metrics);
-  const double cutout_min_x = center[0] - cutout.width / 2.0 - tolerance;
-  const double cutout_max_x = center[0] + cutout.width / 2.0 + tolerance;
-  const double cutout_min_y = center[1] - cutout.height / 2.0 - tolerance;
-  const double cutout_max_y = center[1] + cutout.height / 2.0 + tolerance;
+  const std::array<double, 4> outline_bounds =
+      RotatedRectangleBounds2D(center,
+                               cutout.width,
+                               cutout.height,
+                               cutout.rotation_degrees,
+                               tolerance);
+  const double cutout_min_x = outline_bounds[0];
+  const double cutout_max_x = outline_bounds[1];
+  const double cutout_min_y = outline_bounds[2];
+  const double cutout_max_y = outline_bounds[3];
   const double lid_top_z =
       enclosure.size[2] + lid_plate.preview_gap + lid_plate.thickness;
   const double cut_depth =
@@ -4709,8 +4830,11 @@ TopoDS_Shape BuildRectangularCutoutTool(const EnclosureRequest& enclosure,
   const double safe_radius =
       std::min(cutout.corner_radius,
                std::min(cutout.width, cutout.height) / 2.0 - 0.001);
+  const gp_Ax1 rotation_axis(
+      gp_Pnt(center[0], -enclosure.size[1] / 2.0, center[1]),
+      gp_Dir(0.0, 1.0, 0.0));
   if (safe_radius <= 0.0) {
-    return box;
+    return RotateShapeAroundAxis(box, rotation_axis, cutout.rotation_degrees);
   }
 
   BRepFilletAPI_MakeFillet fillet(box);
@@ -4732,7 +4856,9 @@ TopoDS_Shape BuildRectangularCutoutTool(const EnclosureRequest& enclosure,
         "OCCT rectangular cutout fillet did not complete.");
   }
 
-  return fillet.Shape();
+  return RotateShapeAroundAxis(fillet.Shape(),
+                               rotation_axis,
+                               cutout.rotation_degrees);
 }
 
 TopoDS_Shape BuildGeneratedTopLidGlassRecessTool(
@@ -4908,8 +5034,10 @@ TopoDS_Shape BuildGeneratedTopLidRectangularCutoutTool(
   const double safe_radius =
       std::min(cutout.corner_radius,
                std::min(cutout.width, cutout.height) / 2.0 - 0.001);
+  const gp_Ax1 rotation_axis(gp_Pnt(center[0], center[1], lid_top_z),
+                             gp_Dir(0.0, 0.0, 1.0));
   if (safe_radius <= 0.0) {
-    return box;
+    return RotateShapeAroundAxis(box, rotation_axis, cutout.rotation_degrees);
   }
 
   BRepFilletAPI_MakeFillet fillet(box);
@@ -4931,7 +5059,9 @@ TopoDS_Shape BuildGeneratedTopLidRectangularCutoutTool(
         "OCCT generated top lid rectangular cutout fillet did not complete.");
   }
 
-  return fillet.Shape();
+  return RotateShapeAroundAxis(fillet.Shape(),
+                               rotation_axis,
+                               cutout.rotation_degrees);
 }
 
 NativeFeatureCutResult ApplyNativeFeatureCutouts(

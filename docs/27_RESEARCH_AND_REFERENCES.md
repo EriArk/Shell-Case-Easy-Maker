@@ -1494,15 +1494,15 @@ exposing low-level Boolean operations to the default UI?
   B-Rep tools, fit validation, top-lid/front-wall orientation, metrics, and
   preview surface mapping.
 - A first safe bridge can treat `profileIntent=cut` circle entities as
-  circular cutout requests and axis-aligned rectangle entities as rectangular
-  cutout requests. This keeps the implementation small and deterministic.
-- `profileIntent=add`, rotated rectangle cuts, direct sketch handles, and
-  extrusion depth UX need separate design before they become real geometry.
+  circular cutout requests and rectangle entities as rectangular cutout
+  requests. This keeps the implementation small and deterministic.
+- `profileIntent=add`, direct sketch handles, and extrusion depth UX need
+  separate design before they become real geometry.
 - No GPL/AGPL code was copied.
 
 ## Decision
 
-Parse Advanced Sketch `profileIntent=cut` circle and axis-aligned rectangle
+Parse Advanced Sketch `profileIntent=cut` circle and rectangle
 entities in the native worker and route them through the existing generated
 cutout pipeline. The generated preview maps cut faces back to stable sketch
 entity ids such as `advanced_sketch_1.lid_round_cut`, and the editable project
@@ -1510,9 +1510,59 @@ continues to store only semantic sketch entities.
 
 ## Follow-up tasks
 
-- Add native support for rotated sketch rectangle cuts after the workplane
-  transform and validation rules are explicit.
+- Keep rotated sketch rectangle cuts on the existing semantic cutout path,
+  using explicit workplane transform and validation rules.
 - Design `profileIntent=add` as a semantic protrusion/generator before adding
   native fuse/extrude behavior.
 - Add direct sketch drawing/edit handles without coupling selection to preview
   mesh triangle ids.
+
+---
+
+## 2026-07-11 - Native rotated sketch rectangle cuts
+
+## Question
+
+How should the native worker cut rotated Advanced Sketch rectangles without
+coupling Flutter selection to generated OCCT topology or flattening the
+semantic sketch entity?
+
+## Sources checked
+
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepBuilderAPI_Transform.hxx`
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/gp_Trsf.hxx`
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/gp_Ax1.hxx`
+- Existing native worker rectangular cutout and generated top-lid cutout
+  builders in `occt_worker/native/src/occt_main.cpp`.
+
+## Findings
+
+- `BRepBuilderAPI_Transform` can apply a `gp_Trsf` rotation to an already-built
+  OCCT shape, so the worker can reuse the existing axis-local rectangular
+  cutout tool construction and rotate the disposable B-Rep tool before boolean
+  subtraction.
+- Rotated rectangle fit validation must check transformed rectangle corners
+  against the supported workplane bounds instead of checking only width/height
+  extents.
+- Preview mapping can remain semantic by mapping generated cut faces back to
+  the sketch entity id. The editable `ProjectModel` still stores only the
+  sketch rectangle parameters and `profileIntent=cut`.
+- This slice does not require raw OCCT face ids, triangle ids, or generated
+  B-Rep to cross into Flutter UI state.
+- No GPL/AGPL code was copied.
+
+## Decision
+
+Keep sketch rectangle cuts on the semantic rectangular cutout pipeline, parse
+the rectangle `rotation`, validate its rotated local corners, and rotate the
+generated cut tool around the target surface normal before subtraction.
+
+## Follow-up tasks
+
+- Design `profileIntent=add` as a semantic positive generator before native
+  fuse/extrude behavior.
+- Add direct sketch drawing/edit handles without making generated mesh topology
+  editable state.

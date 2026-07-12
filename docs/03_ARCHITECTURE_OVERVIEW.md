@@ -146,10 +146,10 @@ intent now also becomes request-scoped plan entries:
 `helper.advanced_sketch` remains the parent helper operation, while
 `profileIntent=cut/add` entities become `sketch.profile.cut/add` operations
 with semantic shape parameters. The native OCCT worker now consumes the first
-sketch `cut` circles and axis-aligned rectangles as disposable generated
-preview cutouts, mapped back to the sketch entity ids. `add`, rotated sketch
-rectangles, and other unsupported entries remain request/response scoped
-backend input, not saved editable project state.
+sketch `cut` circles and rectangles, including rotated rectangles, as
+disposable generated preview cutouts, mapped back to the sketch entity ids.
+`add` and other unsupported entries remain request/response scoped backend
+input, not saved editable project state.
 
 ## Generated Geometry Protocol Fixtures
 

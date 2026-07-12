@@ -282,6 +282,7 @@ void main() {
           .toSet();
       expect(surfaceIds, contains('advanced_sketch_1.lid_round_cut'));
       expect(surfaceIds, contains('advanced_sketch_1.lid_rect_cut'));
+      expect(surfaceIds, contains('advanced_sketch_1.lid_rotated_rect_cut'));
       expect(surfaceIds, isNot(contains('advanced_sketch_1.future_add')));
 
       final metrics = response.metrics;
@@ -290,12 +291,12 @@ void main() {
       expect(metrics['nativeIgnoredFeatureIntentCount'], 0);
       expect(metrics['nativeCircularCutoutCount'], 0);
       expect(metrics['nativeRectangularCutoutCount'], 0);
-      expect(metrics['nativeGeneratedLidFeatureCutCount'], 2);
+      expect(metrics['nativeGeneratedLidFeatureCutCount'], 3);
       expect(metrics['nativeGeneratedLidCircularCutoutCount'], 1);
-      expect(metrics['nativeGeneratedLidRectangularCutoutCount'], 1);
+      expect(metrics['nativeGeneratedLidRectangularCutoutCount'], 2);
       expect(
         metrics['nativeGeneratedLidRectangularCutoutFilletedEdgeCount'],
-        8,
+        16,
       );
       expect(metrics, isNot(contains('topologyId')));
       expect(metrics, isNot(contains('triangleId')));

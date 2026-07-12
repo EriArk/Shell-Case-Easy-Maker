@@ -18,8 +18,8 @@ tool is `advanced.sketch` (`Эскиз`). It creates a saved semantic
 now store typed sketch entities; the first supported entities are deterministic
 rectangles and circles. It is intentionally not a freeform mesh/B-Rep editor
 and does not store generated geometry as editable project state. Supported
-`cut` circles and axis-aligned rectangles can generate disposable native
-preview cutouts.
+`cut` circles and rectangles, including rotated rectangles, can generate
+disposable native preview cutouts.
 
 ## Current sketch foundation
 
@@ -29,9 +29,9 @@ preview cutouts.
 - Non-reference sketch entities can additionally appear in the request-scoped
   operation plan as `sketch.profile.cut` or `sketch.profile.add`, with
   deterministic semantic shape parameters. The native OCCT preview consumes
-  `cut` circles and axis-aligned rectangles on supported workplanes as
-  disposable generated B-Rep cut tools. `add`, rotated rectangles, and richer
-  sketch extrusion behavior remain future work.
+  `cut` circles and rectangles, including rotated rectangles, on supported
+  workplanes as disposable generated B-Rep cut tools. `add` and richer sketch
+  extrusion behavior remain future work.
 - The feature stores its target surface, display name, surface workplane
   placement, and typed sketch entities in metadata.
 - `SketchEntity` currently supports `rectangle` with center, width, height,
@@ -96,8 +96,8 @@ preview cutouts.
 - Maintain validation.
 - Keep advanced UI separate from beginner tool rail.
 - Do not make sketch entities drive geometry outside the validated
-  circle/axis-aligned-rectangle cut slice until drawing/editing rules, undo
-  behavior, and geometry boundaries are designed.
+  circle/rectangle cut slice until drawing/editing rules, undo behavior, and
+  geometry boundaries are designed.
 - Do not make sketch overlay hit testing depend on generated mesh triangles,
   B-Rep ids, or OCCT topology ids.
 - Keep sketch entity focus semantic and parent-scoped until real drawing/edit
