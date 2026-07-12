@@ -235,6 +235,7 @@ class ViewportHitResult {
     required this.semanticId,
     this.parentId,
     this.childId,
+    this.childRole,
     this.workplaneKind,
     this.snapIndex,
     this.localPosition,
@@ -244,6 +245,7 @@ class ViewportHitResult {
   final String semanticId;
   final String? parentId;
   final String? childId;
+  final String? childRole;
   final MockViewportWorkplaneKind? workplaneKind;
   final int? snapIndex;
   final Offset? localPosition;
@@ -582,6 +584,25 @@ class MockViewportSketchLinePreview {
         .toDouble();
     final closest = startPoint + segment * t;
     return (position - closest).distance <= inflate;
+  }
+
+  String? hitRoleForCanvasPoint(
+    MockViewportLayout layout,
+    Offset position, {
+    double handleRadius = 0,
+    double segmentInflate = 0,
+  }) {
+    if ((position - canvasStart(layout)).distance <= handleRadius) {
+      return 'start';
+    }
+    if ((position - canvasEnd(layout)).distance <= handleRadius) {
+      return 'end';
+    }
+    if (containsCanvasPoint(layout, position, inflate: segmentInflate)) {
+      return 'body';
+    }
+
+    return null;
   }
 
   @override
@@ -1164,11 +1185,18 @@ class MockViewportHitTester {
     );
 
     for (final line in sketchLines.reversed) {
-      if (line.containsCanvasPoint(layout, position, inflate: 7 * state.zoom)) {
+      final hitRole = line.hitRoleForCanvasPoint(
+        layout,
+        position,
+        handleRadius: 8 * state.zoom,
+        segmentInflate: 7 * state.zoom,
+      );
+      if (hitRole != null) {
         return ViewportHitResult(
           kind: ViewportHitKind.feature,
           semanticId: line.featureId,
           childId: line.entityId,
+          childRole: hitRole,
         );
       }
     }

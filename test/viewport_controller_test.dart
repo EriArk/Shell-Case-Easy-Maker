@@ -502,6 +502,55 @@ void main() {
     expect(circle.profileIntent, 'add');
   });
 
+  test('mock hit tester reports line endpoint roles', () {
+    const state = ViewportState();
+    const size = Size(900, 600);
+    final layout = MockViewportLayout.fromSize(size, state);
+    const workplane = MockViewportWorkplaneOverlay(
+      semanticId: 'main_enclosure.top_lid.outer',
+      kind: MockViewportWorkplaneKind.topLid,
+      width: 120,
+      height: 70,
+    );
+    const line = MockViewportSketchLinePreview(
+      featureId: 'advanced_sketch_1',
+      entityId: 'line_1',
+      workplane: workplane,
+      start: Offset(-20, 0),
+      end: Offset(20, 0),
+    );
+    const hitTester = MockViewportHitTester();
+
+    final startHit = hitTester.hitTest(
+      position: line.canvasStart(layout),
+      size: size,
+      state: state,
+      componentPlacements: const [],
+      sketchLines: const [line],
+    );
+    final bodyHit = hitTester.hitTest(
+      position: layout.workplaneLocalToCanvas(workplane, Offset.zero),
+      size: size,
+      state: state,
+      componentPlacements: const [],
+      sketchLines: const [line],
+    );
+    final endHit = hitTester.hitTest(
+      position: line.canvasEnd(layout),
+      size: size,
+      state: state,
+      componentPlacements: const [],
+      sketchLines: const [line],
+    );
+
+    expect(startHit?.kind, ViewportHitKind.feature);
+    expect(startHit?.semanticId, 'advanced_sketch_1');
+    expect(startHit?.childId, 'line_1');
+    expect(startHit?.childRole, 'start');
+    expect(bodyHit?.childRole, 'body');
+    expect(endHit?.childRole, 'end');
+  });
+
   test('mock hit tester returns semantic feature group ids', () {
     const state = ViewportState();
     const size = Size(900, 600);

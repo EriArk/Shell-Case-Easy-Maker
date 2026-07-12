@@ -7273,3 +7273,44 @@ viewport overlay, direct drag move, and save/load coverage.
   selected.
 - Turn on Advanced Mode and drag the created line from the viewport; both
   endpoints should move together.
+
+---
+
+## M154 - Line Endpoint Handles
+
+### Goal
+Let line start/end points be edited directly from the viewport while keeping the
+editable project as semantic `SketchEntity.start` / `SketchEntity.end` data.
+
+### Tasks
+- [x] Add viewport hit roles for line `start`, `end`, and `body`.
+- [x] Give endpoint hits priority over line body hits.
+- [x] Carry drag role through sketch entity drag intent/preview.
+- [x] Update line drag preview so start/end handles move independently.
+- [x] Commit endpoint drags by updating only the dragged endpoint.
+- [x] Preserve whole-line body drag behavior.
+- [x] Cover hit roles and endpoint save data with tests.
+- [x] Update tasks/worklog.
+
+### Done Criteria
+- Dragging the line body still moves the whole line.
+- Dragging the start handle changes only `start`.
+- Dragging the end handle changes only `end`.
+- Saved project JSON stores semantic endpoints only; no mesh/topology ids enter
+  editable state.
+
+### Tests
+- `flutter test test\viewport_controller_test.dart test\widget_test.dart --name "line|sketch entity" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Create or select a line in Advanced Sketch.
+- Drag the middle/body of the line and confirm the whole line moves.
+- Drag the left/start endpoint and confirm only that endpoint moves.
+- Drag the right/end endpoint and confirm only that endpoint moves.

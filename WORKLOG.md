@@ -13896,3 +13896,79 @@ viewport overlay, direct drag move, and save/load coverage.
 
 ### Next step
 Commit and push M153, then continue toward broader sketch drawing/editing.
+
+---
+
+## 2026-07-12 - M154 Line endpoint handles
+
+### Goal
+Let line start/end points be edited directly from the viewport while keeping the
+editable project as semantic `SketchEntity.start` / `SketchEntity.end` data.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/viewport/viewport_controller.dart`, `lib/ui/shell/workspace_shell.dart`,
+`test/viewport_controller_test.dart`, and `test/widget_test.dart`.
+
+### Changes made
+- `lib/viewport/viewport_controller.dart`:
+  - Added `ViewportHitResult.childRole`.
+  - Added line hit roles for `start`, `end`, and `body`.
+  - Gives line endpoints priority over the line body.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Carries drag role through sketch entity drag intent and preview.
+  - Updates line preview so endpoint drags move only the active endpoint.
+  - Commits line endpoint drags by updating only `start` or `end`.
+  - Preserves whole-line body drag behavior.
+- `test/viewport_controller_test.dart`:
+  - Added hit-role coverage for line start/body/end.
+- `test/widget_test.dart`:
+  - Added endpoint drag coverage and verifies saved semantic endpoint data.
+- `ROADMAP.md` and `TASKS.md`:
+  - Added M154 and marked line endpoint handles complete.
+
+### Tests run
+- `dart format lib\viewport\viewport_controller.dart lib\ui\shell\workspace_shell.dart test\viewport_controller_test.dart test\widget_test.dart`:
+  - Passed; 1 file changed by formatting.
+- `flutter test test\viewport_controller_test.dart test\widget_test.dart --name "line|sketch entity" --reporter compact`:
+  - Passed; 11 matching tests.
+- `flutter pub get`:
+  - Passed; dependency graph resolved with existing newer-package notices.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 76 files checked.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed; 281 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed; rebuilt `releases/latest/windows`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git status --short --ignored releases`:
+  - Passed; `releases/` remains ignored.
+- `git diff --check`:
+  - Passed; only the existing `ROADMAP.md` CRLF normalization warning was
+    reported.
+
+### Validation
+- Geometry checked?
+  - No native generated geometry changed; endpoint handles only edit semantic
+    line endpoint data.
+- Serialization checked?
+  - Yes. Widget coverage saves changed `start` while leaving `end` unchanged.
+- UI checked?
+  - Yes. Widget coverage verifies endpoint drag preview, release, selection,
+    and saved endpoint data.
+- Export checked?
+  - Yes. Latest manual Windows bundle rebuilt at
+    `releases/latest/windows/shell_case_easy_maker.exe`.
+
+### Known issues
+- Issue: Line endpoint handles are currently hit-tested by proximity; there are
+  no separate visible handle-only widgets yet.
+  - Severity: Low.
+  - Next action: Add clearer handle affordances if manual testing says the hit
+    target is hard to understand.
+
+### Next step
+Commit and push M154, then continue toward clearer sketch editing affordances.

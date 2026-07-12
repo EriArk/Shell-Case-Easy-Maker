@@ -793,8 +793,9 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
   void _moveAdvancedSketchEntity(
     String featureId,
     String entityId,
-    Offset center,
-  ) {
+    Offset center, [
+    String? dragRole,
+  ]) {
     final feature = _project.features
         .where((feature) => feature.id == featureId)
         .firstOrNull;
@@ -810,10 +811,19 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
       return;
     }
 
+    final values = SketchEntityParameterAdapter.valuesFrom(entity);
     final updatedEntity = SketchEntityParameterAdapter.applyValues(entity, {
-      ...SketchEntityParameterAdapter.valuesFrom(entity),
-      'centerX': center.dx,
-      'centerY': center.dy,
+      ...values,
+      if (entity.type == 'line' && dragRole == 'start') ...{
+        'startX': center.dx,
+        'startY': center.dy,
+      } else if (entity.type == 'line' && dragRole == 'end') ...{
+        'endX': center.dx,
+        'endY': center.dy,
+      } else ...{
+        'centerX': center.dx,
+        'centerY': center.dy,
+      },
     });
     final updatedFeature = advancedSketchWithUpdatedEntity(
       feature,
@@ -2699,12 +2709,14 @@ class _SketchEntityDragIntent {
     required this.entityId,
     required this.workplane,
     required this.grabOffset,
+    this.dragRole,
   });
 
   final String featureId;
   final String entityId;
   final MockViewportWorkplaneOverlay workplane;
   final Offset grabOffset;
+  final String? dragRole;
 }
 
 class _SketchEntityDrawIntent {
@@ -2726,11 +2738,13 @@ class _SketchEntityDragPreview {
     required this.featureId,
     required this.entityId,
     required this.localPosition,
+    this.dragRole,
   });
 
   final String featureId;
   final String entityId;
   final Offset localPosition;
+  final String? dragRole;
 }
 
 class _SketchEntityDrawPreview {
@@ -4658,7 +4672,12 @@ class _ViewportArea extends StatefulWidget {
   final VoidCallback onFit;
   final ValueChanged<ViewportViewPreset> onViewPreset;
   final ValueChanged<ViewportHitResult?> onHit;
-  final void Function(String featureId, String entityId, Offset localPosition)
+  final void Function(
+    String featureId,
+    String entityId,
+    Offset localPosition,
+    String? dragRole,
+  )
   onSketchEntityDragCompleted;
   final void Function(
     String featureId,
@@ -4732,6 +4751,7 @@ class _ViewportAreaState extends State<_ViewportArea> {
           featureId: sketchDragIntent.featureId,
           entityId: sketchDragIntent.entityId,
           localPosition: localPosition,
+          dragRole: sketchDragIntent.dragRole,
         );
       });
       return;
@@ -4782,6 +4802,7 @@ class _ViewportAreaState extends State<_ViewportArea> {
         sketchDragIntent.featureId,
         sketchDragIntent.entityId,
         localPosition,
+        sketchDragIntent.dragRole,
       );
     } else if (_sketchEntityDrawIntent != null && _movedSincePointerDown) {
       final sketchDrawIntent = _sketchEntityDrawIntent!;
@@ -5091,16 +5112,34 @@ class _ViewportAreaState extends State<_ViewportArea> {
       bodyDimensions: _mockViewportBodyDimensions(widget.project),
     );
     final pointerLocal = layout.workplaneCanvasToLocal(workplane, position);
-    final center = Offset(
-      readDouble(values['centerX'], fallback: 0.0),
-      readDouble(values['centerY'], fallback: 0.0),
-    );
+    final dragRole = entity.type == 'line'
+        ? switch (hit.childRole) {
+            'start' => 'start',
+            'end' => 'end',
+            _ => 'body',
+          }
+        : null;
+    final anchor = switch (dragRole) {
+      'start' => Offset(
+        readDouble(values['startX'], fallback: -10.0),
+        readDouble(values['startY'], fallback: 0.0),
+      ),
+      'end' => Offset(
+        readDouble(values['endX'], fallback: 10.0),
+        readDouble(values['endY'], fallback: 0.0),
+      ),
+      _ => Offset(
+        readDouble(values['centerX'], fallback: 0.0),
+        readDouble(values['centerY'], fallback: 0.0),
+      ),
+    };
 
     return _SketchEntityDragIntent(
       featureId: feature.id,
       entityId: entity.id,
       workplane: workplane,
-      grabOffset: center - pointerLocal,
+      grabOffset: anchor - pointerLocal,
+      dragRole: dragRole,
     );
   }
 
@@ -13724,8 +13763,24 @@ extension _SketchLinePreviewDrag on List<MockViewportSketchLinePreview> {
         changed = true;
         final center = line.center();
         final delta = preview.localPosition - center;
-        next.add(
-          MockViewportSketchLinePreview(
+        next.add(switch (preview.dragRole) {
+          'start' => MockViewportSketchLinePreview(
+            featureId: line.featureId,
+            entityId: line.entityId,
+            workplane: line.workplane,
+            start: preview.localPosition,
+            end: line.end,
+            profileIntent: line.profileIntent,
+          ),
+          'end' => MockViewportSketchLinePreview(
+            featureId: line.featureId,
+            entityId: line.entityId,
+            workplane: line.workplane,
+            start: line.start,
+            end: preview.localPosition,
+            profileIntent: line.profileIntent,
+          ),
+          _ => MockViewportSketchLinePreview(
             featureId: line.featureId,
             entityId: line.entityId,
             workplane: line.workplane,
@@ -13733,7 +13788,7 @@ extension _SketchLinePreviewDrag on List<MockViewportSketchLinePreview> {
             end: line.end + delta,
             profileIntent: line.profileIntent,
           ),
-        );
+        });
       } else {
         next.add(line);
       }
