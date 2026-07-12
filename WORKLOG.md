@@ -42,6 +42,88 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-07-12 - M160 distinct rectangle handle affordances
+
+### Goal
+Make selected rectangle edit handles easier to read by drawing side handles as
+bars while keeping corner handles circular and leaving semantic project data
+unchanged.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/viewport/viewport_controller.dart`, `lib/ui/shell/workspace_shell.dart`,
+`test/viewport_controller_test.dart`, and `test/widget_test.dart`.
+
+### Changes made
+- `lib/viewport/viewport_controller.dart`:
+  - Added helper predicates for horizontal and vertical rectangle edge handles.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Gave rectangle side handle overlay markers distinct horizontal/vertical
+    sizes.
+  - Added rectangle-specific handle drawing: corners use the existing circular
+    handle, sides use rotated bar handles.
+- `test/viewport_controller_test.dart`:
+  - Covered rectangle handle helper classification.
+- `test/widget_test.dart`:
+  - Covered corner/side marker size differences on selected rectangles.
+- `ROADMAP.md` and `TASKS.md`:
+  - Added/marked M160 distinct rectangle handle affordance work.
+
+### Tests run
+- `flutter test test\viewport_controller_test.dart --name "rectangle handle" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "selected rectangle sketch entity resizes from corner handle" --reporter compact`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed, 290 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Returned `True`.
+- `git status --short --ignored releases`:
+  - Confirmed `releases/` is ignored.
+- `git diff --check`:
+  - Passed with only the existing ROADMAP CRLF warning.
+
+### Validation
+- Geometry checked?
+  - Full native regression suite still passed; this chunk only changes viewport
+    handle affordance drawing.
+- Serialization checked?
+  - No serialization shape changed; existing rectangle save test still passed.
+- UI checked?
+  - Widget marker sizing test verifies corner and side affordances remain
+    distinct.
+- Export checked?
+  - Latest Windows bundle build passed.
+
+### Known issues
+- Issue:
+  - Side handles are clearer but still part of the 2D sketch overlay; true 3D
+    face-edit affordances remain future work.
+  - Severity: Low.
+  - Next action: Continue the next safe Advanced Sketch editing or geometry
+    roadmap slice.
+
+### Next step
+Continue the next safe Advanced Sketch editing or generator/geometry roadmap
+slice.
+
+### Notes for future Codex sessions
+Keep rectangle side handles visually different from corners; they communicate
+one-axis resize and reduce accidental expectation that all handles resize both
+axes.
+
+---
+
 ## 2026-07-12 - M159 rectangle edge resize handles
 
 ### Goal

@@ -486,6 +486,34 @@ void main() {
     expect(bodyHit?.childRole, 'body');
   });
 
+  test('rectangle handle helpers distinguish edge orientations', () {
+    expect(
+      isSketchRectangleCornerHandleRole(sketchRectangleHandleTopRight),
+      isTrue,
+    );
+    expect(
+      isSketchRectangleEdgeHandleRole(sketchRectangleHandleTopRight),
+      isFalse,
+    );
+    expect(
+      isSketchRectangleHorizontalEdgeHandleRole(sketchRectangleHandleTop),
+      isTrue,
+    );
+    expect(
+      isSketchRectangleHorizontalEdgeHandleRole(sketchRectangleHandleBottom),
+      isTrue,
+    );
+    expect(
+      isSketchRectangleVerticalEdgeHandleRole(sketchRectangleHandleLeft),
+      isTrue,
+    );
+    expect(
+      isSketchRectangleVerticalEdgeHandleRole(sketchRectangleHandleRight),
+      isTrue,
+    );
+    expect(isSketchRectangleHandleRole('unknown'), isFalse);
+  });
+
   test('mock hit tester reports rotated rectangle handle roles', () {
     const state = ViewportState();
     const size = Size(900, 600);

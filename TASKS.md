@@ -426,6 +426,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Basic sketch circle radius handle.
 - [x] Basic sketch rotated rectangle corner resize handles.
 - [x] Basic sketch rectangle edge resize handles.
+- [x] Basic sketch distinct rectangle handle affordances.
 - [ ] Basic sketch drawing/editing.
 - [ ] Extrude/cut.
 - [ ] Boolean.

@@ -103,6 +103,16 @@ bool isSketchRectangleEdgeHandleRole(String? role) {
   return sketchRectangleEdgeHandleRoles.contains(role);
 }
 
+bool isSketchRectangleHorizontalEdgeHandleRole(String? role) {
+  return role == sketchRectangleHandleTop ||
+      role == sketchRectangleHandleBottom;
+}
+
+bool isSketchRectangleVerticalEdgeHandleRole(String? role) {
+  return role == sketchRectangleHandleLeft ||
+      role == sketchRectangleHandleRight;
+}
+
 bool isSketchRectangleHandleRole(String? role) {
   return sketchRectangleHandleRoles.contains(role);
 }

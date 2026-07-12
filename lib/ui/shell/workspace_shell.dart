@@ -5343,12 +5343,12 @@ class _ViewportAreaState extends State<_ViewportArea> {
     String role,
     Offset center,
   ) {
-    const markerExtent = 18.0;
+    final markerSize = _sketchRectangleHandleMarkerSize(role);
     return Positioned(
-      left: center.dx - markerExtent / 2,
-      top: center.dy - markerExtent / 2,
-      width: markerExtent,
-      height: markerExtent,
+      left: center.dx - markerSize.width / 2,
+      top: center.dy - markerSize.height / 2,
+      width: markerSize.width,
+      height: markerSize.height,
       child: IgnorePointer(
         child: SizedBox.expand(
           key: ValueKey(
@@ -5358,6 +5358,16 @@ class _ViewportAreaState extends State<_ViewportArea> {
         ),
       ),
     );
+  }
+
+  Size _sketchRectangleHandleMarkerSize(String role) {
+    if (isSketchRectangleHorizontalEdgeHandleRole(role)) {
+      return const Size(24, 14);
+    }
+    if (isSketchRectangleVerticalEdgeHandleRole(role)) {
+      return const Size(14, 24);
+    }
+    return const Size.square(18);
   }
 
   List<Widget> _selectedSketchCircleHandleMarkers(
@@ -12758,9 +12768,12 @@ class _ViewportPainter extends CustomPainter {
       canvas.drawCircle(center, 4.2 * layout.zoom, centerStroke);
       if (selected && rectangle.handlesEnabled) {
         for (final role in sketchRectangleHandleRoles) {
-          _drawSketchHandle(
+          _drawSketchRectangleHandle(
             canvas,
             rectangle.canvasHandlePoint(layout, role),
+            role: role,
+            rotationZDegrees: rotationZDegrees,
+            zoom: layout.zoom,
             radius: 5.5 * layout.zoom,
             fillColor: const Color(0xFF151719).withValues(alpha: 0.96),
             strokeColor: intentColor.withValues(alpha: 1),
@@ -13656,6 +13669,85 @@ void _drawSketchHandle(
   canvas.drawCircle(center, radius, fill);
   canvas.drawCircle(center, radius, stroke);
   canvas.drawCircle(center, radius * 0.34, dot);
+}
+
+void _drawSketchRectangleHandle(
+  Canvas canvas,
+  Offset center, {
+  required String role,
+  required double rotationZDegrees,
+  required double zoom,
+  required double radius,
+  required Color fillColor,
+  required Color strokeColor,
+  required Color dotColor,
+}) {
+  if (!isSketchRectangleEdgeHandleRole(role)) {
+    _drawSketchHandle(
+      canvas,
+      center,
+      radius: radius,
+      fillColor: fillColor,
+      strokeColor: strokeColor,
+      dotColor: dotColor,
+    );
+    return;
+  }
+
+  final horizontal = isSketchRectangleHorizontalEdgeHandleRole(role);
+  final size = Size(
+    (horizontal ? 15.5 : 8.5) * zoom,
+    (horizontal ? 8.5 : 15.5) * zoom,
+  );
+  final rect = Rect.fromCenter(
+    center: center,
+    width: size.width,
+    height: size.height,
+  );
+  final radiusValue = 3.8 * zoom;
+  final shadow = Paint()
+    ..color = Colors.black.withValues(alpha: 0.36)
+    ..style = PaintingStyle.fill;
+  final fill = Paint()
+    ..color = fillColor
+    ..style = PaintingStyle.fill;
+  final stroke = Paint()
+    ..color = strokeColor
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.7;
+  final grip = Paint()
+    ..color = dotColor
+    ..style = PaintingStyle.fill;
+  final gripRect = Rect.fromCenter(
+    center: center,
+    width: (horizontal ? 7.2 : 1.8) * zoom,
+    height: (horizontal ? 1.8 : 7.2) * zoom,
+  );
+
+  canvas.save();
+  canvas.translate(center.dx, center.dy);
+  canvas.rotate(rotationZDegrees * math.pi / 180);
+  canvas.translate(-center.dx, -center.dy);
+  canvas.drawRRect(
+    RRect.fromRectAndRadius(
+      rect.inflate(2.6 * zoom),
+      Radius.circular(radiusValue + 2.6 * zoom),
+    ),
+    shadow,
+  );
+  canvas.drawRRect(
+    RRect.fromRectAndRadius(rect, Radius.circular(radiusValue)),
+    fill,
+  );
+  canvas.drawRRect(
+    RRect.fromRectAndRadius(rect, Radius.circular(radiusValue)),
+    stroke,
+  );
+  canvas.drawRRect(
+    RRect.fromRectAndRadius(gripRect, Radius.circular(1.0 * zoom)),
+    grip,
+  );
+  canvas.restore();
 }
 
 MockViewportBodyDimensions _mockViewportBodyDimensions(ProjectModel project) {

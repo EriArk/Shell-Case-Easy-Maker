@@ -7531,3 +7531,44 @@ handles, including rotated rectangles, while keeping editable state semantic.
 - Drag the right or left side handle and confirm width changes while height
   stays the same.
 - Rotate the rectangle and repeat one side-handle resize.
+
+---
+
+## M160 - Distinct Rectangle Handle Affordances
+
+### Goal
+Make rectangle edit handles visually clearer: corner handles stay circular, side
+handles become elongated bars that communicate one-axis resize.
+
+### Tasks
+- [x] Add helper predicates for horizontal and vertical edge handle roles.
+- [x] Give rectangle side overlay markers distinct horizontal/vertical sizes.
+- [x] Draw side handles as rotated bar affordances in the sketch painter.
+- [x] Keep corner handles circular and preserve existing hit-test behavior.
+- [x] Cover role helpers and marker sizing with tests.
+- [x] Update tasks/worklog.
+
+### Done Criteria
+- Corner handles and side handles are visually distinguishable.
+- Top/bottom side handles read as horizontal bars.
+- Left/right side handles read as vertical bars.
+- Body drag and resize hit behavior from M159 remains unchanged.
+- Saved project data remains unchanged.
+
+### Tests
+- `flutter test test\viewport_controller_test.dart --name "rectangle handle" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "selected rectangle sketch entity resizes from corner handle" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Turn on Advanced Mode and select or create a rectangle.
+- Confirm corner handles look round.
+- Confirm side handles look like short bars.
+- Drag the body, a corner, and a side handle once to confirm behavior still
+  matches M159.

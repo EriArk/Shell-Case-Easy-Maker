@@ -4944,6 +4944,52 @@ void main() {
       ),
       findsOneWidget,
     );
+    expect(
+      find.byKey(
+        const ValueKey(
+          'advanced-sketch-rectangle-handle-advanced_sketch_1-rect_1-right',
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey(
+          'advanced-sketch-rectangle-handle-advanced_sketch_1-rect_1-top',
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      tester.getSize(
+        find.byKey(
+          const ValueKey(
+            'advanced-sketch-rectangle-handle-advanced_sketch_1-rect_1-topRight',
+          ),
+        ),
+      ),
+      const Size.square(18),
+    );
+    expect(
+      tester.getSize(
+        find.byKey(
+          const ValueKey(
+            'advanced-sketch-rectangle-handle-advanced_sketch_1-rect_1-right',
+          ),
+        ),
+      ),
+      const Size(14, 24),
+    );
+    expect(
+      tester.getSize(
+        find.byKey(
+          const ValueKey(
+            'advanced-sketch-rectangle-handle-advanced_sketch_1-rect_1-top',
+          ),
+        ),
+      ),
+      const Size(24, 14),
+    );
 
     final dragStart = _frontWallCanvasPoint(tester, const Offset(10, 6));
     final dragEnd = _frontWallCanvasPoint(tester, const Offset(16, 9));
