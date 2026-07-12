@@ -664,6 +664,65 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     );
   }
 
+  void _addAdvancedSketchEntityFromDrag(
+    String featureId,
+    String entityType,
+    Offset startLocal,
+    Offset endLocal,
+  ) {
+    if (entityType != 'rectangle') {
+      _addAdvancedSketchEntity(
+        featureId,
+        entityType: entityType,
+        center: endLocal,
+      );
+      return;
+    }
+
+    final feature = _project.features
+        .where((feature) => feature.id == featureId)
+        .firstOrNull;
+    if (feature == null || feature.type != advancedSketchFeatureType) {
+      return;
+    }
+
+    final left = math.min(startLocal.dx, endLocal.dx);
+    final right = math.max(startLocal.dx, endLocal.dx);
+    final top = math.min(startLocal.dy, endLocal.dy);
+    final bottom = math.max(startLocal.dy, endLocal.dy);
+    final width = (right - left).clamp(1.0, 500.0).toDouble();
+    final height = (bottom - top).clamp(1.0, 500.0).toDouble();
+    final center = Offset((left + right) / 2, (top + bottom) / 2);
+
+    final entities = sketchEntitiesForFeature(feature);
+    final entity = SketchEntityParameterAdapter.applyValues(
+      _defaultSketchEntity(
+        entityType,
+        id: nextSketchEntityId(entities, _sketchEntityIdPrefix(entityType)),
+      ),
+      {
+        'centerX': center.dx,
+        'centerY': center.dy,
+        'width': width,
+        'height': height,
+      },
+    );
+    final updatedFeature = advancedSketchWithEntities(feature, [
+      ...entities,
+      entity,
+    ]);
+
+    _commitProjectEdit(
+      id: 'advanced.sketch.$entityType.draw',
+      label: _addSketchEntityLabel(entityType),
+      nextState: _project.replaceFeature(updatedFeature),
+      selection: SelectionModel.sketchEntity(
+        id: entity.id,
+        parentId: feature.id,
+      ),
+    );
+  }
+
   void _moveAdvancedSketchEntity(
     String featureId,
     String entityId,
@@ -2292,6 +2351,8 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                             onHit: _selectViewportHit,
                             onSketchEntityDragCompleted:
                                 _moveAdvancedSketchEntity,
+                            onSketchEntityDrawCompleted:
+                                _addAdvancedSketchEntityFromDrag,
                             onContextMenu: _showViewportContextMenu,
                             onCancelComponentPlacementGuide:
                                 _cancelComponentPlacementGuide,
@@ -2578,6 +2639,20 @@ class _SketchEntityDragIntent {
   final Offset grabOffset;
 }
 
+class _SketchEntityDrawIntent {
+  const _SketchEntityDrawIntent({
+    required this.featureId,
+    required this.entityType,
+    required this.workplane,
+    required this.startLocal,
+  });
+
+  final String featureId;
+  final String entityType;
+  final MockViewportWorkplaneOverlay workplane;
+  final Offset startLocal;
+}
+
 class _SketchEntityDragPreview {
   const _SketchEntityDragPreview({
     required this.featureId,
@@ -2588,6 +2663,22 @@ class _SketchEntityDragPreview {
   final String featureId;
   final String entityId;
   final Offset localPosition;
+}
+
+class _SketchEntityDrawPreview {
+  const _SketchEntityDrawPreview({
+    required this.featureId,
+    required this.entityType,
+    required this.workplane,
+    required this.startLocal,
+    required this.endLocal,
+  });
+
+  final String featureId;
+  final String entityType;
+  final MockViewportWorkplaneOverlay workplane;
+  final Offset startLocal;
+  final Offset endLocal;
 }
 
 _ActiveSnapTarget? _snapTargetFromViewportHit(
@@ -4469,6 +4560,7 @@ class _ViewportArea extends StatefulWidget {
     required this.onViewPreset,
     required this.onHit,
     required this.onSketchEntityDragCompleted,
+    required this.onSketchEntityDrawCompleted,
     required this.onContextMenu,
     required this.onCancelComponentPlacementGuide,
     required this.onCancelSketchRectanglePlacement,
@@ -4494,6 +4586,13 @@ class _ViewportArea extends StatefulWidget {
   final ValueChanged<ViewportHitResult?> onHit;
   final void Function(String featureId, String entityId, Offset localPosition)
   onSketchEntityDragCompleted;
+  final void Function(
+    String featureId,
+    String entityType,
+    Offset startLocal,
+    Offset endLocal,
+  )
+  onSketchEntityDrawCompleted;
   final void Function(ViewportHitResult? hit, Offset globalPosition)
   onContextMenu;
   final VoidCallback onCancelComponentPlacementGuide;
@@ -4512,6 +4611,8 @@ class _ViewportAreaState extends State<_ViewportArea> {
   int _pointerDownButtons = 0;
   _SketchEntityDragIntent? _sketchEntityDragIntent;
   _SketchEntityDragPreview? _sketchEntityDragPreview;
+  _SketchEntityDrawIntent? _sketchEntityDrawIntent;
+  _SketchEntityDrawPreview? _sketchEntityDrawPreview;
 
   void _handlePointerDown(PointerDownEvent event, Size viewportSize) {
     _lastPointerPosition = event.localPosition;
@@ -4519,6 +4620,11 @@ class _ViewportAreaState extends State<_ViewportArea> {
     _movedSincePointerDown = false;
     _pointerDownButtons = event.buttons;
     _sketchEntityDragIntent = _sketchEntityDragIntentAt(
+      event.localPosition,
+      viewportSize,
+      event.buttons,
+    );
+    _sketchEntityDrawIntent = _sketchEntityDrawIntentAt(
       event.localPosition,
       viewportSize,
       event.buttons,
@@ -4557,6 +4663,25 @@ class _ViewportAreaState extends State<_ViewportArea> {
       return;
     }
 
+    final sketchDrawIntent = _sketchEntityDrawIntent;
+    if (sketchDrawIntent != null) {
+      final localPosition = _sketchEntityDrawLocalPosition(
+        sketchDrawIntent,
+        event.localPosition,
+        viewportSize,
+      );
+      setState(() {
+        _sketchEntityDrawPreview = _SketchEntityDrawPreview(
+          featureId: sketchDrawIntent.featureId,
+          entityType: sketchDrawIntent.entityType,
+          workplane: sketchDrawIntent.workplane,
+          startLocal: sketchDrawIntent.startLocal,
+          endLocal: localPosition,
+        );
+      });
+      return;
+    }
+
     if ((event.buttons & kSecondaryMouseButton) != 0 ||
         (event.buttons & kMiddleMouseButton) != 0) {
       widget.onPan(delta);
@@ -4584,6 +4709,22 @@ class _ViewportAreaState extends State<_ViewportArea> {
         sketchDragIntent.entityId,
         localPosition,
       );
+    } else if (_sketchEntityDrawIntent != null && _movedSincePointerDown) {
+      final sketchDrawIntent = _sketchEntityDrawIntent!;
+      final endLocal =
+          _sketchEntityDrawPreview?.endLocal ??
+          _sketchEntityDrawLocalPosition(
+            sketchDrawIntent,
+            event.localPosition,
+            viewportSize,
+          );
+      _clearSketchEntityDrawState();
+      widget.onSketchEntityDrawCompleted(
+        sketchDrawIntent.featureId,
+        sketchDrawIntent.entityType,
+        sketchDrawIntent.startLocal,
+        endLocal,
+      );
     } else if (!_movedSincePointerDown) {
       final hit = _hitTestAt(event.localPosition, viewportSize);
       if ((_pointerDownButtons & kSecondaryMouseButton) != 0) {
@@ -4597,6 +4738,7 @@ class _ViewportAreaState extends State<_ViewportArea> {
     _movedSincePointerDown = false;
     _pointerDownButtons = 0;
     _clearSketchEntityDragState();
+    _clearSketchEntityDrawState();
   }
 
   void _handlePointerCancel(PointerCancelEvent event) {
@@ -4605,6 +4747,7 @@ class _ViewportAreaState extends State<_ViewportArea> {
     _movedSincePointerDown = false;
     _pointerDownButtons = 0;
     _clearSketchEntityDragState();
+    _clearSketchEntityDrawState();
   }
 
   void _handlePointerSignal(PointerSignalEvent event) {
@@ -4627,12 +4770,35 @@ class _ViewportAreaState extends State<_ViewportArea> {
         intent.grabOffset;
   }
 
+  Offset _sketchEntityDrawLocalPosition(
+    _SketchEntityDrawIntent intent,
+    Offset canvasPosition,
+    Size viewportSize,
+  ) {
+    final layout = MockViewportLayout.fromSize(
+      viewportSize,
+      widget.viewportState,
+      bodyDimensions: _mockViewportBodyDimensions(widget.project),
+    );
+    return layout.workplaneCanvasToLocal(intent.workplane, canvasPosition);
+  }
+
   void _clearSketchEntityDragState() {
     final hadDragState =
         _sketchEntityDragIntent != null || _sketchEntityDragPreview != null;
     _sketchEntityDragIntent = null;
     _sketchEntityDragPreview = null;
     if (hadDragState && mounted) {
+      setState(() {});
+    }
+  }
+
+  void _clearSketchEntityDrawState() {
+    final hadDrawState =
+        _sketchEntityDrawIntent != null || _sketchEntityDrawPreview != null;
+    _sketchEntityDrawIntent = null;
+    _sketchEntityDrawPreview = null;
+    if (hadDrawState && mounted) {
       setState(() {});
     }
   }
@@ -4749,6 +4915,44 @@ class _ViewportAreaState extends State<_ViewportArea> {
     return hit?.kind == ViewportHitKind.feature && hit?.childId != null;
   }
 
+  _SketchEntityDrawIntent? _sketchEntityDrawIntentAt(
+    Offset position,
+    Size viewportSize,
+    int buttons,
+  ) {
+    final placementIntent = widget.sketchRectanglePlacementIntent;
+    if ((buttons & kPrimaryMouseButton) == 0 ||
+        placementIntent == null ||
+        placementIntent.entityId != null ||
+        placementIntent.entityType != 'rectangle') {
+      return null;
+    }
+
+    final workplane = _mockSketchRectanglePlacementWorkplane(
+      widget.project,
+      placementIntent,
+    );
+    if (workplane == null) {
+      return null;
+    }
+
+    final layout = MockViewportLayout.fromSize(
+      viewportSize,
+      widget.viewportState,
+      bodyDimensions: _mockViewportBodyDimensions(widget.project),
+    );
+    if (!layout.workplaneRect(workplane).contains(position)) {
+      return null;
+    }
+
+    return _SketchEntityDrawIntent(
+      featureId: placementIntent.featureId,
+      entityType: placementIntent.entityType,
+      workplane: workplane,
+      startLocal: layout.workplaneCanvasToLocal(workplane, position),
+    );
+  }
+
   _SketchEntityDragIntent? _sketchEntityDragIntentAt(
     Offset position,
     Size viewportSize,
@@ -4855,11 +5059,15 @@ class _ViewportAreaState extends State<_ViewportArea> {
             widget.project,
           );
           final sketchDragPreview = _sketchEntityDragPreview;
-          final sketchRectanglePreviews = _mockSketchRectanglePreviews(
-            widget.project,
-            widget.selection,
-            includeInactive: widget.advancedMode,
-          ).withDragPreview(sketchDragPreview);
+          final sketchDrawPreview = _sketchEntityDrawPreview;
+          final sketchRectanglePreviews =
+              _mockSketchRectanglePreviews(
+                    widget.project,
+                    widget.selection,
+                    includeInactive: widget.advancedMode,
+                  )
+                  .withDragPreview(sketchDragPreview)
+                  .withDrawPreview(sketchDrawPreview);
           final sketchCirclePreviews = _mockSketchCirclePreviews(
             widget.project,
             widget.selection,
@@ -4994,6 +5202,18 @@ class _ViewportAreaState extends State<_ViewportArea> {
                           'advanced-sketch-entity-drag-preview-'
                           '${sketchDragPreview.featureId}-'
                           '${sketchDragPreview.entityId}',
+                        ),
+                      ),
+                    ),
+                  if (sketchDrawPreview != null)
+                    Positioned(
+                      left: 0,
+                      top: 0,
+                      child: SizedBox(
+                        key: ValueKey(
+                          'advanced-sketch-entity-draw-preview-'
+                          '${sketchDrawPreview.featureId}-'
+                          '${sketchDrawPreview.entityType}',
                         ),
                       ),
                     ),
@@ -13076,6 +13296,35 @@ extension _SketchRectanglePreviewDrag
     }
 
     return changed ? next : this;
+  }
+}
+
+extension _SketchRectanglePreviewDraw
+    on List<MockViewportSketchRectanglePreview> {
+  List<MockViewportSketchRectanglePreview> withDrawPreview(
+    _SketchEntityDrawPreview? preview,
+  ) {
+    if (preview == null || preview.entityType != 'rectangle') {
+      return this;
+    }
+
+    final left = math.min(preview.startLocal.dx, preview.endLocal.dx);
+    final right = math.max(preview.startLocal.dx, preview.endLocal.dx);
+    final top = math.min(preview.startLocal.dy, preview.endLocal.dy);
+    final bottom = math.max(preview.startLocal.dy, preview.endLocal.dy);
+    return [
+      ...this,
+      MockViewportSketchRectanglePreview(
+        featureId: preview.featureId,
+        entityId: 'draft_rectangle',
+        workplane: preview.workplane,
+        center: Offset((left + right) / 2, (top + bottom) / 2),
+        width: (right - left).clamp(1.0, 500.0).toDouble(),
+        height: (bottom - top).clamp(1.0, 500.0).toDouble(),
+        cornerRadius: 0,
+        profileIntent: sketchProfileIntentReference,
+      ),
+    ];
   }
 }
 

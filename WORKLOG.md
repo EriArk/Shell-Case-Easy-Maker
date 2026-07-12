@@ -13668,3 +13668,75 @@ compatibility.
 
 ### Next step
 Commit and push M150, then continue toward basic sketch drawing/editing.
+
+---
+
+## 2026-07-12 - M151 Rectangle drag draw
+
+### Goal
+Let Add Rectangle create a semantic sketch rectangle by dragging across the
+selected workplane, with a transient preview before release.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/ui/shell/workspace_shell.dart`, `test/widget_test.dart`, and
+`lib/parameters/sketch_entity_parameter_adapter.dart`.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added a transient sketch entity draw intent and draw preview.
+  - Added drag-create commit path for semantic rectangle entities.
+  - Computes rectangle center, width, and height from the dragged workplane box.
+  - Keeps click-to-place behavior intact for default rectangle placement.
+- `test/widget_test.dart`:
+  - Added focused rectangle drag-draw coverage.
+  - Verifies transient draw preview marker appears during drag and disappears
+    after release.
+  - Saves the project and verifies semantic center/width/height data.
+- `ROADMAP.md` and `TASKS.md`:
+  - Added M151 and marked rectangle drag draw complete.
+
+### Tests run
+- `dart format lib\ui\shell\workspace_shell.dart test\widget_test.dart`:
+  - Passed; 1 file changed by formatting.
+- `flutter test test\widget_test.dart --name "rectangle placement drag|sketch entity|circle placement" --reporter compact`:
+  - Passed; 8 matching widget tests.
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 76 files checked, 0 changed.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed; 273 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed; latest Windows bundle rebuilt with native OCCT worker.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git status --short --ignored releases`:
+  - Passed; `releases/` remains ignored.
+- `git diff --check`:
+  - Passed; only the existing ROADMAP line-ending warning was printed.
+
+### Validation
+- Geometry checked?
+  - No native geometry generation changed. Full tests and latest Windows build
+    still pass.
+- Serialization checked?
+  - Yes. Widget coverage saves only semantic
+    `SketchEntity.parameters.center`, `width`, and `height`.
+- UI checked?
+  - Yes. Widget coverage verifies placement marker, transient draw preview,
+    release, selection, and save behavior.
+- Export checked?
+  - Latest Windows bundle rebuilt locally and remains ignored by Git.
+
+### Known issues
+- Issue: Drag-create currently covers rectangles only; circles still use
+  click-to-place plus direct drag/edit.
+  - Severity: Low.
+  - Next action: Add circle drag-create as a separate safe slice if it feels
+    useful after manual rectangle testing.
+
+### Next step
+Commit and push M151, then continue toward broader sketch drawing/editing.

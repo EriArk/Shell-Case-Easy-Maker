@@ -169,6 +169,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M148 - Sketch Circle Drag Parity
 - [x] M149 - Direct Sketch Entity Activation
 - [x] M150 - Sketch Entity Placement Markers
+- [x] M151 - Rectangle Drag Draw
 
 ---
 
@@ -7150,3 +7151,42 @@ for compatibility.
 - Turn on Advanced Mode, do not select the circle in the project browser, and
   drag the circle helper contour directly in the viewport.
 - Confirm it follows the cursor and stays at the released position.
+
+---
+
+## M151 - Rectangle Drag Draw
+
+### Goal
+Let Add Rectangle create a semantic sketch rectangle by dragging across the
+selected workplane, with a transient preview before release.
+
+### Tasks
+- [x] Add viewport drag intent for new rectangle placement.
+- [x] Render transient rectangle draw preview during drag.
+- [x] Commit one semantic `SketchEntity` on pointer release.
+- [x] Derive rectangle center, width, and height from the drag box.
+- [x] Preserve click-to-place behavior for default rectangle placement.
+- [x] Cover semantic save data with a widget test.
+- [x] Update tasks/worklog.
+
+### Done Criteria
+- Add Rectangle supports click placement and drag placement.
+- Drag placement preview is transient and disappears after release.
+- Saved project JSON stores semantic `center`, `width`, and `height`.
+- No generated mesh, B-Rep, triangle id, or topology id becomes editable state.
+
+### Tests
+- `flutter test test\widget_test.dart --name "rectangle placement drag|sketch entity|circle placement" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Select an Advanced Sketch and click Add Rectangle.
+- Drag across the sketch surface instead of just clicking.
+- Confirm a rectangle preview follows the drag box.
+- Release and confirm the new rectangle stays selected with the dragged size.
