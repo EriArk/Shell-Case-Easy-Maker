@@ -5143,6 +5143,66 @@ class _ViewportAreaState extends State<_ViewportArea> {
     );
   }
 
+  List<Widget> _selectedSketchLineHandleMarkers(
+    List<MockViewportSketchLinePreview> sketchLinePreviews,
+    Size viewportSize,
+  ) {
+    final selection = widget.selection;
+    if (selection.kind != SelectionKind.sketchEntity ||
+        selection.parentId == null ||
+        selection.id == null) {
+      return const [];
+    }
+
+    final line = sketchLinePreviews
+        .where(
+          (line) =>
+              line.featureId == selection.parentId &&
+              line.entityId == selection.id,
+        )
+        .firstOrNull;
+    if (line == null) {
+      return const [];
+    }
+
+    final layout = MockViewportLayout.fromSize(
+      viewportSize,
+      widget.viewportState,
+      bodyDimensions: _mockViewportBodyDimensions(widget.project),
+    );
+    final start = line.canvasStart(layout);
+    final end = line.canvasEnd(layout);
+    final body = Offset((start.dx + end.dx) / 2, (start.dy + end.dy) / 2);
+
+    return [
+      _sketchLineHandleMarker(line, 'start', start),
+      _sketchLineHandleMarker(line, 'body', body),
+      _sketchLineHandleMarker(line, 'end', end),
+    ];
+  }
+
+  Widget _sketchLineHandleMarker(
+    MockViewportSketchLinePreview line,
+    String role,
+    Offset center,
+  ) {
+    const markerExtent = 18.0;
+    return Positioned(
+      left: center.dx - markerExtent / 2,
+      top: center.dy - markerExtent / 2,
+      width: markerExtent,
+      height: markerExtent,
+      child: IgnorePointer(
+        child: SizedBox.expand(
+          key: ValueKey(
+            'advanced-sketch-line-handle-${line.featureId}-'
+            '${line.entityId}-$role',
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -5333,6 +5393,10 @@ class _ViewportAreaState extends State<_ViewportArea> {
                         key: ValueKey('advanced-sketch-overlay-active'),
                       ),
                     ),
+                  ..._selectedSketchLineHandleMarkers(
+                    sketchLinePreviews,
+                    viewportSize,
+                  ),
                   if (sketchDragPreview != null)
                     Positioned(
                       left: 0,
@@ -12519,9 +12583,31 @@ class _ViewportPainter extends CustomPainter {
 
       canvas.drawLine(start, end, shadow);
       canvas.drawLine(start, end, selected ? selectedStroke : stroke);
-      for (final point in [start, center, end]) {
-        canvas.drawCircle(point, 3.8 * layout.zoom, pointFill);
-        canvas.drawCircle(point, 3.8 * layout.zoom, pointStroke);
+      if (selected) {
+        final endpointRadius = 5.7 * layout.zoom;
+        _drawSketchLineHandle(
+          canvas,
+          start,
+          radius: endpointRadius,
+          fillColor: const Color(0xFF151719).withValues(alpha: 0.96),
+          strokeColor: intentColor.withValues(alpha: 1),
+          dotColor: intentColor.withValues(alpha: 0.96),
+        );
+        _drawSketchLineHandle(
+          canvas,
+          end,
+          radius: endpointRadius,
+          fillColor: const Color(0xFF151719).withValues(alpha: 0.96),
+          strokeColor: intentColor.withValues(alpha: 1),
+          dotColor: intentColor.withValues(alpha: 0.96),
+        );
+        canvas.drawCircle(center, 4.2 * layout.zoom, pointFill);
+        canvas.drawCircle(center, 4.2 * layout.zoom, pointStroke);
+      } else {
+        for (final point in [start, center, end]) {
+          canvas.drawCircle(point, 3.8 * layout.zoom, pointFill);
+          canvas.drawCircle(point, 3.8 * layout.zoom, pointStroke);
+        }
       }
     }
   }
@@ -13235,6 +13321,34 @@ void _drawRotatedRRect(
   canvas.translate(-rect.center.dx, -rect.center.dy);
   canvas.drawRRect(RRect.fromRectAndRadius(rect, radius), paint);
   canvas.restore();
+}
+
+void _drawSketchLineHandle(
+  Canvas canvas,
+  Offset center, {
+  required double radius,
+  required Color fillColor,
+  required Color strokeColor,
+  required Color dotColor,
+}) {
+  final shadow = Paint()
+    ..color = Colors.black.withValues(alpha: 0.36)
+    ..style = PaintingStyle.fill;
+  final fill = Paint()
+    ..color = fillColor
+    ..style = PaintingStyle.fill;
+  final stroke = Paint()
+    ..color = strokeColor
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.7;
+  final dot = Paint()
+    ..color = dotColor
+    ..style = PaintingStyle.fill;
+
+  canvas.drawCircle(center, radius + 3.2, shadow);
+  canvas.drawCircle(center, radius, fill);
+  canvas.drawCircle(center, radius, stroke);
+  canvas.drawCircle(center, radius * 0.34, dot);
 }
 
 MockViewportBodyDimensions _mockViewportBodyDimensions(ProjectModel project) {

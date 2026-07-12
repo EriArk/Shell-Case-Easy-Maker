@@ -7314,3 +7314,40 @@ editable project as semantic `SketchEntity.start` / `SketchEntity.end` data.
 - Drag the middle/body of the line and confirm the whole line moves.
 - Drag the left/start endpoint and confirm only that endpoint moves.
 - Drag the right/end endpoint and confirm only that endpoint moves.
+
+---
+
+## M155 - Line Visible Handles
+
+### Goal
+Make line editing affordances visible in the viewport: selected lines should
+show stable start/body/end handles that match the direct-drag behavior.
+
+### Tasks
+- [x] Add non-intercepting viewport marker widgets for selected line handles.
+- [x] Render selected line endpoints as clearer handles in the sketch painter.
+- [x] Keep markers semantic/UI-only; do not store handle ids in the project.
+- [x] Cover selected-line handle visibility with a widget test.
+- [x] Update tasks/worklog.
+
+### Done Criteria
+- An unselected line can still be shown in Advanced Mode without handle clutter.
+- Selecting a line reveals start, body, and end handle markers.
+- Pointer interactions still use semantic hit testing and line endpoint roles.
+- Saved project data remains unchanged: only semantic line endpoints are stored.
+
+### Tests
+- `flutter test test\widget_test.dart --name "line sketch|line handle|sketch entity" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Turn on Advanced Mode and select or create a line.
+- Confirm the selected line has obvious endpoint handles.
+- Drag the middle/body handle and confirm the whole line moves.
+- Drag either endpoint handle and confirm only that endpoint moves.

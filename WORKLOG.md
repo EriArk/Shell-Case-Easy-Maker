@@ -13972,3 +13972,76 @@ editable project as semantic `SketchEntity.start` / `SketchEntity.end` data.
 
 ### Next step
 Commit and push M154, then continue toward clearer sketch editing affordances.
+
+---
+
+## 2026-07-12 - M155 Line visible handles
+
+### Goal
+Make selected sketch lines easier to understand in the viewport by showing
+explicit start/body/end handle affordances without changing semantic project
+storage or geometry generation.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/ui/shell/workspace_shell.dart`, and `test/widget_test.dart`.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added selected line handle marker widgets for `start`, `body`, and `end`.
+  - Kept markers `IgnorePointer` so the existing semantic hit tester owns drag
+    behavior.
+  - Strengthened selected line endpoint painting with larger visible handles.
+  - Preserved unselected line rendering without extra handle clutter.
+- `test/widget_test.dart`:
+  - Added coverage that selected lines expose all three handle markers.
+- `ROADMAP.md` and `TASKS.md`:
+  - Added M155 and marked visible line handles complete.
+
+### Tests run
+- `dart format lib\ui\shell\workspace_shell.dart test\widget_test.dart`:
+  - Passed; 2 files checked and unchanged.
+- `flutter test test\widget_test.dart --name "line sketch|line handle|sketch entity" --reporter compact`:
+  - Passed; 10 matching tests.
+- `flutter pub get`:
+  - Passed; dependency graph resolved with existing newer-package notices.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 76 files checked.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed; 282 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed; rebuilt `releases/latest/windows`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git status --short --ignored releases`:
+  - Passed; `releases/` remains ignored.
+- `git diff --check`:
+  - Passed; only the existing `ROADMAP.md` CRLF normalization warning was
+    reported.
+
+### Validation
+- Geometry checked?
+  - No native generated geometry changed; this is viewport editing affordance
+    only.
+- Serialization checked?
+  - No project schema change; existing line endpoint save coverage remains the
+    storage guard.
+- UI checked?
+  - Yes. Targeted widget coverage verifies selected line start/body/end handle
+    markers.
+- Export checked?
+  - Yes. Latest manual Windows bundle rebuilt at
+    `releases/latest/windows/shell_case_easy_maker.exe`.
+
+### Known issues
+- Issue: Handles are visible for selected line entities, but rectangle/circle
+  resize handles are still inspector-button driven.
+  - Severity: Medium.
+  - Next action: Add direct rectangle/circle resize handles in a later sketch
+    editing slice.
+
+### Next step
+Commit and push M155, then continue toward direct rectangle/circle resize
+handles.

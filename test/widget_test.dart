@@ -5277,6 +5277,91 @@ void main() {
     expect(savedEntity.parameters['end'], [16.0, -5.0]);
   });
 
+  testWidgets('selected line sketch entity exposes endpoint handle markers', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final sketch = advancedSketchWithEntities(
+      const SemanticFeature(
+        id: 'advanced_sketch_1',
+        type: advancedSketchFeatureType,
+        targetSurface: 'main_enclosure.front_wall.outer',
+        operation: 'helper',
+        parameters: {'name': 'Line handle sketch'},
+        metadata: {'advanced': true},
+      ),
+      [defaultSketchLineEntity(id: 'line_1')],
+    );
+    final project = ProjectModel.initial().copyWith(
+      componentTemplates: const [],
+      componentPlacements: const [],
+      features: [sketch],
+      featureGroups: const [],
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkspaceShell(
+          project: project,
+          geometryService: const MockGeometryService(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('advanced-mode-toggle')));
+    await _pumpAsyncUi(tester);
+
+    expect(
+      find.byKey(const ValueKey('advanced-sketch-overlay-active')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey(
+          'advanced-sketch-line-handle-advanced_sketch_1-line_1-start',
+        ),
+      ),
+      findsNothing,
+    );
+
+    await tester.tapAt(_frontWallCanvasPoint(tester, Offset.zero));
+    await _pumpAsyncUi(tester);
+
+    expect(
+      find.byKey(
+        const ValueKey('sketch-entity-advanced_sketch_1-line_1-selected'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey(
+          'advanced-sketch-line-handle-advanced_sketch_1-line_1-start',
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey(
+          'advanced-sketch-line-handle-advanced_sketch_1-line_1-body',
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey(
+          'advanced-sketch-line-handle-advanced_sketch_1-line_1-end',
+        ),
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('line sketch endpoint drags directly from viewport', (
     tester,
   ) async {
