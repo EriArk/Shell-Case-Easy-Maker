@@ -228,6 +228,17 @@ Map<String, Object?> _sketchProfileEntityParameters(
       ...base,
       'diameter': readDouble(entity.parameters['diameter'], fallback: 12.0),
     },
+    'line' => {
+      ...base,
+      'start': readDoubleList(
+        entity.parameters['start'],
+        fallback: const [-10.0, 0.0],
+      ),
+      'end': readDoubleList(
+        entity.parameters['end'],
+        fallback: const [10.0, 0.0],
+      ),
+    },
     _ => {...base, if (entity.parameters.isNotEmpty) 'raw': entity.parameters},
   };
 }

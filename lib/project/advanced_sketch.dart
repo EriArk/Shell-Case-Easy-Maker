@@ -134,6 +134,17 @@ SketchEntity defaultSketchCircleEntity({required String id}) {
   );
 }
 
+SketchEntity defaultSketchLineEntity({required String id}) {
+  return SketchEntity(
+    id: id,
+    type: 'line',
+    parameters: const {
+      'start': [-10.0, 0.0],
+      'end': [10.0, 0.0],
+    },
+  );
+}
+
 String normalizeSketchProfileIntent(Object? value) {
   final intent = readString(
     value,

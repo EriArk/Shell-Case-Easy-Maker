@@ -7229,3 +7229,47 @@ outward, with a transient preview before release.
 - Press where the circle center should be, then drag outward.
 - Confirm a circle preview grows from that center while dragging.
 - Release and confirm the new circle stays selected with the dragged diameter.
+
+---
+
+## M153 - Line Sketch Entity Foundation
+
+### Goal
+Add a semantic reference line primitive to Advanced Sketch, with drag-create,
+viewport overlay, direct drag move, and save/load coverage.
+
+### Tasks
+- [x] Add `line` as a semantic `SketchEntity` with `start` and `end` points.
+- [x] Add line parameter schema, validation, duplicate, and center move logic.
+- [x] Add Add Line action in the Advanced Sketch inspector.
+- [x] Render line overlays and transient line draw preview in the viewport.
+- [x] Add line hit testing for direct viewport activation/drag.
+- [x] Keep line reference-only; do not expose cut/add for open contours yet.
+- [x] Cover adapter behavior and widget save data with tests.
+- [x] Update tasks/worklog.
+
+### Done Criteria
+- Add Line supports drag placement from start point to end point.
+- Click placement creates a short semantic default line around the click point.
+- Direct viewport drag moves an existing line by shifting both endpoints.
+- Saved project JSON stores semantic `start` and `end`, not mesh/topology ids.
+- Open line contours remain reference helpers until closed profile behavior is
+  explicitly designed.
+
+### Tests
+- `flutter test test\sketch_entity_parameter_adapter_test.dart test\widget_test.dart --name "line|rectangle placement drag|circle placement|sketch entity" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Select an Advanced Sketch and click Add Line.
+- Drag from a line start point to an end point.
+- Confirm the line preview follows the drag and the released line stays
+  selected.
+- Turn on Advanced Mode and drag the created line from the viewport; both
+  endpoints should move together.

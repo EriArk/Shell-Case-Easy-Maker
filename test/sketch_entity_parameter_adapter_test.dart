@@ -138,6 +138,52 @@ void main() {
     expect(duplicate.parameters['diameter'], 18.0);
   });
 
+  test('line sketch entity exposes endpoints and movable center', () {
+    final line = defaultSketchLineEntity(id: 'line_1');
+
+    final values = SketchEntityParameterAdapter.valuesFrom(line);
+    final moved = SketchEntityParameterAdapter.applyValues(line, {
+      ...values,
+      'centerX': 4.0,
+      'centerY': -3.0,
+    });
+    final edited = SketchEntityParameterAdapter.updateParameter(
+      moved,
+      'endY',
+      5,
+    );
+
+    expect(values['startX'], -10.0);
+    expect(values['startY'], 0.0);
+    expect(values['endX'], 10.0);
+    expect(values['endY'], 0.0);
+    expect(values['centerX'], 0.0);
+    expect(values['centerY'], 0.0);
+    expect(values['length'], 20.0);
+    expect(moved.parameters['start'], [-6.0, -3.0]);
+    expect(moved.parameters['end'], [14.0, -3.0]);
+    expect(edited.parameters['end'], [14.0, 5.0]);
+  });
+
+  test('line duplicate gets a new id and offset endpoints', () {
+    final line = SketchEntityParameterAdapter.applyValues(
+      defaultSketchLineEntity(id: 'line_1'),
+      const {'startX': 2.0, 'startY': -1.0, 'endX': 12.0, 'endY': 4.0},
+    );
+
+    final duplicate = SketchEntityParameterAdapter.duplicateWithOffset(
+      line,
+      id: 'line_2',
+      dx: 6,
+      dy: -6,
+    );
+
+    expect(duplicate.id, 'line_2');
+    expect(duplicate.type, 'line');
+    expect(duplicate.parameters['start'], [8.0, -7.0]);
+    expect(duplicate.parameters['end'], [18.0, -2.0]);
+  });
+
   test('sketch entity profile intent is semantic metadata', () {
     final rectangle = defaultSketchRectangleEntity(id: 'rect_1');
     final cutRectangle = sketchEntityWithProfileIntent(
@@ -261,6 +307,23 @@ void main() {
     expect(issues, hasLength(1));
     expect(issues.single.severity, ParameterIssueSeverity.warning);
     expect(issues.single.code, 'sketch.circle.workplaneBounds');
+  });
+
+  test('line workplane bounds warning reports out of surface contours', () {
+    final line = SketchEntityParameterAdapter.applyValues(
+      defaultSketchLineEntity(id: 'line_1'),
+      const {'startX': -40.0, 'endX': 60.0},
+    );
+
+    final issues = SketchEntityParameterAdapter.validateWithinWorkplane(
+      line,
+      workplaneWidth: 100,
+      workplaneHeight: 100,
+    );
+
+    expect(issues, hasLength(1));
+    expect(issues.single.severity, ParameterIssueSeverity.warning);
+    expect(issues.single.code, 'sketch.line.workplaneBounds');
   });
 
   test('advanced sketch can replace one entity by stable id', () {

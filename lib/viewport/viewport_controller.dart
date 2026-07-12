@@ -534,6 +534,80 @@ class MockViewportSketchCirclePreview {
   }
 }
 
+class MockViewportSketchLinePreview {
+  const MockViewportSketchLinePreview({
+    required this.featureId,
+    required this.entityId,
+    required this.workplane,
+    required this.start,
+    required this.end,
+    this.profileIntent = 'reference',
+  });
+
+  final String featureId;
+  final String entityId;
+  final MockViewportWorkplaneOverlay workplane;
+  final Offset start;
+  final Offset end;
+  final String profileIntent;
+
+  Offset canvasStart(MockViewportLayout layout) {
+    return layout.workplaneLocalToCanvas(workplane, start);
+  }
+
+  Offset canvasEnd(MockViewportLayout layout) {
+    return layout.workplaneLocalToCanvas(workplane, end);
+  }
+
+  Offset center() {
+    return Offset((start.dx + end.dx) / 2, (start.dy + end.dy) / 2);
+  }
+
+  bool containsCanvasPoint(
+    MockViewportLayout layout,
+    Offset position, {
+    double inflate = 0,
+  }) {
+    final startPoint = canvasStart(layout);
+    final endPoint = canvasEnd(layout);
+    final segment = endPoint - startPoint;
+    final lengthSquared = segment.dx * segment.dx + segment.dy * segment.dy;
+    if (lengthSquared <= 0) {
+      return (position - startPoint).distance <= inflate;
+    }
+
+    final point = position - startPoint;
+    final t = ((point.dx * segment.dx + point.dy * segment.dy) / lengthSquared)
+        .clamp(0.0, 1.0)
+        .toDouble();
+    final closest = startPoint + segment * t;
+    return (position - closest).distance <= inflate;
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is MockViewportSketchLinePreview &&
+        other.featureId == featureId &&
+        other.entityId == entityId &&
+        other.workplane == workplane &&
+        other.start == start &&
+        other.end == end &&
+        other.profileIntent == profileIntent;
+  }
+
+  @override
+  int get hashCode {
+    return Object.hash(
+      featureId,
+      entityId,
+      workplane,
+      start,
+      end,
+      profileIntent,
+    );
+  }
+}
+
 class MockViewportComponentPlacementPreview {
   const MockViewportComponentPlacementPreview({
     required this.semanticId,
@@ -1081,12 +1155,23 @@ class MockViewportHitTester {
     List<MockViewportFeatureGroupPreview> featureGroups = const [],
     List<MockViewportSketchRectanglePreview> sketchRectangles = const [],
     List<MockViewportSketchCirclePreview> sketchCircles = const [],
+    List<MockViewportSketchLinePreview> sketchLines = const [],
   }) {
     final layout = MockViewportLayout.fromSize(
       size,
       state,
       bodyDimensions: bodyDimensions,
     );
+
+    for (final line in sketchLines.reversed) {
+      if (line.containsCanvasPoint(layout, position, inflate: 7 * state.zoom)) {
+        return ViewportHitResult(
+          kind: ViewportHitKind.feature,
+          semanticId: line.featureId,
+          childId: line.entityId,
+        );
+      }
+    }
 
     for (final rectangle in sketchRectangles.reversed) {
       if (rectangle.containsCanvasPoint(

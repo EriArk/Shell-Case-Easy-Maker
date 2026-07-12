@@ -13810,3 +13810,89 @@ outward, with a transient preview before release.
 
 ### Next step
 Commit and push M152, then continue toward broader sketch drawing/editing.
+
+---
+
+## 2026-07-12 - M153 Line sketch entity foundation
+
+### Goal
+Add a semantic reference line primitive to Advanced Sketch, with drag-create,
+viewport overlay, direct drag move, and save/load coverage.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/project/advanced_sketch.dart`,
+`lib/parameters/sketch_entity_parameter_adapter.dart`,
+`lib/viewport/viewport_controller.dart`,
+`lib/ui/shell/workspace_shell.dart`, and related tests.
+
+### Changes made
+- `lib/project/advanced_sketch.dart`:
+  - Added default `line` sketch entity with semantic `start` and `end` points.
+- `lib/parameters/sketch_entity_parameter_adapter.dart`:
+  - Added line schema and values adapter.
+  - Added center-move behavior that shifts both endpoints together.
+  - Added duplicate offset and workplane bounds validation coverage.
+- `lib/viewport/viewport_controller.dart`:
+  - Added line preview model and hit testing by distance to line segment.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added Add Line placement action.
+  - Added line drag-create commit path and transient draw preview.
+  - Added line overlay painting and direct drag preview.
+  - Kept line reference-only by hiding cut/add profile controls.
+- `lib/selection/project_selection_resolver.dart` and
+  `lib/geometry/geometry_operation_plan.dart`:
+  - Added basic line selection/operation metadata handling.
+- `test/sketch_entity_parameter_adapter_test.dart` and `test/widget_test.dart`:
+  - Added line adapter, validation, drag-create, direct drag, and save coverage.
+- `ROADMAP.md` and `TASKS.md`:
+  - Added M153 and marked line entity foundation complete.
+
+### Tests run
+- `dart format lib\project\advanced_sketch.dart lib\parameters\sketch_entity_parameter_adapter.dart lib\selection\project_selection_resolver.dart lib\geometry\geometry_operation_plan.dart lib\viewport\viewport_controller.dart lib\ui\shell\workspace_shell.dart test\sketch_entity_parameter_adapter_test.dart test\widget_test.dart`:
+  - Passed; 4 files changed by formatting.
+- `flutter test test\sketch_entity_parameter_adapter_test.dart test\widget_test.dart --name "line|rectangle placement drag|circle placement|sketch entity" --reporter compact`:
+  - Passed; 18 matching tests.
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 76 files checked, 0 changed.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed; 279 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed; latest Windows bundle rebuilt with native OCCT worker.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git status --short --ignored releases`:
+  - Passed; `releases/` remains ignored.
+- `git diff --check`:
+  - Passed; only the existing ROADMAP line-ending warning was printed.
+
+### Validation
+- Geometry checked?
+  - No native generated geometry changed for line; line remains a reference
+    helper until open-contour behavior is explicitly designed.
+- Serialization checked?
+  - Yes. Adapter and widget coverage save semantic `start`/`end` endpoint data.
+- UI checked?
+  - Yes. Widget coverage verifies Add Line placement marker, transient draw
+    preview, release, selection, direct viewport drag, and saved endpoints.
+- Export checked?
+  - Latest Windows bundle rebuilt locally and remains ignored by Git.
+
+### Known issues
+- Issue: Line placement banner text still uses the legacy rectangle/circle copy
+  in one localized label; the active icon and state markers are correct.
+  - Severity: Low.
+  - Next action: Clean up placement wording when doing the private placement
+    plumbing rename/localization pass.
+- Issue: Lines are reference helpers only; open contours do not create cuts or
+  protrusions.
+  - Severity: Intended.
+  - Next action: Design closed/open profile behavior before exposing line-based
+    profile operations.
+
+### Next step
+Commit and push M153, then continue toward broader sketch drawing/editing.

@@ -299,6 +299,11 @@ class ProjectSelectionResolver {
             label: 'Диаметр',
             value: '${_formatNumber(values['diameter'])} mm',
           ),
+        if (values.containsKey('length'))
+          ProjectSelectionProperty(
+            label: 'Length',
+            value: '${_formatNumber(values['length'])} mm',
+          ),
         if (values.containsKey('centerX') && values.containsKey('centerY'))
           ProjectSelectionProperty(
             label: 'Центр',
@@ -380,6 +385,7 @@ String _humanizeSketchEntity(SketchEntity entity) {
   return switch (entity.type) {
     'rectangle' => 'Прямоугольник ${entity.id}',
     'circle' => 'Круг ${entity.id}',
+    'line' => 'Line ${entity.id}',
     _ => '${entity.type} ${entity.id}',
   };
 }

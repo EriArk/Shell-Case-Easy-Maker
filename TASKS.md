@@ -419,6 +419,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Basic sketch entity placement markers.
 - [x] Basic sketch rectangle drag draw.
 - [x] Basic sketch circle drag draw.
+- [x] Basic sketch line entity foundation.
 - [ ] Basic sketch drawing/editing.
 - [ ] Extrude/cut.
 - [ ] Boolean.

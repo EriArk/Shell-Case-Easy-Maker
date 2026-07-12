@@ -3511,8 +3511,10 @@ void main() {
       const ValueKey('advanced-sketch-add-rectangle'),
     );
     final addCircle = find.byKey(const ValueKey('advanced-sketch-add-circle'));
+    final addLine = find.byKey(const ValueKey('advanced-sketch-add-line'));
     expect(addRectangle, findsOneWidget);
     expect(addCircle, findsOneWidget);
+    expect(addLine, findsOneWidget);
 
     await tester.tap(addRectangle);
     await _pumpAsyncUi(tester);
@@ -5078,6 +5080,201 @@ void main() {
     expect(savedEntity.id, 'circle_1');
     expect(savedEntity.parameters['center'], [10.0, -2.0]);
     expect(savedEntity.parameters['diameter'], 20.0);
+  });
+
+  testWidgets('line placement drag draws semantic sketch line', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final fileService = _MemoryProjectFileService();
+    final saveFile = File('drag_draw_line_sketch_case.enclosure.json');
+    final dialog = _FakeProjectFileDialogService(saveFile: saveFile);
+    final sketch = advancedSketchWithEntities(
+      const SemanticFeature(
+        id: 'advanced_sketch_1',
+        type: advancedSketchFeatureType,
+        targetSurface: 'main_enclosure.front_wall.outer',
+        operation: 'helper',
+        parameters: {'name': 'Drag draw line sketch'},
+        metadata: {'advanced': true},
+      ),
+      const [],
+    );
+    final project = ProjectModel.initial().copyWith(
+      componentTemplates: const [],
+      componentPlacements: const [],
+      features: [sketch],
+      featureGroups: const [],
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkspaceShell(
+          project: project,
+          geometryService: const MockGeometryService(),
+          projectFileService: fileService,
+          projectFileDialogService: dialog,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final sketchRow = find.text('advanced_sketch_1', skipOffstage: false);
+    await tester.ensureVisible(sketchRow.first);
+    await tester.tap(sketchRow.first);
+    await _pumpAsyncUi(tester);
+    await tester.tap(find.byKey(const ValueKey('advanced-sketch-add-line')));
+    await _pumpAsyncUi(tester);
+
+    expect(
+      find.byKey(
+        const ValueKey('advanced-sketch-entity-line-placement-active'),
+      ),
+      findsOneWidget,
+    );
+
+    final dragStart = _frontWallCanvasPoint(tester, const Offset(-8, -3));
+    final dragEnd = _frontWallCanvasPoint(tester, const Offset(18, 7));
+    final gesture = await tester.startGesture(
+      dragStart,
+      kind: PointerDeviceKind.mouse,
+      buttons: kPrimaryMouseButton,
+    );
+    await gesture.moveTo(dragEnd);
+    await tester.pump();
+
+    expect(
+      find.byKey(
+        const ValueKey(
+          'advanced-sketch-entity-draw-preview-advanced_sketch_1-line',
+        ),
+      ),
+      findsOneWidget,
+    );
+
+    await gesture.up();
+    await _pumpAsyncUi(tester);
+
+    expect(
+      find.byKey(
+        const ValueKey(
+          'advanced-sketch-entity-draw-preview-advanced_sketch_1-line',
+        ),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.byKey(
+        const ValueKey('sketch-entity-advanced_sketch_1-line_1-selected'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('toolbar-command-${CommandIds.saveProject}')),
+    );
+    await _pumpAsyncUi(tester);
+
+    final saved = await fileService.readProject(saveFile);
+    final savedSketch = saved.features.singleWhere(
+      (feature) => feature.id == 'advanced_sketch_1',
+    );
+    final savedEntity = sketchEntitiesForFeature(savedSketch).single;
+    expect(savedEntity.id, 'line_1');
+    expect(savedEntity.type, 'line');
+    expect(savedEntity.parameters['start'], [-8.0, -3.0]);
+    expect(savedEntity.parameters['end'], [18.0, 7.0]);
+  });
+
+  testWidgets('unselected line sketch entity drags directly from viewport', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final fileService = _MemoryProjectFileService();
+    final saveFile = File('direct_drag_line_sketch_case.enclosure.json');
+    final dialog = _FakeProjectFileDialogService(saveFile: saveFile);
+    final sketch = advancedSketchWithEntities(
+      const SemanticFeature(
+        id: 'advanced_sketch_1',
+        type: advancedSketchFeatureType,
+        targetSurface: 'main_enclosure.front_wall.outer',
+        operation: 'helper',
+        parameters: {'name': 'Direct drag line sketch'},
+        metadata: {'advanced': true},
+      ),
+      [defaultSketchLineEntity(id: 'line_1')],
+    );
+    final project = ProjectModel.initial().copyWith(
+      componentTemplates: const [],
+      componentPlacements: const [],
+      features: [sketch],
+      featureGroups: const [],
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkspaceShell(
+          project: project,
+          geometryService: const MockGeometryService(),
+          projectFileService: fileService,
+          projectFileDialogService: dialog,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('advanced-mode-toggle')));
+    await _pumpAsyncUi(tester);
+
+    expect(
+      find.byKey(
+        const ValueKey('sketch-entity-advanced_sketch_1-line_1-selected'),
+      ),
+      findsNothing,
+    );
+
+    final dragStart = _frontWallCanvasPoint(tester, Offset.zero);
+    final dragEnd = _frontWallCanvasPoint(tester, const Offset(6, -5));
+    final gesture = await tester.startGesture(
+      dragStart,
+      kind: PointerDeviceKind.mouse,
+      buttons: kPrimaryMouseButton,
+    );
+    await gesture.moveTo(dragEnd);
+    await tester.pump();
+
+    expect(
+      find.byKey(
+        const ValueKey(
+          'advanced-sketch-entity-drag-preview-advanced_sketch_1-line_1',
+        ),
+      ),
+      findsOneWidget,
+    );
+
+    await gesture.up();
+    await _pumpAsyncUi(tester);
+
+    expect(
+      find.byKey(
+        const ValueKey('sketch-entity-advanced_sketch_1-line_1-selected'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('toolbar-command-${CommandIds.saveProject}')),
+    );
+    await _pumpAsyncUi(tester);
+
+    final saved = await fileService.readProject(saveFile);
+    final savedSketch = saved.features.singleWhere(
+      (feature) => feature.id == 'advanced_sketch_1',
+    );
+    final savedEntity = sketchEntitiesForFeature(savedSketch).single;
+    expect(savedEntity.parameters['start'], [-4.0, -5.0]);
+    expect(savedEntity.parameters['end'], [16.0, -5.0]);
   });
 
   testWidgets('unselected circle sketch entity drags directly from viewport', (

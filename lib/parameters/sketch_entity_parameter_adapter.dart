@@ -122,10 +122,50 @@ class SketchEntityParameterAdapter {
     ],
   );
 
+  static const lineSchema = ParameterSchema(
+    id: 'sketch.line',
+    label: 'Line',
+    parameters: [
+      ParameterDefinition(
+        id: 'startX',
+        label: 'Start X',
+        kind: ParameterKind.length,
+        unit: 'mm',
+        defaultValue: -10.0,
+        range: ParameterRange(min: -500, max: 500, step: 0.1),
+      ),
+      ParameterDefinition(
+        id: 'startY',
+        label: 'Start Y',
+        kind: ParameterKind.length,
+        unit: 'mm',
+        defaultValue: 0.0,
+        range: ParameterRange(min: -500, max: 500, step: 0.1),
+      ),
+      ParameterDefinition(
+        id: 'endX',
+        label: 'End X',
+        kind: ParameterKind.length,
+        unit: 'mm',
+        defaultValue: 10.0,
+        range: ParameterRange(min: -500, max: 500, step: 0.1),
+      ),
+      ParameterDefinition(
+        id: 'endY',
+        label: 'End Y',
+        kind: ParameterKind.length,
+        unit: 'mm',
+        defaultValue: 0.0,
+        range: ParameterRange(min: -500, max: 500, step: 0.1),
+      ),
+    ],
+  );
+
   static ParameterSchema? schemaFor(SketchEntity entity) {
     return switch (entity.type) {
       'rectangle' => rectangleSchema,
       'circle' => circleSchema,
+      'line' => lineSchema,
       _ => null,
     };
   }
@@ -158,6 +198,7 @@ class SketchEntityParameterAdapter {
           'depth': _operationDepthValue(entity),
         }),
       ),
+      'line' => _lineValuesFrom(entity),
       _ => const {},
     };
   }
@@ -186,6 +227,7 @@ class SketchEntityParameterAdapter {
     return switch (entity.type) {
       'rectangle' => _applyRectangleValues(entity, values),
       'circle' => _applyCircleValues(entity, values),
+      'line' => _applyLineValues(entity, values),
       _ => entity,
     };
   }
@@ -247,6 +289,85 @@ class SketchEntityParameterAdapter {
         'diameter': _cleanDouble(_doubleValue(normalized, 'diameter')),
         if (shouldStoreDepth)
           'depth': _cleanDouble(_doubleValue(normalized, 'depth')),
+      },
+      metadata: entity.metadata,
+    );
+  }
+
+  static Map<String, Object?> _lineValuesFrom(SketchEntity entity) {
+    final start = readDoubleList(
+      entity.parameters['start'],
+      fallback: const [-10.0, 0.0],
+    );
+    final end = readDoubleList(
+      entity.parameters['end'],
+      fallback: const [10.0, 0.0],
+    );
+    final startX = start.isNotEmpty ? start[0] : -10.0;
+    final startY = start.length > 1 ? start[1] : 0.0;
+    final endX = end.isNotEmpty ? end[0] : 10.0;
+    final endY = end.length > 1 ? end[1] : 0.0;
+    final centerX = (startX + endX) / 2;
+    final centerY = (startY + endY) / 2;
+    final length = math.sqrt(
+      math.pow(endX - startX, 2) + math.pow(endY - startY, 2),
+    );
+
+    return {
+      ...lineSchema.applyDefaults({
+        'startX': startX,
+        'startY': startY,
+        'endX': endX,
+        'endY': endY,
+      }),
+      'centerX': _cleanDouble(centerX),
+      'centerY': _cleanDouble(centerY),
+      'length': _cleanDouble(length),
+    };
+  }
+
+  static SketchEntity _applyLineValues(
+    SketchEntity entity,
+    Map<String, Object?> values,
+  ) {
+    final current = valuesFrom(entity);
+    final normalized = lineSchema.applyDefaults({...current, ...values});
+    var startX = _doubleValue(normalized, 'startX');
+    var startY = _doubleValue(normalized, 'startY');
+    var endX = _doubleValue(normalized, 'endX');
+    var endY = _doubleValue(normalized, 'endY');
+
+    if (values.containsKey('centerX') || values.containsKey('centerY')) {
+      final currentCenterX = _doubleValue(current, 'centerX');
+      final currentCenterY = _doubleValue(current, 'centerY');
+      final nextCenterX = values.containsKey('centerX')
+          ? readDouble(values['centerX'], fallback: currentCenterX)
+          : currentCenterX;
+      final nextCenterY = values.containsKey('centerY')
+          ? readDouble(values['centerY'], fallback: currentCenterY)
+          : currentCenterY;
+      final dx = nextCenterX - currentCenterX;
+      final dy = nextCenterY - currentCenterY;
+      startX += dx;
+      startY += dy;
+      endX += dx;
+      endY += dy;
+    }
+
+    final length = math.sqrt(
+      math.pow(endX - startX, 2) + math.pow(endY - startY, 2),
+    );
+    if (length < 1.0) {
+      endX = startX + 1.0;
+      endY = startY;
+    }
+
+    return SketchEntity(
+      id: entity.id,
+      type: entity.type,
+      parameters: {
+        'start': [_cleanDouble(startX), _cleanDouble(startY)],
+        'end': [_cleanDouble(endX), _cleanDouble(endY)],
       },
       metadata: entity.metadata,
     );
@@ -314,6 +435,23 @@ class SketchEntityParameterAdapter {
   }) {
     final issues = validate(entity);
     final values = valuesFrom(entity);
+    if (entity.type == 'line') {
+      return [
+        ...issues,
+        if (!_lineInsideWorkplane(
+          values,
+          workplaneWidth: workplaneWidth,
+          workplaneHeight: workplaneHeight,
+        ))
+          const ParameterIssue(
+            parameterId: 'start',
+            severity: ParameterIssueSeverity.warning,
+            code: 'sketch.line.workplaneBounds',
+            message: 'Line is outside the sketch surface.',
+          ),
+      ];
+    }
+
     if (entity.type == 'circle') {
       return [
         ...issues,
@@ -389,6 +527,28 @@ class SketchEntityParameterAdapter {
         centerX + radius <= workplaneHalfWidth &&
         centerY - radius >= -workplaneHalfHeight &&
         centerY + radius <= workplaneHalfHeight;
+  }
+
+  static bool _lineInsideWorkplane(
+    Map<String, Object?> values, {
+    required double workplaneWidth,
+    required double workplaneHeight,
+  }) {
+    final workplaneHalfWidth = workplaneWidth / 2;
+    final workplaneHalfHeight = workplaneHeight / 2;
+
+    bool pointInside(double x, double y) {
+      return x >= -workplaneHalfWidth &&
+          x <= workplaneHalfWidth &&
+          y >= -workplaneHalfHeight &&
+          y <= workplaneHalfHeight;
+    }
+
+    return pointInside(
+          _doubleValue(values, 'startX'),
+          _doubleValue(values, 'startY'),
+        ) &&
+        pointInside(_doubleValue(values, 'endX'), _doubleValue(values, 'endY'));
   }
 
   static Map<String, Object?> _removeMissingOperationDepth(

@@ -483,6 +483,10 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     _startAdvancedSketchEntityPlacement(featureId, entityType: 'circle');
   }
 
+  void _startAdvancedSketchLinePlacement(String featureId) {
+    _startAdvancedSketchEntityPlacement(featureId, entityType: 'line');
+  }
+
   void _startAdvancedSketchEntityPlacement(
     String featureId, {
     required String entityType,
@@ -670,7 +674,9 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     Offset startLocal,
     Offset endLocal,
   ) {
-    if (entityType != 'rectangle' && entityType != 'circle') {
+    if (entityType != 'rectangle' &&
+        entityType != 'circle' &&
+        entityType != 'line') {
       _addAdvancedSketchEntity(
         featureId,
         entityType: entityType,
@@ -697,6 +703,37 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
           'centerX': startLocal.dx,
           'centerY': startLocal.dy,
           'diameter': _sketchCircleDiameterFromDrag(startLocal, endLocal),
+        },
+      );
+      final updatedFeature = advancedSketchWithEntities(feature, [
+        ...entities,
+        entity,
+      ]);
+
+      _commitProjectEdit(
+        id: 'advanced.sketch.$entityType.draw',
+        label: _addSketchEntityLabel(entityType),
+        nextState: _project.replaceFeature(updatedFeature),
+        selection: SelectionModel.sketchEntity(
+          id: entity.id,
+          parentId: feature.id,
+        ),
+      );
+      return;
+    }
+
+    if (entityType == 'line') {
+      final entities = sketchEntitiesForFeature(feature);
+      final entity = SketchEntityParameterAdapter.applyValues(
+        _defaultSketchEntity(
+          entityType,
+          id: nextSketchEntityId(entities, _sketchEntityIdPrefix(entityType)),
+        ),
+        {
+          'startX': startLocal.dx,
+          'startY': startLocal.dy,
+          'endX': endLocal.dx,
+          'endY': endLocal.dy,
         },
       );
       final updatedFeature = advancedSketchWithEntities(feature, [
@@ -2464,6 +2501,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                                 _startAdvancedSketchRectanglePlacement,
                             onAddSketchCircle:
                                 _startAdvancedSketchCirclePlacement,
+                            onAddSketchLine: _startAdvancedSketchLinePlacement,
                             onSketchEntityParameterChanged:
                                 _updateAdvancedSketchEntityParameter,
                             onSketchEntityProfileIntentChanged:
@@ -3429,6 +3467,7 @@ SemanticFeature _defaultAdvancedSketchFeature({
 SketchEntity _defaultSketchEntity(String entityType, {required String id}) {
   return switch (entityType) {
     'circle' => defaultSketchCircleEntity(id: id),
+    'line' => defaultSketchLineEntity(id: id),
     _ => defaultSketchRectangleEntity(id: id),
   };
 }
@@ -3436,11 +3475,16 @@ SketchEntity _defaultSketchEntity(String entityType, {required String id}) {
 String _sketchEntityIdPrefix(String entityType) {
   return switch (entityType) {
     'circle' => 'circle',
+    'line' => 'line',
     _ => 'rect',
   };
 }
 
 String _addSketchEntityLabel(String entityType) {
+  if (entityType == 'line') {
+    return 'Add line';
+  }
+
   return switch (entityType) {
     'circle' => 'Добавить круг',
     _ => 'Добавить прямоугольник',
@@ -4874,6 +4918,11 @@ class _ViewportAreaState extends State<_ViewportArea> {
       widget.selection,
       includeInactive: widget.advancedMode,
     );
+    final sketchLinePreviews = _mockSketchLinePreviews(
+      widget.project,
+      widget.selection,
+      includeInactive: widget.advancedMode,
+    );
     final mockHit = _hitTester.hitTest(
       position: position,
       size: viewportSize,
@@ -4893,6 +4942,7 @@ class _ViewportAreaState extends State<_ViewportArea> {
           ? const []
           : sketchRectanglePreviews,
       sketchCircles: placingSketchRectangle ? const [] : sketchCirclePreviews,
+      sketchLines: placingSketchRectangle ? const [] : sketchLinePreviews,
     );
     if (mockHit?.kind == ViewportHitKind.snapPoint ||
         _isSketchEntityViewportHit(mockHit)) {
@@ -4926,6 +4976,11 @@ class _ViewportAreaState extends State<_ViewportArea> {
       widget.selection,
       includeInactive: widget.advancedMode,
     );
+    final sketchLinePreviews = _mockSketchLinePreviews(
+      widget.project,
+      widget.selection,
+      includeInactive: widget.advancedMode,
+    );
 
     final hit = _hitTester.hitTest(
       position: position,
@@ -4937,6 +4992,7 @@ class _ViewportAreaState extends State<_ViewportArea> {
       featureGroups: const [],
       sketchRectangles: sketchRectanglePreviews,
       sketchCircles: sketchCirclePreviews,
+      sketchLines: sketchLinePreviews,
     );
     return _isSketchEntityViewportHit(hit) ? hit : null;
   }
@@ -4955,7 +5011,8 @@ class _ViewportAreaState extends State<_ViewportArea> {
         placementIntent == null ||
         placementIntent.entityId != null ||
         (placementIntent.entityType != 'rectangle' &&
-            placementIntent.entityType != 'circle')) {
+            placementIntent.entityType != 'circle' &&
+            placementIntent.entityType != 'line')) {
       return null;
     }
 
@@ -5107,6 +5164,14 @@ class _ViewportAreaState extends State<_ViewportArea> {
                   )
                   .withDragPreview(sketchDragPreview)
                   .withDrawPreview(sketchDrawPreview);
+          final sketchLinePreviews =
+              _mockSketchLinePreviews(
+                    widget.project,
+                    widget.selection,
+                    includeInactive: widget.advancedMode,
+                  )
+                  .withDragPreview(sketchDragPreview)
+                  .withDrawPreview(sketchDrawPreview);
 
           return Listener(
             behavior: HitTestBehavior.opaque,
@@ -5142,6 +5207,7 @@ class _ViewportAreaState extends State<_ViewportArea> {
                         featureGroupPreviews: featureGroupPreviews,
                         sketchRectanglePreviews: sketchRectanglePreviews,
                         sketchCirclePreviews: sketchCirclePreviews,
+                        sketchLinePreviews: sketchLinePreviews,
                         selection: widget.selection,
                         viewportState: widget.viewportState,
                       ),
@@ -5219,7 +5285,8 @@ class _ViewportAreaState extends State<_ViewportArea> {
                       ),
                     ),
                   if (sketchRectanglePreviews.isNotEmpty ||
-                      sketchCirclePreviews.isNotEmpty)
+                      sketchCirclePreviews.isNotEmpty ||
+                      sketchLinePreviews.isNotEmpty)
                     const Positioned(
                       left: 0,
                       top: 0,
@@ -5519,6 +5586,11 @@ class _SketchRectanglePlacementBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final placementIcon = switch (entityType) {
+      'circle' => Icons.circle_outlined,
+      'line' => Icons.horizontal_rule_rounded,
+      _ => Icons.crop_square_rounded,
+    };
 
     return KeyedSubtree(
       key: const ValueKey('sketch-entity-placement-banner'),
@@ -5536,13 +5608,7 @@ class _SketchRectanglePlacementBanner extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                entityType == 'circle'
-                    ? Icons.circle_outlined
-                    : Icons.crop_square_rounded,
-                size: 18,
-                color: theme.colorScheme.tertiary,
-              ),
+              Icon(placementIcon, size: 18, color: theme.colorScheme.tertiary),
               const SizedBox(width: 8),
               Flexible(
                 child: Column(
@@ -5793,6 +5859,7 @@ class _Inspector extends StatelessWidget {
     required this.sketchRectanglePlacementIntent,
     required this.onAddSketchRectangle,
     required this.onAddSketchCircle,
+    required this.onAddSketchLine,
     required this.onSketchEntityParameterChanged,
     required this.onSketchEntityProfileIntentChanged,
     required this.onSketchEntityNudged,
@@ -5828,6 +5895,7 @@ class _Inspector extends StatelessWidget {
   final _SketchRectanglePlacementIntent? sketchRectanglePlacementIntent;
   final ValueChanged<String> onAddSketchRectangle;
   final ValueChanged<String> onAddSketchCircle;
+  final ValueChanged<String> onAddSketchLine;
   final void Function(
     String featureId,
     String entityId,
@@ -6013,6 +6081,11 @@ class _Inspector extends StatelessWidget {
                       selectedFeature.id &&
                   sketchRectanglePlacementIntent?.entityId == null &&
                   sketchRectanglePlacementIntent?.entityType == 'circle',
+              placingLine:
+                  sketchRectanglePlacementIntent?.featureId ==
+                      selectedFeature.id &&
+                  sketchRectanglePlacementIntent?.entityId == null &&
+                  sketchRectanglePlacementIntent?.entityType == 'line',
               movingEntityId:
                   sketchRectanglePlacementIntent?.featureId ==
                       selectedFeature.id
@@ -6026,6 +6099,7 @@ class _Inspector extends StatelessWidget {
                     ),
               onAddRectangle: () => onAddSketchRectangle(selectedFeature.id),
               onAddCircle: () => onAddSketchCircle(selectedFeature.id),
+              onAddLine: () => onAddSketchLine(selectedFeature.id),
               onEntitySelected: (entityId) {
                 onSelectionChanged(
                   SelectionModel.sketchEntity(
@@ -6516,10 +6590,12 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
     required this.selectedEntityId,
     required this.placingRectangle,
     required this.placingCircle,
+    required this.placingLine,
     required this.movingEntityId,
     required this.workplaneSize,
     required this.onAddRectangle,
     required this.onAddCircle,
+    required this.onAddLine,
     required this.onEntitySelected,
     required this.onEntityParameterChanged,
     required this.onEntityProfileIntentChanged,
@@ -6537,10 +6613,12 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
   final String? selectedEntityId;
   final bool placingRectangle;
   final bool placingCircle;
+  final bool placingLine;
   final String? movingEntityId;
   final Size? workplaneSize;
   final VoidCallback onAddRectangle;
   final VoidCallback onAddCircle;
+  final VoidCallback onAddLine;
   final ValueChanged<String> onEntitySelected;
   final void Function(String entityId, String parameterId, Object? value)
   onEntityParameterChanged;
@@ -6617,6 +6695,23 @@ class _AdvancedSketchEntityEditor extends StatelessWidget {
                 ),
               ),
               onPressed: onAddCircle,
+            ),
+            const SizedBox(width: 6),
+            IconButton(
+              key: const ValueKey('advanced-sketch-add-line'),
+              tooltip: placingLine ? 'Cancel line' : 'Line',
+              icon: const Icon(Icons.horizontal_rule_rounded),
+              color: theme.colorScheme.tertiary,
+              style: IconButton.styleFrom(
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                minimumSize: const Size.square(34),
+                fixedSize: const Size.square(34),
+                padding: EdgeInsets.zero,
+                backgroundColor: theme.colorScheme.tertiary.withValues(
+                  alpha: placingLine ? 0.22 : 0.10,
+                ),
+              ),
+              onPressed: onAddLine,
             ),
           ],
         ),
@@ -6708,9 +6803,11 @@ class _SketchEntityParameterEditor extends StatelessWidget {
     final schema = SketchEntityParameterAdapter.schemaFor(entity);
     final values = SketchEntityParameterAdapter.valuesFrom(entity);
     final profileIntent = sketchProfileIntentFor(entity);
+    final supportsProfileIntent = entity.type != 'line';
     final showsProfileDepth =
-        profileIntent == sketchProfileIntentCut ||
-        profileIntent == sketchProfileIntentAdd;
+        supportsProfileIntent &&
+        (profileIntent == sketchProfileIntentCut ||
+            profileIntent == sketchProfileIntentAdd);
     final profileDepthDefault = profileIntent == sketchProfileIntentAdd
         ? SketchEntityParameterAdapter.defaultAddProtrusion
         : SketchEntityParameterAdapter.defaultProfileDepth;
@@ -6868,12 +6965,13 @@ class _SketchEntityParameterEditor extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 6),
-            _SketchProfileIntentRow(
-              featureId: featureId,
-              entityId: entity.id,
-              profileIntent: profileIntent,
-              onChanged: onProfileIntentChanged,
-            ),
+            if (supportsProfileIntent)
+              _SketchProfileIntentRow(
+                featureId: featureId,
+                entityId: entity.id,
+                profileIntent: profileIntent,
+                onChanged: onProfileIntentChanged,
+              ),
             if (showsProfileDepth) ...[
               const SizedBox(height: 6),
               _SketchEntityResizeRow(
@@ -7296,6 +7394,7 @@ IconData _sketchEntityIcon(SketchEntity entity) {
   return switch (entity.type) {
     'rectangle' => Icons.crop_square_rounded,
     'circle' => Icons.circle_outlined,
+    'line' => Icons.horizontal_rule_rounded,
     _ => Icons.polyline_rounded,
   };
 }
@@ -7304,6 +7403,7 @@ String _sketchEntityLabel(SketchEntity entity) {
   return switch (entity.type) {
     'rectangle' => 'Прямоугольник ${entity.id}',
     'circle' => 'Круг ${entity.id}',
+    'line' => 'Line ${entity.id}',
     _ => '${entity.type} ${entity.id}',
   };
 }
@@ -7313,8 +7413,14 @@ String _sketchEntitySizeLabel(SketchEntity entity) {
     'rectangle' => _sketchRectangleSizeLabel(entity),
     'circle' =>
       'Ø ${_formatNumber(readDouble(entity.parameters['diameter'], fallback: 0.0))}',
+    'line' => _sketchLineSizeLabel(entity),
     _ => '',
   };
+}
+
+String _sketchLineSizeLabel(SketchEntity entity) {
+  final values = SketchEntityParameterAdapter.valuesFrom(entity);
+  return '${_formatNumber(readDouble(values['length'], fallback: 0.0))} mm';
 }
 
 String _sketchRectangleSizeLabel(SketchEntity entity) {
@@ -11325,6 +11431,7 @@ class _ViewportPainter extends CustomPainter {
     required this.featureGroupPreviews,
     required this.sketchRectanglePreviews,
     required this.sketchCirclePreviews,
+    required this.sketchLinePreviews,
     required this.selection,
     required this.viewportState,
   });
@@ -11341,6 +11448,7 @@ class _ViewportPainter extends CustomPainter {
   final List<MockViewportFeatureGroupPreview> featureGroupPreviews;
   final List<MockViewportSketchRectanglePreview> sketchRectanglePreviews;
   final List<MockViewportSketchCirclePreview> sketchCirclePreviews;
+  final List<MockViewportSketchLinePreview> sketchLinePreviews;
   final SelectionModel selection;
   final ViewportState viewportState;
 
@@ -11434,6 +11542,7 @@ class _ViewportPainter extends CustomPainter {
     _paintWorkplaneOverlay(canvas, layout, annotationMode: previewMeshRendered);
     _paintSketchRectangles(canvas, layout, annotationMode: previewMeshRendered);
     _paintSketchCircles(canvas, layout, annotationMode: previewMeshRendered);
+    _paintSketchLines(canvas, layout, annotationMode: previewMeshRendered);
     _paintGhostPreview(canvas, layout);
 
     final highlightPaint = Paint()
@@ -12324,6 +12433,60 @@ class _ViewportPainter extends CustomPainter {
     }
   }
 
+  void _paintSketchLines(
+    Canvas canvas,
+    MockViewportLayout layout, {
+    required bool annotationMode,
+  }) {
+    if (sketchLinePreviews.isEmpty) {
+      return;
+    }
+
+    final shadow = Paint()
+      ..color = Colors.black.withValues(alpha: 0.32)
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = (annotationMode ? 2.1 : 2.4) + 3.4;
+    final pointStroke = Paint()
+      ..color = const Color(0xFF151719).withValues(alpha: 0.80)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4;
+
+    for (final line in sketchLinePreviews) {
+      final intentColor = _sketchProfileIntentPaintColor(
+        colorScheme,
+        line.profileIntent,
+      );
+      final stroke = Paint()
+        ..color = intentColor.withValues(alpha: annotationMode ? 0.90 : 0.95)
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = annotationMode ? 2.1 : 2.4;
+      final pointFill = Paint()
+        ..color = intentColor.withValues(alpha: 0.96)
+        ..style = PaintingStyle.fill;
+      final selected =
+          selection.kind == SelectionKind.sketchEntity &&
+          selection.parentId == line.featureId &&
+          selection.id == line.entityId;
+      final start = line.canvasStart(layout);
+      final end = line.canvasEnd(layout);
+      final center = Offset((start.dx + end.dx) / 2, (start.dy + end.dy) / 2);
+      final selectedStroke = Paint()
+        ..color = intentColor.withValues(alpha: 1)
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = annotationMode ? 2.8 : 3.2;
+
+      canvas.drawLine(start, end, shadow);
+      canvas.drawLine(start, end, selected ? selectedStroke : stroke);
+      for (final point in [start, center, end]) {
+        canvas.drawCircle(point, 3.8 * layout.zoom, pointFill);
+        canvas.drawCircle(point, 3.8 * layout.zoom, pointStroke);
+      }
+    }
+  }
+
   void _paintGhostPreview(Canvas canvas, MockViewportLayout layout) {
     final ghost = viewportState.ghostPreview;
     if (ghost == null) {
@@ -12383,6 +12546,7 @@ class _ViewportPainter extends CustomPainter {
         oldDelegate.featureGroupPreviews != featureGroupPreviews ||
         oldDelegate.sketchRectanglePreviews != sketchRectanglePreviews ||
         oldDelegate.sketchCirclePreviews != sketchCirclePreviews ||
+        oldDelegate.sketchLinePreviews != sketchLinePreviews ||
         oldDelegate.selection != selection ||
         oldDelegate.viewportState != viewportState;
   }
@@ -13491,6 +13655,110 @@ extension _SketchCirclePreviewDraw on List<MockViewportSketchCirclePreview> {
           preview.startLocal,
           preview.endLocal,
         ),
+        profileIntent: sketchProfileIntentReference,
+      ),
+    ];
+  }
+}
+
+List<MockViewportSketchLinePreview> _mockSketchLinePreviews(
+  ProjectModel project,
+  SelectionModel selection, {
+  required bool includeInactive,
+}) {
+  final previews = <MockViewportSketchLinePreview>[];
+  for (final feature in _advancedSketchPreviewFeatures(
+    project,
+    selection,
+    includeInactive: includeInactive,
+  )) {
+    final workplane = _mockSurfaceWorkplaneOverlay(
+      project,
+      feature.targetSurface,
+    );
+    if (workplane == null) {
+      continue;
+    }
+
+    for (final entity in sketchEntitiesForFeature(feature)) {
+      if (entity.type != 'line') {
+        continue;
+      }
+
+      final values = SketchEntityParameterAdapter.valuesFrom(entity);
+      previews.add(
+        MockViewportSketchLinePreview(
+          featureId: feature.id,
+          entityId: entity.id,
+          workplane: workplane,
+          start: Offset(
+            readDouble(values['startX'], fallback: -10.0),
+            readDouble(values['startY'], fallback: 0.0),
+          ),
+          end: Offset(
+            readDouble(values['endX'], fallback: 10.0),
+            readDouble(values['endY'], fallback: 0.0),
+          ),
+          profileIntent: sketchProfileIntentFor(entity),
+        ),
+      );
+    }
+  }
+
+  return previews;
+}
+
+extension _SketchLinePreviewDrag on List<MockViewportSketchLinePreview> {
+  List<MockViewportSketchLinePreview> withDragPreview(
+    _SketchEntityDragPreview? preview,
+  ) {
+    if (preview == null) {
+      return this;
+    }
+
+    var changed = false;
+    final next = <MockViewportSketchLinePreview>[];
+    for (final line in this) {
+      if (line.featureId == preview.featureId &&
+          line.entityId == preview.entityId) {
+        changed = true;
+        final center = line.center();
+        final delta = preview.localPosition - center;
+        next.add(
+          MockViewportSketchLinePreview(
+            featureId: line.featureId,
+            entityId: line.entityId,
+            workplane: line.workplane,
+            start: line.start + delta,
+            end: line.end + delta,
+            profileIntent: line.profileIntent,
+          ),
+        );
+      } else {
+        next.add(line);
+      }
+    }
+
+    return changed ? next : this;
+  }
+}
+
+extension _SketchLinePreviewDraw on List<MockViewportSketchLinePreview> {
+  List<MockViewportSketchLinePreview> withDrawPreview(
+    _SketchEntityDrawPreview? preview,
+  ) {
+    if (preview == null || preview.entityType != 'line') {
+      return this;
+    }
+
+    return [
+      ...this,
+      MockViewportSketchLinePreview(
+        featureId: preview.featureId,
+        entityId: 'draft_line',
+        workplane: preview.workplane,
+        start: preview.startLocal,
+        end: preview.endLocal,
         profileIntent: sketchProfileIntentReference,
       ),
     ];
