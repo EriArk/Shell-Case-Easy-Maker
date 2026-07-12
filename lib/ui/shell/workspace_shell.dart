@@ -2273,6 +2273,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                             preview: preview,
                             selection: _selection,
                             selectionDetails: details,
+                            advancedMode: _advancedMode,
                             sketchRectanglePlacementIntent:
                                 _sketchRectanglePlacementIntent,
                             activeSnapTarget: _activeSnapTarget,
@@ -4453,6 +4454,7 @@ class _ViewportArea extends StatefulWidget {
     required this.preview,
     required this.selection,
     required this.selectionDetails,
+    required this.advancedMode,
     required this.sketchRectanglePlacementIntent,
     required this.activeSnapTarget,
     required this.activeSnapPlacementIssue,
@@ -4476,6 +4478,7 @@ class _ViewportArea extends StatefulWidget {
   final GeometryPreview? preview;
   final SelectionModel selection;
   final ProjectSelectionDetails selectionDetails;
+  final bool advancedMode;
   final _SketchRectanglePlacementIntent? sketchRectanglePlacementIntent;
   final _ActiveSnapTarget? activeSnapTarget;
   final ValidationMessage? activeSnapPlacementIssue;
@@ -4668,10 +4671,12 @@ class _ViewportAreaState extends State<_ViewportArea> {
     final sketchRectanglePreviews = _mockSketchRectanglePreviews(
       widget.project,
       widget.selection,
+      includeInactive: widget.advancedMode,
     );
     final sketchCirclePreviews = _mockSketchCirclePreviews(
       widget.project,
       widget.selection,
+      includeInactive: widget.advancedMode,
     );
     final mockHit = _hitTester.hitTest(
       position: position,
@@ -4693,20 +4698,55 @@ class _ViewportAreaState extends State<_ViewportArea> {
           : sketchRectanglePreviews,
       sketchCircles: placingSketchRectangle ? const [] : sketchCirclePreviews,
     );
-    final nativeHit = mockHit?.kind == ViewportHitKind.snapPoint
-        ? null
-        : _hitTestPreviewMesh(
-            previewMesh: widget.preview?.previewMesh,
-            position: position,
-            size: viewportSize,
-            state: widget.viewportState,
-            project: widget.project,
-            bodyDimensions: bodyDimensions,
-          );
+    if (mockHit?.kind == ViewportHitKind.snapPoint ||
+        _isSketchEntityViewportHit(mockHit)) {
+      return mockHit;
+    }
 
-    return mockHit?.kind == ViewportHitKind.snapPoint
-        ? mockHit
-        : nativeHit ?? mockHit;
+    final nativeHit = _hitTestPreviewMesh(
+      previewMesh: widget.preview?.previewMesh,
+      position: position,
+      size: viewportSize,
+      state: widget.viewportState,
+      project: widget.project,
+      bodyDimensions: bodyDimensions,
+    );
+
+    return nativeHit ?? mockHit;
+  }
+
+  ViewportHitResult? _sketchEntityOverlayHitAt(
+    Offset position,
+    Size viewportSize,
+  ) {
+    final bodyDimensions = _mockViewportBodyDimensions(widget.project);
+    final sketchRectanglePreviews = _mockSketchRectanglePreviews(
+      widget.project,
+      widget.selection,
+      includeInactive: widget.advancedMode,
+    );
+    final sketchCirclePreviews = _mockSketchCirclePreviews(
+      widget.project,
+      widget.selection,
+      includeInactive: widget.advancedMode,
+    );
+
+    final hit = _hitTester.hitTest(
+      position: position,
+      size: viewportSize,
+      state: widget.viewportState,
+      bodyDimensions: bodyDimensions,
+      componentPlacements: const [],
+      features: const [],
+      featureGroups: const [],
+      sketchRectangles: sketchRectanglePreviews,
+      sketchCircles: sketchCirclePreviews,
+    );
+    return _isSketchEntityViewportHit(hit) ? hit : null;
+  }
+
+  bool _isSketchEntityViewportHit(ViewportHitResult? hit) {
+    return hit?.kind == ViewportHitKind.feature && hit?.childId != null;
   }
 
   _SketchEntityDragIntent? _sketchEntityDragIntentAt(
@@ -4715,22 +4755,23 @@ class _ViewportAreaState extends State<_ViewportArea> {
     int buttons,
   ) {
     if ((buttons & kPrimaryMouseButton) == 0 ||
-        widget.sketchRectanglePlacementIntent != null ||
-        widget.selection.kind != SelectionKind.sketchEntity ||
-        widget.selection.parentId == null ||
-        widget.selection.id == null) {
+        widget.sketchRectanglePlacementIntent != null) {
       return null;
     }
 
-    final hit = _hitTestAt(position, viewportSize);
-    if (hit?.kind != ViewportHitKind.feature ||
-        hit?.semanticId != widget.selection.parentId ||
-        hit?.childId != widget.selection.id) {
+    final hit = _sketchEntityOverlayHitAt(position, viewportSize);
+    if (hit == null) {
+      return null;
+    }
+
+    final featureId = hit.semanticId;
+    final entityId = hit.childId;
+    if (entityId == null) {
       return null;
     }
 
     final feature = widget.project.features
-        .where((feature) => feature.id == widget.selection.parentId)
+        .where((feature) => feature.id == featureId)
         .firstOrNull;
     if (feature == null || feature.type != advancedSketchFeatureType) {
       return null;
@@ -4746,7 +4787,7 @@ class _ViewportAreaState extends State<_ViewportArea> {
 
     final entity = sketchEntitiesForFeature(
       feature,
-    ).where((entity) => entity.id == widget.selection.id).firstOrNull;
+    ).where((entity) => entity.id == entityId).firstOrNull;
     if (entity == null) {
       return null;
     }
@@ -4815,10 +4856,12 @@ class _ViewportAreaState extends State<_ViewportArea> {
           final sketchRectanglePreviews = _mockSketchRectanglePreviews(
             widget.project,
             widget.selection,
+            includeInactive: widget.advancedMode,
           ).withDragPreview(sketchDragPreview);
           final sketchCirclePreviews = _mockSketchCirclePreviews(
             widget.project,
             widget.selection,
+            includeInactive: widget.advancedMode,
           ).withDragPreview(sketchDragPreview);
 
           return Listener(
@@ -12912,55 +12955,46 @@ bool _snapTargetMatches(
 
 List<MockViewportSketchRectanglePreview> _mockSketchRectanglePreviews(
   ProjectModel project,
-  SelectionModel selection,
-) {
-  final featureId = switch (selection.kind) {
-    SelectionKind.feature => selection.id,
-    SelectionKind.sketchEntity => selection.parentId,
-    _ => null,
-  };
-  if (featureId == null) {
-    return const [];
-  }
-
-  final feature = project.features
-      .where((feature) => feature.id == featureId)
-      .firstOrNull;
-  if (feature == null || feature.type != advancedSketchFeatureType) {
-    return const [];
-  }
-
-  final workplane = _mockSurfaceWorkplaneOverlay(
-    project,
-    feature.targetSurface,
-  );
-  if (workplane == null) {
-    return const [];
-  }
-
+  SelectionModel selection, {
+  required bool includeInactive,
+}) {
   final previews = <MockViewportSketchRectanglePreview>[];
-  for (final entity in sketchEntitiesForFeature(feature)) {
-    if (entity.type != 'rectangle') {
+  for (final feature in _advancedSketchPreviewFeatures(
+    project,
+    selection,
+    includeInactive: includeInactive,
+  )) {
+    final workplane = _mockSurfaceWorkplaneOverlay(
+      project,
+      feature.targetSurface,
+    );
+    if (workplane == null) {
       continue;
     }
 
-    final values = SketchEntityParameterAdapter.valuesFrom(entity);
-    previews.add(
-      MockViewportSketchRectanglePreview(
-        featureId: feature.id,
-        entityId: entity.id,
-        workplane: workplane,
-        center: Offset(
-          readDouble(values['centerX'], fallback: 0.0),
-          readDouble(values['centerY'], fallback: 0.0),
+    for (final entity in sketchEntitiesForFeature(feature)) {
+      if (entity.type != 'rectangle') {
+        continue;
+      }
+
+      final values = SketchEntityParameterAdapter.valuesFrom(entity);
+      previews.add(
+        MockViewportSketchRectanglePreview(
+          featureId: feature.id,
+          entityId: entity.id,
+          workplane: workplane,
+          center: Offset(
+            readDouble(values['centerX'], fallback: 0.0),
+            readDouble(values['centerY'], fallback: 0.0),
+          ),
+          width: readDouble(values['width'], fallback: 20.0),
+          height: readDouble(values['height'], fallback: 12.0),
+          cornerRadius: readDouble(values['cornerRadius'], fallback: 0.0),
+          rotationZDegrees: readDouble(values['rotation'], fallback: 0.0),
+          profileIntent: sketchProfileIntentFor(entity),
         ),
-        width: readDouble(values['width'], fallback: 20.0),
-        height: readDouble(values['height'], fallback: 12.0),
-        cornerRadius: readDouble(values['cornerRadius'], fallback: 0.0),
-        rotationZDegrees: readDouble(values['rotation'], fallback: 0.0),
-        profileIntent: sketchProfileIntentFor(entity),
-      ),
-    );
+      );
+    }
   }
 
   return previews;
@@ -13005,8 +13039,59 @@ extension _SketchRectanglePreviewDrag
 
 List<MockViewportSketchCirclePreview> _mockSketchCirclePreviews(
   ProjectModel project,
-  SelectionModel selection,
-) {
+  SelectionModel selection, {
+  required bool includeInactive,
+}) {
+  final previews = <MockViewportSketchCirclePreview>[];
+  for (final feature in _advancedSketchPreviewFeatures(
+    project,
+    selection,
+    includeInactive: includeInactive,
+  )) {
+    final workplane = _mockSurfaceWorkplaneOverlay(
+      project,
+      feature.targetSurface,
+    );
+    if (workplane == null) {
+      continue;
+    }
+
+    for (final entity in sketchEntitiesForFeature(feature)) {
+      if (entity.type != 'circle') {
+        continue;
+      }
+
+      final values = SketchEntityParameterAdapter.valuesFrom(entity);
+      previews.add(
+        MockViewportSketchCirclePreview(
+          featureId: feature.id,
+          entityId: entity.id,
+          workplane: workplane,
+          center: Offset(
+            readDouble(values['centerX'], fallback: 0.0),
+            readDouble(values['centerY'], fallback: 0.0),
+          ),
+          diameter: readDouble(values['diameter'], fallback: 12.0),
+          profileIntent: sketchProfileIntentFor(entity),
+        ),
+      );
+    }
+  }
+
+  return previews;
+}
+
+List<SemanticFeature> _advancedSketchPreviewFeatures(
+  ProjectModel project,
+  SelectionModel selection, {
+  required bool includeInactive,
+}) {
+  if (includeInactive) {
+    return project.features
+        .where((feature) => feature.type == advancedSketchFeatureType)
+        .toList(growable: false);
+  }
+
   final featureId = switch (selection.kind) {
     SelectionKind.feature => selection.id,
     SelectionKind.sketchEntity => selection.parentId,
@@ -13023,37 +13108,7 @@ List<MockViewportSketchCirclePreview> _mockSketchCirclePreviews(
     return const [];
   }
 
-  final workplane = _mockSurfaceWorkplaneOverlay(
-    project,
-    feature.targetSurface,
-  );
-  if (workplane == null) {
-    return const [];
-  }
-
-  final previews = <MockViewportSketchCirclePreview>[];
-  for (final entity in sketchEntitiesForFeature(feature)) {
-    if (entity.type != 'circle') {
-      continue;
-    }
-
-    final values = SketchEntityParameterAdapter.valuesFrom(entity);
-    previews.add(
-      MockViewportSketchCirclePreview(
-        featureId: feature.id,
-        entityId: entity.id,
-        workplane: workplane,
-        center: Offset(
-          readDouble(values['centerX'], fallback: 0.0),
-          readDouble(values['centerY'], fallback: 0.0),
-        ),
-        diameter: readDouble(values['diameter'], fallback: 12.0),
-        profileIntent: sketchProfileIntentFor(entity),
-      ),
-    );
-  }
-
-  return previews;
+  return [feature];
 }
 
 extension _SketchCirclePreviewDrag on List<MockViewportSketchCirclePreview> {

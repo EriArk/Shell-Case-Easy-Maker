@@ -167,6 +167,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M146 - Sketch Entity Viewport Drag Move
 - [x] M147 - Sketch Entity Live Drag Preview
 - [x] M148 - Sketch Circle Drag Parity
+- [x] M149 - Direct Sketch Entity Activation
 
 ---
 
@@ -7059,3 +7060,48 @@ editing further.
 - Add or select a circle helper contour.
 - Drag it and confirm it follows the cursor during drag.
 - Release, save if desired, then undo and confirm the circle returns.
+
+---
+
+## M149 - Direct Sketch Entity Activation
+
+### Goal
+Let Advanced Sketch helper contours be selected and dragged directly from the
+viewport without first selecting the owning sketch in the project browser.
+
+### Tasks
+- [x] Pass Advanced Mode state into the viewport area.
+- [x] Render inactive Advanced Sketch helper contours while Advanced Mode is on.
+- [x] Give semantic helper contour hits priority over native preview mesh hits.
+- [x] Start sketch entity drag from a helper overlay hit, not from prior
+      selection state.
+- [x] Cover direct viewport click selection.
+- [x] Cover first-gesture direct drag and saved semantic center data.
+- [x] Update tasks/worklog.
+
+### Done Criteria
+- With Advanced Mode off, inactive sketch helper overlays stay hidden.
+- With Advanced Mode on, helper contours for existing Advanced Sketch features
+  can be selected directly in the viewport.
+- Dragging an unselected helper contour commits exactly one semantic
+  `SketchEntity.parameters.center` edit on release.
+- Helper overlay hit testing remains semantic and does not expose mesh,
+  triangle, B-Rep, or OCCT topology ids to Flutter UI state.
+
+### Tests
+- `flutter test test\widget_test.dart --name "sketch entity" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Enable Advanced Mode.
+- Do not select the Advanced Sketch in the project browser.
+- Click an existing rectangle helper contour directly in the viewport.
+- Confirm its sketch entity editor opens in the inspector.
+- Drag the same contour directly from the viewport and confirm it follows the
+  cursor, then save/undo if desired.

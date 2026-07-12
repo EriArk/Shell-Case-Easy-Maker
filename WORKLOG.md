@@ -13521,3 +13521,78 @@ or drawing/editing work.
 ### Next step
 Commit and push M148, then continue toward broader direct sketch activation or
 the next safe sketch drawing/editing slice.
+
+---
+
+## 2026-07-12 - M149 Direct sketch entity activation
+
+### Goal
+Let Advanced Sketch helper contours be selected and dragged directly from the
+viewport without first selecting the owning sketch in the project browser.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/ui/shell/workspace_shell.dart`, `lib/viewport/viewport_controller.dart`,
+`test/widget_test.dart`, and `test/viewport_controller_test.dart`.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Passed Advanced Mode state into the viewport area.
+  - Shows inactive Advanced Sketch helper contours while Advanced Mode is on.
+  - Keeps helper overlays hidden for inactive sketches while Advanced Mode is
+    off.
+  - Gives semantic helper contour hits priority over native preview mesh hits.
+  - Starts sketch entity drag from a helper overlay hit instead of requiring a
+    previous `SelectionKind.sketchEntity` selection.
+- `test/widget_test.dart`:
+  - Added direct viewport click selection coverage from a workspace selection.
+  - Added first-gesture direct drag coverage, including transient live preview
+    and saved semantic center data.
+  - Added a small front-wall canvas coordinate helper for focused widget tests.
+- `ROADMAP.md` and `TASKS.md`:
+  - Added M149 and marked direct sketch entity activation complete.
+
+### Tests run
+- `dart format lib\ui\shell\workspace_shell.dart test\widget_test.dart`:
+  - Passed.
+- `flutter test test\widget_test.dart --name "sketch entity" --reporter compact`:
+  - Passed; 5 matching widget tests.
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 76 files checked, 0 changed.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed; 270 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed; latest Windows bundle rebuilt with native OCCT worker.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git status --short --ignored releases`:
+  - Passed; `releases/` remains ignored.
+- `git diff --check`:
+  - Passed; only the existing ROADMAP line-ending warning was printed.
+
+### Validation
+- Geometry checked?
+  - No native geometry generation changed. Full tests and latest Windows build
+    still pass.
+- Serialization checked?
+  - Yes. Direct drag coverage saves only semantic
+    `SketchEntity.parameters.center`.
+- UI checked?
+  - Yes. Widget coverage verifies inactive overlay visibility in Advanced Mode,
+    direct click selection, direct drag preview, release, and save behavior.
+- Export checked?
+  - Latest Windows bundle rebuilt locally and remains ignored by Git.
+
+### Known issues
+- Issue: Helper contours are still overlay-based visual editing aids, not final
+  3D manipulators.
+  - Severity: Expected.
+  - Next action: Continue toward broader sketch drawing/editing tools and
+    richer semantic handles.
+
+### Next step
+Commit and push M149, then continue toward basic sketch drawing/editing.
