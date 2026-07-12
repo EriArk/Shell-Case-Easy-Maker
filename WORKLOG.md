@@ -13740,3 +13740,73 @@ selected workplane, with a transient preview before release.
 
 ### Next step
 Commit and push M151, then continue toward broader sketch drawing/editing.
+
+---
+
+## 2026-07-12 - M152 Circle drag draw
+
+### Goal
+Let Add Circle create a semantic sketch circle by dragging from the center
+outward, with a transient preview before release.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/ui/shell/workspace_shell.dart`, and `test/widget_test.dart`.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Allowed circle placement to use the existing sketch entity draw intent.
+  - Added circle drag-create commit path for semantic `SketchEntity` data.
+  - Derives center from drag start and diameter from center-to-pointer radius.
+  - Added transient circle draw preview while dragging.
+  - Keeps click-to-place behavior intact for default circle placement.
+- `test/widget_test.dart`:
+  - Added focused circle drag-draw coverage.
+  - Verifies transient draw preview marker appears during drag and disappears
+    after release.
+  - Saves the project and verifies semantic center/diameter data.
+- `ROADMAP.md` and `TASKS.md`:
+  - Added M152 and marked circle drag draw complete.
+
+### Tests run
+- `dart format lib\ui\shell\workspace_shell.dart test\widget_test.dart`:
+  - Passed; 2 files changed by formatting.
+- `flutter test test\widget_test.dart --name "rectangle placement drag|circle placement|sketch entity" --reporter compact`:
+  - Passed; 9 matching widget tests.
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 76 files checked, 0 changed.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed; 274 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed; latest Windows bundle rebuilt with native OCCT worker.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git status --short --ignored releases`:
+  - Passed; `releases/` remains ignored.
+- `git diff --check`:
+  - Passed; only the existing ROADMAP line-ending warning was printed.
+
+### Validation
+- Geometry checked?
+  - No native geometry generation changed in this slice.
+- Serialization checked?
+  - Yes. Widget coverage saves only semantic
+    `SketchEntity.parameters.center` and `diameter`.
+- UI checked?
+  - Yes. Widget coverage verifies placement marker, transient draw preview,
+    release, selection, and save behavior.
+- Export checked?
+  - Latest Windows bundle rebuilt locally and remains ignored by Git.
+
+### Known issues
+- Issue: Sketch drawing still has only rectangle and circle drag-create; broader
+  editing/drawing tools remain intentionally queued.
+  - Severity: Low.
+  - Next action: Continue with the next safe sketch drawing/editing slice.
+
+### Next step
+Commit and push M152, then continue toward broader sketch drawing/editing.

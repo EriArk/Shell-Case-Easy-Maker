@@ -670,7 +670,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     Offset startLocal,
     Offset endLocal,
   ) {
-    if (entityType != 'rectangle') {
+    if (entityType != 'rectangle' && entityType != 'circle') {
       _addAdvancedSketchEntity(
         featureId,
         entityType: entityType,
@@ -683,6 +683,36 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
         .where((feature) => feature.id == featureId)
         .firstOrNull;
     if (feature == null || feature.type != advancedSketchFeatureType) {
+      return;
+    }
+
+    if (entityType == 'circle') {
+      final entities = sketchEntitiesForFeature(feature);
+      final entity = SketchEntityParameterAdapter.applyValues(
+        _defaultSketchEntity(
+          entityType,
+          id: nextSketchEntityId(entities, _sketchEntityIdPrefix(entityType)),
+        ),
+        {
+          'centerX': startLocal.dx,
+          'centerY': startLocal.dy,
+          'diameter': _sketchCircleDiameterFromDrag(startLocal, endLocal),
+        },
+      );
+      final updatedFeature = advancedSketchWithEntities(feature, [
+        ...entities,
+        entity,
+      ]);
+
+      _commitProjectEdit(
+        id: 'advanced.sketch.$entityType.draw',
+        label: _addSketchEntityLabel(entityType),
+        nextState: _project.replaceFeature(updatedFeature),
+        selection: SelectionModel.sketchEntity(
+          id: entity.id,
+          parentId: feature.id,
+        ),
+      );
       return;
     }
 
@@ -4924,7 +4954,8 @@ class _ViewportAreaState extends State<_ViewportArea> {
     if ((buttons & kPrimaryMouseButton) == 0 ||
         placementIntent == null ||
         placementIntent.entityId != null ||
-        placementIntent.entityType != 'rectangle') {
+        (placementIntent.entityType != 'rectangle' &&
+            placementIntent.entityType != 'circle')) {
       return null;
     }
 
@@ -5068,11 +5099,14 @@ class _ViewportAreaState extends State<_ViewportArea> {
                   )
                   .withDragPreview(sketchDragPreview)
                   .withDrawPreview(sketchDrawPreview);
-          final sketchCirclePreviews = _mockSketchCirclePreviews(
-            widget.project,
-            widget.selection,
-            includeInactive: widget.advancedMode,
-          ).withDragPreview(sketchDragPreview);
+          final sketchCirclePreviews =
+              _mockSketchCirclePreviews(
+                    widget.project,
+                    widget.selection,
+                    includeInactive: widget.advancedMode,
+                  )
+                  .withDragPreview(sketchDragPreview)
+                  .withDrawPreview(sketchDrawPreview);
 
           return Listener(
             behavior: HitTestBehavior.opaque,
@@ -13328,6 +13362,9 @@ extension _SketchRectanglePreviewDraw
   }
 }
 
+double _sketchCircleDiameterFromDrag(Offset startLocal, Offset endLocal) =>
+    ((endLocal - startLocal).distance * 2).clamp(1.0, 500.0).toDouble();
+
 List<MockViewportSketchCirclePreview> _mockSketchCirclePreviews(
   ProjectModel project,
   SelectionModel selection, {
@@ -13432,6 +13469,31 @@ extension _SketchCirclePreviewDrag on List<MockViewportSketchCirclePreview> {
     }
 
     return changed ? next : this;
+  }
+}
+
+extension _SketchCirclePreviewDraw on List<MockViewportSketchCirclePreview> {
+  List<MockViewportSketchCirclePreview> withDrawPreview(
+    _SketchEntityDrawPreview? preview,
+  ) {
+    if (preview == null || preview.entityType != 'circle') {
+      return this;
+    }
+
+    return [
+      ...this,
+      MockViewportSketchCirclePreview(
+        featureId: preview.featureId,
+        entityId: 'draft_circle',
+        workplane: preview.workplane,
+        center: preview.startLocal,
+        diameter: _sketchCircleDiameterFromDrag(
+          preview.startLocal,
+          preview.endLocal,
+        ),
+        profileIntent: sketchProfileIntentReference,
+      ),
+    ];
   }
 }
 

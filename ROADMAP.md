@@ -7190,3 +7190,42 @@ selected workplane, with a transient preview before release.
 - Drag across the sketch surface instead of just clicking.
 - Confirm a rectangle preview follows the drag box.
 - Release and confirm the new rectangle stays selected with the dragged size.
+
+---
+
+## M152 - Circle Drag Draw
+
+### Goal
+Let Add Circle create a semantic sketch circle by dragging from the center
+outward, with a transient preview before release.
+
+### Tasks
+- [x] Allow circle placement to start a sketch entity draw intent.
+- [x] Render transient circle draw preview during drag.
+- [x] Commit one semantic `SketchEntity` on pointer release.
+- [x] Derive circle center from the drag start and diameter from drag radius.
+- [x] Preserve click-to-place behavior for default circle placement.
+- [x] Cover semantic save data with a widget test.
+- [x] Update tasks/worklog.
+
+### Done Criteria
+- Add Circle supports click placement and drag placement.
+- Drag placement preview is transient and disappears after release.
+- Saved project JSON stores semantic `center` and `diameter`.
+- No generated mesh, B-Rep, triangle id, or topology id becomes editable state.
+
+### Tests
+- `flutter test test\widget_test.dart --name "rectangle placement drag|circle placement|sketch entity" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Select an Advanced Sketch and click Add Circle.
+- Press where the circle center should be, then drag outward.
+- Confirm a circle preview grows from that center while dragging.
+- Release and confirm the new circle stays selected with the dragged diameter.
