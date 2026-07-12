@@ -2577,6 +2577,18 @@ class _SketchEntityDragIntent {
   final Offset grabOffset;
 }
 
+class _SketchEntityDragPreview {
+  const _SketchEntityDragPreview({
+    required this.featureId,
+    required this.entityId,
+    required this.localPosition,
+  });
+
+  final String featureId;
+  final String entityId;
+  final Offset localPosition;
+}
+
 _ActiveSnapTarget? _snapTargetFromViewportHit(
   ProjectModel project,
   ViewportHitResult hit,
@@ -4496,6 +4508,7 @@ class _ViewportAreaState extends State<_ViewportArea> {
   bool _movedSincePointerDown = false;
   int _pointerDownButtons = 0;
   _SketchEntityDragIntent? _sketchEntityDragIntent;
+  _SketchEntityDragPreview? _sketchEntityDragPreview;
 
   void _handlePointerDown(PointerDownEvent event, Size viewportSize) {
     _lastPointerPosition = event.localPosition;
@@ -4509,7 +4522,7 @@ class _ViewportAreaState extends State<_ViewportArea> {
     );
   }
 
-  void _handlePointerMove(PointerMoveEvent event) {
+  void _handlePointerMove(PointerMoveEvent event, Size viewportSize) {
     final last = _lastPointerPosition;
     _lastPointerPosition = event.localPosition;
 
@@ -4524,7 +4537,20 @@ class _ViewportAreaState extends State<_ViewportArea> {
       _movedSincePointerDown = true;
     }
 
-    if (_sketchEntityDragIntent != null) {
+    final sketchDragIntent = _sketchEntityDragIntent;
+    if (sketchDragIntent != null) {
+      final localPosition = _sketchEntityDragLocalPosition(
+        sketchDragIntent,
+        event.localPosition,
+        viewportSize,
+      );
+      setState(() {
+        _sketchEntityDragPreview = _SketchEntityDragPreview(
+          featureId: sketchDragIntent.featureId,
+          entityId: sketchDragIntent.entityId,
+          localPosition: localPosition,
+        );
+      });
       return;
     }
 
@@ -4542,17 +4568,14 @@ class _ViewportAreaState extends State<_ViewportArea> {
 
     final sketchDragIntent = _sketchEntityDragIntent;
     if (sketchDragIntent != null && _movedSincePointerDown) {
-      final layout = MockViewportLayout.fromSize(
-        viewportSize,
-        widget.viewportState,
-        bodyDimensions: _mockViewportBodyDimensions(widget.project),
-      );
       final localPosition =
-          layout.workplaneCanvasToLocal(
-            sketchDragIntent.workplane,
+          _sketchEntityDragPreview?.localPosition ??
+          _sketchEntityDragLocalPosition(
+            sketchDragIntent,
             event.localPosition,
-          ) +
-          sketchDragIntent.grabOffset;
+            viewportSize,
+          );
+      _clearSketchEntityDragState();
       widget.onSketchEntityDragCompleted(
         sketchDragIntent.featureId,
         sketchDragIntent.entityId,
@@ -4570,7 +4593,7 @@ class _ViewportAreaState extends State<_ViewportArea> {
     _pointerDownPosition = null;
     _movedSincePointerDown = false;
     _pointerDownButtons = 0;
-    _sketchEntityDragIntent = null;
+    _clearSketchEntityDragState();
   }
 
   void _handlePointerCancel(PointerCancelEvent event) {
@@ -4578,12 +4601,36 @@ class _ViewportAreaState extends State<_ViewportArea> {
     _pointerDownPosition = null;
     _movedSincePointerDown = false;
     _pointerDownButtons = 0;
-    _sketchEntityDragIntent = null;
+    _clearSketchEntityDragState();
   }
 
   void _handlePointerSignal(PointerSignalEvent event) {
     if (event is PointerScrollEvent) {
       widget.onZoom(event.scrollDelta.dy);
+    }
+  }
+
+  Offset _sketchEntityDragLocalPosition(
+    _SketchEntityDragIntent intent,
+    Offset canvasPosition,
+    Size viewportSize,
+  ) {
+    final layout = MockViewportLayout.fromSize(
+      viewportSize,
+      widget.viewportState,
+      bodyDimensions: _mockViewportBodyDimensions(widget.project),
+    );
+    return layout.workplaneCanvasToLocal(intent.workplane, canvasPosition) +
+        intent.grabOffset;
+  }
+
+  void _clearSketchEntityDragState() {
+    final hadDragState =
+        _sketchEntityDragIntent != null || _sketchEntityDragPreview != null;
+    _sketchEntityDragIntent = null;
+    _sketchEntityDragPreview = null;
+    if (hadDragState && mounted) {
+      setState(() {});
     }
   }
 
@@ -4764,24 +4811,27 @@ class _ViewportAreaState extends State<_ViewportArea> {
           final featureGroupPreviews = _mockFeatureGroupPreviews(
             widget.project,
           );
+          final sketchDragPreview = _sketchEntityDragPreview;
           final sketchRectanglePreviews = _mockSketchRectanglePreviews(
             widget.project,
             widget.selection,
-          );
+          ).withDragPreview(sketchDragPreview);
           final sketchCirclePreviews = _mockSketchCirclePreviews(
             widget.project,
             widget.selection,
-          );
+          ).withDragPreview(sketchDragPreview);
 
           return Listener(
             behavior: HitTestBehavior.opaque,
             onPointerDown: (event) => _handlePointerDown(event, viewportSize),
-            onPointerMove: _handlePointerMove,
+            onPointerMove: (event) => _handlePointerMove(event, viewportSize),
             onPointerUp: (event) => _handlePointerUp(event, viewportSize),
             onPointerCancel: _handlePointerCancel,
             onPointerSignal: _handlePointerSignal,
             child: MouseRegion(
-              cursor: sketchRectanglePlacementActive
+              cursor: sketchDragPreview != null
+                  ? SystemMouseCursors.grabbing
+                  : sketchRectanglePlacementActive
                   ? SystemMouseCursors.precise
                   : SystemMouseCursors.grab,
               child: Stack(
@@ -4888,6 +4938,18 @@ class _ViewportAreaState extends State<_ViewportArea> {
                       top: 0,
                       child: SizedBox(
                         key: ValueKey('advanced-sketch-overlay-active'),
+                      ),
+                    ),
+                  if (sketchDragPreview != null)
+                    Positioned(
+                      left: 0,
+                      top: 0,
+                      child: SizedBox(
+                        key: ValueKey(
+                          'advanced-sketch-entity-drag-preview-'
+                          '${sketchDragPreview.featureId}-'
+                          '${sketchDragPreview.entityId}',
+                        ),
                       ),
                     ),
                   if (workplaneOverlay != null)
@@ -12904,6 +12966,43 @@ List<MockViewportSketchRectanglePreview> _mockSketchRectanglePreviews(
   return previews;
 }
 
+extension _SketchRectanglePreviewDrag
+    on List<MockViewportSketchRectanglePreview> {
+  List<MockViewportSketchRectanglePreview> withDragPreview(
+    _SketchEntityDragPreview? preview,
+  ) {
+    if (preview == null) {
+      return this;
+    }
+
+    var changed = false;
+    final next = <MockViewportSketchRectanglePreview>[];
+    for (final rectangle in this) {
+      if (rectangle.featureId == preview.featureId &&
+          rectangle.entityId == preview.entityId) {
+        changed = true;
+        next.add(
+          MockViewportSketchRectanglePreview(
+            featureId: rectangle.featureId,
+            entityId: rectangle.entityId,
+            workplane: rectangle.workplane,
+            center: preview.localPosition,
+            width: rectangle.width,
+            height: rectangle.height,
+            cornerRadius: rectangle.cornerRadius,
+            rotationZDegrees: rectangle.rotationZDegrees,
+            profileIntent: rectangle.profileIntent,
+          ),
+        );
+      } else {
+        next.add(rectangle);
+      }
+    }
+
+    return changed ? next : this;
+  }
+}
+
 List<MockViewportSketchCirclePreview> _mockSketchCirclePreviews(
   ProjectModel project,
   SelectionModel selection,
@@ -12955,6 +13054,39 @@ List<MockViewportSketchCirclePreview> _mockSketchCirclePreviews(
   }
 
   return previews;
+}
+
+extension _SketchCirclePreviewDrag on List<MockViewportSketchCirclePreview> {
+  List<MockViewportSketchCirclePreview> withDragPreview(
+    _SketchEntityDragPreview? preview,
+  ) {
+    if (preview == null) {
+      return this;
+    }
+
+    var changed = false;
+    final next = <MockViewportSketchCirclePreview>[];
+    for (final circle in this) {
+      if (circle.featureId == preview.featureId &&
+          circle.entityId == preview.entityId) {
+        changed = true;
+        next.add(
+          MockViewportSketchCirclePreview(
+            featureId: circle.featureId,
+            entityId: circle.entityId,
+            workplane: circle.workplane,
+            center: preview.localPosition,
+            diameter: circle.diameter,
+            profileIntent: circle.profileIntent,
+          ),
+        );
+      } else {
+        next.add(circle);
+      }
+    }
+
+    return changed ? next : this;
+  }
 }
 
 List<MockViewportFeaturePreview> _mockFeaturePreviews(ProjectModel project) {

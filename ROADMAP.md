@@ -165,6 +165,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M144 - Sketch Profile Depth Controls
 - [x] M145 - Native Sketch Entity Picking
 - [x] M146 - Sketch Entity Viewport Drag Move
+- [x] M147 - Sketch Entity Live Drag Preview
 
 ---
 
@@ -6974,3 +6975,47 @@ committing only its semantic workplane center through undoable project edits.
 - Select a rectangle or circle helper contour so its row is focused.
 - Drag the selected helper contour inside the viewport.
 - Save, undo, and confirm the contour returns to its previous position.
+
+---
+
+## M147 - Sketch Entity Live Drag Preview
+
+### Goal
+Make selected Advanced Sketch contour dragging feel direct by previewing the
+moving helper contour during mouse drag while still committing only one
+semantic center edit on release.
+
+### Tasks
+- [x] Track a transient selected-sketch-entity drag preview in viewport state.
+- [x] Override only the matching helper rectangle/circle preview center while
+      dragging.
+- [x] Show a grabbing cursor and a test marker while the transient preview is
+      active.
+- [x] Clear preview state on pointer up and cancel.
+- [x] Keep save/undo behavior on the existing semantic move path.
+- [x] Cover transient preview activation/removal with a widget test.
+- [x] Update docs/tasks/worklog.
+
+### Done Criteria
+- Dragging the focused helper contour shows a transient moved contour before
+  release.
+- Releasing commits the final workplane center through
+  `SketchEntity.parameters.center`.
+- Canceling or clicking without drag leaves no stale drag state.
+- No generated mesh, B-Rep, triangle id, or topology id becomes editable state.
+
+### Tests
+- `flutter test test\widget_test.dart --name "selected sketch entity drags on workplane semantically" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Enable Advanced Mode and select/create an Advanced Sketch.
+- Focus a rectangle or circle helper contour.
+- Drag it and confirm the helper contour follows the cursor during the drag.
+- Release, save if desired, then undo and confirm the contour returns.

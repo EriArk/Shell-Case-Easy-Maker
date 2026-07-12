@@ -378,10 +378,11 @@ sketch metadata through undo history. Duplicate creates a new offset `rect_N`
 or `circle_N` entity instead of copying generated geometry.
 
 The focused helper contour can also be dragged directly in the viewport. The
-drag is accepted only when it starts on the currently selected contour, then it
-commits the contour's semantic workplane center through the same undo/save path
-as the inspector move actions. It does not make generated mesh or OCCT topology
-editable.
+drag is accepted only when it starts on the currently selected contour. While
+the pointer is held, the helper contour follows the cursor as transient UI
+state; releasing commits the contour's semantic workplane center through the
+same undo/save path as the inspector move actions. It does not make generated
+mesh or OCCT topology editable.
 
 When a sketch entity is focused, workspace arrow keys reuse the same semantic
 actions for 1 mm nudge; Shift+arrow resizes rectangle width/height or circle

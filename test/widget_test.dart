@@ -4427,8 +4427,26 @@ void main() {
       buttons: kPrimaryMouseButton,
     );
     await gesture.moveTo(dragEnd);
+    await tester.pump();
+    expect(
+      find.byKey(
+        const ValueKey(
+          'advanced-sketch-entity-drag-preview-advanced_sketch_1-rect_1',
+        ),
+      ),
+      findsOneWidget,
+    );
+
     await gesture.up();
     await _pumpAsyncUi(tester);
+    expect(
+      find.byKey(
+        const ValueKey(
+          'advanced-sketch-entity-drag-preview-advanced_sketch_1-rect_1',
+        ),
+      ),
+      findsNothing,
+    );
 
     await tester.tap(
       find.byKey(const ValueKey('toolbar-command-${CommandIds.saveProject}')),

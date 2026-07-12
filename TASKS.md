@@ -413,6 +413,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Basic sketch profile depth controls.
 - [x] Basic sketch native entity picking.
 - [x] Basic sketch selected entity viewport drag move.
+- [x] Basic sketch selected entity live drag preview.
 - [ ] Basic sketch drawing/editing.
 - [ ] Extrude/cut.
 - [ ] Boolean.

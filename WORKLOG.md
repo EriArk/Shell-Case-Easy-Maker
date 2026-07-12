@@ -13372,3 +13372,84 @@ triangle ids, or OCCT topology.
 ### Next step
 Commit and push M146, then continue toward broader direct sketch activation or
 the next safe drawing/editing slice.
+
+---
+
+## 2026-07-12 - M147 Sketch entity live drag preview
+
+### Goal
+Make focused Advanced Sketch contour dragging visually direct while preserving
+the semantic edit boundary: live movement is transient UI state, and project
+JSON changes only on release.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/ui/shell/workspace_shell.dart`, `lib/viewport/viewport_controller.dart`,
+`test/widget_test.dart`, `docs/30_ADVANCED_CAD_MODE.md`,
+`docs/32_USABLE_SHELL.md`, and `docs/33_VIEWPORT_MVP.md`.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added `_SketchEntityDragPreview` as transient viewport state.
+  - Updates the preview on pointer move while a selected sketch entity drag is
+    active.
+  - Overrides only the matching helper rectangle/circle preview center during
+    drag.
+  - Shows a grabbing cursor while the selected contour is held.
+  - Clears drag preview state on pointer up and cancel so click-only gestures
+    cannot leave stale state.
+- `test/widget_test.dart`:
+  - Extended the sketch entity drag test to verify the transient preview marker
+    appears during drag and disappears after release.
+- Docs/tasks/roadmap:
+  - Added M147 and documented live drag preview as UI-only state before the
+    semantic move commit.
+
+### Tests run
+- `flutter test test\widget_test.dart --name "selected sketch entity drags on workplane semantically" --reporter compact`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed after applying `dart format` to the touched Dart files.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed, 267 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed. Refreshed `releases/latest/windows/shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Returned `True`.
+- `git status --short --ignored releases`:
+  - Confirmed `releases/` is ignored.
+- `git diff --check`:
+  - Passed with the existing ROADMAP CRLF warning.
+
+### Validation
+- Geometry checked?
+  - No native geometry code changed. Full native-backed tests and latest Windows
+    build still pass.
+- Serialization checked?
+  - Yes by widget coverage. Drag preview state is not saved; only release
+    commits `SketchEntity.parameters.center`.
+- UI checked?
+  - Yes. Widget coverage verifies transient preview activation/removal, save,
+    and undo behavior.
+- Export checked?
+  - Latest Windows bundle rebuilt locally and remains ignored by Git.
+
+### Known issues
+- Issue: Helper contour hit testing still requires the owning Advanced Sketch
+  to be active or the contour to be already focused.
+  - Severity: Medium.
+  - Next action: Add broader direct sketch entity activation from viewport
+    helper overlays without coupling to generated topology.
+- Issue: Live drag preview is helper-overlay based, not generated 3D handle
+  manipulation.
+  - Severity: Expected.
+  - Next action: Keep improving semantic handles before adding richer Advanced
+    Mode editing tools.
+
+### Next step
+Commit and push M147, then continue toward broader direct sketch activation or
+the next safe sketch drawing/editing slice.

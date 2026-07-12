@@ -60,6 +60,9 @@ generate simple disposable native protrusions.
 - Dragging a focused helper contour in the viewport updates that entity's
   semantic workplane center through the same undoable move path as inspector
   actions.
+- While a focused helper contour is being dragged, the viewport shows a
+  transient moved helper preview. The editable `ProjectModel` is still updated
+  only once, on release.
 - Creation is undoable and save/load-safe.
 - Rectangle/circle entity click placement is undoable and save/load-safe.
 - Rectangle/circle parameter edits are undoable and save/load-safe.
@@ -115,6 +118,8 @@ generate simple disposable native protrusions.
   handles are designed.
 - Keep viewport drag edits constrained to selected semantic sketch entities;
   do not infer editable geometry from generated mesh or topology hits.
+- Keep live drag previews as UI-only state; do not serialize preview positions
+  until the semantic move command commits.
 
 ## Use cases
 
