@@ -166,6 +166,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M145 - Native Sketch Entity Picking
 - [x] M146 - Sketch Entity Viewport Drag Move
 - [x] M147 - Sketch Entity Live Drag Preview
+- [x] M148 - Sketch Circle Drag Parity
 
 ---
 
@@ -7019,3 +7020,42 @@ semantic center edit on release.
 - Focus a rectangle or circle helper contour.
 - Drag it and confirm the helper contour follows the cursor during the drag.
 - Release, save if desired, then undo and confirm the contour returns.
+
+---
+
+## M148 - Sketch Circle Drag Parity
+
+### Goal
+Lock in circle helper contour dragging as the same semantic, live-preview,
+save/load-safe interaction as rectangle dragging before expanding sketch
+editing further.
+
+### Tasks
+- [x] Add focused circle helper drag coverage.
+- [x] Verify circle drag uses the transient live preview marker.
+- [x] Verify release commits `SketchEntity.parameters.center`.
+- [x] Verify undo restores the previous circle center.
+- [x] Update tasks/worklog.
+
+### Done Criteria
+- Rectangle and circle helper contours both have widget coverage for direct
+  viewport drag.
+- Circle drag preview state is transient and disappears after release.
+- Saved project JSON contains only semantic sketch entity center data.
+- No generated mesh, B-Rep, triangle id, or topology id becomes editable state.
+
+### Tests
+- `flutter test test\widget_test.dart --name "sketch entity drags on workplane semantically" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Enable Advanced Mode and select/create an Advanced Sketch.
+- Add or select a circle helper contour.
+- Drag it and confirm it follows the cursor during drag.
+- Release, save if desired, then undo and confirm the circle returns.

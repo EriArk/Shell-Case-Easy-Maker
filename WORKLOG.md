@@ -13453,3 +13453,71 @@ JSON changes only on release.
 ### Next step
 Commit and push M147, then continue toward broader direct sketch activation or
 the next safe sketch drawing/editing slice.
+
+---
+
+## 2026-07-12 - M148 Sketch circle drag parity
+
+### Goal
+Lock in circle helper contour direct dragging as the same semantic live-preview
+interaction as rectangle dragging before moving into broader sketch activation
+or drawing/editing work.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`test/widget_test.dart`, and `lib/ui/shell/workspace_shell.dart`.
+
+### Changes made
+- `test/widget_test.dart`:
+  - Added focused circle helper drag coverage.
+  - Verifies the circle live drag preview marker appears during drag and
+    disappears after release.
+  - Saves the project and verifies the circle's semantic
+    `SketchEntity.parameters.center`.
+  - Verifies undo restores the previous circle center.
+- `ROADMAP.md` and `TASKS.md`:
+  - Added M148 and marked circle drag parity coverage complete.
+
+### Tests run
+- `flutter test test\widget_test.dart --name "sketch entity drags on workplane semantically" --reporter compact`:
+  - Passed, 2 matching widget tests.
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with constraints.
+- `dart format test\widget_test.dart`:
+  - Passed.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 76 files checked, 0 changed.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed; 268 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed; latest Windows bundle rebuilt with native OCCT worker.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git status --short --ignored releases`:
+  - Passed; `releases/` remains ignored.
+- `git diff --check`:
+  - Passed; only the existing ROADMAP line-ending warning was printed.
+
+### Validation
+- Geometry checked?
+  - No geometry code changed. Full tests and latest Windows build still pass.
+- Serialization checked?
+  - Yes. Widget coverage saves semantic circle center data and verifies undo.
+- UI checked?
+  - Yes. Widget coverage verifies circle focus, live drag preview, release, and
+    undo behavior.
+- Export checked?
+  - Latest Windows bundle rebuilt locally and remains ignored by Git.
+
+### Known issues
+- Issue: Helper contour hit testing still requires the owning Advanced Sketch
+  to be active or the contour to be already focused.
+  - Severity: Medium.
+  - Next action: Add broader direct sketch entity activation from viewport
+    helper overlays without coupling to generated topology.
+
+### Next step
+Commit and push M148, then continue toward broader direct sketch activation or
+the next safe sketch drawing/editing slice.
