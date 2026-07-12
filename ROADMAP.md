@@ -168,6 +168,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M147 - Sketch Entity Live Drag Preview
 - [x] M148 - Sketch Circle Drag Parity
 - [x] M149 - Direct Sketch Entity Activation
+- [x] M150 - Sketch Entity Placement Markers
 
 ---
 
@@ -7105,3 +7106,47 @@ viewport without first selecting the owning sketch in the project browser.
 - Confirm its sketch entity editor opens in the inspector.
 - Drag the same contour directly from the viewport and confirm it follows the
   cursor, then save/undo if desired.
+
+---
+
+## M150 - Sketch Entity Placement Markers
+
+### Goal
+Make Advanced Sketch placement/move state explicitly entity-based instead of
+rectangle-named in the viewport test surface, while preserving old marker keys
+for compatibility.
+
+### Tasks
+- [x] Add generic `advanced-sketch-entity-placement-active` marker.
+- [x] Add entity-specific placement markers for rectangle/circle.
+- [x] Add generic `advanced-sketch-entity-move-active` marker.
+- [x] Add entity-specific move markers for rectangle/circle.
+- [x] Add generic sketch entity placement banner/cancel markers.
+- [x] Keep existing rectangle-named marker keys as compatibility aliases.
+- [x] Cover circle placement markers and semantic save.
+- [x] Cover direct circle drag from viewport overlay.
+- [x] Update tasks/worklog.
+
+### Done Criteria
+- Circle placement exposes generic entity markers and still keeps legacy
+  rectangle marker aliases.
+- Circle placement commits a semantic `SketchEntity` with center coordinates.
+- Direct drag for an unselected circle helper contour is covered.
+- No generated mesh, B-Rep, triangle id, or topology id becomes editable state.
+
+### Tests
+- `flutter test test\widget_test.dart --name "sketch entity|circle placement" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Select an Advanced Sketch and click add circle.
+- Confirm the placement banner appears and click on the sketch surface.
+- Turn on Advanced Mode, do not select the circle in the project browser, and
+  drag the circle helper contour directly in the viewport.
+- Confirm it follows the cursor and stays at the released position.

@@ -4831,6 +4831,8 @@ class _ViewportAreaState extends State<_ViewportArea> {
           final sketchRectangleMoveActive =
               sketchRectanglePlacementActive &&
               widget.sketchRectanglePlacementIntent?.entityId != null;
+          final sketchEntityPlacementType =
+              widget.sketchRectanglePlacementIntent?.entityType ?? 'rectangle';
           final workplaneOverlay =
               sketchPlacementWorkplane ??
               _mockWorkplaneOverlay(widget.project, widget.selection);
@@ -5013,12 +5015,52 @@ class _ViewportAreaState extends State<_ViewportArea> {
                         ),
                       ),
                     ),
+                  if (sketchRectanglePlacementActive)
+                    const Positioned(
+                      left: 0,
+                      top: 0,
+                      child: SizedBox(
+                        key: ValueKey(
+                          'advanced-sketch-entity-placement-active',
+                        ),
+                      ),
+                    ),
+                  if (sketchRectanglePlacementActive)
+                    Positioned(
+                      left: 0,
+                      top: 0,
+                      child: SizedBox(
+                        key: ValueKey(
+                          'advanced-sketch-entity-'
+                          '$sketchEntityPlacementType-placement-active',
+                        ),
+                      ),
+                    ),
                   if (sketchRectangleMoveActive)
                     const Positioned(
                       left: 0,
                       top: 0,
                       child: SizedBox(
                         key: ValueKey('advanced-sketch-rectangle-move-active'),
+                      ),
+                    ),
+                  if (sketchRectangleMoveActive)
+                    const Positioned(
+                      left: 0,
+                      top: 0,
+                      child: SizedBox(
+                        key: ValueKey('advanced-sketch-entity-move-active'),
+                      ),
+                    ),
+                  if (sketchRectangleMoveActive)
+                    Positioned(
+                      left: 0,
+                      top: 0,
+                      child: SizedBox(
+                        key: ValueKey(
+                          'advanced-sketch-entity-'
+                          '$sketchEntityPlacementType-move-active',
+                        ),
                       ),
                     ),
                   if (hasPreviewMesh &&
@@ -5123,11 +5165,7 @@ class _ViewportAreaState extends State<_ViewportArea> {
                       child: Align(
                         alignment: Alignment.topCenter,
                         child: _SketchRectanglePlacementBanner(
-                          entityType:
-                              widget
-                                  .sketchRectanglePlacementIntent
-                                  ?.entityType ??
-                              'rectangle',
+                          entityType: sketchEntityPlacementType,
                           onCancel: widget.onCancelSketchRectanglePlacement,
                         ),
                       ),
@@ -5228,59 +5266,63 @@ class _SketchRectanglePlacementBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return DecoratedBox(
-      key: const ValueKey('sketch-rectangle-placement-banner'),
-      decoration: BoxDecoration(
-        color: const Color(0xEE1E2226),
-        border: Border.all(
-          color: theme.colorScheme.tertiary.withValues(alpha: 0.40),
+    return KeyedSubtree(
+      key: const ValueKey('sketch-entity-placement-banner'),
+      child: DecoratedBox(
+        key: const ValueKey('sketch-rectangle-placement-banner'),
+        decoration: BoxDecoration(
+          color: const Color(0xEE1E2226),
+          border: Border.all(
+            color: theme.colorScheme.tertiary.withValues(alpha: 0.40),
+          ),
+          borderRadius: BorderRadius.circular(8),
         ),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              entityType == 'circle'
-                  ? Icons.circle_outlined
-                  : Icons.crop_square_rounded,
-              size: 18,
-              color: theme.colorScheme.tertiary,
-            ),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    entityType == 'circle'
-                        ? 'Круг эскиза'
-                        : 'Прямоугольник эскиза',
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.labelMedium,
-                  ),
-                  Text(
-                    'Клик по поверхности',
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                entityType == 'circle'
+                    ? Icons.circle_outlined
+                    : Icons.crop_square_rounded,
+                size: 18,
+                color: theme.colorScheme.tertiary,
               ),
-            ),
-            const SizedBox(width: 8),
-            IconButton(
-              key: const ValueKey('sketch-rectangle-placement-cancel'),
-              tooltip: 'Отмена',
-              visualDensity: VisualDensity.compact,
-              onPressed: onCancel,
-              icon: const Icon(Icons.close_rounded, size: 18),
-            ),
-          ],
+              const SizedBox(width: 8),
+              Flexible(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      entityType == 'circle'
+                          ? 'Круг эскиза'
+                          : 'Прямоугольник эскиза',
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelMedium,
+                    ),
+                    Text(
+                      'Клик по поверхности',
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const SizedBox(key: ValueKey('sketch-entity-placement-cancel')),
+              IconButton(
+                key: const ValueKey('sketch-rectangle-placement-cancel'),
+                tooltip: 'Отмена',
+                visualDensity: VisualDensity.compact,
+                onPressed: onCancel,
+                icon: const Icon(Icons.close_rounded, size: 18),
+              ),
+            ],
+          ),
         ),
       ),
     );

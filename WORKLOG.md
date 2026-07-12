@@ -13596,3 +13596,75 @@ viewport without first selecting the owning sketch in the project browser.
 
 ### Next step
 Commit and push M149, then continue toward basic sketch drawing/editing.
+
+---
+
+## 2026-07-12 - M150 Sketch entity placement markers
+
+### Goal
+Make Advanced Sketch placement/move state explicitly entity-based in the
+viewport test surface, while preserving old rectangle-named marker keys for
+compatibility.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/ui/shell/workspace_shell.dart`, and `test/widget_test.dart`.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added generic `advanced-sketch-entity-placement-active` marker.
+  - Added entity-specific placement markers such as
+    `advanced-sketch-entity-circle-placement-active`.
+  - Added generic/entity-specific move markers.
+  - Added generic sketch entity placement banner and cancel markers.
+  - Kept old rectangle-named keys as compatibility aliases.
+- `test/widget_test.dart`:
+  - Added circle placement coverage for generic markers and semantic save.
+  - Added direct unselected circle helper drag coverage from the viewport.
+- `ROADMAP.md` and `TASKS.md`:
+  - Added M150 and marked sketch entity placement markers complete.
+
+### Tests run
+- `dart format lib\ui\shell\workspace_shell.dart test\widget_test.dart`:
+  - Passed; 1 file changed by formatting.
+- `flutter test test\widget_test.dart --name "sketch entity|circle placement" --reporter compact`:
+  - Passed; 7 matching widget tests.
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 76 files checked, 0 changed.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed; 272 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed; latest Windows bundle rebuilt with native OCCT worker.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git status --short --ignored releases`:
+  - Passed; `releases/` remains ignored.
+- `git diff --check`:
+  - Passed; only the existing ROADMAP line-ending warning was printed.
+
+### Validation
+- Geometry checked?
+  - No native geometry generation changed. Full tests and latest Windows build
+    still pass.
+- Serialization checked?
+  - Yes. Circle placement and direct circle drag save only semantic
+    `SketchEntity.parameters.center`.
+- UI checked?
+  - Yes. Widget coverage verifies generic markers, legacy marker aliases,
+    placement completion, direct circle drag preview, and save behavior.
+- Export checked?
+  - Latest Windows bundle rebuilt locally and remains ignored by Git.
+
+### Known issues
+- Issue: Internal private names still include some rectangle-era wording for
+  placement intent plumbing.
+  - Severity: Low.
+  - Next action: Rename private plumbing later when it can be done as a quiet
+    mechanical cleanup or while touching the next placement slice.
+
+### Next step
+Commit and push M150, then continue toward basic sketch drawing/editing.

@@ -4770,6 +4770,193 @@ void main() {
     expect(movedEntity.parameters['center'], [18.0, -4.0]);
   });
 
+  testWidgets('circle placement exposes generic sketch entity markers', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final fileService = _MemoryProjectFileService();
+    final saveFile = File('circle_marker_sketch_case.enclosure.json');
+    final dialog = _FakeProjectFileDialogService(saveFile: saveFile);
+    final sketch = advancedSketchWithEntities(
+      const SemanticFeature(
+        id: 'advanced_sketch_1',
+        type: advancedSketchFeatureType,
+        targetSurface: 'main_enclosure.front_wall.outer',
+        operation: 'helper',
+        parameters: {'name': 'Circle marker sketch'},
+        metadata: {'advanced': true},
+      ),
+      const [],
+    );
+    final project = ProjectModel.initial().copyWith(
+      componentTemplates: const [],
+      componentPlacements: const [],
+      features: [sketch],
+      featureGroups: const [],
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkspaceShell(
+          project: project,
+          geometryService: const MockGeometryService(),
+          projectFileService: fileService,
+          projectFileDialogService: dialog,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final sketchRow = find.text('advanced_sketch_1', skipOffstage: false);
+    await tester.ensureVisible(sketchRow.first);
+    await tester.tap(sketchRow.first);
+    await _pumpAsyncUi(tester);
+    await tester.tap(find.byKey(const ValueKey('advanced-sketch-add-circle')));
+    await _pumpAsyncUi(tester);
+
+    expect(
+      find.byKey(const ValueKey('advanced-sketch-entity-placement-active')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey('advanced-sketch-entity-circle-placement-active'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('advanced-sketch-rectangle-placement-active')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('sketch-entity-placement-banner')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('sketch-entity-placement-cancel')),
+      findsOneWidget,
+    );
+
+    await tester.tapAt(_frontWallCanvasPoint(tester, const Offset(12, 3)));
+    await _pumpAsyncUi(tester);
+
+    expect(
+      find.byKey(const ValueKey('advanced-sketch-entity-placement-active')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(
+        const ValueKey('sketch-entity-advanced_sketch_1-circle_1-selected'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('toolbar-command-${CommandIds.saveProject}')),
+    );
+    await _pumpAsyncUi(tester);
+
+    final saved = await fileService.readProject(saveFile);
+    final savedSketch = saved.features.singleWhere(
+      (feature) => feature.id == 'advanced_sketch_1',
+    );
+    final savedEntity = sketchEntitiesForFeature(savedSketch).single;
+    expect(savedEntity.id, 'circle_1');
+    expect(savedEntity.parameters['center'], [12.0, 3.0]);
+  });
+
+  testWidgets('unselected circle sketch entity drags directly from viewport', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final fileService = _MemoryProjectFileService();
+    final saveFile = File('direct_drag_circle_sketch_case.enclosure.json');
+    final dialog = _FakeProjectFileDialogService(saveFile: saveFile);
+    final sketch = advancedSketchWithEntities(
+      const SemanticFeature(
+        id: 'advanced_sketch_1',
+        type: advancedSketchFeatureType,
+        targetSurface: 'main_enclosure.front_wall.outer',
+        operation: 'helper',
+        parameters: {'name': 'Direct drag circle sketch'},
+        metadata: {'advanced': true},
+      ),
+      [defaultSketchCircleEntity(id: 'circle_1')],
+    );
+    final project = ProjectModel.initial().copyWith(
+      componentTemplates: const [],
+      componentPlacements: const [],
+      features: [sketch],
+      featureGroups: const [],
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkspaceShell(
+          project: project,
+          geometryService: const MockGeometryService(),
+          projectFileService: fileService,
+          projectFileDialogService: dialog,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('advanced-mode-toggle')));
+    await _pumpAsyncUi(tester);
+
+    expect(
+      find.byKey(
+        const ValueKey('sketch-entity-advanced_sketch_1-circle_1-selected'),
+      ),
+      findsNothing,
+    );
+
+    final dragStart = _frontWallCanvasPoint(tester, Offset.zero);
+    final dragEnd = _frontWallCanvasPoint(tester, const Offset(-9, 6));
+    final gesture = await tester.startGesture(
+      dragStart,
+      kind: PointerDeviceKind.mouse,
+      buttons: kPrimaryMouseButton,
+    );
+    await gesture.moveTo(dragEnd);
+    await tester.pump();
+
+    expect(
+      find.byKey(
+        const ValueKey(
+          'advanced-sketch-entity-drag-preview-advanced_sketch_1-circle_1',
+        ),
+      ),
+      findsOneWidget,
+    );
+
+    await gesture.up();
+    await _pumpAsyncUi(tester);
+
+    expect(
+      find.byKey(
+        const ValueKey('sketch-entity-advanced_sketch_1-circle_1-selected'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('toolbar-command-${CommandIds.saveProject}')),
+    );
+    await _pumpAsyncUi(tester);
+
+    final saved = await fileService.readProject(saveFile);
+    final savedSketch = saved.features.singleWhere(
+      (feature) => feature.id == 'advanced_sketch_1',
+    );
+    final savedEntity = sketchEntitiesForFeature(savedSketch).single;
+    expect(savedEntity.parameters['center'], [-9.0, 6.0]);
+  });
+
   testWidgets('save command writes current semantic project file', (
     tester,
   ) async {

@@ -416,6 +416,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Basic sketch selected entity live drag preview.
 - [x] Basic sketch circle drag parity coverage.
 - [x] Basic sketch direct viewport entity activation.
+- [x] Basic sketch entity placement markers.
 - [ ] Basic sketch drawing/editing.
 - [ ] Extrude/cut.
 - [ ] Boolean.
