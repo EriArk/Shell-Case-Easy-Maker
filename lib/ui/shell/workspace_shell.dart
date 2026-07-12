@@ -813,9 +813,8 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
 
     final values = SketchEntityParameterAdapter.valuesFrom(entity);
     final updatedValues =
-        entity.type == 'rectangle' &&
-            isSketchRectangleCornerHandleRole(dragRole)
-        ? _sketchRectangleValuesForCornerDrag(values, dragRole!, center)
+        entity.type == 'rectangle' && isSketchRectangleHandleRole(dragRole)
+        ? _sketchRectangleValuesForHandleDrag(values, dragRole!, center)
         : entity.type == 'circle' && isSketchCircleRadiusHandleRole(dragRole)
         ? {
             ...values,
@@ -2867,7 +2866,7 @@ String _formatSnapPoint(Offset point) {
   return '${_formatNumber(point.dx)} x ${_formatNumber(point.dy)} mm';
 }
 
-Offset _sketchRectangleCornerFromValues(
+Offset _sketchRectangleHandleFromValues(
   Map<String, Object?> values,
   String role,
 ) {
@@ -2883,35 +2882,53 @@ Offset _sketchRectangleCornerFromValues(
     sketchRectangleHandleTopRight => Offset(halfWidth, halfHeight),
     sketchRectangleHandleBottomLeft => Offset(-halfWidth, -halfHeight),
     sketchRectangleHandleBottomRight => Offset(halfWidth, -halfHeight),
+    sketchRectangleHandleTop => Offset(0, halfHeight),
+    sketchRectangleHandleRight => Offset(halfWidth, 0),
+    sketchRectangleHandleBottom => Offset(0, -halfHeight),
+    sketchRectangleHandleLeft => Offset(-halfWidth, 0),
     _ => Offset.zero,
   };
   return center + _rotateLocalOffset(cornerOffset, -rotation);
 }
 
-Map<String, Object?> _sketchRectangleValuesForCornerDrag(
+Map<String, Object?> _sketchRectangleValuesForHandleDrag(
   Map<String, Object?> values,
   String draggedRole,
-  Offset draggedCorner,
+  Offset draggedHandle,
 ) {
   final fixedRole = switch (draggedRole) {
     sketchRectangleHandleTopLeft => sketchRectangleHandleBottomRight,
     sketchRectangleHandleTopRight => sketchRectangleHandleBottomLeft,
     sketchRectangleHandleBottomLeft => sketchRectangleHandleTopRight,
     sketchRectangleHandleBottomRight => sketchRectangleHandleTopLeft,
+    sketchRectangleHandleTop => sketchRectangleHandleBottom,
+    sketchRectangleHandleRight => sketchRectangleHandleLeft,
+    sketchRectangleHandleBottom => sketchRectangleHandleTop,
+    sketchRectangleHandleLeft => sketchRectangleHandleRight,
     _ => null,
   };
   if (fixedRole == null) {
     return values;
   }
 
-  final fixedCorner = _sketchRectangleCornerFromValues(values, fixedRole);
+  final fixedHandle = _sketchRectangleHandleFromValues(values, fixedRole);
   final rotation = readDouble(values['rotation'], fallback: 0.0);
+  if (isSketchRectangleEdgeHandleRole(draggedRole)) {
+    return _sketchRectangleValuesForEdgeDrag(
+      values,
+      draggedRole,
+      fixedHandle,
+      draggedHandle,
+      rotation,
+    );
+  }
+
   final center = Offset(
-    (fixedCorner.dx + draggedCorner.dx) / 2,
-    (fixedCorner.dy + draggedCorner.dy) / 2,
+    (fixedHandle.dx + draggedHandle.dx) / 2,
+    (fixedHandle.dy + draggedHandle.dy) / 2,
   );
-  final fixedFrame = _rotateLocalOffset(fixedCorner - center, rotation);
-  final draggedFrame = _rotateLocalOffset(draggedCorner - center, rotation);
+  final fixedFrame = _rotateLocalOffset(fixedHandle - center, rotation);
+  final draggedFrame = _rotateLocalOffset(draggedHandle - center, rotation);
 
   return {
     ...values,
@@ -2919,6 +2936,47 @@ Map<String, Object?> _sketchRectangleValuesForCornerDrag(
     'centerY': center.dy,
     'width': (draggedFrame.dx - fixedFrame.dx).abs(),
     'height': (draggedFrame.dy - fixedFrame.dy).abs(),
+  };
+}
+
+Map<String, Object?> _sketchRectangleValuesForEdgeDrag(
+  Map<String, Object?> values,
+  String draggedRole,
+  Offset fixedHandle,
+  Offset draggedHandle,
+  double rotation,
+) {
+  final width = readDouble(values['width'], fallback: 20.0);
+  final height = readDouble(values['height'], fallback: 12.0);
+  final draggedFrame = _rotateLocalOffset(
+    draggedHandle - fixedHandle,
+    rotation,
+  );
+  final resizedWidth = switch (draggedRole) {
+    sketchRectangleHandleLeft ||
+    sketchRectangleHandleRight => draggedFrame.dx.abs(),
+    _ => width,
+  };
+  final resizedHeight = switch (draggedRole) {
+    sketchRectangleHandleTop ||
+    sketchRectangleHandleBottom => draggedFrame.dy.abs(),
+    _ => height,
+  };
+  final centerOffset = switch (draggedRole) {
+    sketchRectangleHandleTop => Offset(0, resizedHeight / 2),
+    sketchRectangleHandleRight => Offset(resizedWidth / 2, 0),
+    sketchRectangleHandleBottom => Offset(0, -resizedHeight / 2),
+    sketchRectangleHandleLeft => Offset(-resizedWidth / 2, 0),
+    _ => Offset.zero,
+  };
+  final center = fixedHandle + _rotateLocalOffset(centerOffset, -rotation);
+
+  return {
+    ...values,
+    'centerX': center.dx,
+    'centerY': center.dy,
+    'width': resizedWidth,
+    'height': resizedHeight,
   };
 }
 
@@ -5208,7 +5266,7 @@ class _ViewportAreaState extends State<_ViewportArea> {
         _ => 'body',
       },
       'rectangle' =>
-        isSketchRectangleCornerHandleRole(hit.childRole) ? hit.childRole : null,
+        isSketchRectangleHandleRole(hit.childRole) ? hit.childRole : null,
       'circle' =>
         isSketchCircleRadiusHandleRole(hit.childRole) ? hit.childRole : null,
       _ => null,
@@ -5222,8 +5280,8 @@ class _ViewportAreaState extends State<_ViewportArea> {
         readDouble(values['endX'], fallback: 10.0),
         readDouble(values['endY'], fallback: 0.0),
       ),
-      final role when isSketchRectangleCornerHandleRole(role) =>
-        _sketchRectangleCornerFromValues(values, role!),
+      final role when isSketchRectangleHandleRole(role) =>
+        _sketchRectangleHandleFromValues(values, role!),
       final role when isSketchCircleRadiusHandleRole(role) =>
         _sketchCircleRadiusHandleFromValues(values),
       _ => Offset(
@@ -5271,7 +5329,7 @@ class _ViewportAreaState extends State<_ViewportArea> {
     );
 
     return [
-      for (final role in sketchRectangleCornerHandleRoles)
+      for (final role in sketchRectangleHandleRoles)
         _sketchRectangleHandleMarker(
           rectangle,
           role,
@@ -12699,7 +12757,7 @@ class _ViewportPainter extends CustomPainter {
       canvas.drawCircle(center, 4.2 * layout.zoom, centerFill);
       canvas.drawCircle(center, 4.2 * layout.zoom, centerStroke);
       if (selected && rectangle.handlesEnabled) {
-        for (final role in sketchRectangleCornerHandleRoles) {
+        for (final role in sketchRectangleHandleRoles) {
           _drawSketchHandle(
             canvas,
             rectangle.canvasHandlePoint(layout, role),
@@ -13883,9 +13941,8 @@ extension _SketchRectanglePreviewDrag
       if (rectangle.featureId == preview.featureId &&
           rectangle.entityId == preview.entityId) {
         changed = true;
-        final draggedValues =
-            isSketchRectangleCornerHandleRole(preview.dragRole)
-            ? _sketchRectangleValuesForCornerDrag(
+        final draggedValues = isSketchRectangleHandleRole(preview.dragRole)
+            ? _sketchRectangleValuesForHandleDrag(
                 {
                   'centerX': rectangle.center.dx,
                   'centerY': rectangle.center.dy,

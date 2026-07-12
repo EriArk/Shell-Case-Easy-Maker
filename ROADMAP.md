@@ -7484,3 +7484,50 @@ workflow as non-rotated rectangles while preserving semantic
 - Confirm four corner handles still appear on the rotated rectangle.
 - Drag a corner and confirm the opposite corner stays visually anchored.
 - Save/reopen if useful and confirm rotation plus resized dimensions persist.
+
+---
+
+## M159 - Rectangle Edge Resize Handles
+
+### Goal
+Let selected sketch rectangles resize from side handles as well as corner
+handles, including rotated rectangles, while keeping editable state semantic.
+
+### Tasks
+- [x] Add rectangle `top` / `right` / `bottom` / `left` handle roles.
+- [x] Render side handle markers and painter affordances for selected
+      rectangles.
+- [x] Hit-test side handles without stealing center/body drag.
+- [x] Resize width from left/right handles and height from top/bottom handles.
+- [x] Preserve rectangle rotation and the untouched dimension during side
+      resize.
+- [x] Cover handle hit roles and saved side-resize data with tests.
+- [x] Update tasks/worklog.
+
+### Done Criteria
+- Dragging the rectangle body from the center still moves the whole rectangle.
+- Selecting a rectangle reveals corner and side handles.
+- Dragging a side handle changes only the matching dimension.
+- Rotated rectangles keep their rotation during side resize.
+- Saved project JSON stores semantic rectangle parameters only.
+- No mesh, generated B-Rep, or topology id becomes editable state.
+
+### Tests
+- `flutter test test\viewport_controller_test.dart --name "rectangle handle roles" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "selected rotated rectangle sketch entity resizes from edge handle" --reporter compact`
+- `flutter test test\viewport_controller_test.dart test\widget_test.dart --name "rectangle|sketch entity" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Turn on Advanced Mode and select or create a rectangle.
+- Confirm handles appear on both corners and side midpoints.
+- Drag the center/body and confirm the whole rectangle moves.
+- Drag the right or left side handle and confirm width changes while height
+  stays the same.
+- Rotate the rectangle and repeat one side-handle resize.

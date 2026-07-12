@@ -71,6 +71,10 @@ const sketchRectangleHandleTopLeft = 'topLeft';
 const sketchRectangleHandleTopRight = 'topRight';
 const sketchRectangleHandleBottomLeft = 'bottomLeft';
 const sketchRectangleHandleBottomRight = 'bottomRight';
+const sketchRectangleHandleTop = 'top';
+const sketchRectangleHandleRight = 'right';
+const sketchRectangleHandleBottom = 'bottom';
+const sketchRectangleHandleLeft = 'left';
 
 const sketchRectangleCornerHandleRoles = [
   sketchRectangleHandleTopLeft,
@@ -79,8 +83,28 @@ const sketchRectangleCornerHandleRoles = [
   sketchRectangleHandleBottomRight,
 ];
 
+const sketchRectangleEdgeHandleRoles = [
+  sketchRectangleHandleTop,
+  sketchRectangleHandleRight,
+  sketchRectangleHandleBottom,
+  sketchRectangleHandleLeft,
+];
+
+const sketchRectangleHandleRoles = [
+  ...sketchRectangleCornerHandleRoles,
+  ...sketchRectangleEdgeHandleRoles,
+];
+
 bool isSketchRectangleCornerHandleRole(String? role) {
   return sketchRectangleCornerHandleRoles.contains(role);
+}
+
+bool isSketchRectangleEdgeHandleRole(String? role) {
+  return sketchRectangleEdgeHandleRoles.contains(role);
+}
+
+bool isSketchRectangleHandleRole(String? role) {
+  return sketchRectangleHandleRoles.contains(role);
 }
 
 const sketchCircleHandleRadius = 'radius';
@@ -449,6 +473,10 @@ class MockViewportSketchRectanglePreview {
       sketchRectangleHandleTopRight => rect.topRight,
       sketchRectangleHandleBottomLeft => rect.bottomLeft,
       sketchRectangleHandleBottomRight => rect.bottomRight,
+      sketchRectangleHandleTop => rect.topCenter,
+      sketchRectangleHandleRight => rect.centerRight,
+      sketchRectangleHandleBottom => rect.bottomCenter,
+      sketchRectangleHandleLeft => rect.centerLeft,
       _ => rect.center,
     };
     final radians = canvasRotationZDegrees(layout) * math.pi / 180;
@@ -492,9 +520,11 @@ class MockViewportSketchRectanglePreview {
     double bodyInflate = 0,
   }) {
     if (handlesEnabled) {
-      for (final role in sketchRectangleCornerHandleRoles) {
-        if ((position - canvasHandlePoint(layout, role)).distance <=
-            handleRadius) {
+      final centerDistance = (position - canvasRect(layout).center).distance;
+      for (final role in sketchRectangleHandleRoles) {
+        final handleDistance =
+            (position - canvasHandlePoint(layout, role)).distance;
+        if (handleDistance <= handleRadius && handleDistance < centerDistance) {
           return role;
         }
       }

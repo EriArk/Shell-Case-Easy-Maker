@@ -42,6 +42,98 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-07-12 - M159 rectangle edge resize handles
+
+### Goal
+Let selected Advanced Sketch rectangles resize from side handles as well as
+corners, including rotated rectangles, while keeping the editable project as
+semantic rectangle parameters.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/viewport/viewport_controller.dart`, `lib/ui/shell/workspace_shell.dart`,
+`test/viewport_controller_test.dart`, and `test/widget_test.dart`.
+
+### Changes made
+- `lib/viewport/viewport_controller.dart`:
+  - Added rectangle side handle roles: `top`, `right`, `bottom`, and `left`.
+  - Included side handles in rectangle handle hit testing.
+  - Prevented handle hit areas from stealing body drag near the rectangle
+    center.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Generalized rectangle handle drag logic from corner-only to corner/edge
+    handles.
+  - Edge handle drags now resize only width or height in the rectangle's
+    rotated local frame.
+  - Side handle markers and painter affordances now render for selected
+    rectangles.
+- `test/viewport_controller_test.dart`:
+  - Covered selected and rotated rectangle side-handle hit roles.
+- `test/widget_test.dart`:
+  - Added a rotated rectangle side-handle drag/save test.
+- `ROADMAP.md` and `TASKS.md`:
+  - Added/marked M159 rectangle edge resize handle work.
+
+### Tests run
+- `flutter test test\viewport_controller_test.dart --name "rectangle handle roles" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "selected rotated rectangle sketch entity resizes from edge handle" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "selected sketch entity drags on workplane semantically" --reporter compact`:
+  - Passed after tightening handle hit priority near the rectangle center.
+- `flutter test test\viewport_controller_test.dart test\widget_test.dart --name "rectangle|sketch entity" --reporter compact`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed, 289 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Returned `True`.
+- `git status --short --ignored releases`:
+  - Confirmed `releases/` is ignored.
+- `git diff --check`:
+  - Passed with only the existing ROADMAP CRLF warning.
+
+### Validation
+- Geometry checked?
+  - Full native regression suite still passed; this chunk only changes semantic
+    sketch editing and viewport interaction.
+- Serialization checked?
+  - Widget save test verifies semantic rectangle `center`, `width`, `height`,
+    and `rotation`.
+- UI checked?
+  - Widget tests cover side-handle visibility through marker keys, drag preview,
+    body-drag preservation, and saved result.
+- Export checked?
+  - Latest Windows bundle build passed.
+
+### Known issues
+- Issue:
+  - Side handles currently use circular marker affordances like corner handles;
+    distinct visual shapes can be polished later.
+  - Severity: Low.
+  - Next action: Continue Advanced Sketch editing polish or proceed to the next
+    roadmap slice.
+
+### Next step
+Continue the next safe Advanced Sketch editing or generator/geometry roadmap
+slice.
+
+### Notes for future Codex sessions
+Rectangle handle hit testing must keep body drag easy on small rectangles.
+Handle hits only win when the pointer is closer to the handle than to the
+rectangle center.
+
+---
+
 ## 2026-07-12 - M158 rotated rectangle corner handles
 
 ### Goal
