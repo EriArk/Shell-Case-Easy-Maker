@@ -7572,3 +7572,48 @@ handles become elongated bars that communicate one-axis resize.
 - Confirm side handles look like short bars.
 - Drag the body, a corner, and a side handle once to confirm behavior still
   matches M159.
+
+---
+
+## M161 - Rectangle Corner Radius Handle
+
+### Goal
+Let a selected sketch rectangle edit its semantic `cornerRadius` directly from
+the viewport without changing size, center, or rotation.
+
+### Tasks
+- [x] Add a rectangle `cornerRadius` handle role.
+- [x] Place the radius handle inside the top-right corner, including when the
+      current radius is zero.
+- [x] Prefer the nearest handle in hit testing so radius and resize handles do
+      not steal each other.
+- [x] Commit radius-handle drags as semantic `cornerRadius` updates only.
+- [x] Preserve center, width, height, and rotation during radius edits.
+- [x] Render the radius handle as a distinct diamond affordance.
+- [x] Cover hit roles and saved semantic radius data with tests.
+- [x] Update tasks/worklog.
+
+### Done Criteria
+- Selected rectangles show a distinct corner-radius handle.
+- Dragging the radius handle changes only `cornerRadius`.
+- The value is clamped by the existing rectangle parameter adapter.
+- Corner resize, side resize, and body drag continue to work.
+- Saved project JSON stores semantic rectangle parameters only.
+
+### Tests
+- `flutter test test\viewport_controller_test.dart --name "rectangle handle" --reporter compact`
+- `flutter test test\widget_test.dart --plain-name "selected rotated rectangle sketch entity edits corner radius handle" --reporter compact`
+- `flutter test test\viewport_controller_test.dart test\widget_test.dart --name "rectangle|sketch entity" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Turn on Advanced Mode and select or create a rectangle.
+- Find the small diamond handle inside the top-right corner.
+- Drag it inward/outward and confirm only corner rounding changes.
+- Try a rotated rectangle and confirm resize/body drag still works.

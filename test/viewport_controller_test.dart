@@ -477,12 +477,23 @@ void main() {
       componentPlacements: const [],
       sketchRectangles: const [rectangle],
     );
+    final radiusHit = hitTester.hitTest(
+      position: rectangle.canvasHandlePoint(
+        layout,
+        sketchRectangleHandleCornerRadius,
+      ),
+      size: size,
+      state: state,
+      componentPlacements: const [],
+      sketchRectangles: const [rectangle],
+    );
 
     expect(cornerHit?.kind, ViewportHitKind.feature);
     expect(cornerHit?.semanticId, 'advanced_sketch_1');
     expect(cornerHit?.childId, 'rect_1');
     expect(cornerHit?.childRole, sketchRectangleHandleTopRight);
     expect(edgeHit?.childRole, sketchRectangleHandleRight);
+    expect(radiusHit?.childRole, sketchRectangleHandleCornerRadius);
     expect(bodyHit?.childRole, 'body');
   });
 
@@ -509,6 +520,12 @@ void main() {
     );
     expect(
       isSketchRectangleVerticalEdgeHandleRole(sketchRectangleHandleRight),
+      isTrue,
+    );
+    expect(
+      isSketchRectangleCornerRadiusHandleRole(
+        sketchRectangleHandleCornerRadius,
+      ),
       isTrue,
     );
     expect(isSketchRectangleHandleRole('unknown'), isFalse);
@@ -554,12 +571,23 @@ void main() {
       componentPlacements: const [],
       sketchRectangles: const [rectangle],
     );
+    final radiusHit = hitTester.hitTest(
+      position: rectangle.canvasHandlePoint(
+        layout,
+        sketchRectangleHandleCornerRadius,
+      ),
+      size: size,
+      state: state,
+      componentPlacements: const [],
+      sketchRectangles: const [rectangle],
+    );
 
     expect(cornerHit?.kind, ViewportHitKind.feature);
     expect(cornerHit?.semanticId, 'advanced_sketch_1');
     expect(cornerHit?.childId, 'rect_1');
     expect(cornerHit?.childRole, sketchRectangleHandleTopRight);
     expect(edgeHit?.childRole, sketchRectangleHandleRight);
+    expect(radiusHit?.childRole, sketchRectangleHandleCornerRadius);
   });
 
   test('mock hit tester uses rotated bounds for sketch rectangles', () {

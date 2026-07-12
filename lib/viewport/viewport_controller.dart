@@ -75,6 +75,7 @@ const sketchRectangleHandleTop = 'top';
 const sketchRectangleHandleRight = 'right';
 const sketchRectangleHandleBottom = 'bottom';
 const sketchRectangleHandleLeft = 'left';
+const sketchRectangleHandleCornerRadius = 'cornerRadius';
 
 const sketchRectangleCornerHandleRoles = [
   sketchRectangleHandleTopLeft,
@@ -93,6 +94,7 @@ const sketchRectangleEdgeHandleRoles = [
 const sketchRectangleHandleRoles = [
   ...sketchRectangleCornerHandleRoles,
   ...sketchRectangleEdgeHandleRoles,
+  sketchRectangleHandleCornerRadius,
 ];
 
 bool isSketchRectangleCornerHandleRole(String? role) {
@@ -111,6 +113,10 @@ bool isSketchRectangleHorizontalEdgeHandleRole(String? role) {
 bool isSketchRectangleVerticalEdgeHandleRole(String? role) {
   return role == sketchRectangleHandleLeft ||
       role == sketchRectangleHandleRight;
+}
+
+bool isSketchRectangleCornerRadiusHandleRole(String? role) {
+  return role == sketchRectangleHandleCornerRadius;
 }
 
 bool isSketchRectangleHandleRole(String? role) {
@@ -469,6 +475,17 @@ class MockViewportSketchRectanglePreview {
     return scaled.clamp(0, rect.shortestSide / 2).toDouble();
   }
 
+  double canvasCornerRadiusHandleInset(MockViewportLayout layout) {
+    final rect = canvasRect(layout);
+    final safeWidth = width.clamp(1, 10000).toDouble();
+    final maxRadius = math.min(width, height) / 2;
+    final effectiveRadius = cornerRadius > 0
+        ? cornerRadius
+        : math.min(4.0, maxRadius);
+    final scaled = (effectiveRadius / safeWidth) * rect.width;
+    return scaled.clamp(0, rect.shortestSide / 2).toDouble();
+  }
+
   double canvasRotationZDegrees(MockViewportLayout layout) {
     return rotationZDegrees +
         (workplane.kind == MockViewportWorkplaneKind.componentPlacement
@@ -478,6 +495,7 @@ class MockViewportSketchRectanglePreview {
 
   Offset canvasHandlePoint(MockViewportLayout layout, String role) {
     final rect = canvasRect(layout);
+    final cornerRadiusInset = canvasCornerRadiusHandleInset(layout);
     final point = switch (role) {
       sketchRectangleHandleTopLeft => rect.topLeft,
       sketchRectangleHandleTopRight => rect.topRight,
@@ -487,6 +505,10 @@ class MockViewportSketchRectanglePreview {
       sketchRectangleHandleRight => rect.centerRight,
       sketchRectangleHandleBottom => rect.bottomCenter,
       sketchRectangleHandleLeft => rect.centerLeft,
+      sketchRectangleHandleCornerRadius => Offset(
+        rect.right - cornerRadiusInset,
+        rect.top + cornerRadiusInset,
+      ),
       _ => rect.center,
     };
     final radians = canvasRotationZDegrees(layout) * math.pi / 180;
@@ -531,12 +553,20 @@ class MockViewportSketchRectanglePreview {
   }) {
     if (handlesEnabled) {
       final centerDistance = (position - canvasRect(layout).center).distance;
+      String? closestRole;
+      var closestDistance = double.infinity;
       for (final role in sketchRectangleHandleRoles) {
         final handleDistance =
             (position - canvasHandlePoint(layout, role)).distance;
         if (handleDistance <= handleRadius && handleDistance < centerDistance) {
-          return role;
+          if (handleDistance < closestDistance) {
+            closestRole = role;
+            closestDistance = handleDistance;
+          }
         }
+      }
+      if (closestRole != null) {
+        return closestRole;
       }
     }
 

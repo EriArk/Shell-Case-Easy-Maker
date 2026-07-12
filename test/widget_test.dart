@@ -5268,6 +5268,113 @@ void main() {
     },
   );
 
+  testWidgets(
+    'selected rotated rectangle sketch entity edits corner radius handle',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final fileService = _MemoryProjectFileService();
+      final saveFile = File(
+        'rotated_corner_radius_handle_sketch_case.enclosure.json',
+      );
+      final dialog = _FakeProjectFileDialogService(saveFile: saveFile);
+      const rotation = 30.0;
+      final sketch = advancedSketchWithEntities(
+        const SemanticFeature(
+          id: 'advanced_sketch_1',
+          type: advancedSketchFeatureType,
+          targetSurface: 'main_enclosure.front_wall.outer',
+          operation: 'helper',
+          parameters: {'name': 'Rotated corner radius handle sketch'},
+          metadata: {'advanced': true},
+        ),
+        const [
+          SketchEntity(
+            id: 'rect_1',
+            type: 'rectangle',
+            parameters: {
+              'center': [0.0, 0.0],
+              'width': 20.0,
+              'height': 12.0,
+              'cornerRadius': 2.0,
+              'rotation': rotation,
+            },
+          ),
+        ],
+      );
+      final project = ProjectModel.initial().copyWith(
+        componentTemplates: const [],
+        componentPlacements: const [],
+        features: [sketch],
+        featureGroups: const [],
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: WorkspaceShell(
+            project: project,
+            geometryService: const MockGeometryService(),
+            projectFileService: fileService,
+            projectFileDialogService: dialog,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('advanced-mode-toggle')));
+      await _pumpAsyncUi(tester);
+
+      await tester.tapAt(_frontWallCanvasPoint(tester, Offset.zero));
+      await _pumpAsyncUi(tester);
+
+      final radiusHandleFinder = find.byKey(
+        const ValueKey(
+          'advanced-sketch-rectangle-handle-advanced_sketch_1-rect_1-cornerRadius',
+        ),
+      );
+      expect(radiusHandleFinder, findsOneWidget);
+      expect(tester.getSize(radiusHandleFinder), const Size.square(16));
+
+      final dragStart = _rotateTestOffset(const Offset(8, 4), -rotation);
+      final dragEnd = _rotateTestOffset(const Offset(5, 1), -rotation);
+      final gesture = await tester.startGesture(
+        _frontWallCanvasPoint(tester, dragStart),
+        kind: PointerDeviceKind.mouse,
+        buttons: kPrimaryMouseButton,
+      );
+      await gesture.moveTo(_frontWallCanvasPoint(tester, dragEnd));
+      await tester.pump();
+
+      expect(
+        find.byKey(
+          const ValueKey(
+            'advanced-sketch-entity-drag-preview-advanced_sketch_1-rect_1',
+          ),
+        ),
+        findsOneWidget,
+      );
+
+      await gesture.up();
+      await _pumpAsyncUi(tester);
+
+      await tester.tap(
+        find.byKey(const ValueKey('toolbar-command-${CommandIds.saveProject}')),
+      );
+      await _pumpAsyncUi(tester);
+
+      final saved = await fileService.readProject(saveFile);
+      final savedSketch = saved.features.singleWhere(
+        (feature) => feature.id == 'advanced_sketch_1',
+      );
+      final savedEntity = sketchEntitiesForFeature(savedSketch).single;
+      expect(savedEntity.parameters['center'], [0.0, 0.0]);
+      expect(savedEntity.parameters['width'], 20.0);
+      expect(savedEntity.parameters['height'], 12.0);
+      expect(savedEntity.parameters['cornerRadius'], 5.0);
+      expect(savedEntity.parameters['rotation'], rotation);
+    },
+  );
+
   testWidgets('circle placement exposes generic sketch entity markers', (
     tester,
   ) async {

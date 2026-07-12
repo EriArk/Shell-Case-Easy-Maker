@@ -42,6 +42,92 @@ Anything important that would otherwise be forgotten.
 
 ---
 
+## 2026-07-12 - M161 rectangle corner radius handle
+
+### Goal
+Let selected Advanced Sketch rectangles edit their semantic `cornerRadius`
+directly from the viewport while preserving center, width, height, and
+rotation.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/viewport/viewport_controller.dart`, `lib/ui/shell/workspace_shell.dart`,
+`lib/parameters/sketch_entity_parameter_adapter.dart`,
+`test/viewport_controller_test.dart`, and `test/widget_test.dart`.
+
+### Changes made
+- `lib/viewport/viewport_controller.dart`:
+  - Added the `cornerRadius` rectangle handle role.
+  - Added a radius-handle canvas point inside the top-right corner.
+  - Changed rectangle handle hit testing to choose the nearest eligible handle.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added semantic corner-radius drag math in rectangle-local coordinates.
+  - Preserved rectangle center, size, and rotation during radius-handle drags.
+  - Rendered the corner-radius handle as a distinct diamond affordance.
+- `test/viewport_controller_test.dart`:
+  - Covered corner-radius handle hit roles and helper classification.
+- `test/widget_test.dart`:
+  - Added rotated rectangle radius-handle drag/save coverage.
+- `ROADMAP.md` and `TASKS.md`:
+  - Added/marked M161 rectangle corner-radius handle work.
+
+### Tests run
+- `flutter test test\viewport_controller_test.dart --name "rectangle handle" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --plain-name "selected rotated rectangle sketch entity edits corner radius handle" --reporter compact`:
+  - Passed.
+- `flutter test test\viewport_controller_test.dart test\widget_test.dart --name "rectangle|sketch entity" --reporter compact`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with dependency
+    constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed, 291 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed and refreshed
+    `C:\Users\EriArk\Documents\CaseMaker\releases\latest\windows\shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Returned `True`.
+- `git status --short --ignored releases`:
+  - Confirmed `releases/` is ignored.
+- `git diff --check`:
+  - Passed with only the existing ROADMAP CRLF warning.
+
+### Validation
+- Geometry checked?
+  - Full native regression suite still passed; this chunk only changes semantic
+    sketch editing and viewport interaction.
+- Serialization checked?
+  - Widget save test verifies `cornerRadius` changes while `center`, `width`,
+    `height`, and `rotation` stay unchanged.
+- UI checked?
+  - Widget test covers the visible radius handle marker, live drag preview, and
+    saved result.
+- Export checked?
+  - Latest Windows bundle build passed.
+
+### Known issues
+- Issue:
+  - Radius handle edits the semantic sketch overlay; true 3D face affordances
+    remain future work.
+  - Severity: Low.
+  - Next action: Continue the next safe Advanced Sketch editing or geometry
+    roadmap slice.
+
+### Next step
+Continue the next safe Advanced Sketch editing or generator/geometry roadmap
+slice.
+
+### Notes for future Codex sessions
+The radius handle is intentionally inside the top-right corner and hit testing
+chooses the nearest handle so it does not steal top-right resize drags.
+
+---
+
 ## 2026-07-12 - M160 distinct rectangle handle affordances
 
 ### Goal

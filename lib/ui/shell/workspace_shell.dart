@@ -2877,6 +2877,7 @@ Offset _sketchRectangleHandleFromValues(
   final halfWidth = readDouble(values['width'], fallback: 20.0) / 2;
   final halfHeight = readDouble(values['height'], fallback: 12.0) / 2;
   final rotation = readDouble(values['rotation'], fallback: 0.0);
+  final radiusHandleOffset = _sketchRectangleCornerRadiusHandleOffset(values);
   final cornerOffset = switch (role) {
     sketchRectangleHandleTopLeft => Offset(-halfWidth, halfHeight),
     sketchRectangleHandleTopRight => Offset(halfWidth, halfHeight),
@@ -2886,9 +2887,20 @@ Offset _sketchRectangleHandleFromValues(
     sketchRectangleHandleRight => Offset(halfWidth, 0),
     sketchRectangleHandleBottom => Offset(0, -halfHeight),
     sketchRectangleHandleLeft => Offset(-halfWidth, 0),
+    sketchRectangleHandleCornerRadius => radiusHandleOffset,
     _ => Offset.zero,
   };
   return center + _rotateLocalOffset(cornerOffset, -rotation);
+}
+
+Offset _sketchRectangleCornerRadiusHandleOffset(Map<String, Object?> values) {
+  final halfWidth = readDouble(values['width'], fallback: 20.0) / 2;
+  final halfHeight = readDouble(values['height'], fallback: 12.0) / 2;
+  final maxRadius = math.min(halfWidth, halfHeight);
+  final radius = readDouble(values['cornerRadius'], fallback: 0.0);
+  final effectiveRadius = radius > 0 ? radius : math.min(4.0, maxRadius);
+  final inset = effectiveRadius.clamp(0.0, maxRadius).toDouble();
+  return Offset(halfWidth - inset, halfHeight - inset);
 }
 
 Map<String, Object?> _sketchRectangleValuesForHandleDrag(
@@ -2896,6 +2908,10 @@ Map<String, Object?> _sketchRectangleValuesForHandleDrag(
   String draggedRole,
   Offset draggedHandle,
 ) {
+  if (isSketchRectangleCornerRadiusHandleRole(draggedRole)) {
+    return _sketchRectangleValuesForCornerRadiusDrag(values, draggedHandle);
+  }
+
   final fixedRole = switch (draggedRole) {
     sketchRectangleHandleTopLeft => sketchRectangleHandleBottomRight,
     sketchRectangleHandleTopRight => sketchRectangleHandleBottomLeft,
@@ -2937,6 +2953,26 @@ Map<String, Object?> _sketchRectangleValuesForHandleDrag(
     'width': (draggedFrame.dx - fixedFrame.dx).abs(),
     'height': (draggedFrame.dy - fixedFrame.dy).abs(),
   };
+}
+
+Map<String, Object?> _sketchRectangleValuesForCornerRadiusDrag(
+  Map<String, Object?> values,
+  Offset draggedHandle,
+) {
+  final center = Offset(
+    readDouble(values['centerX'], fallback: 0.0),
+    readDouble(values['centerY'], fallback: 0.0),
+  );
+  final halfWidth = readDouble(values['width'], fallback: 20.0) / 2;
+  final halfHeight = readDouble(values['height'], fallback: 12.0) / 2;
+  final maxRadius = math.min(halfWidth, halfHeight);
+  final rotation = readDouble(values['rotation'], fallback: 0.0);
+  final frame = _rotateLocalOffset(draggedHandle - center, rotation);
+  final insetX = (halfWidth - frame.dx).clamp(0.0, maxRadius);
+  final insetY = (halfHeight - frame.dy).clamp(0.0, maxRadius);
+  final cornerRadius = ((insetX + insetY) / 2).clamp(0.0, maxRadius);
+
+  return {...values, 'cornerRadius': cornerRadius};
 }
 
 Map<String, Object?> _sketchRectangleValuesForEdgeDrag(
@@ -5361,6 +5397,9 @@ class _ViewportAreaState extends State<_ViewportArea> {
   }
 
   Size _sketchRectangleHandleMarkerSize(String role) {
+    if (isSketchRectangleCornerRadiusHandleRole(role)) {
+      return const Size.square(16);
+    }
     if (isSketchRectangleHorizontalEdgeHandleRole(role)) {
       return const Size(24, 14);
     }
@@ -13682,6 +13721,19 @@ void _drawSketchRectangleHandle(
   required Color strokeColor,
   required Color dotColor,
 }) {
+  if (isSketchRectangleCornerRadiusHandleRole(role)) {
+    _drawSketchCornerRadiusHandle(
+      canvas,
+      center,
+      rotationZDegrees: rotationZDegrees,
+      zoom: zoom,
+      fillColor: fillColor,
+      strokeColor: strokeColor,
+      dotColor: dotColor,
+    );
+    return;
+  }
+
   if (!isSketchRectangleEdgeHandleRole(role)) {
     _drawSketchHandle(
       canvas,
@@ -13747,6 +13799,53 @@ void _drawSketchRectangleHandle(
     RRect.fromRectAndRadius(gripRect, Radius.circular(1.0 * zoom)),
     grip,
   );
+  canvas.restore();
+}
+
+void _drawSketchCornerRadiusHandle(
+  Canvas canvas,
+  Offset center, {
+  required double rotationZDegrees,
+  required double zoom,
+  required Color fillColor,
+  required Color strokeColor,
+  required Color dotColor,
+}) {
+  final half = 5.4 * zoom;
+  final path = Path()
+    ..moveTo(center.dx, center.dy - half)
+    ..lineTo(center.dx + half, center.dy)
+    ..lineTo(center.dx, center.dy + half)
+    ..lineTo(center.dx - half, center.dy)
+    ..close();
+  final shadowPath = Path()
+    ..moveTo(center.dx, center.dy - half - 3.0 * zoom)
+    ..lineTo(center.dx + half + 3.0 * zoom, center.dy)
+    ..lineTo(center.dx, center.dy + half + 3.0 * zoom)
+    ..lineTo(center.dx - half - 3.0 * zoom, center.dy)
+    ..close();
+  final shadow = Paint()
+    ..color = Colors.black.withValues(alpha: 0.36)
+    ..style = PaintingStyle.fill;
+  final fill = Paint()
+    ..color = fillColor
+    ..style = PaintingStyle.fill;
+  final stroke = Paint()
+    ..color = strokeColor
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.7;
+  final dot = Paint()
+    ..color = dotColor
+    ..style = PaintingStyle.fill;
+
+  canvas.save();
+  canvas.translate(center.dx, center.dy);
+  canvas.rotate(rotationZDegrees * math.pi / 180);
+  canvas.translate(-center.dx, -center.dy);
+  canvas.drawPath(shadowPath, shadow);
+  canvas.drawPath(path, fill);
+  canvas.drawPath(path, stroke);
+  canvas.drawCircle(center, 1.9 * zoom, dot);
   canvas.restore();
 }
 
