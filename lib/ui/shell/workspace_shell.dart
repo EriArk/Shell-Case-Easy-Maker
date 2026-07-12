@@ -2877,13 +2877,15 @@ Offset _sketchRectangleCornerFromValues(
   );
   final halfWidth = readDouble(values['width'], fallback: 20.0) / 2;
   final halfHeight = readDouble(values['height'], fallback: 12.0) / 2;
-  return switch (role) {
-    sketchRectangleHandleTopLeft => center + Offset(-halfWidth, halfHeight),
-    sketchRectangleHandleTopRight => center + Offset(halfWidth, halfHeight),
-    sketchRectangleHandleBottomLeft => center + Offset(-halfWidth, -halfHeight),
-    sketchRectangleHandleBottomRight => center + Offset(halfWidth, -halfHeight),
-    _ => center,
+  final rotation = readDouble(values['rotation'], fallback: 0.0);
+  final cornerOffset = switch (role) {
+    sketchRectangleHandleTopLeft => Offset(-halfWidth, halfHeight),
+    sketchRectangleHandleTopRight => Offset(halfWidth, halfHeight),
+    sketchRectangleHandleBottomLeft => Offset(-halfWidth, -halfHeight),
+    sketchRectangleHandleBottomRight => Offset(halfWidth, -halfHeight),
+    _ => Offset.zero,
   };
+  return center + _rotateLocalOffset(cornerOffset, -rotation);
 }
 
 Map<String, Object?> _sketchRectangleValuesForCornerDrag(
@@ -2903,17 +2905,20 @@ Map<String, Object?> _sketchRectangleValuesForCornerDrag(
   }
 
   final fixedCorner = _sketchRectangleCornerFromValues(values, fixedRole);
-  final left = math.min(fixedCorner.dx, draggedCorner.dx);
-  final right = math.max(fixedCorner.dx, draggedCorner.dx);
-  final top = math.min(fixedCorner.dy, draggedCorner.dy);
-  final bottom = math.max(fixedCorner.dy, draggedCorner.dy);
+  final rotation = readDouble(values['rotation'], fallback: 0.0);
+  final center = Offset(
+    (fixedCorner.dx + draggedCorner.dx) / 2,
+    (fixedCorner.dy + draggedCorner.dy) / 2,
+  );
+  final fixedFrame = _rotateLocalOffset(fixedCorner - center, rotation);
+  final draggedFrame = _rotateLocalOffset(draggedCorner - center, rotation);
 
   return {
     ...values,
-    'centerX': (left + right) / 2,
-    'centerY': (top + bottom) / 2,
-    'width': right - left,
-    'height': bottom - top,
+    'centerX': center.dx,
+    'centerY': center.dy,
+    'width': (draggedFrame.dx - fixedFrame.dx).abs(),
+    'height': (draggedFrame.dy - fixedFrame.dy).abs(),
   };
 }
 
@@ -13854,7 +13859,7 @@ List<MockViewportSketchRectanglePreview> _mockSketchRectanglePreviews(
           cornerRadius: readDouble(values['cornerRadius'], fallback: 0.0),
           rotationZDegrees: rotationZDegrees,
           profileIntent: sketchProfileIntentFor(entity),
-          handlesEnabled: selected && rotationZDegrees.abs() < 0.001,
+          handlesEnabled: selected,
         ),
       );
     }

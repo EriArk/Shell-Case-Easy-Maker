@@ -7440,3 +7440,47 @@ radius handle while keeping the editable project as semantic `center` and
 - Drag the radius handle and confirm the circle grows/shrinks around its
   center.
 - Save/reopen if useful and confirm the diameter persists.
+
+---
+
+## M158 - Rotated Rectangle Corner Handles
+
+### Goal
+Let selected rotated sketch rectangles use the same viewport corner resize
+workflow as non-rotated rectangles while preserving semantic
+`center` / `width` / `height` / `rotation` project data.
+
+### Tasks
+- [x] Make rectangle corner anchor math rotation-aware in workplane-local
+      coordinates.
+- [x] Enable selected corner handles on rotated rectangles.
+- [x] Keep the opposite corner fixed while resizing a rotated rectangle.
+- [x] Preserve the stored semantic rotation during resize.
+- [x] Cover rotated handle hit testing and saved resize data with tests.
+- [x] Update tasks/worklog.
+
+### Done Criteria
+- Unselected rotated rectangles still move as before.
+- Selecting a rotated rectangle reveals four corner handles.
+- Dragging a rotated corner updates size and center with the opposite corner as
+  the fixed anchor.
+- Saved project JSON stores semantic rectangle parameters only.
+- No mesh, generated B-Rep, or topology id becomes editable state.
+
+### Tests
+- `flutter test test\widget_test.dart --plain-name "selected rotated rectangle sketch entity resizes from corner handle" --reporter compact`
+- `flutter test test\viewport_controller_test.dart --plain-name "mock hit tester reports rotated rectangle corner roles" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Turn on Advanced Mode and select or create a rectangle.
+- Set the rectangle rotation to about 30 degrees in the inspector.
+- Confirm four corner handles still appear on the rotated rectangle.
+- Drag a corner and confirm the opposite corner stays visually anchored.
+- Save/reopen if useful and confirm rotation plus resized dimensions persist.

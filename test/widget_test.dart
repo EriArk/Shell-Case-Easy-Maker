@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -4981,6 +4982,130 @@ void main() {
     expect(savedEntity.parameters['height'], 15.0);
   });
 
+  testWidgets(
+    'selected rotated rectangle sketch entity resizes from corner handle',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final fileService = _MemoryProjectFileService();
+      final saveFile = File('rotated_corner_resize_sketch_case.enclosure.json');
+      final dialog = _FakeProjectFileDialogService(saveFile: saveFile);
+      const rotation = 30.0;
+      final sketch = advancedSketchWithEntities(
+        const SemanticFeature(
+          id: 'advanced_sketch_1',
+          type: advancedSketchFeatureType,
+          targetSurface: 'main_enclosure.front_wall.outer',
+          operation: 'helper',
+          parameters: {'name': 'Rotated corner resize sketch'},
+          metadata: {'advanced': true},
+        ),
+        const [
+          SketchEntity(
+            id: 'rect_1',
+            type: 'rectangle',
+            parameters: {
+              'center': [0.0, 0.0],
+              'width': 20.0,
+              'height': 12.0,
+              'cornerRadius': 0.0,
+              'rotation': rotation,
+            },
+          ),
+        ],
+      );
+      final project = ProjectModel.initial().copyWith(
+        componentTemplates: const [],
+        componentPlacements: const [],
+        features: [sketch],
+        featureGroups: const [],
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: WorkspaceShell(
+            project: project,
+            geometryService: const MockGeometryService(),
+            projectFileService: fileService,
+            projectFileDialogService: dialog,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('advanced-mode-toggle')));
+      await _pumpAsyncUi(tester);
+
+      await tester.tapAt(_frontWallCanvasPoint(tester, Offset.zero));
+      await _pumpAsyncUi(tester);
+
+      expect(
+        find.byKey(
+          const ValueKey('sketch-entity-advanced_sketch_1-rect_1-selected'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey(
+            'advanced-sketch-rectangle-handle-advanced_sketch_1-rect_1-topRight',
+          ),
+        ),
+        findsOneWidget,
+      );
+
+      final fixedCorner = _rotateTestOffset(const Offset(-10, -6), -rotation);
+      final dragStartCorner = _rotateTestOffset(const Offset(10, 6), -rotation);
+      final dragEndCorner = _rotateTestOffset(const Offset(16, 9), -rotation);
+      final expectedCenter = Offset(
+        (fixedCorner.dx + dragEndCorner.dx) / 2,
+        (fixedCorner.dy + dragEndCorner.dy) / 2,
+      );
+      final gesture = await tester.startGesture(
+        _frontWallCanvasPoint(tester, dragStartCorner),
+        kind: PointerDeviceKind.mouse,
+        buttons: kPrimaryMouseButton,
+      );
+      await gesture.moveTo(_frontWallCanvasPoint(tester, dragEndCorner));
+      await tester.pump();
+
+      expect(
+        find.byKey(
+          const ValueKey(
+            'advanced-sketch-entity-drag-preview-advanced_sketch_1-rect_1',
+          ),
+        ),
+        findsOneWidget,
+      );
+
+      await gesture.up();
+      await _pumpAsyncUi(tester);
+
+      await tester.tap(
+        find.byKey(const ValueKey('toolbar-command-${CommandIds.saveProject}')),
+      );
+      await _pumpAsyncUi(tester);
+
+      final saved = await fileService.readProject(saveFile);
+      final savedSketch = saved.features.singleWhere(
+        (feature) => feature.id == 'advanced_sketch_1',
+      );
+      final savedEntity = sketchEntitiesForFeature(savedSketch).single;
+      final center = savedEntity.parameters['center']! as List<Object?>;
+      expect(
+        center[0] as num,
+        closeTo(_snapTestTenth(expectedCenter.dx), 0.001),
+      );
+      expect(
+        center[1] as num,
+        closeTo(_snapTestTenth(expectedCenter.dy), 0.001),
+      );
+      expect(savedEntity.parameters['width'], 26.0);
+      expect(savedEntity.parameters['height'], 15.0);
+      expect(savedEntity.parameters['rotation'], rotation);
+    },
+  );
+
   testWidgets('circle placement exposes generic sketch entity markers', (
     tester,
   ) async {
@@ -6262,6 +6387,20 @@ Offset _frontWallCanvasPoint(WidgetTester tester, Offset localPosition) {
 
   return canvasTopLeft +
       layout.workplaneLocalToCanvas(workplane, localPosition);
+}
+
+Offset _rotateTestOffset(Offset point, double degrees) {
+  final radians = degrees * math.pi / 180;
+  final cos = math.cos(radians);
+  final sin = math.sin(radians);
+  return Offset(
+    point.dx * cos - point.dy * sin,
+    point.dx * sin + point.dy * cos,
+  );
+}
+
+double _snapTestTenth(double value) {
+  return (value * 10).roundToDouble() / 10;
 }
 
 String _dialogNumberText(WidgetTester tester, String key) {
