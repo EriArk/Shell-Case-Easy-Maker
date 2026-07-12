@@ -816,6 +816,11 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
         entity.type == 'rectangle' &&
             isSketchRectangleCornerHandleRole(dragRole)
         ? _sketchRectangleValuesForCornerDrag(values, dragRole!, center)
+        : entity.type == 'circle' && isSketchCircleRadiusHandleRole(dragRole)
+        ? {
+            ...values,
+            'diameter': _sketchCircleDiameterFromRadiusDrag(values, center),
+          }
         : {
             ...values,
             if (entity.type == 'line' && dragRole == 'start') ...{
@@ -2910,6 +2915,27 @@ Map<String, Object?> _sketchRectangleValuesForCornerDrag(
     'width': right - left,
     'height': bottom - top,
   };
+}
+
+Offset _sketchCircleCenterFromValues(Map<String, Object?> values) {
+  return Offset(
+    readDouble(values['centerX'], fallback: 0.0),
+    readDouble(values['centerY'], fallback: 0.0),
+  );
+}
+
+Offset _sketchCircleRadiusHandleFromValues(Map<String, Object?> values) {
+  return _sketchCircleCenterFromValues(
+    values,
+  ).translate(readDouble(values['diameter'], fallback: 12.0) / 2, 0);
+}
+
+double _sketchCircleDiameterFromRadiusDrag(
+  Map<String, Object?> values,
+  Offset radiusHandle,
+) {
+  final center = _sketchCircleCenterFromValues(values);
+  return ((radiusHandle - center).distance * 2).clamp(1.0, 500.0).toDouble();
 }
 
 bool _snapTargetCanCreateCircularCutout(_ActiveSnapTarget? target) {
@@ -5178,6 +5204,8 @@ class _ViewportAreaState extends State<_ViewportArea> {
       },
       'rectangle' =>
         isSketchRectangleCornerHandleRole(hit.childRole) ? hit.childRole : null,
+      'circle' =>
+        isSketchCircleRadiusHandleRole(hit.childRole) ? hit.childRole : null,
       _ => null,
     };
     final anchor = switch (dragRole) {
@@ -5191,6 +5219,8 @@ class _ViewportAreaState extends State<_ViewportArea> {
       ),
       final role when isSketchRectangleCornerHandleRole(role) =>
         _sketchRectangleCornerFromValues(values, role!),
+      final role when isSketchCircleRadiusHandleRole(role) =>
+        _sketchCircleRadiusHandleFromValues(values),
       _ => Offset(
         readDouble(values['centerX'], fallback: 0.0),
         readDouble(values['centerY'], fallback: 0.0),
@@ -5261,6 +5291,66 @@ class _ViewportAreaState extends State<_ViewportArea> {
           key: ValueKey(
             'advanced-sketch-rectangle-handle-${rectangle.featureId}-'
             '${rectangle.entityId}-$role',
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _selectedSketchCircleHandleMarkers(
+    List<MockViewportSketchCirclePreview> sketchCirclePreviews,
+    Size viewportSize,
+  ) {
+    final selection = widget.selection;
+    if (selection.kind != SelectionKind.sketchEntity ||
+        selection.parentId == null ||
+        selection.id == null) {
+      return const [];
+    }
+
+    final circle = sketchCirclePreviews
+        .where(
+          (circle) =>
+              circle.featureId == selection.parentId &&
+              circle.entityId == selection.id &&
+              circle.handlesEnabled,
+        )
+        .firstOrNull;
+    if (circle == null) {
+      return const [];
+    }
+
+    final layout = MockViewportLayout.fromSize(
+      viewportSize,
+      widget.viewportState,
+      bodyDimensions: _mockViewportBodyDimensions(widget.project),
+    );
+
+    return [
+      _sketchCircleHandleMarker(
+        circle,
+        sketchCircleHandleRadius,
+        circle.canvasRadiusHandlePoint(layout),
+      ),
+    ];
+  }
+
+  Widget _sketchCircleHandleMarker(
+    MockViewportSketchCirclePreview circle,
+    String role,
+    Offset center,
+  ) {
+    const markerExtent = 18.0;
+    return Positioned(
+      left: center.dx - markerExtent / 2,
+      top: center.dy - markerExtent / 2,
+      width: markerExtent,
+      height: markerExtent,
+      child: IgnorePointer(
+        child: SizedBox.expand(
+          key: ValueKey(
+            'advanced-sketch-circle-handle-${circle.featureId}-'
+            '${circle.entityId}-$role',
           ),
         ),
       ),
@@ -5519,6 +5609,10 @@ class _ViewportAreaState extends State<_ViewportArea> {
                     ),
                   ..._selectedSketchRectangleHandleMarkers(
                     sketchRectanglePreviews,
+                    viewportSize,
+                  ),
+                  ..._selectedSketchCircleHandleMarkers(
+                    sketchCirclePreviews,
                     viewportSize,
                   ),
                   ..._selectedSketchLineHandleMarkers(
@@ -12673,6 +12767,16 @@ class _ViewportPainter extends CustomPainter {
       canvas.drawCircle(center, radius, selected ? selectedStroke : stroke);
       canvas.drawCircle(center, 4.2 * layout.zoom, centerFill);
       canvas.drawCircle(center, 4.2 * layout.zoom, centerStroke);
+      if (selected && circle.handlesEnabled) {
+        _drawSketchHandle(
+          canvas,
+          circle.canvasRadiusHandlePoint(layout),
+          radius: 5.5 * layout.zoom,
+          fillColor: const Color(0xFF151719).withValues(alpha: 0.96),
+          strokeColor: intentColor.withValues(alpha: 1),
+          dotColor: intentColor.withValues(alpha: 0.96),
+        );
+      }
     }
   }
 
@@ -13886,6 +13990,10 @@ List<MockViewportSketchCirclePreview> _mockSketchCirclePreviews(
       }
 
       final values = SketchEntityParameterAdapter.valuesFrom(entity);
+      final selected =
+          selection.kind == SelectionKind.sketchEntity &&
+          selection.parentId == feature.id &&
+          selection.id == entity.id;
       previews.add(
         MockViewportSketchCirclePreview(
           featureId: feature.id,
@@ -13897,6 +14005,7 @@ List<MockViewportSketchCirclePreview> _mockSketchCirclePreviews(
           ),
           diameter: readDouble(values['diameter'], fallback: 12.0),
           profileIntent: sketchProfileIntentFor(entity),
+          handlesEnabled: selected,
         ),
       );
     }
@@ -13949,14 +14058,24 @@ extension _SketchCirclePreviewDrag on List<MockViewportSketchCirclePreview> {
       if (circle.featureId == preview.featureId &&
           circle.entityId == preview.entityId) {
         changed = true;
+        final diameter = isSketchCircleRadiusHandleRole(preview.dragRole)
+            ? _sketchCircleDiameterFromRadiusDrag({
+                'centerX': circle.center.dx,
+                'centerY': circle.center.dy,
+                'diameter': circle.diameter,
+              }, preview.localPosition)
+            : circle.diameter;
         next.add(
           MockViewportSketchCirclePreview(
             featureId: circle.featureId,
             entityId: circle.entityId,
             workplane: circle.workplane,
-            center: preview.localPosition,
-            diameter: circle.diameter,
+            center: isSketchCircleRadiusHandleRole(preview.dragRole)
+                ? circle.center
+                : preview.localPosition,
+            diameter: diameter,
             profileIntent: circle.profileIntent,
+            handlesEnabled: circle.handlesEnabled,
           ),
         );
       } else {

@@ -423,6 +423,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Basic sketch line endpoint handles.
 - [x] Basic sketch line visible handles.
 - [x] Basic sketch rectangle corner resize handles.
+- [x] Basic sketch circle radius handle.
 - [ ] Basic sketch drawing/editing.
 - [ ] Extrude/cut.
 - [ ] Boolean.

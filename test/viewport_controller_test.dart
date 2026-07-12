@@ -549,6 +549,48 @@ void main() {
     expect(circle.profileIntent, 'add');
   });
 
+  test('mock hit tester reports selected circle radius role', () {
+    const state = ViewportState();
+    const size = Size(900, 600);
+    final layout = MockViewportLayout.fromSize(size, state);
+    const workplane = MockViewportWorkplaneOverlay(
+      semanticId: 'main_enclosure.top_lid.outer',
+      kind: MockViewportWorkplaneKind.topLid,
+      width: 120,
+      height: 70,
+    );
+    const circle = MockViewportSketchCirclePreview(
+      featureId: 'advanced_sketch_1',
+      entityId: 'circle_1',
+      workplane: workplane,
+      center: Offset.zero,
+      diameter: 18,
+      handlesEnabled: true,
+    );
+    const hitTester = MockViewportHitTester();
+
+    final radiusHit = hitTester.hitTest(
+      position: circle.canvasRadiusHandlePoint(layout),
+      size: size,
+      state: state,
+      componentPlacements: const [],
+      sketchCircles: const [circle],
+    );
+    final bodyHit = hitTester.hitTest(
+      position: circle.canvasCenter(layout),
+      size: size,
+      state: state,
+      componentPlacements: const [],
+      sketchCircles: const [circle],
+    );
+
+    expect(radiusHit?.kind, ViewportHitKind.feature);
+    expect(radiusHit?.semanticId, 'advanced_sketch_1');
+    expect(radiusHit?.childId, 'circle_1');
+    expect(radiusHit?.childRole, sketchCircleHandleRadius);
+    expect(bodyHit?.childRole, 'body');
+  });
+
   test('mock hit tester reports line endpoint roles', () {
     const state = ViewportState();
     const size = Size(900, 600);

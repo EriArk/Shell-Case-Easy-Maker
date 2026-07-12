@@ -83,6 +83,12 @@ bool isSketchRectangleCornerHandleRole(String? role) {
   return sketchRectangleCornerHandleRoles.contains(role);
 }
 
+const sketchCircleHandleRadius = 'radius';
+
+bool isSketchCircleRadiusHandleRole(String? role) {
+  return role == sketchCircleHandleRadius;
+}
+
 class ViewportController {
   ViewportController({ViewportState initialState = const ViewportState()})
     : _state = initialState;
@@ -541,6 +547,7 @@ class MockViewportSketchCirclePreview {
     required this.center,
     required this.diameter,
     this.profileIntent = 'reference',
+    this.handlesEnabled = false,
   });
 
   final String featureId;
@@ -549,6 +556,7 @@ class MockViewportSketchCirclePreview {
   final Offset center;
   final double diameter;
   final String profileIntent;
+  final bool handlesEnabled;
 
   Offset canvasCenter(MockViewportLayout layout) {
     return layout.workplaneLocalToCanvas(workplane, center);
@@ -565,6 +573,13 @@ class MockViewportSketchCirclePreview {
         .toDouble();
   }
 
+  Offset canvasRadiusHandlePoint(MockViewportLayout layout) {
+    return layout.workplaneLocalToCanvas(
+      workplane,
+      center.translate(diameter / 2, 0),
+    );
+  }
+
   bool containsCanvasPoint(
     MockViewportLayout layout,
     Offset position, {
@@ -572,6 +587,29 @@ class MockViewportSketchCirclePreview {
   }) {
     return (position - canvasCenter(layout)).distance <=
         canvasRadius(layout) + inflate;
+  }
+
+  String? hitRoleForCanvasPoint(
+    MockViewportLayout layout,
+    Offset position, {
+    double handleRadius = 0,
+    double bodyInflate = 0,
+  }) {
+    final centerPoint = canvasCenter(layout);
+    final radiusHandlePoint = canvasRadiusHandlePoint(layout);
+    final handleDistance = (position - radiusHandlePoint).distance;
+    final centerDistance = (position - centerPoint).distance;
+    if (handlesEnabled &&
+        handleDistance <= handleRadius &&
+        handleDistance < centerDistance) {
+      return sketchCircleHandleRadius;
+    }
+
+    if (containsCanvasPoint(layout, position, inflate: bodyInflate)) {
+      return 'body';
+    }
+
+    return null;
   }
 
   @override
@@ -582,7 +620,8 @@ class MockViewportSketchCirclePreview {
         other.workplane == workplane &&
         other.center == center &&
         other.diameter == diameter &&
-        other.profileIntent == profileIntent;
+        other.profileIntent == profileIntent &&
+        other.handlesEnabled == handlesEnabled;
   }
 
   @override
@@ -594,6 +633,7 @@ class MockViewportSketchCirclePreview {
       center,
       diameter,
       profileIntent,
+      handlesEnabled,
     );
   }
 }
@@ -1281,15 +1321,18 @@ class MockViewportHitTester {
     }
 
     for (final circle in sketchCircles.reversed) {
-      if (circle.containsCanvasPoint(
+      final hitRole = circle.hitRoleForCanvasPoint(
         layout,
         position,
-        inflate: 6 * state.zoom,
-      )) {
+        handleRadius: 8 * state.zoom,
+        bodyInflate: 6 * state.zoom,
+      );
+      if (hitRole != null) {
         return ViewportHitResult(
           kind: ViewportHitKind.feature,
           semanticId: circle.featureId,
           childId: circle.entityId,
+          childRole: hitRole,
         );
       }
     }

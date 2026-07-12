@@ -14124,3 +14124,86 @@ while keeping the editable project as semantic rectangle parameters.
 ### Next step
 Commit and push M156, then continue toward circle radius handles or
 rotation-aware rectangle handles.
+
+---
+
+## 2026-07-12 - M157 Circle radius handle
+
+### Goal
+Add direct viewport resize for selected sketch circles using a radius handle,
+while keeping the editable project as semantic circle parameters.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/viewport/viewport_controller.dart`, `lib/ui/shell/workspace_shell.dart`,
+`test/viewport_controller_test.dart`, and `test/widget_test.dart`.
+
+### Changes made
+- `lib/viewport/viewport_controller.dart`:
+  - Added stable circle radius role constants.
+  - Added selected-circle radius hit role.
+  - Keeps body hits available as `body`.
+  - Prefers body hit near the circle center so small circles still move
+    reliably.
+- `lib/ui/shell/workspace_shell.dart`:
+  - Enables a radius handle for selected sketch circles.
+  - Adds a non-intercepting viewport marker for the circle radius handle.
+  - Paints selected circle radius handle in the viewport.
+  - Reuses sketch drag preview for live diameter resize.
+  - Commits radius drags as semantic `diameter` updates while preserving
+    `center`.
+- `test/viewport_controller_test.dart`:
+  - Added circle radius role hit-test coverage.
+- `test/widget_test.dart`:
+  - Added direct radius resize coverage and saved project assertions.
+- `ROADMAP.md` and `TASKS.md`:
+  - Added M157 and marked circle radius handle complete.
+
+### Tests run
+- `dart format lib\viewport\viewport_controller.dart lib\ui\shell\workspace_shell.dart test\viewport_controller_test.dart test\widget_test.dart`:
+  - Passed; viewport and workspace files were formatted.
+- `flutter test test\viewport_controller_test.dart test\widget_test.dart --name "circle|sketch entity" --reporter compact`:
+  - Failed once when the small-circle center overlapped the radius hit zone.
+  - Passed after preferring center/body hits near the center; 14 matching tests.
+- `flutter pub get`:
+  - Passed; dependency graph resolved with existing newer-package notices.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed; 76 files checked.
+- `flutter analyze`:
+  - Passed; no issues found.
+- `flutter test --reporter compact`:
+  - Passed; 286 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed; rebuilt `releases/latest/windows`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed; returned `True`.
+- `git status --short --ignored releases`:
+  - Passed; `releases/` remains ignored.
+- `git diff --check`:
+  - Passed; only the existing `ROADMAP.md` CRLF normalization warning was
+    reported.
+
+### Validation
+- Geometry checked?
+  - No native generated geometry changed; this only edits semantic sketch
+    circle parameters.
+- Serialization checked?
+  - Yes. Targeted widget coverage saves semantic `diameter` while preserving
+    `center`.
+- UI checked?
+  - Yes. Targeted widget coverage verifies selected radius handle marker,
+    live drag preview, and saved diameter result.
+- Export checked?
+  - Yes. Latest manual Windows bundle rebuilt at
+    `releases/latest/windows/shell_case_easy_maker.exe`.
+
+### Known issues
+- Issue: Circle resize currently exposes one radius handle on the positive-X
+  side.
+  - Severity: Low.
+  - Next action: Add alternate compass handles only if manual testing says a
+    single handle feels hard to grab.
+
+### Next step
+Commit and push M157, then continue toward rotation-aware rectangle handles or
+the next sketch editing slice.

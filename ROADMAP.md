@@ -7394,3 +7394,49 @@ handles while preserving semantic `center`, `width`, and `height` project data.
 - Confirm four corner handles appear on the selected rectangle.
 - Drag a corner and confirm the opposite corner stays visually anchored.
 - Save/reopen if useful and confirm the new rectangle size persists.
+
+---
+
+## M157 - Circle Radius Handle
+
+### Goal
+Let a selected sketch circle be resized directly from the viewport by dragging a
+radius handle while keeping the editable project as semantic `center` and
+`diameter` data.
+
+### Tasks
+- [x] Add circle radius hit role for selected circle handles.
+- [x] Add selected circle radius handle marker in the viewport overlay.
+- [x] Render selected circle radius handle in the sketch painter.
+- [x] Reuse the existing sketch drag pipeline for live radius resize preview.
+- [x] Commit radius drags as semantic `diameter` updates while keeping center
+  anchored.
+- [x] Preserve body drag behavior for moving circles.
+- [x] Cover hit roles and saved semantic diameter data with tests.
+- [x] Update tasks/worklog.
+
+### Done Criteria
+- Unselected circles still drag/move as before.
+- Selecting a circle reveals a radius handle on the circle edge.
+- Dragging the circle body moves the center.
+- Dragging the radius handle changes only `diameter`.
+- Saved project JSON stores semantic circle parameters only.
+- No mesh, generated B-Rep, or topology id becomes editable state.
+
+### Tests
+- `flutter test test\viewport_controller_test.dart test\widget_test.dart --name "circle|sketch entity" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Turn on Advanced Mode and select or create a circle.
+- Confirm a radius handle appears on the circle edge.
+- Drag the circle body and confirm the whole circle moves.
+- Drag the radius handle and confirm the circle grows/shrinks around its
+  center.
+- Save/reopen if useful and confirm the diameter persists.
