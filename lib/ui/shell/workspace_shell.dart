@@ -2289,6 +2289,8 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
                             onFit: _fitViewport,
                             onViewPreset: _applyViewportPreset,
                             onHit: _selectViewportHit,
+                            onSketchEntityDragCompleted:
+                                _moveAdvancedSketchEntity,
                             onContextMenu: _showViewportContextMenu,
                             onCancelComponentPlacementGuide:
                                 _cancelComponentPlacementGuide,
@@ -2559,6 +2561,20 @@ class _SketchRectanglePlacementIntent {
   @override
   int get hashCode =>
       Object.hash(featureId, targetSurface, entityType, entityId);
+}
+
+class _SketchEntityDragIntent {
+  const _SketchEntityDragIntent({
+    required this.featureId,
+    required this.entityId,
+    required this.workplane,
+    required this.grabOffset,
+  });
+
+  final String featureId;
+  final String entityId;
+  final MockViewportWorkplaneOverlay workplane;
+  final Offset grabOffset;
 }
 
 _ActiveSnapTarget? _snapTargetFromViewportHit(
@@ -4438,6 +4454,7 @@ class _ViewportArea extends StatefulWidget {
     required this.onFit,
     required this.onViewPreset,
     required this.onHit,
+    required this.onSketchEntityDragCompleted,
     required this.onContextMenu,
     required this.onCancelComponentPlacementGuide,
     required this.onCancelSketchRectanglePlacement,
@@ -4460,6 +4477,8 @@ class _ViewportArea extends StatefulWidget {
   final VoidCallback onFit;
   final ValueChanged<ViewportViewPreset> onViewPreset;
   final ValueChanged<ViewportHitResult?> onHit;
+  final void Function(String featureId, String entityId, Offset localPosition)
+  onSketchEntityDragCompleted;
   final void Function(ViewportHitResult? hit, Offset globalPosition)
   onContextMenu;
   final VoidCallback onCancelComponentPlacementGuide;
@@ -4476,12 +4495,18 @@ class _ViewportAreaState extends State<_ViewportArea> {
   Offset? _pointerDownPosition;
   bool _movedSincePointerDown = false;
   int _pointerDownButtons = 0;
+  _SketchEntityDragIntent? _sketchEntityDragIntent;
 
-  void _handlePointerDown(PointerDownEvent event) {
+  void _handlePointerDown(PointerDownEvent event, Size viewportSize) {
     _lastPointerPosition = event.localPosition;
     _pointerDownPosition = event.localPosition;
     _movedSincePointerDown = false;
     _pointerDownButtons = event.buttons;
+    _sketchEntityDragIntent = _sketchEntityDragIntentAt(
+      event.localPosition,
+      viewportSize,
+      event.buttons,
+    );
   }
 
   void _handlePointerMove(PointerMoveEvent event) {
@@ -4499,6 +4524,10 @@ class _ViewportAreaState extends State<_ViewportArea> {
       _movedSincePointerDown = true;
     }
 
+    if (_sketchEntityDragIntent != null) {
+      return;
+    }
+
     if ((event.buttons & kSecondaryMouseButton) != 0 ||
         (event.buttons & kMiddleMouseButton) != 0) {
       widget.onPan(delta);
@@ -4511,7 +4540,25 @@ class _ViewportAreaState extends State<_ViewportArea> {
   void _handlePointerUp(PointerUpEvent event, Size viewportSize) {
     _lastPointerPosition = null;
 
-    if (!_movedSincePointerDown) {
+    final sketchDragIntent = _sketchEntityDragIntent;
+    if (sketchDragIntent != null && _movedSincePointerDown) {
+      final layout = MockViewportLayout.fromSize(
+        viewportSize,
+        widget.viewportState,
+        bodyDimensions: _mockViewportBodyDimensions(widget.project),
+      );
+      final localPosition =
+          layout.workplaneCanvasToLocal(
+            sketchDragIntent.workplane,
+            event.localPosition,
+          ) +
+          sketchDragIntent.grabOffset;
+      widget.onSketchEntityDragCompleted(
+        sketchDragIntent.featureId,
+        sketchDragIntent.entityId,
+        localPosition,
+      );
+    } else if (!_movedSincePointerDown) {
       final hit = _hitTestAt(event.localPosition, viewportSize);
       if ((_pointerDownButtons & kSecondaryMouseButton) != 0) {
         widget.onContextMenu(hit, event.position);
@@ -4523,6 +4570,7 @@ class _ViewportAreaState extends State<_ViewportArea> {
     _pointerDownPosition = null;
     _movedSincePointerDown = false;
     _pointerDownButtons = 0;
+    _sketchEntityDragIntent = null;
   }
 
   void _handlePointerCancel(PointerCancelEvent event) {
@@ -4530,6 +4578,7 @@ class _ViewportAreaState extends State<_ViewportArea> {
     _pointerDownPosition = null;
     _movedSincePointerDown = false;
     _pointerDownButtons = 0;
+    _sketchEntityDragIntent = null;
   }
 
   void _handlePointerSignal(PointerSignalEvent event) {
@@ -4613,6 +4662,68 @@ class _ViewportAreaState extends State<_ViewportArea> {
         : nativeHit ?? mockHit;
   }
 
+  _SketchEntityDragIntent? _sketchEntityDragIntentAt(
+    Offset position,
+    Size viewportSize,
+    int buttons,
+  ) {
+    if ((buttons & kPrimaryMouseButton) == 0 ||
+        widget.sketchRectanglePlacementIntent != null ||
+        widget.selection.kind != SelectionKind.sketchEntity ||
+        widget.selection.parentId == null ||
+        widget.selection.id == null) {
+      return null;
+    }
+
+    final hit = _hitTestAt(position, viewportSize);
+    if (hit?.kind != ViewportHitKind.feature ||
+        hit?.semanticId != widget.selection.parentId ||
+        hit?.childId != widget.selection.id) {
+      return null;
+    }
+
+    final feature = widget.project.features
+        .where((feature) => feature.id == widget.selection.parentId)
+        .firstOrNull;
+    if (feature == null || feature.type != advancedSketchFeatureType) {
+      return null;
+    }
+
+    final workplane = _mockSurfaceWorkplaneOverlay(
+      widget.project,
+      feature.targetSurface,
+    );
+    if (workplane == null) {
+      return null;
+    }
+
+    final entity = sketchEntitiesForFeature(
+      feature,
+    ).where((entity) => entity.id == widget.selection.id).firstOrNull;
+    if (entity == null) {
+      return null;
+    }
+
+    final values = SketchEntityParameterAdapter.valuesFrom(entity);
+    final layout = MockViewportLayout.fromSize(
+      viewportSize,
+      widget.viewportState,
+      bodyDimensions: _mockViewportBodyDimensions(widget.project),
+    );
+    final pointerLocal = layout.workplaneCanvasToLocal(workplane, position);
+    final center = Offset(
+      readDouble(values['centerX'], fallback: 0.0),
+      readDouble(values['centerY'], fallback: 0.0),
+    );
+
+    return _SketchEntityDragIntent(
+      featureId: feature.id,
+      entityId: entity.id,
+      workplane: workplane,
+      grabOffset: center - pointerLocal,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -4664,7 +4775,7 @@ class _ViewportAreaState extends State<_ViewportArea> {
 
           return Listener(
             behavior: HitTestBehavior.opaque,
-            onPointerDown: _handlePointerDown,
+            onPointerDown: (event) => _handlePointerDown(event, viewportSize),
             onPointerMove: _handlePointerMove,
             onPointerUp: (event) => _handlePointerUp(event, viewportSize),
             onPointerCancel: _handlePointerCancel,

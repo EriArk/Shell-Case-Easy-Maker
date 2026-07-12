@@ -190,6 +190,12 @@ Focused sketch entities can reuse the same viewport pick path for
 move-to-click: the next supported workplane click replaces the selected
 entity's semantic center and commits an undoable project edit.
 
+Focused sketch entities can also be moved by direct primary-button drag when
+the drag starts on that same selected helper contour. The viewport converts the
+release point back into the owning sketch workplane's local coordinates and
+commits only the semantic center update. Drags that do not start on the focused
+contour keep the normal orbit/pan behavior.
+
 ## Current Controls
 
 - Primary drag: orbit.
@@ -198,6 +204,8 @@ entity's semantic center and commits an undoable project edit.
 - Click viewport mock objects: select semantic object.
 - Click inside a selected sketch helper contour: focus the semantic sketch
   entity while keeping parent-sketch command scope.
+- Drag the focused sketch helper contour: move its semantic center on the
+  sketch workplane with undo support.
 - Use the selected sketch rectangle/circle action, then click the supported
   workplane: create a semantic entity at the clicked local position.
 - Use selected rectangle inspector arrows: nudge the helper rectangle by 1 mm.

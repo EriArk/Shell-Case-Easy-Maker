@@ -57,11 +57,15 @@ generate simple disposable native protrusions.
 - Clicking a mapped native preview range for a sketch contour, such as
   `advanced_sketch_1.circle_1`, also focuses the semantic sketch entity and
   highlights the generated child range without storing mesh topology.
+- Dragging a focused helper contour in the viewport updates that entity's
+  semantic workplane center through the same undoable move path as inspector
+  actions.
 - Creation is undoable and save/load-safe.
 - Rectangle/circle entity click placement is undoable and save/load-safe.
 - Rectangle/circle parameter edits are undoable and save/load-safe.
 - Profile intent edits are undoable and save/load-safe.
 - Cut/add depth edits are undoable and save/load-safe.
+- Focused sketch entity viewport drag moves are undoable and save/load-safe.
 - Focused sketch entity nudge/move-to-click/resize/duplicate/delete actions
   are undoable and save/load-safe.
 - Focused rectangle workplane quick actions can center the contour or fit it to
@@ -109,6 +113,8 @@ generate simple disposable native protrusions.
   B-Rep ids, or OCCT topology ids.
 - Keep sketch entity focus semantic and parent-scoped until real drawing/edit
   handles are designed.
+- Keep viewport drag edits constrained to selected semantic sketch entities;
+  do not infer editable geometry from generated mesh or topology hits.
 
 ## Use cases
 

@@ -4346,6 +4346,119 @@ void main() {
     expect(sketchButton, findsNothing);
   });
 
+  testWidgets('selected sketch entity drags on workplane semantically', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final fileService = _MemoryProjectFileService();
+    final saveFile = File('drag_sketch_case.enclosure.json');
+    final dialog = _FakeProjectFileDialogService(saveFile: saveFile);
+    final sketch = advancedSketchWithEntities(
+      const SemanticFeature(
+        id: 'advanced_sketch_1',
+        type: advancedSketchFeatureType,
+        targetSurface: 'main_enclosure.front_wall.outer',
+        operation: 'helper',
+        parameters: {'name': 'Drag sketch'},
+        metadata: {'advanced': true},
+      ),
+      [defaultSketchRectangleEntity(id: 'rect_1')],
+    );
+    final project = ProjectModel.initial().copyWith(
+      componentTemplates: const [],
+      componentPlacements: const [],
+      features: [sketch],
+      featureGroups: const [],
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkspaceShell(
+          project: project,
+          geometryService: const MockGeometryService(),
+          projectFileService: fileService,
+          projectFileDialogService: dialog,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final sketchRow = find.text('advanced_sketch_1', skipOffstage: false);
+    await tester.ensureVisible(sketchRow.first);
+    await tester.tap(sketchRow.first);
+    await _pumpAsyncUi(tester);
+
+    final canvasFinder = find.byKey(const ValueKey('mock-viewport-canvas'));
+    final canvasTopLeft = tester.getTopLeft(canvasFinder);
+    final canvasSize = tester.getSize(canvasFinder);
+    final layout = MockViewportLayout.fromSize(
+      canvasSize,
+      const ViewportState(),
+    );
+    const workplane = MockViewportWorkplaneOverlay(
+      semanticId: 'main_enclosure.front_wall.outer',
+      kind: MockViewportWorkplaneKind.frontWall,
+      width: 120,
+      height: 28,
+      referenceWidth: 120,
+      referenceHeight: 28,
+    );
+    final dragStart =
+        canvasTopLeft + layout.workplaneLocalToCanvas(workplane, Offset.zero);
+    final dragEnd =
+        canvasTopLeft +
+        layout.workplaneLocalToCanvas(workplane, const Offset(24, 6));
+
+    await tester.tapAt(dragStart);
+    await _pumpAsyncUi(tester);
+
+    expect(
+      find.byKey(
+        const ValueKey('sketch-entity-advanced_sketch_1-rect_1-selected'),
+      ),
+      findsOneWidget,
+    );
+
+    final gesture = await tester.startGesture(
+      dragStart,
+      kind: PointerDeviceKind.mouse,
+      buttons: kPrimaryMouseButton,
+    );
+    await gesture.moveTo(dragEnd);
+    await gesture.up();
+    await _pumpAsyncUi(tester);
+
+    await tester.tap(
+      find.byKey(const ValueKey('toolbar-command-${CommandIds.saveProject}')),
+    );
+    await _pumpAsyncUi(tester);
+
+    final movedSaved = await fileService.readProject(saveFile);
+    final movedSketch = movedSaved.features.singleWhere(
+      (feature) => feature.id == 'advanced_sketch_1',
+    );
+    final movedEntity = sketchEntitiesForFeature(movedSketch).single;
+    expect(movedEntity.parameters['center'], [24.0, 6.0]);
+
+    await tester.tap(
+      find.byKey(const ValueKey('toolbar-command-${CommandIds.undo}')),
+    );
+    await _pumpAsyncUi(tester);
+    await tester.tap(
+      find.byKey(const ValueKey('toolbar-command-${CommandIds.saveProject}')),
+    );
+    await _pumpAsyncUi(tester);
+
+    final undoneSaved = await fileService.readProject(saveFile);
+    final undoneSketch = undoneSaved.features.singleWhere(
+      (feature) => feature.id == 'advanced_sketch_1',
+    );
+    final undoneEntity = sketchEntitiesForFeature(undoneSketch).single;
+    expect(undoneEntity.parameters['center'], [0.0, 0.0]);
+  });
+
   testWidgets('save command writes current semantic project file', (
     tester,
   ) async {

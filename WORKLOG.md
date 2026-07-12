@@ -13290,3 +13290,85 @@ triangle ids, or OCCT topology as editable state.
 ### Next step
 Commit and push M145, then continue toward direct sketch drawing/edit handles
 or clearer generated profile edit affordances.
+
+---
+
+## 2026-07-12 - M146 Sketch entity viewport drag move
+
+### Goal
+Let a focused Advanced Sketch contour move directly in the viewport while
+keeping the edit semantic, undoable, and independent of generated mesh,
+triangle ids, or OCCT topology.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/ui/shell/workspace_shell.dart`, `lib/viewport/viewport_controller.dart`,
+`test/widget_test.dart`, `docs/30_ADVANCED_CAD_MODE.md`,
+`docs/32_USABLE_SHELL.md`, and `docs/33_VIEWPORT_MVP.md`.
+
+### Changes made
+- `lib/ui/shell/workspace_shell.dart`:
+  - Added a selected-sketch-entity drag intent inside the viewport listener.
+  - Starts the drag only when the primary mouse button goes down on the
+    currently focused helper contour.
+  - Suppresses orbit/pan while that semantic drag is active.
+  - Converts pointer-up coordinates back to the owning sketch workplane and
+    commits through `_moveAdvancedSketchEntity`.
+- `test/widget_test.dart`:
+  - Added widget coverage that selects an Advanced Sketch contour, drags it on
+    the front-wall workplane, saves the project, and verifies undo restores the
+    previous semantic center.
+- Docs/tasks/roadmap:
+  - Added M146, marked the Phase 16 drag task complete, and documented the
+    semantic boundary for viewport drag edits.
+
+### Tests run
+- `flutter test test\widget_test.dart --name "selected sketch entity drags on workplane semantically" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --name "native preview mesh click selects mapped sketch entity" --reporter compact`:
+  - Passed.
+- `flutter pub get`:
+  - Passed; 5 packages have newer versions incompatible with constraints.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter analyze`:
+  - Passed with no issues.
+- `flutter test --reporter compact`:
+  - Passed, 267 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed. Refreshed `releases/latest/windows/shell_case_easy_maker.exe`.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Returned `True`.
+- `git status --short --ignored releases`:
+  - Confirmed `releases/` is ignored.
+- `git diff --check`:
+  - Passed with the existing ROADMAP CRLF warning.
+
+### Validation
+- Geometry checked?
+  - No native geometry code changed. Full native-backed tests and latest Windows
+    build still pass.
+- Serialization checked?
+  - Yes. Widget coverage saves the dragged contour and verifies
+    `SketchEntity.parameters.center` changes only as semantic JSON.
+- UI checked?
+  - Yes by widget coverage. The drag starts from a focused helper contour and
+    undo restores the previous position.
+- Export checked?
+  - Latest Windows bundle rebuilt locally and remains ignored by Git.
+
+### Known issues
+- Issue: Drag updates the contour on release rather than showing a live moving
+  helper during the drag.
+  - Severity: Low.
+  - Next action: Add a transient live drag preview if manual poking feels too
+    indirect.
+- Issue: Helper contour hit testing still requires the owning Advanced Sketch
+  to be active or the contour to be already focused.
+  - Severity: Medium.
+  - Next action: Add broader direct sketch entity activation from viewport
+    helper overlays without coupling to generated topology.
+
+### Next step
+Commit and push M146, then continue toward broader direct sketch activation or
+the next safe drawing/editing slice.

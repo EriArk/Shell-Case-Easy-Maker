@@ -164,6 +164,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M143 - Native Sketch Add Protrusion Slice
 - [x] M144 - Sketch Profile Depth Controls
 - [x] M145 - Native Sketch Entity Picking
+- [x] M146 - Sketch Entity Viewport Drag Move
 
 ---
 
@@ -6930,3 +6931,46 @@ sketch or ignoring the generated part.
 - Click the generated cut/protrusion part in the 3D preview.
 - Confirm the inspector focuses that exact contour and the mesh highlight
   lands on the generated part.
+
+---
+
+## M146 - Sketch Entity Viewport Drag Move
+
+### Goal
+Let a focused Advanced Sketch contour move directly in the viewport while
+committing only its semantic workplane center through undoable project edits.
+
+### Tasks
+- [x] Detect primary-button drag starts only on the currently focused
+      `SketchEntity` helper contour.
+- [x] Convert the drag release back to the owning sketch workplane local
+      coordinate system.
+- [x] Commit the move through the existing semantic
+      `_moveAdvancedSketchEntity` path.
+- [x] Keep normal orbit/pan behavior when no selected contour drag is active.
+- [x] Cover save and undo behavior with a widget test.
+- [x] Update docs/tasks/worklog.
+
+### Done Criteria
+- Dragging inside the selected helper rectangle updates
+  `SketchEntity.parameters.center`.
+- The saved project JSON contains the new center and no generated mesh,
+  B-Rep, triangle id, or topology id.
+- Undo restores the previous center.
+- Primary drag on non-focused viewport regions still orbits normally.
+
+### Tests
+- `flutter test test\widget_test.dart --name "selected sketch entity drags on workplane semantically" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Enable Advanced Mode and select/create an Advanced Sketch.
+- Select a rectangle or circle helper contour so its row is focused.
+- Drag the selected helper contour inside the viewport.
+- Save, undo, and confirm the contour returns to its previous position.
