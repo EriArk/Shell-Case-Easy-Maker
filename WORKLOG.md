@@ -13204,3 +13204,89 @@ turning the default workflow into raw extrude/boolean CAD.
 ### Next step
 Commit and push M144, then continue toward direct sketch drawing/edit handles
 or better native 3D selection affordances.
+
+---
+
+## 2026-07-12 - M145 Native sketch entity picking
+
+### Goal
+Let native preview mesh ranges for Advanced Sketch profile contours focus the
+semantic sketch entity they came from, without exposing generated mesh,
+triangle ids, or OCCT topology as editable state.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/ui/shell/workspace_shell.dart`,
+`lib/selection/project_selection_resolver.dart`,
+`test/widget_test.dart`, `test/project_selection_resolver_test.dart`,
+`docs/06_FEATURE_SYSTEM.md`, `docs/30_ADVANCED_CAD_MODE.md`,
+`docs/32_USABLE_SHELL.md`, and `docs/33_VIEWPORT_MVP.md`.
+
+### Changes made
+- `workspace_shell.dart`:
+  - Added native preview hit parsing for stable sketch entity ids shaped like
+    `advanced_sketch_1.circle_1`.
+  - Converts those ids to `ViewportHitKind.feature` with `childId`, which the
+    existing selection path turns into `SelectionModel.sketchEntity`.
+  - Added selected-preview lookup that highlights both the parent sketch range
+    and the child range for focused sketch entities.
+- `ProjectSelectionResolver`:
+  - Shows explicit sketch entity depth/height in the inspector details when a
+    selected contour has `depth`.
+- Tests:
+  - Added resolver coverage for add-profile height in selection details.
+  - Added a widget test where a fake native preview mesh range mapped to
+    `advanced_sketch_1.circle_1` focuses the `circle_1` sketch entity and shows
+    the generated mesh highlight.
+- Docs/tasks/roadmap:
+  - Added M145 and documented native sketch entity picking as semantic mapping,
+    not mesh/topology editing.
+
+### Tests run
+- `flutter test test\project_selection_resolver_test.dart --reporter compact`:
+  - Passed, 9 tests.
+- `flutter test test\widget_test.dart --name "native preview mesh click selects mapped sketch entity" --reporter compact`:
+  - Passed.
+- `flutter pub get`:
+  - Passed.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter analyze`:
+  - Passed.
+- `flutter test --reporter compact`:
+  - Passed, 266 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed. Refreshed `releases/latest/windows/shell_case_easy_maker.exe`.
+- `git diff --check`:
+  - Passed with the existing ROADMAP CRLF warning.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git status --short --ignored releases`:
+  - Passed. `releases/` remains ignored.
+
+### Validation
+- Geometry checked?
+  - Yes by existing full test coverage and fake native preview mesh mapping.
+    No worker geometry code changed.
+- Serialization checked?
+  - Yes by boundary. Selection uses semantic ids already present in the project
+    and worker mapping; no generated mesh data is stored.
+- UI checked?
+  - Yes. Widget coverage verifies native preview click selects the sketch
+    entity and activates mesh highlight.
+- Export checked?
+  - Latest Windows bundle rebuilt locally and remains ignored by Git.
+
+### Known issues
+- Issue: Direct sketch drawing/edit handles still do not exist.
+  - Severity: Expected.
+  - Next action: Continue toward focused drawing handles or clearer generated
+    profile edit affordances.
+- Issue: Native preview picking depends on stable semantic range ids from the
+  worker, not geometric sub-face identity.
+  - Severity: Expected and desired.
+  - Next action: Keep mapping semantic and avoid raw topology coupling.
+
+### Next step
+Commit and push M145, then continue toward direct sketch drawing/edit handles
+or clearer generated profile edit affordances.

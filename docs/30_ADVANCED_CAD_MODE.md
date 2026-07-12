@@ -54,6 +54,9 @@ generate simple disposable native protrusions.
   inspector, while command context and viewport/native preview highlight remain
   scoped to the parent `advanced_sketch` feature. This is not mesh, B-Rep, or
   topology selection.
+- Clicking a mapped native preview range for a sketch contour, such as
+  `advanced_sketch_1.circle_1`, also focuses the semantic sketch entity and
+  highlights the generated child range without storing mesh topology.
 - Creation is undoable and save/load-safe.
 - Rectangle/circle entity click placement is undoable and save/load-safe.
 - Rectangle/circle parameter edits are undoable and save/load-safe.

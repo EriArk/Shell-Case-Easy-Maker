@@ -369,11 +369,13 @@ When the selected sketch has entities, the viewport draws thin helper contour
 overlays without restoring the old full-surface workplane rectangle. The helper
 color can reflect profile intent. Clicking inside a helper contour focuses the
 semantic entity in the inspector while keeping command scope and
-viewport/native preview highlighting on the parent sketch. The focused row has
+viewport/native preview highlighting on the parent sketch. Clicking a mapped
+native preview range such as `advanced_sketch_1.circle_1` focuses the same
+semantic contour and highlights the generated child range. The focused row has
 icon-only 1 mm nudge controls, move-to-click, duplicate, delete, workplane
-center/fit, and type-specific size controls; these update semantic sketch
-metadata through undo history. Duplicate creates a new offset `rect_N` or
-`circle_N` entity instead of copying generated geometry.
+center/fit, and type-specific size/depth controls; these update semantic
+sketch metadata through undo history. Duplicate creates a new offset `rect_N`
+or `circle_N` entity instead of copying generated geometry.
 
 When a sketch entity is focused, workspace arrow keys reuse the same semantic
 actions for 1 mm nudge; Shift+arrow resizes rectangle width/height or circle
@@ -381,9 +383,10 @@ diameter while text fields keep normal behavior. Ctrl+D duplicates,
 Delete/Backspace removes, and Escape cancels active placement or move pick
 mode. If the contour leaves the supported sketch workplane bounds, the
 inspector shows a semantic warning. These actions and warnings do not select
-generated mesh or topology. The switch itself does not change saved project
-JSON, undo/redo history, or geometry requests, and sketch entities do not
-generate geometry yet.
+raw generated mesh or topology. The switch itself does not change saved project
+JSON or undo/redo history. Supported cut/add sketch entities can request
+disposable native preview geometry, but the editable project remains semantic
+`SketchEntity` data.
 
 ## Current limitations
 

@@ -147,7 +147,11 @@ selectable OCCT topology item. The overlay color can reflect profile intent so
 helper-only. Clicking the visible helper contour can focus the semantic
 `SketchEntity` in the inspector, but command context and viewport/native
 preview highlighting remain scoped to the parent `advanced_sketch` feature.
-Real sketch drawing handles remain a future interaction design problem.
+Native preview ranges for generated sketch profile contours can also focus the
+same semantic `SketchEntity` when the worker maps a stable id such as
+`advanced_sketch_1.circle_1`. This is still semantic selection; raw triangles,
+OCCT faces, and generated B-Rep are not stored as editable state. Real sketch
+drawing handles remain a future interaction design problem.
 
 ## Feature groups
 

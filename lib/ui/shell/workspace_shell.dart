@@ -11071,7 +11071,7 @@ class _ViewportPainter extends CustomPainter {
 
     final selectedTriangleIndices =
         _selectionUsesPreviewSurfaceRanges(selection)
-        ? _previewSurfaceTriangleIndices(mesh, selection.viewportSemanticId)
+        ? _selectedPreviewSurfaceTriangleIndices(mesh, selection)
         : const <int>{};
     final meshBoundaryEdges = previewMeshBoundaryEdges(
       triangles: mesh.triangles,
@@ -12237,6 +12237,14 @@ ViewportHitResult? _previewMeshHitResult(
     );
   }
 
+  final sketchEntityHit = _previewMeshSketchEntityHitResult(
+    project,
+    semanticId,
+  );
+  if (sketchEntityHit != null) {
+    return sketchEntityHit;
+  }
+
   if (project.featureGroups.any((group) => group.id == semanticId)) {
     return ViewportHitResult(
       kind: ViewportHitKind.featureGroup,
@@ -12267,6 +12275,38 @@ ViewportHitResult? _previewMeshHitResult(
         parentId: body.id,
       );
     }
+  }
+
+  return null;
+}
+
+ViewportHitResult? _previewMeshSketchEntityHitResult(
+  ProjectModel project,
+  String semanticId,
+) {
+  for (final feature in project.features) {
+    if (feature.type != advancedSketchFeatureType) {
+      continue;
+    }
+
+    final prefix = '${feature.id}.';
+    if (!semanticId.startsWith(prefix)) {
+      continue;
+    }
+
+    final entityId = semanticId.substring(prefix.length);
+    final entityExists = sketchEntitiesForFeature(
+      feature,
+    ).any((entity) => entity.id == entityId);
+    if (!entityExists) {
+      continue;
+    }
+
+    return ViewportHitResult(
+      kind: ViewportHitKind.feature,
+      semanticId: feature.id,
+      childId: entityId,
+    );
   }
 
   return null;
@@ -12362,10 +12402,7 @@ bool _hasSelectedPreviewSurface(PreviewMesh? mesh, SelectionModel selection) {
     return false;
   }
 
-  return _previewSurfaceTriangleIndices(
-    mesh!,
-    selection.viewportSemanticId,
-  ).isNotEmpty;
+  return _selectedPreviewSurfaceTriangleIndices(mesh!, selection).isNotEmpty;
 }
 
 bool _selectionUsesPreviewSurfaceRanges(SelectionModel selection) {
@@ -12373,6 +12410,33 @@ bool _selectionUsesPreviewSurfaceRanges(SelectionModel selection) {
       selection.kind == SelectionKind.feature ||
       selection.kind == SelectionKind.featureGroup ||
       selection.kind == SelectionKind.sketchEntity;
+}
+
+Set<int> _selectedPreviewSurfaceTriangleIndices(
+  PreviewMesh mesh,
+  SelectionModel selection,
+) {
+  final indices = <int>{};
+  for (final semanticId in _previewSurfaceSemanticIdsForSelection(selection)) {
+    indices.addAll(_previewSurfaceTriangleIndices(mesh, semanticId));
+  }
+
+  return indices;
+}
+
+Iterable<String> _previewSurfaceSemanticIdsForSelection(
+  SelectionModel selection,
+) sync* {
+  final viewportSemanticId = selection.viewportSemanticId;
+  if (viewportSemanticId != null && viewportSemanticId.isNotEmpty) {
+    yield viewportSemanticId;
+  }
+
+  if (selection.kind == SelectionKind.sketchEntity &&
+      selection.parentId != null &&
+      selection.id != null) {
+    yield '${selection.parentId}.${selection.id}';
+  }
 }
 
 Set<int> _previewSurfaceTriangleIndices(PreviewMesh mesh, String? semanticId) {

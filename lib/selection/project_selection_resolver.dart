@@ -263,6 +263,7 @@ class ProjectSelectionResolver {
       fallback: feature.id,
     );
     final values = SketchEntityParameterAdapter.valuesFrom(entity);
+    final profileIntent = sketchProfileIntentFor(entity);
 
     return ProjectSelectionDetails(
       title: _humanizeSketchEntity(entity),
@@ -274,8 +275,15 @@ class ProjectSelectionResolver {
         ProjectSelectionProperty(label: 'Тип', value: entity.type),
         ProjectSelectionProperty(
           label: 'Назначение',
-          value: _humanizeSketchProfileIntent(entity),
+          value: _humanizeSketchProfileIntent(profileIntent),
         ),
+        if (values.containsKey('depth'))
+          ProjectSelectionProperty(
+            label: profileIntent == sketchProfileIntentAdd
+                ? 'Высота'
+                : 'Глубина',
+            value: '${_formatNumber(values['depth'])} mm',
+          ),
         if (values.containsKey('width'))
           ProjectSelectionProperty(
             label: 'Ширина',
@@ -376,8 +384,8 @@ String _humanizeSketchEntity(SketchEntity entity) {
   };
 }
 
-String _humanizeSketchProfileIntent(SketchEntity entity) {
-  return switch (sketchProfileIntentFor(entity)) {
+String _humanizeSketchProfileIntent(String profileIntent) {
+  return switch (profileIntent) {
     sketchProfileIntentCut => 'Вырез',
     sketchProfileIntentAdd => 'Выступ',
     _ => 'Направляющий',

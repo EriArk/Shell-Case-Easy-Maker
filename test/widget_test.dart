@@ -691,6 +691,62 @@ void main() {
     expect(find.byKey(highlightKey), findsOneWidget);
   });
 
+  testWidgets('native preview mesh click selects mapped sketch entity', (
+    tester,
+  ) async {
+    final sketch = advancedSketchWithEntities(
+      const SemanticFeature(
+        id: 'advanced_sketch_1',
+        type: advancedSketchFeatureType,
+        targetSurface: 'main_enclosure.top_lid.outer',
+        operation: 'helper',
+        parameters: {'name': 'Native sketch'},
+        metadata: {'advanced': true},
+      ),
+      [
+        sketchEntityWithProfileIntent(
+          const SketchEntity(
+            id: 'circle_1',
+            type: 'circle',
+            parameters: {
+              'center': [0.0, 0.0],
+              'diameter': 12.0,
+              'depth': 1.2,
+            },
+          ),
+          sketchProfileIntentAdd,
+        ),
+      ],
+    );
+    final project = ProjectModel.initial().replaceFeature(sketch);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WorkspaceShell(
+          project: project,
+          geometryService: const _SketchEntityPreviewMeshService(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    const highlightKey = ValueKey('geometry-preview-surface-highlight-active');
+    expect(find.byKey(highlightKey), findsNothing);
+
+    final canvasFinder = find.byKey(const ValueKey('mock-viewport-canvas'));
+    await tester.tapAt(tester.getCenter(canvasFinder));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(
+        const ValueKey('sketch-entity-advanced_sketch_1-circle_1-selected'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.byKey(highlightKey), findsOneWidget);
+    expect(find.textContaining('circle_1'), findsWidgets);
+  });
+
   testWidgets('selected feature group highlights mapped preview mesh range', (
     tester,
   ) async {
@@ -5088,6 +5144,38 @@ class _SingleFeaturePreviewMeshService extends MockGeometryService {
           PreviewSurfaceMapping(
             semanticId: 'front_usb_c',
             label: 'USB-C cutout',
+            triangleRanges: [PreviewTriangleRange(start: 0, count: 1)],
+          ),
+        ],
+      ),
+      stats: const {
+        'source': 'fake_worker_preview',
+        'previewVertices': 3,
+        'previewTriangles': 1,
+      },
+    );
+  }
+}
+
+class _SketchEntityPreviewMeshService extends MockGeometryService {
+  const _SketchEntityPreviewMeshService();
+
+  @override
+  Future<GeometryPreview> generatePreview(ProjectModel project) async {
+    return GeometryPreview(
+      backendLabel: 'fake_worker_preview',
+      projectName: project.projectName,
+      surfaces: await getSelectableSurfaces(project),
+      previewMesh: const PreviewMesh(
+        units: 'mm',
+        vertices: [-10, -10, 0, 10, -10, 0, 0, 10, 0],
+        triangles: [0, 1, 2],
+        bounds: GeometryBounds(min: [-10, -10, 0], max: [10, 10, 0]),
+        metadata: {'source': 'occt_brep'},
+        surfaces: [
+          PreviewSurfaceMapping(
+            semanticId: 'advanced_sketch_1.circle_1',
+            label: 'Sketch circle',
             triangleRanges: [PreviewTriangleRange(start: 0, count: 1)],
           ),
         ],

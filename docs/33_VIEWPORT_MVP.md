@@ -262,6 +262,10 @@ entity's semantic center and commits an undoable project edit.
   the generated mesh range is the primary visual representation.
 - Click a mapped native preview mesh range: select the semantic part behind
   that range, then show the generated mesh highlight.
+- Click a mapped native Advanced Sketch contour range such as
+  `advanced_sketch_1.circle_1`: focus that semantic `SketchEntity` in the
+  inspector and highlight the generated child range. This uses stable semantic
+  ids from the worker mapping, not raw triangle or OCCT topology ids.
 - Native preview mesh rendering hides shared internal triangle edges and keeps
   only boundary/selection contours visible.
 - Selected surface workplanes are hidden in native preview mode; active surface

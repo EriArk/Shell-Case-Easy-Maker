@@ -163,6 +163,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M142 - Native Rotated Sketch Rectangle Cut
 - [x] M143 - Native Sketch Add Protrusion Slice
 - [x] M144 - Sketch Profile Depth Controls
+- [x] M145 - Native Sketch Entity Picking
 
 ---
 
@@ -6881,3 +6882,51 @@ and operation plan without exposing raw extrude/boolean CAD controls.
   cut depth, and Save keeps the value after reopening.
 - Switch it to `Выступ`; confirm the row becomes `Высота` and the native
   preview protrusion updates after changing it.
+
+---
+
+## M145 - Native Sketch Entity Picking
+
+### Goal
+Let native preview mesh ranges for Advanced Sketch profile contours focus the
+semantic `SketchEntity` they came from, instead of selecting only the parent
+sketch or ignoring the generated part.
+
+### Tasks
+- [x] Recognize stable native preview semantic ids shaped as
+      `{sketchFeatureId}.{sketchEntityId}`.
+- [x] Convert those ids into `SelectionModel.sketchEntity`.
+- [x] Highlight the child native preview range when a sketch entity is
+      selected.
+- [x] Show depth/height in sketch entity selection details when present.
+- [x] Cover resolver and widget native-click behavior.
+- [x] Update docs/tasks/worklog.
+
+### Done Criteria
+- Clicking a native preview mesh range mapped to `advanced_sketch_1.circle_1`
+  selects `circle_1` under parent `advanced_sketch_1`.
+- The inspector focuses the selected sketch entity and shows its semantic
+  values.
+- The selected native child range gets the generated mesh highlight.
+- No raw OCCT topology id, face id, triangle id, B-Rep, or mesh becomes
+  editable project state.
+
+### Tests
+- `dart format lib\ui\shell\workspace_shell.dart lib\selection\project_selection_resolver.dart test\project_selection_resolver_test.dart test\widget_test.dart`
+- `flutter test test\project_selection_resolver_test.dart --reporter compact`
+- `flutter test test\widget_test.dart --name "native preview mesh click selects mapped sketch entity" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Enable Advanced Mode and create/select an Advanced Sketch on the top lid.
+- Add a circle or rectangle, switch it to `Вырез` or `Выступ`, and wait for
+  native preview to update.
+- Click the generated cut/protrusion part in the 3D preview.
+- Confirm the inspector focuses that exact contour and the mesh highlight
+  lands on the generated part.

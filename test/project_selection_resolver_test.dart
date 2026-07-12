@@ -124,7 +124,15 @@ void main() {
       ),
       [
         sketchEntityWithProfileIntent(
-          defaultSketchCircleEntity(id: 'circle_1'),
+          const SketchEntity(
+            id: 'circle_1',
+            type: 'circle',
+            parameters: {
+              'center': [0.0, 0.0],
+              'diameter': 12.0,
+              'depth': 1.2,
+            },
+          ),
           sketchProfileIntentAdd,
         ),
       ],
@@ -142,6 +150,12 @@ void main() {
           .singleWhere((property) => property.label == 'Назначение')
           .value,
       'Выступ',
+    );
+    expect(
+      details.properties
+          .singleWhere((property) => property.label == 'Высота')
+          .value,
+      '1.2 mm',
     );
   });
 
