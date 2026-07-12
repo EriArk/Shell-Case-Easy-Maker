@@ -415,6 +415,7 @@ void main() {
                 'height': 14.0,
                 'cornerRadius': 2.0,
                 'rotation': 15.0,
+                'depth': 2.5,
               },
             ),
             sketchProfileIntentCut,
@@ -426,6 +427,7 @@ void main() {
               parameters: const {
                 'center': [-10.0, 8.0],
                 'diameter': 18.0,
+                'depth': 1.6,
               },
             ),
             sketchProfileIntentAdd,
@@ -464,6 +466,7 @@ void main() {
       expect(cutOperation.parameters['height'], 14.0);
       expect(cutOperation.parameters['cornerRadius'], 2.0);
       expect(cutOperation.parameters['rotation'], 15.0);
+      expect(cutOperation.parameters['depth'], 2.5);
       expect(cutOperation.source['sketchEntityId'], 'rect_cut');
 
       final addOperation = operations[2];
@@ -475,6 +478,7 @@ void main() {
       expect(addOperation.parameters['profileIntent'], sketchProfileIntentAdd);
       expect(addOperation.parameters['center'], [-10.0, 8.0]);
       expect(addOperation.parameters['diameter'], 18.0);
+      expect(addOperation.parameters['depth'], 1.6);
       expect(addOperation.source['sketchId'], 'advanced_sketch_1');
       expect(addOperation.source['sketchEntityId'], 'circle_add');
 

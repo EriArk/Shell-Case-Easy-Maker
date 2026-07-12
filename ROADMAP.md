@@ -162,6 +162,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M141 - Native Sketch Profile Cut Slice
 - [x] M142 - Native Rotated Sketch Rectangle Cut
 - [x] M143 - Native Sketch Add Protrusion Slice
+- [x] M144 - Sketch Profile Depth Controls
 
 ---
 
@@ -6829,3 +6830,54 @@ simple positive protrusions while keeping the editable project semantic.
 - Confirm the native preview shows a small raised protrusion for that contour.
 - Switch the same contour between reference/cut/add and confirm the native
   preview updates between helper-only, cutout, and protrusion behavior.
+
+---
+
+## M144 - Sketch Profile Depth Controls
+
+### Goal
+Make Advanced Sketch cut/add depth a first-class semantic parameter in the UI
+and operation plan without exposing raw extrude/boolean CAD controls.
+
+### Tasks
+- [x] Add schema-backed `depth` to rectangle and circle sketch entities.
+- [x] Keep depth explicit so reference contours do not gain it during unrelated
+      nudge/resize edits.
+- [x] Add compact cut depth / add height inspector controls for selected
+      cut/add contours.
+- [x] Pass explicit depth through `sketch.profile.cut/add` operation planning.
+- [x] Cover adapter, operation-plan, widget, and native fixture behavior.
+- [x] Update docs/tasks/worklog.
+
+### Done Criteria
+- Reference sketch entities still edit center/size/rotation without silently
+  saving depth.
+- Selecting `profileIntent=cut` exposes a depth control that saves
+  `SketchEntity.parameters.depth`.
+- Selecting `profileIntent=add` exposes a height control using the native add
+  protrusion default.
+- Operation plans include `depth` when a semantic sketch entity has it.
+- Editable project state remains semantic `SketchEntity` data only.
+
+### Tests
+- `dart format lib\parameters\sketch_entity_parameter_adapter.dart lib\geometry\geometry_operation_plan.dart lib\ui\shell\workspace_shell.dart test\sketch_entity_parameter_adapter_test.dart test\geometry_protocol_test.dart test\widget_test.dart test\support\native_occt_geometry_fixture.dart`
+- `flutter test test\sketch_entity_parameter_adapter_test.dart --reporter compact`
+- `flutter test test\geometry_protocol_test.dart --plain-name "operation planner emits sketch profile operations as future intent" --reporter compact`
+- `flutter test test\widget_test.dart --name "advanced sketch command creates semantic helper feature" --reporter compact`
+- `flutter test test\native_occt_geometry_regression_test.dart --plain-name "native OCCT preview cuts and adds advanced sketch profile contours" --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Enable Advanced Mode and select/create an Advanced Sketch on the top lid.
+- Add/select a rectangle or circle and leave it as reference; confirm no depth
+  row is shown for the selected contour.
+- Switch it to `Вырез`; confirm the `Глубина` row appears, +/- changes the
+  cut depth, and Save keeps the value after reopening.
+- Switch it to `Выступ`; confirm the row becomes `Высота` and the native
+  preview protrusion updates after changing it.

@@ -358,6 +358,7 @@ ProjectModel nativeOcctSketchProfileCutProject() {
           parameters: {
             'center': [0.0, 18.0],
             'diameter': 6.0,
+            'depth': 2.4,
           },
         ),
         sketchProfileIntentAdd,

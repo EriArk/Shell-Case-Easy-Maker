@@ -3648,6 +3648,9 @@ void main() {
     final addIntent = find.byKey(
       const ValueKey('sketch-entity-advanced_sketch_1-rect_1-intent-add'),
     );
+    final depthIncrease = find.byKey(
+      const ValueKey('sketch-entity-advanced_sketch_1-rect_1-depth-increase'),
+    );
     expect(nudgeRight, findsOneWidget);
     expect(nudgeUp, findsOneWidget);
     expect(deleteRectangle, findsOneWidget);
@@ -3664,10 +3667,17 @@ void main() {
     expect(referenceIntent, findsOneWidget);
     expect(cutIntent, findsOneWidget);
     expect(addIntent, findsOneWidget);
+    expect(depthIncrease, findsNothing);
 
     await tester.ensureVisible(cutIntent);
     await tester.pumpAndSettle();
     await tester.tap(cutIntent);
+    await _pumpAsyncUi(tester);
+
+    expect(depthIncrease, findsOneWidget);
+    await tester.ensureVisible(depthIncrease);
+    await tester.pumpAndSettle();
+    await tester.tap(depthIncrease);
     await _pumpAsyncUi(tester);
 
     await tester.tap(
@@ -3684,7 +3694,10 @@ void main() {
       cutIntentEntities.single.metadata[sketchProfileIntentKey],
       sketchProfileIntentCut,
     );
+    expect(cutIntentEntities.single.parameters['depth'], 4.0);
 
+    await tester.tap(undoButton);
+    await _pumpAsyncUi(tester);
     await tester.tap(undoButton);
     await _pumpAsyncUi(tester);
 

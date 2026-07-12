@@ -13108,3 +13108,99 @@ semantic and topology-free.
 ### Next step
 Commit and push M143, then continue toward sketch drawing/edit handles or
 semantic add/cut depth controls.
+
+---
+
+## 2026-07-11 - M144 Sketch profile depth controls
+
+### Goal
+Make Advanced Sketch cut/add depth editable as semantic project data without
+turning the default workflow into raw extrude/boolean CAD.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`lib/parameters/sketch_entity_parameter_adapter.dart`,
+`lib/ui/shell/workspace_shell.dart`,
+`lib/geometry/geometry_operation_plan.dart`,
+`test/sketch_entity_parameter_adapter_test.dart`,
+`test/geometry_protocol_test.dart`, `test/widget_test.dart`,
+`test/native_occt_geometry_regression_test.dart`,
+`test/support/native_occt_geometry_fixture.dart`,
+`docs/04_GEOMETRY_ENGINE_OCCT.md`, `docs/05_PROJECT_FILE_FORMAT.md`,
+`docs/06_FEATURE_SYSTEM.md`, `docs/27_RESEARCH_AND_REFERENCES.md`,
+`docs/30_ADVANCED_CAD_MODE.md`, and `docs/35_PARAMETER_MODEL.md`.
+
+### Changes made
+- `SketchEntityParameterAdapter`:
+  - Added schema-backed `depth` for rectangle and circle sketch entities.
+  - Kept depth explicit: reference contours do not gain `depth` during ordinary
+    nudge/resize/rotation edits.
+  - Preserved existing `depth`/`protrusion` values through later semantic edits
+    and duplicate operations.
+- Workspace inspector:
+  - Added a compact `Глубина` row for selected `profileIntent=cut` contours.
+  - Added a compact `Высота` row for selected `profileIntent=add` contours.
+  - Hid depth controls and fields for reference contours.
+- Geometry operation plan:
+  - Emits explicit `depth` on request-scoped `sketch.profile.cut/add`
+    operations when the semantic sketch entity has it.
+- Tests:
+  - Added adapter coverage for explicit/clamped depth and duplicate safety.
+  - Added operation-plan coverage for cut/add depth propagation.
+  - Extended the Advanced Sketch widget flow to verify depth row visibility,
+    save, and undo.
+  - Updated the native OCCT sketch fixture to pass explicit add depth.
+- Docs/tasks/roadmap:
+  - Added M144 and documented the semantic depth boundary.
+
+### Tests run
+- `flutter test test\sketch_entity_parameter_adapter_test.dart --reporter compact`:
+  - Passed, 14 tests.
+- `flutter test test\geometry_protocol_test.dart --plain-name "operation planner emits sketch profile operations as future intent" --reporter compact`:
+  - Passed.
+- `flutter test test\widget_test.dart --name "advanced sketch command creates semantic helper feature" --reporter compact`:
+  - Passed.
+- `flutter test test\native_occt_geometry_regression_test.dart --plain-name "native OCCT preview cuts and adds advanced sketch profile contours" --reporter compact`:
+  - Passed.
+- `flutter pub get`:
+  - Passed.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter analyze`:
+  - Passed.
+- `flutter test --reporter compact`:
+  - Passed, 265 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed. Refreshed `releases/latest/windows/shell_case_easy_maker.exe`.
+- `git diff --check`:
+  - Passed with the existing ROADMAP CRLF warning.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git status --short --ignored releases`:
+  - Passed. `releases/` remains ignored.
+
+### Validation
+- Geometry checked?
+  - Yes. The native sketch cut/add regression still passes with explicit add
+    depth in the fixture.
+- Serialization checked?
+  - Yes. Adapter and widget tests verify explicit depth saves to semantic
+    `SketchEntity.parameters` and reference contours do not silently gain it.
+- UI checked?
+  - Yes by widget coverage. Manual poke checklist added to M144.
+- Export checked?
+  - Latest Windows bundle rebuilt locally and remains ignored by Git.
+
+### Known issues
+- Issue: Direct sketch drawing/edit handles still do not exist.
+  - Severity: Expected.
+  - Next action: Continue toward drawing handles or a more focused 3D sketch
+    selection affordance.
+- Issue: Depth controls are semantic parameters, not full CAD extrude history.
+  - Severity: Expected.
+  - Next action: Keep richer extrusion behavior behind later Advanced Mode
+    slices.
+
+### Next step
+Commit and push M144, then continue toward direct sketch drawing/edit handles
+or better native 3D selection affordances.

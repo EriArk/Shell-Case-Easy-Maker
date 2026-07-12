@@ -1611,7 +1611,7 @@ plate, and map preview faces back to stable sketch entity ids.
 
 ## Follow-up tasks
 
-- Add UI-facing protrusion/depth controls only after validation and undo copy
-  are designed.
+- UI-facing protrusion/depth controls now live in the semantic sketch entity
+  inspector and reuse normal validation/undo/copy paths.
 - Add direct sketch drawing/edit handles without making generated mesh topology
   editable state.

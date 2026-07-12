@@ -203,11 +203,15 @@ Map<String, Object?> _sketchProfileEntityParameters(
   );
   final centerX = center.isNotEmpty ? center[0] : 0.0;
   final centerY = center.length > 1 ? center[1] : 0.0;
+  final depth = _sketchProfileEntityDepth(entity);
   final base = <String, Object?>{
     'entityType': entity.type,
     'profileIntent': profileIntent,
     'center': [centerX, centerY],
   };
+  if (depth != null) {
+    base['depth'] = depth;
+  }
 
   return switch (entity.type) {
     'rectangle' => {
@@ -226,6 +230,16 @@ Map<String, Object?> _sketchProfileEntityParameters(
     },
     _ => {...base, if (entity.parameters.isNotEmpty) 'raw': entity.parameters},
   };
+}
+
+double? _sketchProfileEntityDepth(SketchEntity entity) {
+  if (entity.parameters.containsKey('depth')) {
+    return readDouble(entity.parameters['depth'], fallback: 3.0);
+  }
+  if (entity.parameters.containsKey('protrusion')) {
+    return readDouble(entity.parameters['protrusion'], fallback: 3.0);
+  }
+  return null;
 }
 
 String _operationKindForFeature(String featureKind) {

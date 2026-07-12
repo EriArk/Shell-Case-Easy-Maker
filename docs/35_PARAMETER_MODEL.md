@@ -109,12 +109,14 @@ entities to schema-backed parameter banks. Rectangle parameters:
 - width,
 - height,
 - corner radius,
-- rotation.
+- rotation,
+- operation depth when explicitly set.
 
 Circle parameters:
 - center X,
 - center Y,
-- diameter.
+- diameter,
+- operation depth when explicitly set.
 
 The adapter writes values back to `SketchEntity.parameters`, normalizes numeric
 precision for stable JSON, and clamps corner radius to half of the smaller
@@ -152,7 +154,13 @@ Sketch profile intent is stored beside those schema-backed dimensions as
 `SketchEntity.metadata.profileIntent`. Supported values are `reference`, `cut`,
 and `add`; missing or invalid values read as `reference`. The inspector writes
 intent through an undoable semantic edit, and duplicate preserves the intent.
-Intent is deliberately not consumed by geometry yet.
+When a focused contour is `cut` or `add`, the inspector exposes depth/height
+quick controls that write `SketchEntity.parameters.depth`. The adapter keeps
+this parameter explicit: reference contours do not gain `depth` just because
+they were nudged or resized, but a contour that already has depth preserves it
+through later semantic edits and duplication. The native preview can consume
+supported `cut`/`add` contours, but generated B-Rep/mesh/topology remains
+outside the editable project model.
 
 ## Current Limitations
 

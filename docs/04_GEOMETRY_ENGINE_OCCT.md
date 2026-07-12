@@ -128,7 +128,9 @@ semantic circular/rectangular cutout tool path, map preview ranges back to
 stable sketch entity ids such as `advanced_sketch_1.lid_rect_cut`, and remain
 disposable generated B-Rep. The native worker also consumes first-pass
 `profileIntent=add` circles and rectangles as positive protrusions on the same
-supported workplanes. Richer sketch extrusion semantics remain future backend
+supported workplanes. Sketch cut/add entities can carry semantic `depth`, which
+the operation planner and native worker treat as request input rather than
+editable B-Rep state. Richer sketch extrusion semantics remain future backend
 work. The native OCCT worker
 also consumes front-wall `usb_c_cutout`
 intents, first-pass front-wall and top-lid `glass_recess` intents,

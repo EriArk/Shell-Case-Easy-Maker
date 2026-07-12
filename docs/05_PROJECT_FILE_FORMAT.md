@@ -105,7 +105,8 @@ Advanced sketch helper features store typed sketch entities in feature metadata.
 The first supported entities are rectangles and circles. Their dimensions stay
 in `parameters`; each entity can also carry `profileIntent` metadata with one
 of `reference`, `cut`, or `add`. That intent is an editable semantic hint for
-future sketch operations, not generated geometry:
+sketch operations. Cut/add entities can store an optional semantic `depth`
+parameter; generated geometry remains disposable preview/export output:
 
 ```json
 {
@@ -133,7 +134,8 @@ future sketch operations, not generated geometry:
         "width": 32.5,
         "height": 12.0,
         "cornerRadius": 0.0,
-        "rotation": 0.0
+        "rotation": 0.0,
+        "depth": 4.0
       }
     },
     {
@@ -142,7 +144,8 @@ future sketch operations, not generated geometry:
       "profileIntent": "add",
       "parameters": {
         "center": [16.0, 0.0],
-        "diameter": 12.0
+        "diameter": 12.0,
+        "depth": 1.2
       }
     }
   ]

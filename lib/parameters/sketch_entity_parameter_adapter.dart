@@ -7,6 +7,11 @@ import 'parameter_model.dart';
 class SketchEntityParameterAdapter {
   const SketchEntityParameterAdapter._();
 
+  static const defaultProfileDepth = 3.0;
+  static const defaultAddProtrusion = 1.2;
+  static const minProfileDepth = 0.2;
+  static const maxProfileDepth = 10.0;
+
   static const rectangleSchema = ParameterSchema(
     id: 'sketch.rectangle',
     label: 'Прямоугольник',
@@ -59,6 +64,18 @@ class SketchEntityParameterAdapter {
         defaultValue: 0.0,
         range: ParameterRange(min: -180, max: 180, step: 1),
       ),
+      ParameterDefinition(
+        id: 'depth',
+        label: 'Глубина',
+        kind: ParameterKind.length,
+        unit: 'mm',
+        defaultValue: defaultProfileDepth,
+        range: ParameterRange(
+          min: minProfileDepth,
+          max: maxProfileDepth,
+          step: 0.1,
+        ),
+      ),
     ],
   );
 
@@ -90,6 +107,18 @@ class SketchEntityParameterAdapter {
         defaultValue: 12.0,
         range: ParameterRange(min: 1, max: 500, step: 0.1),
       ),
+      ParameterDefinition(
+        id: 'depth',
+        label: 'Глубина',
+        kind: ParameterKind.length,
+        unit: 'mm',
+        defaultValue: defaultProfileDepth,
+        range: ParameterRange(
+          min: minProfileDepth,
+          max: maxProfileDepth,
+          step: 0.1,
+        ),
+      ),
     ],
   );
 
@@ -108,19 +137,27 @@ class SketchEntityParameterAdapter {
     );
 
     return switch (entity.type) {
-      'rectangle' => rectangleSchema.applyDefaults({
-        'centerX': center.isNotEmpty ? center[0] : 0.0,
-        'centerY': center.length > 1 ? center[1] : 0.0,
-        'width': entity.parameters['width'],
-        'height': entity.parameters['height'],
-        'cornerRadius': entity.parameters['cornerRadius'],
-        'rotation': entity.parameters['rotation'],
-      }),
-      'circle' => circleSchema.applyDefaults({
-        'centerX': center.isNotEmpty ? center[0] : 0.0,
-        'centerY': center.length > 1 ? center[1] : 0.0,
-        'diameter': entity.parameters['diameter'],
-      }),
+      'rectangle' => _removeMissingOperationDepth(
+        entity,
+        rectangleSchema.applyDefaults({
+          'centerX': center.isNotEmpty ? center[0] : 0.0,
+          'centerY': center.length > 1 ? center[1] : 0.0,
+          'width': entity.parameters['width'],
+          'height': entity.parameters['height'],
+          'cornerRadius': entity.parameters['cornerRadius'],
+          'rotation': entity.parameters['rotation'],
+          'depth': _operationDepthValue(entity),
+        }),
+      ),
+      'circle' => _removeMissingOperationDepth(
+        entity,
+        circleSchema.applyDefaults({
+          'centerX': center.isNotEmpty ? center[0] : 0.0,
+          'centerY': center.length > 1 ? center[1] : 0.0,
+          'diameter': entity.parameters['diameter'],
+          'depth': _operationDepthValue(entity),
+        }),
+      ),
       _ => const {},
     };
   }
@@ -157,6 +194,10 @@ class SketchEntityParameterAdapter {
     SketchEntity entity,
     Map<String, Object?> values,
   ) {
+    final shouldStoreDepth =
+        _hasOperationDepth(entity) ||
+        values.containsKey('depth') ||
+        values.containsKey('protrusion');
     final normalized = rectangleSchema.applyDefaults(values);
     final width = _cleanDouble(_doubleValue(normalized, 'width'));
     final height = _cleanDouble(_doubleValue(normalized, 'height'));
@@ -178,6 +219,8 @@ class SketchEntityParameterAdapter {
         'height': height,
         'cornerRadius': cornerRadius,
         'rotation': rotation,
+        if (shouldStoreDepth)
+          'depth': _cleanDouble(_doubleValue(normalized, 'depth')),
       },
       metadata: entity.metadata,
     );
@@ -187,6 +230,10 @@ class SketchEntityParameterAdapter {
     SketchEntity entity,
     Map<String, Object?> values,
   ) {
+    final shouldStoreDepth =
+        _hasOperationDepth(entity) ||
+        values.containsKey('depth') ||
+        values.containsKey('protrusion');
     final normalized = circleSchema.applyDefaults(values);
 
     return SketchEntity(
@@ -198,6 +245,8 @@ class SketchEntityParameterAdapter {
           _cleanDouble(_doubleValue(normalized, 'centerY')),
         ],
         'diameter': _cleanDouble(_doubleValue(normalized, 'diameter')),
+        if (shouldStoreDepth)
+          'depth': _cleanDouble(_doubleValue(normalized, 'depth')),
       },
       metadata: entity.metadata,
     );
@@ -340,6 +389,30 @@ class SketchEntityParameterAdapter {
         centerX + radius <= workplaneHalfWidth &&
         centerY - radius >= -workplaneHalfHeight &&
         centerY + radius <= workplaneHalfHeight;
+  }
+
+  static Map<String, Object?> _removeMissingOperationDepth(
+    SketchEntity entity,
+    Map<String, Object?> values,
+  ) {
+    if (_hasOperationDepth(entity)) {
+      return values;
+    }
+
+    return {...values}..remove('depth');
+  }
+
+  static bool _hasOperationDepth(SketchEntity entity) {
+    return entity.parameters.containsKey('depth') ||
+        entity.parameters.containsKey('protrusion');
+  }
+
+  static Object? _operationDepthValue(SketchEntity entity) {
+    if (entity.parameters.containsKey('depth')) {
+      return entity.parameters['depth'];
+    }
+
+    return entity.parameters['protrusion'];
   }
 
   static double _doubleValue(Map<String, Object?> values, String id) {

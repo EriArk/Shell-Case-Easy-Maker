@@ -6196,6 +6196,23 @@ class _SketchEntityParameterEditor extends StatelessWidget {
     final schema = SketchEntityParameterAdapter.schemaFor(entity);
     final values = SketchEntityParameterAdapter.valuesFrom(entity);
     final profileIntent = sketchProfileIntentFor(entity);
+    final showsProfileDepth =
+        profileIntent == sketchProfileIntentCut ||
+        profileIntent == sketchProfileIntentAdd;
+    final profileDepthDefault = profileIntent == sketchProfileIntentAdd
+        ? SketchEntityParameterAdapter.defaultAddProtrusion
+        : SketchEntityParameterAdapter.defaultProfileDepth;
+    final profileDepth = readDouble(
+      values['depth'],
+      fallback: profileDepthDefault,
+    );
+    final visibleParameters = schema == null
+        ? const <ParameterDefinition>[]
+        : schema.parameters
+              .where(
+                (parameter) => parameter.id != 'depth' || showsProfileDepth,
+              )
+              .toList(growable: false);
     final cornerRadius = readDouble(values['cornerRadius'], fallback: 0.0);
     final diameter = readDouble(values['diameter'], fallback: 12.0);
     final bounds = workplaneSize;
@@ -6345,6 +6362,36 @@ class _SketchEntityParameterEditor extends StatelessWidget {
               profileIntent: profileIntent,
               onChanged: onProfileIntentChanged,
             ),
+            if (showsProfileDepth) ...[
+              const SizedBox(height: 6),
+              _SketchEntityResizeRow(
+                label: profileIntent == sketchProfileIntentAdd
+                    ? 'Высота'
+                    : 'Глубина',
+                decreaseKey: ValueKey(
+                  'sketch-entity-$featureId-${entity.id}-depth-decrease',
+                ),
+                increaseKey: ValueKey(
+                  'sketch-entity-$featureId-${entity.id}-depth-increase',
+                ),
+                decreaseTooltip: profileIntent == sketchProfileIntentAdd
+                    ? 'Уменьшить высоту выступа на 1 мм'
+                    : 'Уменьшить глубину выреза на 1 мм',
+                increaseTooltip: profileIntent == sketchProfileIntentAdd
+                    ? 'Увеличить высоту выступа на 1 мм'
+                    : 'Увеличить глубину выреза на 1 мм',
+                resetKey: ValueKey(
+                  'sketch-entity-$featureId-${entity.id}-depth-reset',
+                ),
+                resetTooltip: profileIntent == sketchProfileIntentAdd
+                    ? 'Вернуть высоту выступа'
+                    : 'Вернуть глубину выреза',
+                resetIcon: Icons.vertical_align_center_rounded,
+                onDecrease: () => onChanged('depth', profileDepth - 1),
+                onIncrease: () => onChanged('depth', profileDepth + 1),
+                onReset: () => onChanged('depth', profileDepthDefault),
+              ),
+            ],
             if (entity.type == 'rectangle') ...[
               const SizedBox(height: 6),
               _SketchEntityResizeRow(
@@ -6461,11 +6508,13 @@ class _SketchEntityParameterEditor extends StatelessWidget {
           ],
           if (schema != null) ...[
             const SizedBox(height: 8),
-            for (final parameter in schema.parameters) ...[
+            for (final parameter in visibleParameters) ...[
               _ParameterNumberField(
                 keyPrefix: 'sketch-entity-$featureId-${entity.id}',
                 parameter: parameter,
-                value: values[parameter.id],
+                value: parameter.id == 'depth'
+                    ? values[parameter.id] ?? profileDepthDefault
+                    : values[parameter.id],
                 onSubmitted: (value) => onChanged(parameter.id, value),
               ),
               const SizedBox(height: 8),

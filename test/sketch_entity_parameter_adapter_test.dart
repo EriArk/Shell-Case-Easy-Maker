@@ -15,6 +15,7 @@ void main() {
     expect(values['height'], 12.0);
     expect(values['cornerRadius'], 0.0);
     expect(values['rotation'], 0.0);
+    expect(values.containsKey('depth'), isFalse);
   });
 
   test('rectangle sketch entity updates semantic parameters', () {
@@ -46,6 +47,26 @@ void main() {
     expect(rounded.parameters['height'], 12.0);
     expect(rounded.parameters['cornerRadius'], 3.0);
     expect(rounded.parameters['rotation'], 37.0);
+    expect(rounded.parameters.containsKey('depth'), isFalse);
+  });
+
+  test('rectangle sketch operation depth is explicit and clamped', () {
+    final rectangle = defaultSketchRectangleEntity(id: 'rect_1');
+
+    final deep = SketchEntityParameterAdapter.updateParameter(
+      rectangle,
+      'depth',
+      4.2,
+    );
+    final clamped = SketchEntityParameterAdapter.updateParameter(
+      deep,
+      'depth',
+      99.0,
+    );
+
+    expect(deep.parameters['depth'], 4.2);
+    expect(SketchEntityParameterAdapter.valuesFrom(deep)['depth'], 4.2);
+    expect(clamped.parameters['depth'], 10.0);
   });
 
   test('rectangle corner radius is clamped to half the smaller side', () {
@@ -76,8 +97,26 @@ void main() {
     expect(values['centerX'], 0.0);
     expect(values['centerY'], 0.0);
     expect(values['diameter'], 12.0);
+    expect(values.containsKey('depth'), isFalse);
     expect(resized.parameters['center'], [0.0, -8.0]);
     expect(resized.parameters['diameter'], 18.0);
+    expect(resized.parameters.containsKey('depth'), isFalse);
+  });
+
+  test('circle sketch operation depth is explicit and duplicate-safe', () {
+    final circle = SketchEntityParameterAdapter.updateParameter(
+      defaultSketchCircleEntity(id: 'circle_1'),
+      'depth',
+      1.2,
+    );
+
+    final duplicate = SketchEntityParameterAdapter.duplicateWithOffset(
+      circle,
+      id: 'circle_2',
+    );
+
+    expect(circle.parameters['depth'], 1.2);
+    expect(duplicate.parameters['depth'], 1.2);
   });
 
   test('circle duplicate gets a new id and offset center', () {

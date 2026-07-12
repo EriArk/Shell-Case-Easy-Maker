@@ -38,7 +38,8 @@ generate simple disposable native protrusions.
   placement, and typed sketch entities in metadata.
 - `SketchEntity` currently supports `rectangle` with center, width, height,
   corner-radius, and rotation parameters, plus `circle` with center and
-  diameter parameters.
+  diameter parameters. Cut/add contours can additionally store semantic
+  `depth`.
 - Every sketch entity can carry a semantic `profileIntent`: `reference`,
   `cut`, or `add`. The intent is stored as entity metadata;
   `advanced_sketch.operation` remains `helper`.
@@ -57,6 +58,7 @@ generate simple disposable native protrusions.
 - Rectangle/circle entity click placement is undoable and save/load-safe.
 - Rectangle/circle parameter edits are undoable and save/load-safe.
 - Profile intent edits are undoable and save/load-safe.
+- Cut/add depth edits are undoable and save/load-safe.
 - Focused sketch entity nudge/move-to-click/resize/duplicate/delete actions
   are undoable and save/load-safe.
 - Focused rectangle workplane quick actions can center the contour or fit it to

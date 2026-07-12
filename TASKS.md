@@ -410,6 +410,7 @@ For implementation order, safe chunk boundaries, and manual poke checklists, use
 - [x] Basic sketch native profile cut slice.
 - [x] Basic sketch native rotated rectangle cut slice.
 - [x] Basic sketch native add protrusion slice.
+- [x] Basic sketch profile depth controls.
 - [ ] Basic sketch drawing/editing.
 - [ ] Extrude/cut.
 - [ ] Boolean.
