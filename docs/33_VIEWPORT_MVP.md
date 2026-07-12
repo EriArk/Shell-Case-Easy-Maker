@@ -218,7 +218,8 @@ entity's semantic center and commits an undoable project edit.
 - Use selected circle diameter buttons or the `Диаметр` field: change the
   circle diameter semantically.
 - Use selected sketch entity intent buttons: mark the contour as reference,
-  cut, or add for future sketch operations without generating geometry.
+  cut, or add; native preview can render supported cut/add contours as
+  generated geometry while the editable sketch stays semantic.
 - Use selected rectangle radius buttons: round corners by 1 mm or reset back
   to square corners.
 - Use selected rectangle rotation buttons or the `Поворот` field: rotate the

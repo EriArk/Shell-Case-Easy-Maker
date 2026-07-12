@@ -1496,8 +1496,8 @@ exposing low-level Boolean operations to the default UI?
 - A first safe bridge can treat `profileIntent=cut` circle entities as
   circular cutout requests and rectangle entities as rectangular cutout
   requests. This keeps the implementation small and deterministic.
-- `profileIntent=add`, direct sketch handles, and extrusion depth UX need
-  separate design before they become real geometry.
+- `profileIntent=add`, direct sketch handles, and richer extrusion depth UX need
+  separate design before they become broader geometry tools.
 - No GPL/AGPL code was copied.
 
 ## Decision
@@ -1512,8 +1512,8 @@ continues to store only semantic sketch entities.
 
 - Keep rotated sketch rectangle cuts on the existing semantic cutout path,
   using explicit workplane transform and validation rules.
-- Design `profileIntent=add` as a semantic protrusion/generator before adding
-  native fuse/extrude behavior.
+- Keep `profileIntent=add` semantic and generator-like when adding native
+  positive preview behavior.
 - Add direct sketch drawing/edit handles without coupling selection to preview
   mesh triangle ids.
 
@@ -1562,7 +1562,56 @@ generated cut tool around the target surface normal before subtraction.
 
 ## Follow-up tasks
 
-- Design `profileIntent=add` as a semantic positive generator before native
-  fuse/extrude behavior.
+- Keep `profileIntent=add` as a semantic positive generator; do not expose raw
+  extrude/boolean controls in the default workflow.
+- Add direct sketch drawing/edit handles without making generated mesh topology
+  editable state.
+
+---
+
+## 2026-07-11 - Native Advanced Sketch add protrusions
+
+## Question
+
+How should `profileIntent=add` become visible in native preview without turning
+Advanced Sketch into a general-purpose extrude/boolean CAD workflow?
+
+## Sources checked
+
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepAlgoAPI_Fuse.hxx`
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepPrimAPI_MakeCylinder.hxx`
+- Local OCCT 8.0 header:
+  `occt_worker/native/vcpkg_installed/x64-windows/include/opencascade/BRepPrimAPI_MakeBox.hxx`
+- Existing native worker positive geometry slices in
+  `occt_worker/native/src/occt_main.cpp` for button rings, standoff mounts,
+  lid screw bosses, and generated top-lid button protrusions.
+
+## Findings
+
+- Existing native positive-feature code already uses semantic request objects
+  and `BRepAlgoAPI_Fuse`, so `profileIntent=add` can follow the same
+  generator-style route instead of exposing raw extrude/boolean operations.
+- A first safe add slice can use a small default protrusion and optional
+  semantic `depth`/`protrusion` parameter for later UI controls.
+- The protrusion shape can be generated from circle/rectangle sketch metadata,
+  fused into the body or generated lid plate, and mapped back to the stable
+  sketch entity id in preview ranges.
+- Generated B-Rep remains disposable worker output; `ProjectModel` still stores
+  only the semantic sketch entity and profile intent.
+- No GPL/AGPL code was copied.
+
+## Decision
+
+Parse Advanced Sketch `profileIntent=add` circles and rectangles into
+`SketchAddRequest` values. Generate simple positive protrusions on supported
+front-wall/top-lid workplanes, fuse them into the native body or generated lid
+plate, and map preview faces back to stable sketch entity ids.
+
+## Follow-up tasks
+
+- Add UI-facing protrusion/depth controls only after validation and undo copy
+  are designed.
 - Add direct sketch drawing/edit handles without making generated mesh topology
   editable state.

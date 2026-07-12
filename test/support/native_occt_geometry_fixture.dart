@@ -353,7 +353,7 @@ ProjectModel nativeOcctSketchProfileCutProject() {
       ),
       sketchEntityWithProfileIntent(
         const SketchEntity(
-          id: 'future_add',
+          id: 'lid_circle_add',
           type: 'circle',
           parameters: {
             'center': [0.0, 18.0],

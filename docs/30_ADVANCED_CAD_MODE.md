@@ -19,7 +19,8 @@ now store typed sketch entities; the first supported entities are deterministic
 rectangles and circles. It is intentionally not a freeform mesh/B-Rep editor
 and does not store generated geometry as editable project state. Supported
 `cut` circles and rectangles, including rotated rectangles, can generate
-disposable native preview cutouts.
+disposable native preview cutouts. Supported `add` circles and rectangles can
+generate simple disposable native protrusions.
 
 ## Current sketch foundation
 
@@ -30,8 +31,9 @@ disposable native preview cutouts.
   operation plan as `sketch.profile.cut` or `sketch.profile.add`, with
   deterministic semantic shape parameters. The native OCCT preview consumes
   `cut` circles and rectangles, including rotated rectangles, on supported
-  workplanes as disposable generated B-Rep cut tools. `add` and richer sketch
-  extrusion behavior remain future work.
+  workplanes as disposable generated B-Rep cut tools. It also consumes `add`
+  circles and rectangles as disposable positive protrusions. Richer sketch
+  extrusion behavior remains future work.
 - The feature stores its target surface, display name, surface workplane
   placement, and typed sketch entities in metadata.
 - `SketchEntity` currently supports `rectangle` with center, width, height,

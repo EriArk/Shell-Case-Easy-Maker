@@ -13012,3 +13012,99 @@ keeping the editable project semantic and topology-free.
 ### Next step
 Commit and push M142, then continue toward `profileIntent=add` semantics or
 direct sketch drawing/edit handles.
+
+---
+
+## 2026-07-11 - M143 Native sketch add protrusion slice
+
+### Goal
+Let native OCCT preview consume first-pass Advanced Sketch `profileIntent=add`
+contours as simple positive protrusions while keeping the editable project
+semantic and topology-free.
+
+### Read before work
+`AGENTS.md`, `ROADMAP.md`, `TASKS.md`, `WORKLOG.md`,
+`docs/03_ARCHITECTURE_OVERVIEW.md`, `docs/04_GEOMETRY_ENGINE_OCCT.md`,
+`docs/06_FEATURE_SYSTEM.md`, `docs/26_TESTING_AND_QUALITY.md`,
+`docs/27_RESEARCH_AND_REFERENCES.md`, `docs/30_ADVANCED_CAD_MODE.md`,
+`docs/31_COMMANDS_AND_UNDO.md`, `docs/32_USABLE_SHELL.md`,
+`docs/33_VIEWPORT_MVP.md`, `occt_worker/native/src/occt_main.cpp`,
+`test/native_occt_geometry_regression_test.dart`, and
+`test/support/native_occt_geometry_fixture.dart`.
+
+### Changes made
+- `occt_worker/native/src/occt_main.cpp`:
+  - Added `SketchAddRequest` so positive sketch protrusions stay separate from
+    cutout request types.
+  - Parsed `profileIntent=add` circle and rectangle sketch entities.
+  - Validated add contours against supported front-wall/top-lid workplane
+    bounds.
+  - Built circular and rectangular positive protrusions with a small surface
+    overlap for reliable OCCT fuse.
+  - Fused front-wall adds into the body and top-lid adds into the generated lid
+    plate.
+  - Mapped add preview faces back to stable sketch entity ids.
+  - Added add-specific response metrics:
+    `nativeSketchAddCount`, `nativeSketchAddFilletedEdgeCount`,
+    `nativeGeneratedLidSketchAddCount`, and
+    `nativeGeneratedLidSketchAddFilletedEdgeCount`.
+- `test/support/native_occt_geometry_fixture.dart`:
+  - Renamed the add fixture contour to `lid_circle_add`.
+- `test/native_occt_geometry_regression_test.dart`:
+  - Verified the add contour semantic surface id and generated lid add metrics.
+- Docs/tasks/roadmap/research:
+  - Added M143, updated current sketch/native docs, and recorded the add
+    protrusion research note.
+
+### Tests run
+- `dart format test\support\native_occt_geometry_fixture.dart test\native_occt_geometry_regression_test.dart`:
+  - Passed.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`:
+  - Passed after adding forward declarations for C++ helper order.
+- `flutter test test\native_occt_geometry_regression_test.dart --reporter compact`:
+  - Passed, 4 tests.
+- `flutter pub get`:
+  - Passed.
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`:
+  - Passed.
+- `flutter analyze`:
+  - Passed.
+- `flutter test --reporter compact`:
+  - Passed, 263 tests.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`:
+  - Passed. Refreshed `releases/latest/windows/shell_case_easy_maker.exe`.
+- `git diff --check`:
+  - Passed.
+- `Test-Path releases\latest\windows\shell_case_easy_maker.exe`:
+  - Passed.
+- `git status --short --ignored releases`:
+  - Passed. `releases/` remains ignored.
+
+### Validation
+- Geometry checked?
+  - Yes. Native regression verifies generated cut ranges for cut contours and
+    generated positive protrusion mapping for
+    `advanced_sketch_1.lid_circle_add`.
+- Serialization checked?
+  - Yes by boundary. The editable project still stores semantic
+    `advanced_sketch` entities; no generated B-Rep, mesh, OCCT topology id, or
+    triangle id is saved.
+- UI checked?
+  - Not manually in this session. The latest exe was rebuilt and has a useful
+    poke checklist for switching reference/cut/add behavior.
+- Export checked?
+  - Yes. Latest Windows bundle was rebuilt locally and remains ignored by Git.
+
+### Known issues
+- Issue: Add protrusion depth is currently a worker default unless a semantic
+  `depth`/`protrusion` parameter is present.
+  - Severity: Expected.
+  - Next action: Add UI-facing depth controls only after validation and undo
+    behavior are designed.
+- Issue: Direct sketch drawing/edit handles still do not exist.
+  - Severity: Expected.
+  - Next action: Continue toward drawing handles or focused add/cut depth UX.
+
+### Next step
+Commit and push M143, then continue toward sketch drawing/edit handles or
+semantic add/cut depth controls.

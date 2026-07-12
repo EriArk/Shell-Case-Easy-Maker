@@ -256,7 +256,7 @@ void main() {
   );
 
   test(
-    'native OCCT preview cuts advanced sketch profile contours',
+    'native OCCT preview cuts and adds advanced sketch profile contours',
     () async {
       final client = nativeOcctWorkerClient(repoRoot);
       final response = await client.buildGeometry(
@@ -283,7 +283,7 @@ void main() {
       expect(surfaceIds, contains('advanced_sketch_1.lid_round_cut'));
       expect(surfaceIds, contains('advanced_sketch_1.lid_rect_cut'));
       expect(surfaceIds, contains('advanced_sketch_1.lid_rotated_rect_cut'));
-      expect(surfaceIds, isNot(contains('advanced_sketch_1.future_add')));
+      expect(surfaceIds, contains('advanced_sketch_1.lid_circle_add'));
 
       final metrics = response.metrics;
       expect(metrics['featureIntentCount'], 1);
@@ -298,6 +298,8 @@ void main() {
         metrics['nativeGeneratedLidRectangularCutoutFilletedEdgeCount'],
         16,
       );
+      expect(metrics['nativeGeneratedLidSketchAddCount'], 1);
+      expect(metrics['nativeGeneratedLidSketchAddFilletedEdgeCount'], 0);
       expect(metrics, isNot(contains('topologyId')));
       expect(metrics, isNot(contains('triangleId')));
     },

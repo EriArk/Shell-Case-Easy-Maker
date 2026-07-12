@@ -161,6 +161,7 @@ The release folder is local-only and ignored by Git. Keep the whole folder toget
 - [x] M140 - Sketch Profile Operation Plan
 - [x] M141 - Native Sketch Profile Cut Slice
 - [x] M142 - Native Rotated Sketch Rectangle Cut
+- [x] M143 - Native Sketch Add Protrusion Slice
 
 ---
 
@@ -6779,3 +6780,52 @@ changing the editable project source of truth or exposing raw topology ids.
 - Confirm the native preview cut follows the rectangle angle instead of
   remaining axis-aligned.
 - Set a contour to add and confirm it still stays future-only for now.
+
+---
+
+## M143 - Native Sketch Add Protrusion Slice
+
+### Goal
+Let native OCCT preview consume first-pass Advanced Sketch `add` contours as
+simple positive protrusions while keeping the editable project semantic.
+
+### Tasks
+- [x] Add a native `SketchAddRequest` separate from cutout request types.
+- [x] Parse `profileIntent=add` circle and rectangle sketch entities.
+- [x] Validate add contours against supported front-wall/top-lid workplane
+      bounds.
+- [x] Generate circular and rectangular protrusion B-Rep with a small surface
+      overlap for reliable fuse.
+- [x] Fuse front-wall adds into the body and top-lid adds into the generated
+      lid plate.
+- [x] Map preview ranges back to stable sketch entity ids.
+- [x] Cover add behavior with a native OCCT regression test.
+- [x] Update docs/tasks/worklog/research notes.
+
+### Done Criteria
+- A top-lid Advanced Sketch circle with `profileIntent=add` generates a native
+  positive protrusion.
+- The preview mesh exposes `advanced_sketch_1.lid_circle_add`.
+- `cut` circles/rectangles, including rotated rectangles, still generate
+  native cutouts.
+- No raw OCCT topology id, face id, triangle id, B-Rep, or mesh is saved as
+  editable project state.
+
+### Tests
+- `dart format test\support\native_occt_geometry_fixture.dart test\native_occt_geometry_regression_test.dart`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_occt_worker_occt.ps1 -AllowVcpkgInstall`
+- `flutter test test\native_occt_geometry_regression_test.dart --reporter compact`
+- `flutter pub get`
+- `dart format --output=none --set-exit-if-changed lib test tool occt_worker`
+- `flutter analyze`
+- `flutter test --reporter compact`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools\build_latest_windows.ps1 -NativeOcct -SkipNativeOcctBuild`
+- `git diff --check`
+
+### Poke Checklist
+- Open the latest exe.
+- Enable Advanced Mode and select/create an Advanced Sketch on the top lid.
+- Add/select a circle or rectangle and set its intent to add.
+- Confirm the native preview shows a small raised protrusion for that contour.
+- Switch the same contour between reference/cut/add and confirm the native
+  preview updates between helper-only, cutout, and protrusion behavior.

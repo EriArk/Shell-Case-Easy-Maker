@@ -362,8 +362,8 @@ circle entities expose compact schema-backed fields in the same inspector
 section, and the selected entity also exposes an icon-only intent row:
 reference, cut, or add. This intent is saved as entity metadata. Native preview
 currently consumes validated `cut` circles and rectangles, including rotated
-rectangles, as generated cutouts; `add` and richer sketch operations remain
-later slices.
+rectangles, as generated cutouts, and validated `add` circles and rectangles as
+generated protrusions. Richer sketch operations remain later slices.
 
 When the selected sketch has entities, the viewport draws thin helper contour
 overlays without restoring the old full-surface workplane rectangle. The helper

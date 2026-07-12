@@ -89,9 +89,10 @@ parameters.
 
 Sketch entities are still semantic helper/editing data in `ProjectModel`.
 Supported `profileIntent=cut` circles and rectangles, including rotated
-rectangles, can generate disposable native OCCT preview cutouts, but generated
-B-Rep, mesh, and topology IDs are not stored as editable project state. The
-inspector can start rectangle
+rectangles, can generate disposable native OCCT preview cutouts. Supported
+`profileIntent=add` circles and rectangles can generate disposable native
+positive protrusions. Generated B-Rep, mesh, and topology IDs are not stored as
+editable project state. The inspector can start rectangle
 or circle placement mode for a selected sketch; the next click on the supported
 surface workplane stores the contour center in semantic local coordinates as an
 undoable project edit. The inspector can then edit its schema-backed values
@@ -103,8 +104,8 @@ are `reference`, `cut`, and `add`; missing or unknown values read as
 mode row. The geometry operation planner can expose non-reference contours as
 request-scoped `sketch.profile.cut` or `sketch.profile.add` operations so the
 backend contract is deterministic. The native OCCT preview currently consumes
-validated `cut` circles and rectangles, including rotated rectangles, on
-supported workplanes; `add` and richer extrude behavior remain future slices.
+validated `cut` circles/rectangles and validated `add` circles/rectangles on
+supported workplanes; richer extrude behavior remains future slices.
 
 Rectangle parameter edits replace the stored sketch entity semantically. The
 corner radius is clamped to half of the smaller side so the stored rectangle

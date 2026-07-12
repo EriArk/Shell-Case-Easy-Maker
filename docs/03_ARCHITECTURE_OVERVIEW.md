@@ -148,8 +148,9 @@ intent now also becomes request-scoped plan entries:
 with semantic shape parameters. The native OCCT worker now consumes the first
 sketch `cut` circles and rectangles, including rotated rectangles, as
 disposable generated preview cutouts, mapped back to the sketch entity ids.
-`add` and other unsupported entries remain request/response scoped backend
-input, not saved editable project state.
+It also consumes first-pass sketch `add` circles and rectangles as disposable
+positive protrusions on supported workplanes. Richer sketch operations remain
+request/response scoped backend input, not saved editable project state.
 
 ## Generated Geometry Protocol Fixtures
 

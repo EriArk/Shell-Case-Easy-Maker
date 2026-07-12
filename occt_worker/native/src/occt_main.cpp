@@ -81,6 +81,9 @@ constexpr double kButtonGuideWallThickness = 0.45;
 constexpr double kButtonGuideMinLength = 0.2;
 constexpr double kButtonTravelStopThickness = 0.35;
 constexpr double kButtonTravelStopShoulder = 0.35;
+constexpr double kDefaultSketchAddProtrusion = 1.2;
+constexpr double kSketchAddSurfaceOverlap = 0.12;
+constexpr double kMaxSketchAddProtrusion = 10.0;
 constexpr double kPi = 3.14159265358979323846;
 
 struct NativeRequestEnvelope {
@@ -166,6 +169,20 @@ struct RectangularCutoutRequest {
   std::array<double, 2> surface_position = {0.0, 0.0};
 };
 
+struct SketchAddRequest {
+  std::string id;
+  std::string target_surface;
+  std::string shape_type;
+  double diameter = 8.0;
+  double width = 18.0;
+  double height = 10.0;
+  double protrusion = kDefaultSketchAddProtrusion;
+  double corner_radius = 2.0;
+  double rotation_degrees = 0.0;
+  bool has_surface_position = false;
+  std::array<double, 2> surface_position = {0.0, 0.0};
+};
+
 struct ButtonCutoutItemRequest {
   std::string id;
   std::array<double, 2> position = {0.0, 0.0};
@@ -210,6 +227,7 @@ struct NativeRequestParseResult {
   std::vector<GlassRecessRequest> glass_recesses;
   std::vector<CircularCutoutRequest> circular_cutouts;
   std::vector<RectangularCutoutRequest> rectangular_cutouts;
+  std::vector<SketchAddRequest> sketch_adds;
   std::vector<ButtonGroupCutoutRequest> button_groups;
   std::vector<StandoffMountGroupRequest> standoff_groups;
   std::vector<LidScrewBossRequest> lid_screw_bosses;
@@ -245,6 +263,8 @@ struct ShapeMetrics {
   int native_circular_cutout_count = 0;
   int native_rectangular_cutout_count = 0;
   int native_rectangular_cutout_filleted_edge_count = 0;
+  int native_sketch_add_count = 0;
+  int native_sketch_add_filleted_edge_count = 0;
   int native_button_group_count = 0;
   int native_button_cutout_count = 0;
   int native_button_ring_count = 0;
@@ -269,6 +289,8 @@ struct ShapeMetrics {
   int native_generated_lid_circular_cutout_count = 0;
   int native_generated_lid_rectangular_cutout_count = 0;
   int native_generated_lid_rectangular_cutout_filleted_edge_count = 0;
+  int native_generated_lid_sketch_add_count = 0;
+  int native_generated_lid_sketch_add_filleted_edge_count = 0;
   int native_generated_lid_button_group_count = 0;
   int native_generated_lid_button_cutout_count = 0;
   int native_generated_lid_button_ring_count = 0;
@@ -308,6 +330,8 @@ struct NativePreviewAssemblyResult {
   int generated_lid_circular_cutout_count = 0;
   int generated_lid_rectangular_cutout_count = 0;
   int generated_lid_rectangular_cutout_filleted_edge_count = 0;
+  int generated_lid_sketch_add_count = 0;
+  int generated_lid_sketch_add_filleted_edge_count = 0;
   int generated_lid_button_group_count = 0;
   int generated_lid_button_cutout_count = 0;
   int generated_lid_button_ring_count = 0;
@@ -330,6 +354,8 @@ struct NativeGeneratedLidPlateResult {
   int circular_cutout_count = 0;
   int rectangular_cutout_count = 0;
   int rectangular_cutout_filleted_edge_count = 0;
+  int sketch_add_count = 0;
+  int sketch_add_filleted_edge_count = 0;
   int button_group_count = 0;
   int button_cutout_count = 0;
   int button_ring_count = 0;
@@ -357,6 +383,8 @@ struct NativeFeatureCutResult {
   int circular_cutout_count = 0;
   int rectangular_cutout_count = 0;
   int rectangular_cutout_filleted_edge_count = 0;
+  int sketch_add_count = 0;
+  int sketch_add_filleted_edge_count = 0;
   int button_group_count = 0;
   int button_cutout_count = 0;
   int button_ring_count = 0;
@@ -1518,7 +1546,7 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
         const std::string profile_intent =
             ExtractTopLevelStringField(entity, "profileIntent")
                 .value_or("reference");
-        if (profile_intent != "cut") {
+        if (profile_intent != "cut" && profile_intent != "add") {
           continue;
         }
 
@@ -1540,78 +1568,140 @@ NativeRequestParseResult ReadNativeRequest(const std::string& payload) {
         const std::string profile_id = sketch_id + "." + entity_id;
 
         if (entity_type == "circle") {
-          CircularCutoutRequest cutout;
-          cutout.id = profile_id;
-          cutout.target_surface = target_surface;
-          cutout.has_surface_position = true;
-          cutout.surface_position = surface_position;
+          double diameter = 12.0;
+          double depth = profile_intent == "add"
+                             ? kDefaultSketchAddProtrusion
+                             : 3.0;
           if (entity_parameters.has_value()) {
-            cutout.diameter =
+            diameter =
                 ExtractTopLevelNumberField(*entity_parameters, "diameter")
                     .value_or(12.0);
-            cutout.depth =
+            depth =
                 ExtractTopLevelNumberField(*entity_parameters, "depth")
-                    .value_or(3.0);
+                    .value_or(
+                        ExtractTopLevelNumberField(*entity_parameters,
+                                                   "protrusion")
+                            .value_or(depth));
           }
 
-          if (!IsPositiveDimension(cutout.depth) ||
+          if (!IsPositiveDimension(depth) ||
               !SketchProfileFitsSupportedSurface(result.enclosure,
-                                                 cutout.target_surface,
-                                                 cutout.surface_position,
-                                                 cutout.diameter,
-                                                 cutout.diameter)) {
-            result.issue_code = "worker.geometry.invalid_sketch_profile_cut";
+                                                 target_surface,
+                                                 surface_position,
+                                                 diameter,
+                                                 diameter) ||
+              (profile_intent == "add" && depth > kMaxSketchAddProtrusion)) {
+            result.issue_code =
+                profile_intent == "add"
+                    ? "worker.geometry.invalid_sketch_profile_add"
+                    : "worker.geometry.invalid_sketch_profile_cut";
             result.issue_message =
-                "Native OCCT worker sketch circle cuts must fit the target surface.";
+                profile_intent == "add"
+                    ? "Native OCCT worker sketch circle adds must fit the target surface."
+                    : "Native OCCT worker sketch circle cuts must fit the target surface.";
             return result;
           }
 
-          result.circular_cutouts.push_back(cutout);
+          if (profile_intent == "add") {
+            SketchAddRequest add;
+            add.id = profile_id;
+            add.target_surface = target_surface;
+            add.shape_type = "circle";
+            add.has_surface_position = true;
+            add.surface_position = surface_position;
+            add.diameter = diameter;
+            add.protrusion = depth;
+            result.sketch_adds.push_back(add);
+          } else {
+            CircularCutoutRequest cutout;
+            cutout.id = profile_id;
+            cutout.target_surface = target_surface;
+            cutout.has_surface_position = true;
+            cutout.surface_position = surface_position;
+            cutout.diameter = diameter;
+            cutout.depth = depth;
+            result.circular_cutouts.push_back(cutout);
+          }
           continue;
         }
 
         if (entity_type == "rectangle") {
-          RectangularCutoutRequest cutout;
-          cutout.id = profile_id;
-          cutout.target_surface = target_surface;
-          cutout.has_surface_position = true;
-          cutout.surface_position = surface_position;
+          double width = 20.0;
+          double height = 12.0;
+          double corner_radius = 0.0;
+          double depth = profile_intent == "add"
+                             ? kDefaultSketchAddProtrusion
+                             : 3.0;
+          double rotation_degrees = 0.0;
           if (entity_parameters.has_value()) {
-            cutout.width =
+            width =
                 ExtractTopLevelNumberField(*entity_parameters, "width")
                     .value_or(20.0);
-            cutout.height =
+            height =
                 ExtractTopLevelNumberField(*entity_parameters, "height")
                     .value_or(12.0);
-            cutout.corner_radius =
+            corner_radius =
                 ExtractTopLevelNumberField(*entity_parameters, "cornerRadius")
                     .value_or(0.0);
-            cutout.depth =
+            depth =
                 ExtractTopLevelNumberField(*entity_parameters, "depth")
-                    .value_or(3.0);
-            cutout.rotation_degrees =
+                    .value_or(
+                        ExtractTopLevelNumberField(*entity_parameters,
+                                                   "protrusion")
+                            .value_or(depth));
+            rotation_degrees =
                 ExtractTopLevelNumberField(*entity_parameters, "rotation")
                     .value_or(0.0);
           }
 
-          if (!IsPositiveDimension(cutout.depth) ||
-              !std::isfinite(cutout.corner_radius) ||
-              cutout.corner_radius < 0.0 ||
-              cutout.corner_radius * 2.0 >
-                  std::min(cutout.width, cutout.height) ||
+          if (!IsPositiveDimension(depth) ||
+              !std::isfinite(corner_radius) ||
+              corner_radius < 0.0 ||
+              corner_radius * 2.0 > std::min(width, height) ||
               !SketchProfileFitsSupportedSurface(result.enclosure,
-                                                 cutout.target_surface,
-                                                 cutout.surface_position,
-                                                 cutout.width,
-                                                 cutout.height,
-                                                 cutout.rotation_degrees)) {
-            result.issue_code = "worker.geometry.invalid_sketch_profile_cut";
+                                                 target_surface,
+                                                 surface_position,
+                                                 width,
+                                                 height,
+                                                 rotation_degrees) ||
+              (profile_intent == "add" && depth > kMaxSketchAddProtrusion)) {
+            result.issue_code =
+                profile_intent == "add"
+                    ? "worker.geometry.invalid_sketch_profile_add"
+                    : "worker.geometry.invalid_sketch_profile_cut";
             result.issue_message =
-                "Native OCCT worker sketch rectangle cuts must fit the target surface.";
+                profile_intent == "add"
+                    ? "Native OCCT worker sketch rectangle adds must fit the target surface."
+                    : "Native OCCT worker sketch rectangle cuts must fit the target surface.";
             return result;
           }
 
-          result.rectangular_cutouts.push_back(cutout);
+          if (profile_intent == "add") {
+            SketchAddRequest add;
+            add.id = profile_id;
+            add.target_surface = target_surface;
+            add.shape_type = "rectangle";
+            add.has_surface_position = true;
+            add.surface_position = surface_position;
+            add.width = width;
+            add.height = height;
+            add.protrusion = depth;
+            add.corner_radius = corner_radius;
+            add.rotation_degrees = rotation_degrees;
+            result.sketch_adds.push_back(add);
+          } else {
+            RectangularCutoutRequest cutout;
+            cutout.id = profile_id;
+            cutout.target_surface = target_surface;
+            cutout.has_surface_position = true;
+            cutout.surface_position = surface_position;
+            cutout.width = width;
+            cutout.height = height;
+            cutout.depth = depth;
+            cutout.corner_radius = corner_radius;
+            cutout.rotation_degrees = rotation_degrees;
+            result.rectangular_cutouts.push_back(cutout);
+          }
           continue;
         }
       }
@@ -2383,6 +2473,12 @@ TopoDS_Shape BuildGeneratedTopLidRectangularCutoutTool(
     const RectangularCutoutRequest& cutout,
     int* filleted_edge_count);
 
+TopoDS_Shape BuildGeneratedTopLidSketchAddShape(
+    const EnclosureRequest& enclosure,
+    const GeneratedLidPlateRequest& lid_plate,
+    const SketchAddRequest& add,
+    int* filleted_edge_count);
+
 std::array<double, 2> GlassRecessTopLidCenter(
     const GlassRecessRequest& recess);
 
@@ -2408,6 +2504,13 @@ bool RectangularCutoutFitsTopLidSurface(
     const RectangularCutoutRequest& cutout,
     const std::array<double, 2>& center);
 
+std::array<double, 2> SketchAddCenter(const EnclosureRequest& enclosure,
+                                      const SketchAddRequest& add);
+
+bool SketchAddFitsTopLidSurface(const EnclosureRequest& enclosure,
+                                const SketchAddRequest& add,
+                                const std::array<double, 2>& center);
+
 NativeGeneratedLidPlateResult BuildGeneratedTopLidPlateShape(
     const EnclosureRequest& enclosure,
     const GeneratedLidPlateRequest& lid_plate,
@@ -2415,6 +2518,7 @@ NativeGeneratedLidPlateResult BuildGeneratedTopLidPlateShape(
     const std::vector<GlassRecessRequest>& glass_recesses,
     const std::vector<CircularCutoutRequest>& circular_cutouts,
     const std::vector<RectangularCutoutRequest>& rectangular_cutouts,
+    const std::vector<SketchAddRequest>& sketch_adds,
     const std::vector<ButtonGroupCutoutRequest>& button_groups) {
   NativeGeneratedLidPlateResult result;
   const std::array<double, 3> lid_size = {
@@ -2629,6 +2733,51 @@ NativeGeneratedLidPlateResult BuildGeneratedTopLidPlateShape(
     ++result.applied_feature_intent_count;
   }
 
+  for (const SketchAddRequest& add : sketch_adds) {
+    if (add.target_surface != enclosure.id + ".top_lid.outer") {
+      continue;
+    }
+
+    const std::array<double, 2> center = SketchAddCenter(enclosure, add);
+    if (!SketchAddFitsTopLidSurface(enclosure, add, center)) {
+      continue;
+    }
+
+    int filleted_edge_count = 0;
+    const TopoDS_Shape add_shape =
+        BuildGeneratedTopLidSketchAddShape(enclosure,
+                                           lid_plate,
+                                           add,
+                                           &filleted_edge_count);
+    if (add_shape.IsNull()) {
+      throw std::runtime_error(
+          "OCCT generated a null top lid sketch add shape.");
+    }
+
+    BRepAlgoAPI_Fuse fuse(result.shape, add_shape);
+    fuse.SimplifyResult(true, true);
+    if (!fuse.IsDone() || fuse.HasErrors()) {
+      throw std::runtime_error(
+          "OCCT top lid sketch add fuse did not complete.");
+    }
+
+    result.shape = fuse.Shape();
+    if (result.shape.IsNull()) {
+      throw std::runtime_error(
+          "OCCT generated a null top lid sketch add fuse shape.");
+    }
+
+    BRepCheck_Analyzer fuse_analyzer(result.shape, false);
+    if (!fuse_analyzer.IsValid()) {
+      throw std::runtime_error(
+          "OCCT generated an invalid top lid sketch add fuse shape.");
+    }
+
+    ++result.sketch_add_count;
+    result.sketch_add_filleted_edge_count += filleted_edge_count;
+    ++result.applied_feature_intent_count;
+  }
+
   for (const LidScrewBossRequest& boss : lid_screw_bosses) {
     const TopoDS_Shape hole_tool =
         BuildGeneratedTopLidScrewHoleTool(enclosure, lid_plate, boss);
@@ -2741,6 +2890,7 @@ NativePreviewAssemblyResult BuildPreviewAssembly(
     const std::vector<GlassRecessRequest>& glass_recesses,
     const std::vector<CircularCutoutRequest>& circular_cutouts,
     const std::vector<RectangularCutoutRequest>& rectangular_cutouts,
+    const std::vector<SketchAddRequest>& sketch_adds,
     const std::vector<ButtonGroupCutoutRequest>& button_groups) {
   NativePreviewAssemblyResult result;
   result.shape = body_shape;
@@ -2781,6 +2931,7 @@ NativePreviewAssemblyResult BuildPreviewAssembly(
                                         glass_recesses,
                                         circular_cutouts,
                                         rectangular_cutouts,
+                                        sketch_adds,
                                         button_groups);
     builder.Add(compound, lid_result.shape);
     ++result.generated_lid_plate_count;
@@ -2799,6 +2950,9 @@ NativePreviewAssemblyResult BuildPreviewAssembly(
         lid_result.rectangular_cutout_count;
     result.generated_lid_rectangular_cutout_filleted_edge_count +=
         lid_result.rectangular_cutout_filleted_edge_count;
+    result.generated_lid_sketch_add_count += lid_result.sketch_add_count;
+    result.generated_lid_sketch_add_filleted_edge_count +=
+        lid_result.sketch_add_filleted_edge_count;
     result.generated_lid_button_group_count += lid_result.button_group_count;
     result.generated_lid_button_cutout_count += lid_result.button_cutout_count;
     result.generated_lid_button_ring_count += lid_result.button_ring_count;
@@ -2987,6 +3141,8 @@ ShapeMetrics ComputeShapeMetrics(const TopoDS_Shape& shape,
                                  int generated_lid_circular_cutout_count,
                                  int generated_lid_rectangular_cutout_count,
                                  int generated_lid_rectangular_cutout_filleted_edge_count,
+                                 int generated_lid_sketch_add_count,
+                                 int generated_lid_sketch_add_filleted_edge_count,
                                  int generated_lid_button_group_count,
                                  int generated_lid_button_cutout_count,
                                  int generated_lid_button_ring_count,
@@ -3032,6 +3188,10 @@ ShapeMetrics ComputeShapeMetrics(const TopoDS_Shape& shape,
       generated_lid_rectangular_cutout_count;
   metrics.native_generated_lid_rectangular_cutout_filleted_edge_count =
       generated_lid_rectangular_cutout_filleted_edge_count;
+  metrics.native_generated_lid_sketch_add_count =
+      generated_lid_sketch_add_count;
+  metrics.native_generated_lid_sketch_add_filleted_edge_count =
+      generated_lid_sketch_add_filleted_edge_count;
   metrics.native_generated_lid_button_group_count =
       generated_lid_button_group_count;
   metrics.native_generated_lid_button_cutout_count =
@@ -3065,6 +3225,9 @@ ShapeMetrics ComputeShapeMetrics(const TopoDS_Shape& shape,
   metrics.native_rectangular_cutout_count = feature_cuts.rectangular_cutout_count;
   metrics.native_rectangular_cutout_filleted_edge_count =
       feature_cuts.rectangular_cutout_filleted_edge_count;
+  metrics.native_sketch_add_count = feature_cuts.sketch_add_count;
+  metrics.native_sketch_add_filleted_edge_count =
+      feature_cuts.sketch_add_filleted_edge_count;
   metrics.native_button_group_count = feature_cuts.button_group_count;
   metrics.native_button_cutout_count = feature_cuts.button_cutout_count;
   metrics.native_button_ring_count = feature_cuts.button_ring_count;
@@ -3299,6 +3462,93 @@ bool RectangularCutoutFitsTopLidSurface(
                                     tolerance);
 }
 
+std::array<double, 2> SketchAddCenter(const EnclosureRequest& enclosure,
+                                      const SketchAddRequest& add) {
+  if (add.has_surface_position) {
+    return add.surface_position;
+  }
+
+  if (add.target_surface == enclosure.id + ".front_wall.outer") {
+    return {0.0, enclosure.size[2] / 2.0};
+  }
+
+  return {0.0, 0.0};
+}
+
+bool SketchAddFitsFrontSurface(const EnclosureRequest& enclosure,
+                               const SketchAddRequest& add,
+                               const std::array<double, 2>& center) {
+  if (!IsPositiveDimension(add.protrusion) ||
+      add.protrusion > kMaxSketchAddProtrusion) {
+    return false;
+  }
+
+  const double inner_width =
+      enclosure.size[0] - enclosure.wall_thickness * 2.0;
+  const double min_z = enclosure.wall_thickness;
+  const double max_z = enclosure.size[2] - enclosure.wall_thickness;
+  const double tolerance = 0.000001;
+  if (add.shape_type == "circle") {
+    const double radius = add.diameter / 2.0;
+    return IsPositiveDimension(add.diameter) &&
+           center[0] - radius >= -inner_width / 2.0 - tolerance &&
+           center[0] + radius <= inner_width / 2.0 + tolerance &&
+           center[1] - radius >= min_z - tolerance &&
+           center[1] + radius <= max_z + tolerance;
+  }
+
+  if (add.shape_type == "rectangle") {
+    return RotatedRectangleFitsBounds(center,
+                                      add.width,
+                                      add.height,
+                                      add.rotation_degrees,
+                                      -inner_width / 2.0,
+                                      inner_width / 2.0,
+                                      min_z,
+                                      max_z,
+                                      tolerance);
+  }
+
+  return false;
+}
+
+bool SketchAddFitsTopLidSurface(const EnclosureRequest& enclosure,
+                                const SketchAddRequest& add,
+                                const std::array<double, 2>& center) {
+  if (!IsPositiveDimension(add.protrusion) ||
+      add.protrusion > kMaxSketchAddProtrusion) {
+    return false;
+  }
+
+  const double inner_width =
+      enclosure.size[0] - enclosure.wall_thickness * 2.0;
+  const double inner_depth =
+      enclosure.size[1] - enclosure.wall_thickness * 2.0;
+  const double tolerance = 0.000001;
+  if (add.shape_type == "circle") {
+    const double radius = add.diameter / 2.0;
+    return IsPositiveDimension(add.diameter) &&
+           center[0] - radius >= -inner_width / 2.0 - tolerance &&
+           center[0] + radius <= inner_width / 2.0 + tolerance &&
+           center[1] - radius >= -inner_depth / 2.0 - tolerance &&
+           center[1] + radius <= inner_depth / 2.0 + tolerance;
+  }
+
+  if (add.shape_type == "rectangle") {
+    return RotatedRectangleFitsBounds(center,
+                                      add.width,
+                                      add.height,
+                                      add.rotation_degrees,
+                                      -inner_width / 2.0,
+                                      inner_width / 2.0,
+                                      -inner_depth / 2.0,
+                                      inner_depth / 2.0,
+                                      tolerance);
+  }
+
+  return false;
+}
+
 double EffectiveCircularCutDepth(double requested_depth,
                                  double target_thickness,
                                  double overcut) {
@@ -3528,6 +3778,65 @@ bool FaceIntersectsRectangularCutout(
 
   return overlaps_cutout_volume && is_inside_cutout_outline &&
          (spans_cut_depth || is_cut_floor);
+}
+
+std::array<double, 4> SketchAddOutlineBounds2D(
+    const std::array<double, 2>& center,
+    const SketchAddRequest& add,
+    double tolerance) {
+  if (add.shape_type == "circle") {
+    const double radius = add.diameter / 2.0;
+    return {center[0] - radius - tolerance,
+            center[0] + radius + tolerance,
+            center[1] - radius - tolerance,
+            center[1] + radius + tolerance};
+  }
+
+  return RotatedRectangleBounds2D(center,
+                                  add.width,
+                                  add.height,
+                                  add.rotation_degrees,
+                                  tolerance);
+}
+
+bool FaceIntersectsSketchAdd(const FaceBounds& face_bounds,
+                             const ShapeMetrics& metrics,
+                             const EnclosureRequest& enclosure,
+                             const SketchAddRequest& add) {
+  const std::array<double, 2> center = SketchAddCenter(enclosure, add);
+  const double tolerance = PreviewSurfaceTolerance(metrics);
+  const std::array<double, 4> outline_bounds =
+      SketchAddOutlineBounds2D(center, add, tolerance);
+  const double min_x = outline_bounds[0];
+  const double max_x = outline_bounds[1];
+  const double min_z = outline_bounds[2];
+  const double max_z = outline_bounds[3];
+  const double front_y = -enclosure.size[1] / 2.0;
+  const double min_y = front_y - add.protrusion - tolerance;
+  const double max_y = front_y + kSketchAddSurfaceOverlap + tolerance;
+
+  const bool overlaps_volume =
+      face_bounds.max[0] >= min_x &&
+      face_bounds.min[0] <= max_x &&
+      face_bounds.max[1] >= min_y &&
+      face_bounds.min[1] <= max_y &&
+      face_bounds.max[2] >= min_z &&
+      face_bounds.min[2] <= max_z;
+  const bool is_inside_outline =
+      face_bounds.min[0] >= min_x &&
+      face_bounds.max[0] <= max_x &&
+      face_bounds.min[2] >= min_z &&
+      face_bounds.max[2] <= max_z;
+  const bool spans_protrusion =
+      face_bounds.max[1] - face_bounds.min[1] > tolerance;
+  const bool is_outer_face =
+      FaceIsOnPlane(face_bounds.min[1],
+                    face_bounds.max[1],
+                    front_y - add.protrusion,
+                    tolerance);
+
+  return overlaps_volume && is_inside_outline &&
+         (spans_protrusion || is_outer_face);
 }
 
 std::array<double, 2> ButtonCutoutCenter(const EnclosureRequest& enclosure,
@@ -4023,6 +4332,49 @@ bool FaceIntersectsGeneratedTopLidRectangularCutout(
 
   return overlaps_cutout_volume && is_inside_cutout_outline &&
          (spans_cut_depth || is_cut_floor);
+}
+
+bool FaceIntersectsGeneratedTopLidSketchAdd(
+    const FaceBounds& face_bounds,
+    const ShapeMetrics& metrics,
+    const EnclosureRequest& enclosure,
+    const GeneratedLidPlateRequest& lid_plate,
+    const SketchAddRequest& add) {
+  const std::array<double, 2> center = SketchAddCenter(enclosure, add);
+  const double tolerance = PreviewSurfaceTolerance(metrics);
+  const std::array<double, 4> outline_bounds =
+      SketchAddOutlineBounds2D(center, add, tolerance);
+  const double min_x = outline_bounds[0];
+  const double max_x = outline_bounds[1];
+  const double min_y = outline_bounds[2];
+  const double max_y = outline_bounds[3];
+  const double lid_top_z =
+      enclosure.size[2] + lid_plate.preview_gap + lid_plate.thickness;
+  const double min_z = lid_top_z - kSketchAddSurfaceOverlap - tolerance;
+  const double max_z = lid_top_z + add.protrusion + tolerance;
+
+  const bool overlaps_volume =
+      face_bounds.max[0] >= min_x &&
+      face_bounds.min[0] <= max_x &&
+      face_bounds.max[1] >= min_y &&
+      face_bounds.min[1] <= max_y &&
+      face_bounds.max[2] >= min_z &&
+      face_bounds.min[2] <= max_z;
+  const bool is_inside_outline =
+      face_bounds.min[0] >= min_x &&
+      face_bounds.max[0] <= max_x &&
+      face_bounds.min[1] >= min_y &&
+      face_bounds.max[1] <= max_y;
+  const bool spans_protrusion =
+      face_bounds.max[2] - face_bounds.min[2] > tolerance;
+  const bool is_outer_face =
+      FaceIsOnPlane(face_bounds.min[2],
+                    face_bounds.max[2],
+                    lid_top_z + add.protrusion,
+                    tolerance);
+
+  return overlaps_volume && is_inside_outline &&
+         (spans_protrusion || is_outer_face);
 }
 
 bool FaceIntersectsGeneratedTopLidButtonRing(
@@ -4861,6 +5213,69 @@ TopoDS_Shape BuildRectangularCutoutTool(const EnclosureRequest& enclosure,
                                cutout.rotation_degrees);
 }
 
+TopoDS_Shape BuildSketchAddShape(const EnclosureRequest& enclosure,
+                                 const SketchAddRequest& add,
+                                 int* filleted_edge_count) {
+  const std::array<double, 2> center = SketchAddCenter(enclosure, add);
+  const double front_y = -enclosure.size[1] / 2.0;
+  const double depth = add.protrusion + kSketchAddSurfaceOverlap;
+  *filleted_edge_count = 0;
+
+  if (add.shape_type == "circle") {
+    const gp_Ax2 axis(gp_Pnt(center[0],
+                             front_y - add.protrusion,
+                             center[1]),
+                      gp_Dir(0.0, 1.0, 0.0));
+    const TopoDS_Shape shape =
+        BRepPrimAPI_MakeCylinder(axis, add.diameter / 2.0, depth).Shape();
+    if (shape.IsNull()) {
+      throw std::runtime_error("OCCT generated a null sketch add circle.");
+    }
+    return shape;
+  }
+
+  if (add.shape_type != "rectangle") {
+    throw std::runtime_error("OCCT sketch add shape type is unsupported.");
+  }
+
+  const std::array<double, 3> add_size = {add.width, depth, add.height};
+  const gp_Pnt add_origin(center[0] - add.width / 2.0,
+                          front_y - add.protrusion,
+                          center[1] - add.height / 2.0);
+  const TopoDS_Shape box =
+      BRepPrimAPI_MakeBox(add_origin, add_size[0], add_size[1], add_size[2])
+          .Shape();
+  const double safe_radius =
+      std::min(add.corner_radius, std::min(add.width, add.height) / 2.0 - 0.001);
+  const gp_Ax1 rotation_axis(gp_Pnt(center[0], front_y, center[1]),
+                             gp_Dir(0.0, 1.0, 0.0));
+  if (safe_radius <= 0.0) {
+    return RotateShapeAroundAxis(box, rotation_axis, add.rotation_degrees);
+  }
+
+  BRepFilletAPI_MakeFillet fillet(box);
+  for (TopExp_Explorer explorer(box, TopAbs_EDGE); explorer.More();
+       explorer.Next()) {
+    const TopoDS_Edge edge = TopoDS::Edge(explorer.Current());
+    const std::array<double, 3> edge_dimensions =
+        DimensionsFromBounds(ComputeTopoBounds(edge));
+    if (edge_dimensions[0] <= 0.001 && edge_dimensions[2] <= 0.001 &&
+        edge_dimensions[1] > 0.001) {
+      fillet.Add(safe_radius, edge);
+      ++(*filleted_edge_count);
+    }
+  }
+
+  fillet.Build();
+  if (!fillet.IsDone()) {
+    throw std::runtime_error("OCCT sketch add fillet did not complete.");
+  }
+
+  return RotateShapeAroundAxis(fillet.Shape(),
+                               rotation_axis,
+                               add.rotation_degrees);
+}
+
 TopoDS_Shape BuildGeneratedTopLidGlassRecessTool(
     const EnclosureRequest& enclosure,
     const GeneratedLidPlateRequest& lid_plate,
@@ -5064,6 +5479,74 @@ TopoDS_Shape BuildGeneratedTopLidRectangularCutoutTool(
                                cutout.rotation_degrees);
 }
 
+TopoDS_Shape BuildGeneratedTopLidSketchAddShape(
+    const EnclosureRequest& enclosure,
+    const GeneratedLidPlateRequest& lid_plate,
+    const SketchAddRequest& add,
+    int* filleted_edge_count) {
+  const std::array<double, 2> center = SketchAddCenter(enclosure, add);
+  const double lid_top_z =
+      enclosure.size[2] + lid_plate.preview_gap + lid_plate.thickness;
+  const double depth = add.protrusion + kSketchAddSurfaceOverlap;
+  *filleted_edge_count = 0;
+
+  if (add.shape_type == "circle") {
+    const gp_Ax2 axis(
+        gp_Pnt(center[0], center[1], lid_top_z - kSketchAddSurfaceOverlap),
+        gp_Dir(0.0, 0.0, 1.0));
+    const TopoDS_Shape shape =
+        BRepPrimAPI_MakeCylinder(axis, add.diameter / 2.0, depth).Shape();
+    if (shape.IsNull()) {
+      throw std::runtime_error(
+          "OCCT generated a null top lid sketch add circle.");
+    }
+    return shape;
+  }
+
+  if (add.shape_type != "rectangle") {
+    throw std::runtime_error(
+        "OCCT top lid sketch add shape type is unsupported.");
+  }
+
+  const std::array<double, 3> add_size = {add.width, add.height, depth};
+  const gp_Pnt add_origin(center[0] - add.width / 2.0,
+                          center[1] - add.height / 2.0,
+                          lid_top_z - kSketchAddSurfaceOverlap);
+  const TopoDS_Shape box =
+      BRepPrimAPI_MakeBox(add_origin, add_size[0], add_size[1], add_size[2])
+          .Shape();
+  const double safe_radius =
+      std::min(add.corner_radius, std::min(add.width, add.height) / 2.0 - 0.001);
+  const gp_Ax1 rotation_axis(gp_Pnt(center[0], center[1], lid_top_z),
+                             gp_Dir(0.0, 0.0, 1.0));
+  if (safe_radius <= 0.0) {
+    return RotateShapeAroundAxis(box, rotation_axis, add.rotation_degrees);
+  }
+
+  BRepFilletAPI_MakeFillet fillet(box);
+  for (TopExp_Explorer explorer(box, TopAbs_EDGE); explorer.More();
+       explorer.Next()) {
+    const TopoDS_Edge edge = TopoDS::Edge(explorer.Current());
+    const std::array<double, 3> edge_dimensions =
+        DimensionsFromBounds(ComputeTopoBounds(edge));
+    if (edge_dimensions[0] <= 0.001 && edge_dimensions[1] <= 0.001 &&
+        edge_dimensions[2] > 0.001) {
+      fillet.Add(safe_radius, edge);
+      ++(*filleted_edge_count);
+    }
+  }
+
+  fillet.Build();
+  if (!fillet.IsDone()) {
+    throw std::runtime_error(
+        "OCCT top lid sketch add fillet did not complete.");
+  }
+
+  return RotateShapeAroundAxis(fillet.Shape(),
+                               rotation_axis,
+                               add.rotation_degrees);
+}
+
 NativeFeatureCutResult ApplyNativeFeatureCutouts(
     const TopoDS_Shape& base_shape,
     const EnclosureRequest& enclosure,
@@ -5071,6 +5554,7 @@ NativeFeatureCutResult ApplyNativeFeatureCutouts(
     const std::vector<GlassRecessRequest>& glass_recesses,
     const std::vector<CircularCutoutRequest>& circular_cutouts,
     const std::vector<RectangularCutoutRequest>& rectangular_cutouts,
+    const std::vector<SketchAddRequest>& sketch_adds,
     const std::vector<ButtonGroupCutoutRequest>& button_groups,
     const std::vector<StandoffMountGroupRequest>& standoff_groups,
     int feature_intent_count) {
@@ -5261,6 +5745,45 @@ NativeFeatureCutResult ApplyNativeFeatureCutouts(
     result.rectangular_cutout_filleted_edge_count += tool_filleted_edge_count;
   }
 
+  for (const SketchAddRequest& add : sketch_adds) {
+    if (add.target_surface != enclosure.id + ".front_wall.outer") {
+      continue;
+    }
+
+    const std::array<double, 2> center = SketchAddCenter(enclosure, add);
+    if (!SketchAddFitsFrontSurface(enclosure, add, center)) {
+      continue;
+    }
+
+    int filleted_edge_count = 0;
+    const TopoDS_Shape add_shape =
+        BuildSketchAddShape(enclosure, add, &filleted_edge_count);
+    if (add_shape.IsNull()) {
+      throw std::runtime_error("OCCT generated a null sketch add shape.");
+    }
+
+    BRepAlgoAPI_Fuse fuse(result.shape, add_shape);
+    fuse.SimplifyResult(true, true);
+    if (!fuse.IsDone() || fuse.HasErrors()) {
+      throw std::runtime_error("OCCT sketch add fuse did not complete.");
+    }
+
+    result.shape = fuse.Shape();
+    if (result.shape.IsNull()) {
+      throw std::runtime_error("OCCT generated a null sketch add fuse shape.");
+    }
+
+    BRepCheck_Analyzer fuse_analyzer(result.shape, false);
+    if (!fuse_analyzer.IsValid()) {
+      throw std::runtime_error(
+          "OCCT generated an invalid sketch add fuse shape.");
+    }
+
+    ++result.applied_intent_count;
+    ++result.sketch_add_count;
+    result.sketch_add_filleted_edge_count += filleted_edge_count;
+  }
+
   for (const ButtonGroupCutoutRequest& group : button_groups) {
     if (group.target_surface != enclosure.id + ".front_wall.outer") {
       continue;
@@ -5438,6 +5961,7 @@ std::vector<std::pair<std::string, std::string>> ClassifyPreviewSurfaces(
     const std::vector<GlassRecessRequest>& glass_recesses,
     const std::vector<CircularCutoutRequest>& circular_cutouts,
     const std::vector<RectangularCutoutRequest>& rectangular_cutouts,
+    const std::vector<SketchAddRequest>& sketch_adds,
     const std::vector<ButtonGroupCutoutRequest>& button_groups,
     const std::vector<StandoffMountGroupRequest>& standoff_groups) {
   std::vector<std::pair<std::string, std::string>> surfaces;
@@ -5462,6 +5986,24 @@ std::vector<std::pair<std::string, std::string>> ClassifyPreviewSurfaces(
                                         "Lid locating lip"));
       is_generated_lid_detail = true;
       break;
+    }
+  }
+
+  for (const GeneratedLidPlateRequest& lid_plate : generated_lid_plates) {
+    for (const SketchAddRequest& add : sketch_adds) {
+      if (add.target_surface != enclosure.id + ".top_lid.outer") {
+        continue;
+      }
+
+      if (FaceIntersectsGeneratedTopLidSketchAdd(face_bounds,
+                                                 metrics,
+                                                 enclosure,
+                                                 lid_plate,
+                                                 add)) {
+        surfaces.push_back(std::make_pair(add.id, "Top lid sketch add"));
+        is_generated_lid_detail = true;
+        break;
+      }
     }
   }
 
@@ -5626,6 +6168,16 @@ std::vector<std::pair<std::string, std::string>> ClassifyPreviewSurfaces(
     }
   }
 
+  for (const SketchAddRequest& add : sketch_adds) {
+    if (add.target_surface != enclosure.id + ".front_wall.outer") {
+      continue;
+    }
+
+    if (FaceIntersectsSketchAdd(face_bounds, metrics, enclosure, add)) {
+      surfaces.push_back(std::make_pair(add.id, "Sketch add"));
+    }
+  }
+
   for (const ButtonGroupCutoutRequest& group : button_groups) {
     for (const ButtonCutoutItemRequest& cutout : group.items) {
       if (FaceIntersectsButtonCutout(face_bounds, metrics, enclosure, cutout) ||
@@ -5697,6 +6249,8 @@ PreviewMeshData BuildPreviewMesh(const TopoDS_Shape& shape,
                                       circular_cutouts,
                                   const std::vector<RectangularCutoutRequest>&
                                       rectangular_cutouts,
+                                  const std::vector<SketchAddRequest>&
+                                      sketch_adds,
                                   const std::vector<ButtonGroupCutoutRequest>&
                                       button_groups,
                                  const std::vector<StandoffMountGroupRequest>&
@@ -5733,6 +6287,7 @@ PreviewMeshData BuildPreviewMesh(const TopoDS_Shape& shape,
                                  glass_recesses,
                                  circular_cutouts,
                                  rectangular_cutouts,
+                                 sketch_adds,
                                  button_groups,
                                 standoff_groups);
     const int vertex_offset = mesh.vertex_count();
@@ -6175,6 +6730,11 @@ void WriteRoundedEnclosurePreviewResponse(const NativeRequestEnvelope& request,
             << "    \"nativeGeneratedLidRectangularCutoutFilletedEdgeCount\": "
             << metrics.native_generated_lid_rectangular_cutout_filleted_edge_count
             << ",\n"
+            << "    \"nativeGeneratedLidSketchAddCount\": "
+            << metrics.native_generated_lid_sketch_add_count << ",\n"
+            << "    \"nativeGeneratedLidSketchAddFilletedEdgeCount\": "
+            << metrics.native_generated_lid_sketch_add_filleted_edge_count
+            << ",\n"
             << "    \"nativeGeneratedLidButtonGroupCount\": "
             << metrics.native_generated_lid_button_group_count << ",\n"
             << "    \"nativeGeneratedLidButtonCutoutCount\": "
@@ -6213,6 +6773,10 @@ void WriteRoundedEnclosurePreviewResponse(const NativeRequestEnvelope& request,
             << metrics.native_rectangular_cutout_count << ",\n"
             << "    \"nativeRectangularCutoutFilletedEdgeCount\": "
             << metrics.native_rectangular_cutout_filleted_edge_count << ",\n"
+            << "    \"nativeSketchAddCount\": "
+            << metrics.native_sketch_add_count << ",\n"
+            << "    \"nativeSketchAddFilletedEdgeCount\": "
+            << metrics.native_sketch_add_filleted_edge_count << ",\n"
             << "    \"nativeButtonGroupCount\": "
             << metrics.native_button_group_count << ",\n"
             << "    \"nativeButtonCutoutCount\": "
@@ -6544,6 +7108,7 @@ int main(int argc, char* argv[]) {
                                   parsed_request.glass_recesses,
                                   parsed_request.circular_cutouts,
                                   parsed_request.rectangular_cutouts,
+                                  parsed_request.sketch_adds,
                                   parsed_request.button_groups,
                                   parsed_request.standoff_groups,
                                   parsed_request.feature_intent_count);
@@ -6567,6 +7132,7 @@ int main(int argc, char* argv[]) {
                              parsed_request.glass_recesses,
                              parsed_request.circular_cutouts,
                              parsed_request.rectangular_cutouts,
+                             parsed_request.sketch_adds,
                              parsed_request.button_groups);
     if (preview_assembly.shape.IsNull()) {
       throw std::runtime_error("OCCT generated a null preview assembly.");
@@ -6606,6 +7172,9 @@ int main(int argc, char* argv[]) {
                                 .generated_lid_rectangular_cutout_count,
                             preview_assembly
                                 .generated_lid_rectangular_cutout_filleted_edge_count,
+                            preview_assembly.generated_lid_sketch_add_count,
+                            preview_assembly
+                                .generated_lid_sketch_add_filleted_edge_count,
                             preview_assembly.generated_lid_button_group_count,
                             preview_assembly.generated_lid_button_cutout_count,
                             preview_assembly.generated_lid_button_ring_count,
@@ -6645,6 +7214,7 @@ int main(int argc, char* argv[]) {
                            parsed_request.glass_recesses,
                            parsed_request.circular_cutouts,
                            parsed_request.rectangular_cutouts,
+                           parsed_request.sketch_adds,
                            parsed_request.button_groups,
                            parsed_request.standoff_groups);
       WriteRoundedEnclosurePreviewResponse(
